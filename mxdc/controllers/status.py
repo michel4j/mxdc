@@ -100,17 +100,17 @@ class StatusPanel(object):
 
     def on_devices_busy(self, obj, state):
         script_names = ['SetCenteringMode', 'SetBeamMode', 'SetCollectMode', 'SetMountMode']
-        if self.beamline.goniometer.is_busy() or self.beamline.automounter.is_busy() or self.beamline.automounter.in_standby():
+        if self.beamline.goniometer.is_busy() or self.beamline.automounter.is_busy() or self.beamline.automounter.is_preparing():
             logger.debug('Disabling commands. Reason: Gonio: {}, Robot: {}'.format(
                 self.beamline.goniometer.is_busy(),
-                self.beamline.automounter.is_busy() or self.beamline.automounter.in_standby()
+                self.beamline.automounter.is_busy() or self.beamline.automounter.is_preparing()
             ))
             for script_name in script_names:
                 self.scripts[script_name].disable()
         else:
             logger.debug('Enabling commands. Reason: Gonio: {}, Robot: {}'.format(
                 self.beamline.goniometer.is_busy(),
-                self.beamline.automounter.is_busy() or self.beamline.automounter.in_standby()
+                self.beamline.automounter.is_busy() or self.beamline.automounter.is_preparing()
             ))
             for script_name in script_names:
                 self.scripts[script_name].enable()

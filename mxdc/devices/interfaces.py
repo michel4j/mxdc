@@ -35,7 +35,7 @@ class IAutomounter(IDevice):
         """Get Ready to start"""
 
     def cancel():
-        """Relax from standby state"""
+        """Relax from prepare state"""
 
     def mount(port):
         """Pick up a sample and mount in on the goniometer."""
@@ -59,7 +59,7 @@ class IAutomounter(IDevice):
         """Check if the provided address can be mounted safely. """
 
     def in_standby():
-        """Check if in standby state"""
+        """Check if in prepare state"""
 
     def is_ready():
         """Check if automounter is ready to receive a command"""

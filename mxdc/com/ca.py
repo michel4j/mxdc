@@ -4,16 +4,7 @@ The main interface to EPICS in this module is the PV object,
 which holds an EPICS Process Variable (aka a 'channel'). This module
 makes use of the GObject system.
 
-Here's a simple example of using a PV:
-
-  >>> from ca import PV     # import the PV class
-  >>> pv = PV('XXX:m1.VAL')      # connect to a pv with its name.
-
-  >>> print pv.get()             # get the current value of the pv.
-  >>> pv.put(3.0)                # set the pv's value.
-
-
-beyond getting and setting a pv's value, a pv includes  these features: 
+Beyond getting and setting a pv's value, a pv includes  these features:
   1. Automatic connection management. A PV will automatically reconnect
      if the CA server restarts.
   2. Each PV is a GObject and thus benefits from all its features
@@ -24,7 +15,6 @@ beyond getting and setting a pv's value, a pv includes  these features:
 See the documentation for the PV class for a more complete description.
 """
 
-import array
 import atexit
 import collections
 import logging
@@ -50,22 +40,27 @@ logger.setLevel(logging.INFO)
 (NEVER_CONNECTED, PREVIOUSLY_CONNECTED, CONNECTED, CLOSED) = range(4)
 
 # Alarm type
-(NO_ALARM, READ_ALARM, WRITE_ALARM, HIHI_ALARM, HIGH_ALARM, LOLO_ALARM, LOW_ALARM,
- STATE_ALARM, COS_ALARM, COMM_ALARM, TIMEOUT_ALARM, HW_LIMIT_ALARM, CALC_ALARM,
- SCAN_ALARM, LINK_ALARM, SOFT_ALARM, BAD_SUB_ALARM, UDF_ALARM, DISABLE_ALARM,
- SIMM_ALARM, READ_ACCESS_ALARM, WRITE_ACCESS_ALARM, ALARM_NSTATUS) = range(23)
+(
+    NO_ALARM, READ_ALARM, WRITE_ALARM, HIHI_ALARM, HIGH_ALARM, LOLO_ALARM, LOW_ALARM,
+    STATE_ALARM, COS_ALARM, COMM_ALARM, TIMEOUT_ALARM, HW_LIMIT_ALARM, CALC_ALARM,
+    SCAN_ALARM, LINK_ALARM, SOFT_ALARM, BAD_SUB_ALARM, UDF_ALARM, DISABLE_ALARM,
+    SIMM_ALARM, READ_ACCESS_ALARM, WRITE_ACCESS_ALARM, ALARM_NSTATUS) = range(23)
 
-ALARM_NAMES = ['NONE', 'READ_ALARM', 'WRITE_ALARM', 'HIHI_ALARM', 'HIGH_ALARM', 'LOLO_ALARM',
-               'LOW_ALARM', 'STATE_ALARM', 'COS_ALARM', 'COMM_ALARM', 'TIMEOUT_ALARM', 'HW_LIMIT_ALARM',
-               'CALC_ALARM', 'SCAN_ALARM', 'LINK_ALARM', 'SOFT_ALARM', 'BAD_SUB_ALARM', 'UDF_ALARM',
-               'DISABLE_ALARM', 'SIMM_ALARM', 'READ_ACCESS_ALARM', 'WRITE_ACCESS_ALARM', 'ALARM_NSTATUS']
+ALARM_NAMES = [
+    'NONE', 'READ_ALARM', 'WRITE_ALARM', 'HIHI_ALARM', 'HIGH_ALARM', 'LOLO_ALARM',
+    'LOW_ALARM', 'STATE_ALARM', 'COS_ALARM', 'COMM_ALARM', 'TIMEOUT_ALARM', 'HW_LIMIT_ALARM',
+    'CALC_ALARM', 'SCAN_ALARM', 'LINK_ALARM', 'SOFT_ALARM', 'BAD_SUB_ALARM', 'UDF_ALARM',
+    'DISABLE_ALARM', 'SIMM_ALARM', 'READ_ACCESS_ALARM', 'WRITE_ACCESS_ALARM', 'ALARM_NSTATUS'
+]
 
 # Alarm Severity
-(NO_ALARM, MINOR_ALARM, MAJOR_ALARM, INVALID_ALARM) = range(4)
+(NONE, MINOR_ALARM, MAJOR_ALARM, INVALID_ALARM) = range(4)
 SEVERITY_NAMES = ['', 'MINOR', 'MAJOR', 'INVALID']
 
-(CA_OP_GET, CA_OP_PUT, CA_OP_CREATE_CHANNEL, CA_OP_ADD_EVENT, CA_OP_CLEAR_EVENT,
- CA_OP_OTHER, CA_OP_CONN_UP, CA_OP_CONN_DOWN,) = range(8)
+(
+    CA_OP_GET, CA_OP_PUT, CA_OP_CREATE_CHANNEL, CA_OP_ADD_EVENT, CA_OP_CLEAR_EVENT,
+    CA_OP_OTHER, CA_OP_CONN_UP, CA_OP_CONN_DOWN,
+) = range(8)
 
 POSIX_TIME_AT_EPICS_EPOCH = 631152000.0
 MAX_STRING_SIZE = 40
@@ -77,12 +72,14 @@ DBE_VALUE = 1 << 0
 DBE_ALARM = 1 << 1
 DBE_LOG = 1 << 2
 
-(DBF_STRING, DBF_INT, DBF_FLOAT, DBF_ENUM, DBF_CHAR, DBF_LONG, DBF_DOUBLE, DBR_STS_STRING,
- DBR_STS_SHORT, DBR_STS_FLOAT, DBR_STS_ENUM, DBR_STS_CHAR, DBR_STS_LONG, DBR_STS_DOUBLE,
- DBR_TIME_STRING, DBR_TIME_INT, DBR_TIME_FLOAT, DBR_TIME_ENUM, DBR_TIME_CHAR, DBR_TIME_LONG,
- DBR_TIME_DOUBLE, DBR_GR_STRING, DBR_GR_SHORT, DBR_GR_FLOAT, DBR_GR_ENUM, DBR_GR_CHAR,
- DBR_GR_LONG, DBR_GR_DOUBLE, DBR_CTRL_STRING, DBR_CTRL_SHORT, DBR_CTRL_FLOAT, DBR_CTRL_ENUM,
- DBR_CTRL_CHAR, DBR_CTRL_LONG, DBR_CTRL_DOUBLE) = range(35)
+(
+    DBF_STRING, DBF_INT, DBF_FLOAT, DBF_ENUM, DBF_CHAR, DBF_LONG, DBF_DOUBLE, DBR_STS_STRING,
+    DBR_STS_SHORT, DBR_STS_FLOAT, DBR_STS_ENUM, DBR_STS_CHAR, DBR_STS_LONG, DBR_STS_DOUBLE,
+    DBR_TIME_STRING, DBR_TIME_INT, DBR_TIME_FLOAT, DBR_TIME_ENUM, DBR_TIME_CHAR, DBR_TIME_LONG,
+    DBR_TIME_DOUBLE, DBR_GR_STRING, DBR_GR_SHORT, DBR_GR_FLOAT, DBR_GR_ENUM, DBR_GR_CHAR,
+    DBR_GR_LONG, DBR_GR_DOUBLE, DBR_CTRL_STRING, DBR_CTRL_SHORT, DBR_CTRL_FLOAT, DBR_CTRL_ENUM,
+    DBR_CTRL_CHAR, DBR_CTRL_LONG, DBR_CTRL_DOUBLE
+) = range(35)
 
 DBF_SHORT = DBF_INT
 DBR_STRING = DBF_STRING
@@ -110,8 +107,10 @@ class EpicsTimeStamp(Structure):
 
 
 class EventHandlerArgs(Structure):
-    _fields_ = [('usr', c_void_p), ('chid', c_ulong), ('type', c_long), ('count', c_long),
-                ('dbr', c_void_p), ('status', c_int)]
+    _fields_ = [
+        ('usr', c_void_p), ('chid', c_ulong), ('type', c_long), ('count', c_long),
+        ('dbr', c_void_p), ('status', c_int)
+    ]
 
 
 class ConnectionHandlerArgs(Structure):
@@ -119,9 +118,11 @@ class ConnectionHandlerArgs(Structure):
 
 
 class ExceptionHandlerArgs(Structure):
-    _fields_ = [('usr', c_void_p), ('chid', c_ulong), ('type', c_long),
-                ('count', c_long), ('addr', c_void_p), ('stat', c_long), ('op', c_long),
-                ('ctx', c_char_p), ('pFile', c_char_p), ('lineNo', c_uint), ]
+    _fields_ = [
+        ('usr', c_void_p), ('chid', c_ulong), ('type', c_long),
+        ('count', c_long), ('addr', c_void_p), ('stat', c_long), ('op', c_long),
+        ('ctx', c_char_p), ('pFile', c_char_p), ('lineNo', c_uint),
+    ]
 
 
 class ChannelAccessError(Exception):
@@ -139,14 +140,20 @@ _base_ctrl = [('status', c_short), ('severity', c_short)]
 def _limit_fields(_t):
     fields = [('units', c_char * MAX_UNITS_SIZE)]
 
-    extras = [(n, _t) for n in ('upper_disp_limit', 'lower_disp_limit', 'upper_alarm_limit',
-                                'upper_warning_limit', 'lower_warning_limit', 'lower_alarm_limit',
-                                'upper_ctrl_limit', 'lower_ctrl_limit')]
+    extras = [
+        (n, _t) for n in (
+            'upper_disp_limit', 'lower_disp_limit', 'upper_alarm_limit',
+            'upper_warning_limit', 'lower_warning_limit', 'lower_alarm_limit',
+            'upper_ctrl_limit', 'lower_ctrl_limit'
+        )
+    ]
     return fields + extras
 
 
-_enum_ctrl = [('no_str', c_short),
-              ('strs', (c_char * MAX_ENUM_STRING_SIZE) * MAX_ENUM_STATES)]
+_enum_ctrl = [
+    ('no_str', c_short),
+    ('strs', (c_char * MAX_ENUM_STRING_SIZE) * MAX_ENUM_STATES)
+]
 
 BaseFieldMap = {
     DBR_TIME_STRING: _base_fields,
@@ -199,16 +206,18 @@ TypeMap = {
     DBR_CTRL_DOUBLE: (c_double, 'DBR_CTRL_DOUBLE'),
 }
 
-_PV_REPR_FMT = ("<ProcessVariable\n"
-                "    Name:       %s\n"
-                "    Data type:  %s\n"
-                "    Elements:   %s\n"
-                "    Server:     %s\n"
-                "    Access:     %s\n"
-                "    Alarm:      %s (%s)\n"
-                "    Time-stamp: %s\n"
-                "    Connection: %s\n"
-                ">")
+_PV_REPR_FMT = (
+    "<ProcessVariable\n"
+    "    Name:       %s\n"
+    "    Data type:  %s\n"
+    "    Elements:   %s\n"
+    "    Server:     %s\n"
+    "    Access:     %s\n"
+    "    Alarm:      %s (%s)\n"
+    "    Time-stamp: %s\n"
+    "    Connection: %s\n"
+    ">"
+)
 
 
 class PV(BasePV):
@@ -355,7 +364,7 @@ class PV(BasePV):
                     params[_k] = v
             return params
 
-    def set(self, val, flush=False):
+    def put(self, val, flush=False):
         """
         Set the value of the process variable, waiting for up to 1 sec until 
         the put is complete.
@@ -380,7 +389,7 @@ class PV(BasePV):
         libca.ca_pend_event(0.05)
 
     # provide a put method for those used to EPICS terminology
-    put = set
+    set = put
 
     def toggle(self, val1, val2, delay=0.001):
         """Rapidly switch between two values with a maximum delay between."""
@@ -389,12 +398,12 @@ class PV(BasePV):
         self.set(val2)
 
     def from_python(self, val):
-        #convert enums if string is provided instead of short
+        # convert enums if string is provided instead of short
         if isinstance(val, str) and self.type == DBR_ENUM:
             if not self.params:
                 self.params = self.get_parameters()
             if val in self.params.get('strs', []):
-               val = self.params['strs'].index(val)
+                val = self.params['strs'].index(val)
 
         if self.count > 1 and isinstance(val, collections.Iterable):
             if self.type == DBR_CHAR:
@@ -499,7 +508,7 @@ class PV(BasePV):
             {'_fields_': BaseFieldMap[self.ttype] + [('value', self.vtype)]}
         )
         self.data = self.vtype()
-        #self.params = self.get_parameters()
+        # self.params = self.get_parameters()
 
     def on_connect(self, event):
         self.connected = event.op
@@ -593,10 +602,9 @@ def _heart_beat_loop():
 
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'], os.environ['EPICS_HOST_ARCH'])
-    # libca_file = 'libca.so'
     libca = cdll.LoadLibrary(libca_file)
-except:
-    print("EPICS run-time libraries could not be loaded!")
+except OSError:
+    print("EPICS run-time libraries could not be loaded! Make Sure EPICS is properly installed.")
     sys.exit(1)
 
 libca.last_heart_beat = time.time()
@@ -623,7 +631,9 @@ libca.ca_host_name.argtypes = [c_ulong]
 libca.ca_create_channel.argtypes = [c_char_p, c_void_p, c_void_p, c_int, POINTER(c_ulong)]
 libca.ca_clear_channel.argtypes = [c_ulong]
 
-libca.ca_create_subscription.argtypes = [c_long, c_uint, c_ulong, c_ulong, c_void_p, c_void_p, POINTER(c_ulong)]
+libca.ca_create_subscription.argtypes = [
+    c_long, c_uint, c_ulong, c_ulong, c_void_p, c_void_p, POINTER(c_ulong)
+]
 libca.ca_clear_subscription.argtypes = [c_ulong]
 
 libca.ca_array_get.argtypes = [c_long, c_uint, c_ulong, c_void_p]
@@ -671,10 +681,3 @@ def ca_cleanup():
 
 
 __all__ = ['PV', 'threads_init', 'flush', ]
-
-# Make sure you get the events on time.
-# GObject.timeout_add(10, _heart_beat, 0.001)
-# _ca_heartbeat_thread = threading.Thread(target=_heart_beat_loop)
-# _ca_heartbeat_thread.setDaemon(True)
-# _ca_heartbeat_thread.setName('ca.heartbeat')
-# _ca_heartbeat_thread.start()

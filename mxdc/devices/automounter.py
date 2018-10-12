@@ -8,7 +8,7 @@ from zope.interface import implements
 
 from interfaces import IAutomounter
 from mxdc.devices.base import BaseDevice
-from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR, ISARAMessages
+from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR, CATS_DEWAR, ISARAMessages
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import Chain
 
@@ -17,7 +17,7 @@ logger = get_module_logger(__name__)
 
 
 class State(Enum):
-    IDLE, STANDBY, BUSY, STOPPING, DISABLED, WARNING, FAILURE, ERROR = range(8)
+    IDLE, PREPARING, BUSY, STANDBY, DISABLED, WARNING, FAILURE, ERROR = range(8)
 
 
 def set_object_properties(obj, kwargs):
@@ -81,13 +81,22 @@ class AutoMounter(BaseDevice):
         """
         logger.error('Recovery procedure {} not implemented'.format(failure))
 
-    def standby(self):
+    def prefetch(self, port, wait=False):
+        """
+        For automounters which support pre-fetching. Prefetch the next sample for mounting
+        @param port: next port to mount
+        @param wait: boolean, wait for prefetch to complete
+        @return:
+        """
+        pass
+
+    def prepare(self):
         """
         Get ready to start
         @return:
         """
-        if self.is_ready() or self.in_standby():
-            self.configure(status=State.STANDBY)
+        if self.is_ready() or self.is_preparing():
+            self.configure(status=State.PREPARING)
             return True
         else:
             return False
@@ -97,7 +106,7 @@ class AutoMounter(BaseDevice):
         Cancel Standby state
         @return:
         """
-        if self.in_standby():
+        if self.is_preparing():
             self.configure(status=State.IDLE)
             return True
         else:
@@ -187,17 +196,17 @@ class AutoMounter(BaseDevice):
         Check if the automounter is ready for an operation
         @return:
         """
-        return (self.status in [State.IDLE, State.STANDBY] and self.is_active() and not self.is_busy())
+        return (self.status in [State.IDLE] and self.is_active() and not self.is_busy())
 
-    def in_standby(self):
+    def is_preparing(self):
         """
         Check if the automounter is preparing to start
         @return:
         """
-        return (self.status == State.STANDBY)
+        return (self.status == State.PREPARING)
 
 
-class SAMAutoMounter(AutoMounter):
+class SAMRobot(AutoMounter):
     StateCodes = {
         '0': Port.EMPTY,
         '1': Port.GOOD,
@@ -215,7 +224,7 @@ class SAMAutoMounter(AutoMounter):
     }
 
     def __init__(self, root):
-        super(SAMAutoMounter, self).__init__()
+        super(SAMRobot, self).__init__()
         self.name = 'SAM Automounter'
 
         # Status
@@ -264,7 +273,7 @@ class SAMAutoMounter(AutoMounter):
         return False
 
     def mount(self, port, wait=True):
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=60)
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=60)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -293,7 +302,7 @@ class SAMAutoMounter(AutoMounter):
             if wait:
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
-                    success = self.wait(states={State.STOPPING, State.IDLE}, timeout=300)
+                    success = self.wait(states={State.STANDBY, State.IDLE}, timeout=300)
                 if not success:
                     self.set_state(message="Mounting failed!")
                 return success
@@ -301,7 +310,7 @@ class SAMAutoMounter(AutoMounter):
                 return True
 
     def dismount(self, wait=False):
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=60)
+        enabled = self.wait(states={State.IDLE}, timeout=60)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -320,7 +329,7 @@ class SAMAutoMounter(AutoMounter):
             if wait:
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
-                    success = self.wait(states={State.STOPPING, State.IDLE}, timeout=240)
+                    success = self.wait(states={State.STANDBY, State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Dismounting failed!")
                 return success
@@ -352,11 +361,11 @@ class SAMAutoMounter(AutoMounter):
                 health |= 16
                 diagnosis += ['Disabled by staff']
             elif state == 4:
-                status = State.STOPPING
+                status = State.STANDBY
             elif state in [2, 3, 5] or is_busy:
                 status = State.BUSY
             elif state == 1:
-                status = State.STANDBY if self.status == State.STANDBY else State.IDLE
+                status = State.PREPARING if self.status == State.PREPARING else State.IDLE
                 diagnosis += ['Ready']
             else:
                 status = State.BUSY
@@ -391,6 +400,236 @@ class SAMAutoMounter(AutoMounter):
             'L': (fbstr[0], fbstr[1:97]),
             'M': (fbstr[97], fbstr[98:-97]),
             'R': (fbstr[-97], fbstr[-96:])
+        }
+        port_states = {}
+
+        container_spec = {
+            'puck': ('ABCD', range(1, 17)),
+            'cassette': ('ABCDEFGHIJKL', range(1, 9)),
+            'calib': ('ABCDEFGHIJKL', range(1, 9)),
+        }
+        containers = set()
+        for location, (type_code, port_states_str) in info.items():
+            type_name = self.TypeCodes.get(type_code)
+            if not type_name: continue
+            spec = container_spec.get(type_name)
+
+            if type_name == 'puck':
+                containers |= {'{}{}'.format(location, pos) for pos in spec[0]}
+            elif type_name in ['cassette', 'calib']:
+                containers |= {location}
+
+            if spec:
+                ports = [
+                    '{}{}{}'.format(location, sub_loc, pos)
+                    for sub_loc in spec[0]
+                    for pos in spec[1]
+                ]
+                states = [self.StateCodes.get(c, Port.UNKNOWN) for c in port_states_str]
+                port_states.update({port: state for port, state in zip(ports, states)})
+
+        self.props.layout = {loc: SAM_DEWAR[loc] for loc in containers}
+        self.props.containers = containers
+        self.props.ports = port_states
+
+
+class UncleSAMRobot(AutoMounter):
+    StateCodes = {
+        '0': Port.EMPTY,
+        '1': Port.GOOD,
+        'u': Port.UNKNOWN,
+        'm': Port.MOUNTED,
+        'j': Port.BAD,
+        'b': Port.EMPTY,
+        '-': Port.UNKNOWN
+    }
+    TypeCodes = {
+        'u': 'unknown',
+        '1': 'cassette',
+        '2': 'calib',
+        '3': 'puck',
+    }
+
+    def __init__(self, root):
+        super(UncleSAMRobot, self).__init__()
+        self.name = 'SAM Automounter'
+
+        # Status
+        self.ports_fbk = self.add_pv('{}:PORTS'.format(root))
+        self.sample_fbk = self.add_pv('{}:STATE:PORT'.format(root))
+
+        self.message_fbk = self.add_pv('{}:MESSAGE'.format(root))
+        self.warning_fbk = self.add_pv('{}:STATE:WRN'.format(root))
+        self.state_fbk = self.add_pv('{}:STATE:CODE'.format(root))
+        self.health_fbk = self.add_pv('{}:HEALTH'.format(root))
+        self.enabled_fbk = self.add_pv('{}:ENABLED'.format(root))
+        self.status_fbk = self.add_pv('{}:STATUS'.format(root))
+
+        # commands
+        self.mount_cmd = self.add_pv('{}:CMD:mount'.format(root))
+        self.next_port = self.add_pv('{}:PARAM:NEXTPORT'.format(root))
+        self.dismount_cmd = self.add_pv('{}:CMD:dismount'.format(root))
+        self.prefetch_cmd = self.add_pv('{}:CMD:prefetch'.format(root))
+        self.abort_cmd = self.add_pv('{}:CMD:abort'.format(root))
+
+        self.ports_fbk.connect('changed', self.on_ports_changed)
+        self.sample_fbk.connect('changed', self.on_sample_changed)
+        self.message_fbk.connect('changed', self.on_messages)
+
+        status_pvs = [self.warning_fbk, self.status_fbk, self.health_fbk, self.enabled_fbk]
+        for pv in status_pvs:
+            pv.connect('changed', self.on_states_changed)
+
+    def is_valid(self, port):
+        if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
+            return False
+        return True
+
+    def is_mountable(self, port):
+        if self.is_valid(port):
+            return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+        return False
+
+    def mount(self, port, wait=True):
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=60)
+        if not enabled:
+            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            self.set_state(message="Not ready, command ignored!")
+            self.cancel()
+            return False
+        elif self.is_mounted(port):
+            logger.info('{}: Sample {} already mounted.'.format(self.name, port))
+            self.set_state(message="Sample already mounted!")
+            return True
+        else:
+            self.next_port.put(port)
+            self.mount_cmd.put(1)
+
+            logger.info('{}: Mounting Sample: {}'.format(self.name, port))
+            if wait:
+                success = self.wait(states={State.BUSY}, timeout=10)
+                if success:
+                    success = self.wait(states={State.STANDBY, State.IDLE}, timeout=300)
+                if not success:
+                    self.set_state(message="Mounting failed!")
+                return success
+            else:
+                return True
+
+    def dismount(self, wait=False):
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=60)
+        if not enabled:
+            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            self.set_state(message="Not ready, command ignored!")
+            self.cancel()
+            return False
+        elif not self.is_mounted():
+            logger.info('{}: No Sample mounted.'.format(self.name))
+            self.set_state(message="No Sample mounted!")
+            return True
+        else:
+            self.dismount_cmd.put(1)
+            logger.info('{}: Dismounting sample.'.format(self.name, ))
+            if wait:
+                success = self.wait(states={State.BUSY}, timeout=10)
+                if success:
+                    success = self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+                if not success:
+                    self.set_state(message="Dismounting failed!")
+                return success
+            else:
+                return True
+
+    def prefetch(self, port, wait=True):
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=60)
+        if not enabled:
+            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            self.set_state(message="Not ready, command ignored!")
+            self.cancel()
+            return False
+        elif self.is_mounted(port):
+            logger.info('{}: Sample {} already mounted.'.format(self.name, port))
+            self.set_state(message="Sample already mounted!")
+            return True
+        else:
+            self.next_port.put(port)
+            self.prefetch_cmd.put(1)
+
+            logger.info('{}: Prefetch Sample: {}'.format(self.name, port))
+            if wait:
+                success = self.wait(states={State.STANDBY}, timeout=10)
+                if success:
+                    success = self.wait(states={State.IDLE}, timeout=60)
+                if not success:
+                    self.set_state(message="Prefetch failed!")
+                return success
+            else:
+                return True
+
+    def abort(self):
+        self.abort_cmd.put(1)
+
+    def on_messages(self, obj, *args, **kwargs):
+        text_msg = self.message_fbk.get()
+        text_warn = self.warning_fbk.get()
+        warnings = text_warn.strip()
+        messages = text_msg.strip()
+        self.set_state(message="{} {}".format(messages, warnings).strip())
+
+    def on_states_changed(self, obj, *args, **kwargs):
+        is_normal = self.health_fbk.get() == 1
+        is_disabled = self.enabled_fbk.get() == 0
+        state = self.status_fbk.get()
+        health = 0
+        diagnosis = []
+
+        if is_normal:
+            if is_disabled:
+                status = State.DISABLED
+                health |= 16
+                diagnosis += ['Disabled by staff']
+            elif state == 3:
+                status = State.STANDBY
+            elif state in [1, 2, 4]:
+                status = State.BUSY
+            elif state == 0:
+                status = State.PREPARING if self.status == State.PREPARING else State.IDLE
+                diagnosis += ['Ready']
+            else:
+                health |= 4
+                diagnosis += ['Error! Staff Needed.']
+                status = State.ERROR
+        else:
+            health |= 4
+            diagnosis += ['Error! Staff Needed.']
+            status = State.ERROR
+
+        self.configure(status=status)
+        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
+
+    def on_sample_changed(self, obj, val):
+        port_str = val.strip()
+        if not port_str:
+            self.sample = None
+            logger.debug('Sample dismounted')
+        else:
+            port = port_str
+            sample = {
+                'port': port.upper(),
+                'barcode': '' # TODO reimplement barcode reader
+            }
+            if sample != self.props.sample:
+                self.props.sample = sample
+                logger.debug('Mounted:  port={port} barcode={barcode}'.format(**self.props.sample))
+
+    def on_ports_changed(self, obj, state_str):
+        if len(state_str) < 291:
+            return
+
+        info = {
+            'L': (state_str[0], state_str[1:97]),
+            'M': (state_str[97], state_str[98:-97]),
+            'R': (state_str[-97], state_str[-96:])
         }
         port_states = {}
 
@@ -479,7 +718,7 @@ class SimAutoMounter(AutoMounter):
         return False
 
     def mount(self, port, wait=False):
-        enabled = self.wait(states={State.IDLE, State.STANDBY})
+        enabled = self.wait(states={State.IDLE, State.PREPARING})
         if not enabled:
             logger.warning('{}: not ready {}. command ignored!'.format(self.name, self.status))
             self.set_state(message="Not ready, command ignored!")
@@ -507,7 +746,7 @@ class SimAutoMounter(AutoMounter):
                 return True
 
     def dismount(self, wait=False):
-        enabled = self.wait(states={State.IDLE, State.STANDBY})
+        enabled = self.wait(states={State.IDLE, State.PREPARING})
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -722,7 +961,7 @@ class ISARAMounter(AutoMounter):
 
     def mount(self, port, wait=True):
         self.power_on()
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=240)
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=240)
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
             self.set_state(message="Not ready, command ignored!")
@@ -747,7 +986,7 @@ class ISARAMounter(AutoMounter):
                 success = self.wait(states={State.BUSY}, timeout=5)
 
             if wait and success:
-                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=240)
+                success = self.wait(states={State.STANDBY, State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Mounting timed out!")
                 return success
@@ -756,7 +995,7 @@ class ISARAMounter(AutoMounter):
 
     def dismount(self, wait=False):
         self.power_on()
-        enabled = self.wait(states={State.IDLE, State.STANDBY}, timeout=240)
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=240)
 
         if not enabled:
             logger.warning('{}: not ready. command ignored!'.format(self.name))
@@ -772,7 +1011,7 @@ class ISARAMounter(AutoMounter):
             logger.info('{}: Dismounting sample.'.format(self.name, ))
             success = self.wait(states={State.BUSY}, timeout=5)
             if wait and success:
-                success = self.wait(states={State.STOPPING, State.IDLE}, timeout=240)
+                success = self.wait(states={State.STANDBY, State.IDLE}, timeout=240)
                 if not success:
                     self.set_state(message="Dismount timed out!")
                 return success
@@ -874,9 +1113,318 @@ class ISARAMounter(AutoMounter):
             elif bot_busy:
                 status = State.BUSY
             elif cmd_busy:
-                status = State.STOPPING
+                status = State.STANDBY
             else:
-                status = State.STANDBY if self.status == State.STANDBY else State.IDLE
+                status = State.PREPARING if self.status == State.PREPARING else State.IDLE
+        elif not controller_good:
+            status = State.ERROR
+            self.set_state(message='Staff Needed! Check Controller.')
+        elif not robot_ready:
+            status = State.WARNING
+            self.set_state(message='Staff Needed! Wrong Mode/Tool.')
+        else:
+            health |= 4
+            diagnosis += ['Unknown Error! Staff Needed.']
+            status = State.ERROR
+
+        self.configure(status=status)
+        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
+
+    def on_message(self, obj, value, transform):
+        message = transform(value)
+        if message == 'collision in dewar':
+            self.configure(status=State.FAILURE)
+        if message:
+            self.set_state(message=message)
+
+    def on_reset(self, obj, value):
+        if value == 1:
+            self.configure(failure=None)
+
+    def on_error_changed(self, *args):
+        messages = ', '.join([
+            txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
+        ])
+        self.set_state(message=messages)
+        if messages:
+            self.set_state(health=(4, 'error', 'Staff attention needed'))
+        else:
+            self.set_state(health=(0, 'error', ''))
+
+
+# The following class is a stub for the CATS automounter. It is not yet fully implemented but
+# presents the structure to be used for fleshing out the implementation. It is based on the ISARA code above
+
+class CATSMounter(AutoMounter):
+    PUCKS = [
+        '',
+        'L1A', 'L2A', 'L3A',
+        'L1B', 'L2B', 'L3B',
+        'L1C', 'L2C', 'L3C',
+    ]
+
+    def __init__(self, root):
+        super(CATSMounter, self).__init__()
+        self.name = 'CATS Auto Mounter'
+        self.configure(layout=CATS_DEWAR)
+
+        #TODO : These process variables need to be replaced with the appropriate CATS versions
+
+        self.sample_number = self.add_pv('{}:trjarg_sampleNumber'.format(root))
+        self.puck_number = self.add_pv('{}:trjarg_puckNumber'.format(root))
+        self.tool_number = self.add_pv('{}:trjarg_toolNumber'.format(root))
+
+        self.gonio_puck_fbk = self.add_pv('{}:stscom_puckNumOnDiff:fbk'.format(root))
+        self.gonio_sample_fbk = self.add_pv('{}:stscom_sampleNumOnDiff:fbk'.format(root))
+        self.sample_detected = self.add_pv('{}:in_10:fbk'.format(root))
+        self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
+        self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
+        self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
+        self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
+
+        self.bot_busy_fbk = self.add_pv('{}:out_6:fbk'.format(root))
+        self.cmd_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
+        self.mode_fbk = self.add_pv('{}:stscom_automode:fbk'.format(root))
+        self.sensor_fbk = self.add_pv('{}:in_3:fbk'.format(root))
+        self.air_fbk = self.add_pv('{}:in_2:fbk'.format(root))
+        self.ln2_fbk = self.add_pv('{}:stscom_ln2_reg:fbk'.format(root))
+        self.prog_fbk = self.add_pv('{}:out_9:fbk'.format(root))
+
+        self.message_fbk = self.add_pv('{}:message'.format(root))
+        self.error_fbk = self.add_pv('{}:last_err:fbk'.format(root))
+        self.status_fbk = self.add_pv('{}:state'.format(root))
+        self.enabled_fbk = self.add_pv('{}:enabled'.format(root))
+
+        self.command_fbk = self.add_pv('{}:cmnd_resp:fbk'.format(root))
+        self.trajectory_fbk = self.add_pv('{}:stscom_path_name:fbk'.format(root))
+
+        self.errors = {
+            'Emergency/Air Pressure Fault': self.add_pv('{}:err_bit_0:fbk'.format(root)),
+            'Collision': self.add_pv('{}:err_bit_1:fbk'.format(root)),
+            'Comm Error': self.add_pv('{}:err_bit_2:fbk'.format(root)),
+            'Foot Collision': self.add_pv('{}:err_bit_9:fbk'.format(root)),
+            'Waiting for condition': self.add_pv('{}:err_bit_10:fbk'.format(root)),
+            'LN2 Error': self.add_pv('{}:err_bit_11:fbk'.format(root)),
+            'Dewar Fill Timeout': self.add_pv('{}:err_bit_12:fbk'.format(root)),
+        }
+
+        self.trajectory_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
+        self.error_fbk.connect('changed', self.on_message, ISARAMessages.errors)
+
+        self.abort_cmd = self.add_pv('{}:abort'.format(root))
+        self.reset_cmd = self.add_pv('{}:reset'.format(root))
+        self.clear_cmd = self.add_pv('{}:clear_memory'.format(root))
+
+        self.getput_cmd = self.add_pv('{}:getput'.format(root))
+        self.power_cmd = self.add_pv('{}:on'.format(root))
+        self.get_cmd = self.add_pv('{}:get'.format(root))
+        self.put_cmd = self.add_pv('{}:put'.format(root))
+        self.on_cmd = self.add_pv('{}:message'.format(root))
+
+        self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
+        self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
+        self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
+        self.reset_cmd.connect('changed', self.on_reset)
+
+        state_variables = [
+           self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
+           self.prog_fbk,
+           self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
+        ] + self.errors.values()
+        for obj in state_variables:
+            obj.connect('changed', self.on_state_changed)
+
+        for obj in self.errors.values():
+            obj.connect('changed', self.on_error_changed)
+
+    def is_mountable(self, port):
+        if self.is_valid(port):
+            return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+        return False
+
+    def is_valid(self, port):
+        lid, puck, pin = self._port2puck(port)
+        return 3 >= lid >= 1 and 3 >= puck >= 1 and 1 <= pin <= 10
+
+    def _port2puck(self, port):
+        """Convert the port string to a (lid, puck, pin) designation"""
+        position = (0, 0, 0)
+        if len(port) >= 3:
+            if port[:3] in self.PUCKS:
+                lid = int(port[1])
+                puck = ' ABC'.index(port[2])
+                pin = int(port[3:])
+                position = (lid, puck, pin)
+        return position
+
+    def _puck2port(self, lid, puck, pin):
+        """Convert the (lid, puck, pin) to string designation"""
+        return 'L{}{}{}'.format(lid, ' ABC'[puck], pin)
+
+    def power_on(self):
+        if self.power_fbk.get() == 0:
+            self.power_cmd.put(1)
+
+    def mount(self, port, wait=True):
+        self.power_on()
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=240)
+        if not enabled:
+            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            self.set_state(message="Not ready, command ignored!")
+            self.cancel()
+            return False
+        elif self.is_mounted(port):
+            logger.info('{}: Sample {} already mounted.'.format(self.name, port))
+            self.set_state(message="Sample already mounted!")
+            return True
+        else:
+            lid, puck, pin = self._port2puck(port)
+            logger.info('{}: Mounting Sample: {}'.format(self.name, port))
+            if self.is_mounted():
+                # TODO: send get_put command using requested (lid, puck, pin)
+                success = self.wait(states={State.BUSY}, timeout=5)
+            else:
+                # TODO: send put command using requested (lid, puck, pin)
+                success = self.wait(states={State.BUSY}, timeout=5)
+
+            if wait and success:
+                success = self.wait(states={State.STANDBY, State.IDLE}, timeout=240)
+                if not success:
+                    self.set_state(message="Mounting timed out!")
+                return success
+            else:
+                return success
+
+    def dismount(self, wait=False):
+        self.power_on()
+        enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=240)
+
+        if not enabled:
+            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            self.set_state(message="Not ready, command ignored!")
+            self.cancel()
+            return False
+        elif not self.is_mounted():
+            logger.info('{}: No Sample mounted.'.format(self.name))
+            self.set_state(message="No Sample mounted!")
+            return True
+        else:
+            # TODO: send get command
+            logger.info('{}: Dismounting sample.'.format(self.name, ))
+            success = self.wait(states={State.BUSY}, timeout=5)
+            if wait and success:
+                success = self.wait(states={State.STANDBY, State.IDLE}, timeout=240)
+                if not success:
+                    self.set_state(message="Dismount timed out!")
+                return success
+            else:
+                return success
+
+    def abort(self):
+        # TODO: send abort command
+        pass
+
+    def recover(self, context):
+        failure_type, message = context
+        if failure_type == 'blank-mounted':
+            self.set_state(message='Recovering from: {}'.format(failure_type))
+            # TODO: send commands to recover from fialure_type
+        else:
+            logger.warning('Recovering from: {} not available.'.format(failure_type))
+
+    def on_pucks_changed(self, obj, states):
+        """Called when pucks are changed in the automounter"""
+
+        # TODO: Parse and setup containers
+        sts = '111111111'
+        if len(sts) == 9:
+            pucks = {self.PUCKS[i + 1] for i, bit in enumerate(sts) if bit == '1'}
+            states = {
+                '{}{}'.format(puck, 1 + pin): Port.UNKNOWN for pin in range(16) for puck in pucks
+            }
+            self.props.ports = states
+            self.props.containers = pucks
+            self.set_state(health=(0, 'pucks', ''))
+        else:
+            self.set_state(health=(16, 'pucks', 'Puck detection problem!'), message='Could not read puck positions!')
+            self.props.ports = {}
+            self.props.containers = set()
+
+    def on_sample_changed(self, *args):
+        """Called when the currently mounted sample changes"""
+        # TODO: retrieve (lid, puck, pin) currently mounted from robot
+
+        lid = int(self.gonio_lid_fbk.get())
+        puck = int(self.gonio_puck_fbk.get())
+        pin = int(self.gonio_sample_fbk.get())
+
+        # reset state
+        port = self.props.sample.get('port')
+        ports = self.ports
+        if 3 >= lid >= 1 and 3 >= puck >= 1 and 1 <= pin <= 10:
+            GObject.timeout_add(2000, self.check_blank)
+            port = self._puck2port(lid, puck, pin)
+            ports[port] = Port.MOUNTED
+            self.props.sample = {
+                'port': port,
+                'barcode': ''
+            }
+        elif puck == 0 or pin == 0:
+            if ports.get(port) == Port.MOUNTED:
+                ports[port] = Port.UNKNOWN
+                self.set_state(message='Sample dismounted')
+            self.props.sample = {}
+        self.configure(ports=ports)
+
+    def check_blank(self):
+        failure_state = all([
+            self.sample_detected.get() == 1,
+            bool(self.props.sample.get('port')),
+            self.cmd_busy_fbk.get() == 1,
+            self.props.status != State.FAILURE
+        ])
+
+        if failure_state:
+            port = self.props.sample['port']
+            ports = self.ports
+            ports[port] = Port.BAD
+            message = (
+                "Automounter either failed to pick the sample at {0}, \n"
+                "or there was no sample at {0}. Make sure there \n"
+                "really is no sample mounted, then proceed to recover."
+            ).format(self.props.sample['port'])
+            self.configure(status=State.FAILURE, failure=('blank-mounted', message), ports=ports)
+        else:
+            self.set_state(message='Sample mounted')
+
+    def on_state_changed(self, *args):
+        cmd_busy = self.cmd_busy_fbk.get() == 1
+        bot_busy = self.bot_busy_fbk.get() == 1
+        auto_mode = self.mode_fbk.get() == 1
+        gripper_good = self.tool_number.get() == 0
+        air_ok = self.air_fbk.get() == 1
+        ln2_ok = self.ln2_fbk.get() == 1
+        sensor_ok = self.sensor_fbk.get() == 1
+        prog_ok = self.prog_fbk.get() == 1
+        enabled = self.enabled_fbk.get() == 1
+
+        controller_good = (air_ok and ln2_ok and sensor_ok and prog_ok)
+        robot_ready = auto_mode and gripper_good
+
+        health = 0
+        diagnosis = []
+
+        if controller_good and robot_ready:
+            if not enabled:
+                status = State.DISABLED
+                health |= 16
+                diagnosis += ['Disabled by staff']
+            elif bot_busy:
+                status = State.BUSY
+            elif cmd_busy:
+                status = State.STANDBY
+            else:
+                status = State.PREPARING if self.status == State.PREPARING else State.IDLE
         elif not controller_good:
             status = State.ERROR
             self.set_state(message='Staff Needed! Check Controller.')
