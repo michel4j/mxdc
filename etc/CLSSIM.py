@@ -59,8 +59,8 @@ DEVICES = {
     'distance': tmp1,
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    #'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
-    'detector': detector.ADSCDetector('13ADCS1:cam1', size=4096, pixel_size=0.07243),
+    'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
+    #'detector': detector.ADSCDetector('13ADCS1:cam1', size=4096, pixel_size=0.07243),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_x': motor.SimMotor('Beamstop X', 0.0, 'mm'),
@@ -93,8 +93,8 @@ DEVICES = {
     'i_2': counter.SimCounter('I_2', zero=65228),
 
     # Misc: Automounter, HC1 etc
-    #'automounter': automounter.SimAutoMounter(),
-    'automounter': automounter.UncleSAMRobot('SAM1608-001'),
+    'automounter': automounter.SimAutoMounter(),
+    #'automounter': automounter.UncleSAMRobot('SAM1608-001'),
     #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
