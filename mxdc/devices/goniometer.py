@@ -69,13 +69,13 @@ class Goniometer(BaseDevice):
         return self.props.mode
 
     def wait(self, start=True, stop=True, timeout=None):
-        """Wait for the goniometer busy state to change.
+        """
+        Wait for the goniometer busy state to change.
 
-        Kwargs:
-            - `start` (bool): Wait for the goniometer to become busy.
-            - `stop` (bool): Wait for the goniometer to become idle.
-            - `poll` (float): time in seconds to wait between checks.
-            - `timeout` (float): Maximum time to wait for.
+        @param start: (bool), Wait for the goniometer to become busy.
+        @param stop: (bool), Wait for the goniometer to become idle.
+        @param timeout: maximum time in seconds to wait before failing.
+        @return: (bool), False if wait timed-out
         """
         timeout = timeout or self.default_timeout
         poll = 0.05
@@ -100,18 +100,21 @@ class Goniometer(BaseDevice):
                 logger.warn('Timed out waiting for goniometer to stop')
 
     def stop(self):
-        """Stop and abort the current scan if any."""
+        """
+        Stop and abort the current scan if any.
+        """
         self.stopped = True
 
 
 class ParkerGonio(Goniometer):
-    """EPICS based Parker-type Goniometer at the CLS 08ID-1."""
 
     def __init__(self, root, mode_root, beam_root):
         """
-        Args:
-            - `name` (str): PV name of goniometer EPICS record.
-            - `blname` (str): PV name for Beamline PV.
+        EPICS based Parker-type Goniometer at the CLS 08ID-1.
+
+        @param root: (str): PV name of goniometer EPICS record.
+        @param mode_root:  PV name for Beamline PV.
+        @param beam_root:  PV name for setting beam Mode.
         """
         Goniometer.__init__(self)
 
@@ -219,13 +222,16 @@ class ParkerGonio(Goniometer):
 
 
 class MD2Gonio(Goniometer):
-    """
-    MD2-type Goniometer at the CLS 08B1-1.
-    """
+
     NULL_VALUE = '__EMPTY__'
 
     def __init__(self, root):
-        Goniometer.__init__(self, 'MD2 Diffractometer')
+        """
+        MD2-type Goniometer. New Arinax Java Interface
+
+        @param root: Server PV name
+        """
+        super(MD2Gonio, self).__init__('MD2 Diffractometer')
         self.requested_mode = None
         # initialize process variables
         self.mode_cmd = self.add_pv('{}:CurrentPhase'.format(root))
@@ -299,6 +305,12 @@ class MD2Gonio(Goniometer):
         self.props.mode = mode
 
     def scan(self, wait=True, timeout=None):
+        """
+        Perform a data collection scan
+
+        @param wait: Whether to wait for scan to complete
+        @param timeout: maximum time to wait
+        """
         self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)
         self.scan_cmd.put(self.NULL_VALUE)
@@ -307,7 +319,9 @@ class MD2Gonio(Goniometer):
             self.set_state(message='Scan complete!')
 
     def stop(self):
-        """Stop and abort the current scan if any."""
+        """
+        Stop and abort the current scan if any.
+        """
         self.stopped = True
         self.abort_cmd.put(self.NULL_VALUE)
 

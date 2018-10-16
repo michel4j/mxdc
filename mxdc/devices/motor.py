@@ -6,9 +6,8 @@ from gi.repository import GObject
 from zope.interface import implements
 
 from interfaces import IMotor
-from mxdc.com import ca
 from mxdc.devices.base import BaseDevice
-from mxdc.utils import converter, misc
+from mxdc.utils import converter
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 
@@ -66,7 +65,6 @@ class MotorBase(BaseDevice):
         Prepare all the components of the motor when it is started. Subclasses must implement it
         """
         raise NotImplementedError
-
 
     def do_starting(self):
         self.starting = True
@@ -515,7 +513,7 @@ class JunkEnergyMotor(Motor):
         self.CALIB = self.add_pv("{}:calibDone".format(self.name2_root))
         self.STAT = self.add_pv("{}:status".format(self.name2_root))
         self.LOG = self.add_pv("{}:stsLog".format(self.name1))
-        self.ENAB = self.add_pv('{}:enBraggChg'.format(self.name1)) #self.CALIB
+        self.ENAB = self.add_pv('{}:enBraggChg'.format(self.name1))  # self.CALIB
 
     def connect_monitors(self):
         self.RBV.connect('changed', self.notify_change)
@@ -553,7 +551,7 @@ class BraggEnergyMotor(VMEMotor):
         self.set_state(changed=val)
 
     def notify_target(self, obj, value):
-        pass # not needed for bragg
+        pass  # not needed for bragg
 
     def on_desc(self, pv, val):
         pass  # do not change description
@@ -600,7 +598,7 @@ class ResolutionMotor(MotorBase):
         self.distance.connect('done', lambda obj: self.set_state(done=None))
 
     def setup(self):
-        pass # no process variables needed
+        pass  # no process variables needed
 
     def get_position(self):
         return converter.dist_to_resol(self.distance.get_position(), self.detector_size, self.energy.get_position())

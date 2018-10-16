@@ -25,13 +25,13 @@ session = requests.Session()
 
 
 class VideoSrc(BaseDevice):
-    """Base class for all Video Sources. Maintains a list of listenners (sinks)
-    and updates each one when the video frame changes."""
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
-        """Kwargs:
-            `name` (str): Camera name.
-            `maxfps` (flaot): Maximum frame rate.
+        """
+        Base class for all Video Sources. Maintains a list of listenners (sinks)
+        and updates each one when the video frame changes.
+        @param name: Camera Name (str)
+        @param maxfps: Max frames per second (float)
         """
         BaseDevice.__init__(self)
         self.frame = None
@@ -44,42 +44,47 @@ class VideoSrc(BaseDevice):
         self._active = True
 
     def configure(self, **kwargs):
-        """Set the Video Gain"""
+        """
+        Configure the camera
+        """
         pass
 
     def add_sink(self, sink):
-        """Add a video sink.
-
-        Args:
-            `sink` (:class:`mxdc.interface.IVideoSink` provider).
+        """
+        Add a sink to the Camera
+        @param sink: :class:`mxdc.interface.IVideoSink` provider
         """
         self.sinks.append(sink)
         sink.set_src(self)
 
     def del_sink(self, sink):
-        """Remove a video sink.
+        """
+        Remove a video sink.
 
-        Args:
-            `sink` (:class:`mxdc.interface.IVideoSink` provider).
+        @param sink: :class:`mxdc.interface.IVideoSink` provider
         """
         if sink in self.sinks:
             self.sinks.remove(sink)
 
     def start(self):
-        """Start producing video frames. """
+        """
+        Start producing video frames.
+        """
 
         if self._stopped:
             self._stopped = False
-            worker = threading.Thread(target=self._stream_video)
+            worker = threading.Thread(target=self.streamer)
             worker.setName('Video Thread: %s' % self.name)
             worker.setDaemon(True)
             worker.start()
 
     def stop(self):
-        """Start producing video frames. """
+        """
+        Stop producing video frames.
+        """
         self._stopped = True
 
-    def _stream_video(self):
+    def streamer(self):
         dur = 1.0 / self.maxfps
         while not self._stopped:
             t = time.time()
@@ -96,10 +101,9 @@ class VideoSrc(BaseDevice):
             time.sleep(max(0, dur - (time.time() - t)))
 
     def get_frame(self):
-        """Obtain the most recent video frame.
-
-        Returns:
-            A :class:`Image.Image` (Python Imaging Library) image object.
+        """
+        Obtain the most recent video frame.
+        @return: A :class:`Image.Image` (Python Imaging Library) image object.
         """
         pass
 
@@ -141,9 +145,10 @@ class SimZoomableCamera(SimCamera):
         self._zoom.connect('changed', self._on_zoom_change)
 
     def zoom(self, value):
-        """Set the zoom position of the camera
-        Args:
-            `value` (float): the target zoom value.
+        """
+        Zoom to the given value.
+
+        @param value: zoom value
         """
         self._zoom.move_to(value, wait=True)
 
@@ -226,11 +231,8 @@ class JPGCamera(VideoSrc):
         return self.get_frame_raw()
 
     def get_frame_raw(self):
-        # r = self.session.get(self.url, stream=True)
         r = self.session.get(self.url)
         if r.status_code == 200:
-            # r.raw.decode_content = True
-            # self._frame = Image.open(r.raw)
             self._frame = Image.open(BytesIO(r.content))
             self.size = self._frame.size
         return self._frame
@@ -317,13 +319,14 @@ class ZoomableCamera(object):
             self._zoom.connect('active', self.update_zoom)
 
     def zoom(self, value, wait=False):
-        """Set the zoom position of the camera
-        Args:
-            `value` (float): the target zoom value.
+        """
+        Zoom to the given value.
+
+        @param value: zoom value
+        @param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
         self._zoom.move_to(value, wait=wait)
         if self.camera.zoom_slave:
-            #self.camera.configure(gain=max(1, min(19, int(1.5*value))))
             pass
 
     def update_resolution(self, *args, **kwar):
@@ -353,28 +356,21 @@ class AxisPTZCamera(AxisCamera):
         self.fetch_presets()
 
     def zoom(self, value, wait=False):
-        """Set the zoom position of the PTZ camera
-
-        Args:
-            `value` (int): the target zoom value.
-        """
         requests.get(self.url_root, params={'rzoom': value})
         self._rzoom -= value
 
     def center(self, x, y):
-        """Set the pan-tilt focal point of the PTZ camera
-
-        Args:
-            `x` (int): the target horizontal focal point on the image.
-            `y` (int): the target horizontal focal point on the image.
+        """
+        Center the Pan-Tilt-Zoom Camera at the given point.
+        @param x: (int), x point
+        @param y: (int), y point
         """
         requests.get(self.url_root, params={'center': '{},{}'.format(x, y)})
 
     def goto(self, position):
-        """Set the pan-tilt focal point based on a predefined position
-
-        Args:
-            `position` (str): Name of predefined position.
+        """
+        Go to the given named position
+        @param position: named position
         """
         requests.get(self.url_root, params={'gotoserverpresetname': position})
         self._rzoom = 0
@@ -383,10 +379,9 @@ class AxisPTZCamera(AxisCamera):
         return self.presets
 
     def fetch_presets(self):
-        """Get a list of all predefined position names from the PTZ camera
-
-        Returns:
-            A list of strings.
+        """
+        Obtain a list of named positions from the PTZ Camera
+        @return: list of strings
         """
         presets = []
         r = requests.get(self.url_root, params={'query': 'presetposall'})
@@ -398,112 +393,3 @@ class AxisPTZCamera(AxisCamera):
                     presets.append(m.group('name'))
         self.presets = presets
 
-
-class FDICamera(VideoSrc):
-    implements(ICamera)
-
-    def __init__(self, hostname, name='FDI Camera'):
-        VideoSrc.__init__(self, name)
-        self._hostname = hostname
-        self._name = name
-        self.size = (1388, 1040)
-        self.resolution = 0.0064e-3
-        self._open_socket()
-
-    def _open_socket(self):
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._sock.connect((self._hostname, 50000))
-
-    def get_frame(self):
-        self._sock.send('GetImage\n')
-        camdata = self._sock.recv(1024).split(';', 2)
-        while not camdata[0]:
-            self._sock.close()
-            self._open_socket()
-            self._sock.send('GetImage\n')
-            camdata = self._sock.recv(1024).split(';', 2)
-
-        if len(camdata[2]) != 6:
-            data = camdata[2][6:]
-            camdata = int(camdata[2][:6])
-        else:
-            data = ''
-            camdata = int(camdata[2])
-        timeout = 100000
-        while (len(data) < camdata) and timeout:
-            data = data + self._sock.recv(camdata)
-            timeout = timeout - 1
-        frame = misc.toimage(numpy.fromstring(zlib.decompress(data), 'H').reshape(self.size[1],
-                                                                                  self.size[0]))
-        return frame
-
-    def stop(self):
-        self._sock.close()
-        self._stopped = True
-
-
-class VideoRecorder(object):
-    implements(IVideoSink)
-
-    def __init__(self, camera):
-        self.stopped = False
-        self._colorize = False
-        self._palette = None
-        self._start_time = 0
-        self._last_time = 0
-        self._delta_t = 1.0
-        self._scale = 0.5
-        self._recording = False
-        self._duration = 300
-        self._filename = 'testing'
-        self.camera = camera
-
-    def set_src(self, src):
-        self.camera = src
-        self.camera.start()
-
-    def display(self, img):
-        if self._recording and time.time() - self._start_time <= self._duration:
-            if time.time() - self._last_time >= self._delta_t:
-                w, h = map(lambda x: int(x * self._scale), img.size)
-                img = img.resize((w, h), Image.ANTIALIAS)
-                if self._colorize:
-                    if img.mode != 'L':
-                        img = img.convert('L')
-                    img.putpalette(self._palette)
-                self._video_images.append(img)
-                self._video_times.append(time.time())
-                self._last_time = self._video_times[-1]
-        elif self._recording:
-            self.stop()
-
-    def set_colormap(self, colormap=None):
-        from mxdc.widgets import video as vw
-        if colormap is not None:
-            self._colorize = True
-            self._palette = vw.COLORMAPS[colormap]
-        else:
-            self._colorize = False
-
-    def record(self, filename, duration=5, fps=0.5, scale=0.5):
-        if not self._recording:
-            self.camera.add_sink(self)
-            self._filename = filename
-            self._recording = True
-            self._video_images = []
-            self._video_times = []
-            self._duration = duration * 60
-            self._delta_t = 1.0 / fps
-            self._start_time = time.time()
-            self._last_time = self._start_time
-            self._scale = scale
-
-    def stop(self):
-        from mxdc.utils import images2gif
-        if self._recording:
-            self._recording = False
-            self.camera.del_sink(self)
-            dur = numpy.diff(self._video_times).mean()
-            images2gif.writeGif(self._filename, self._video_images, duration=dur)
-            del self._video_images
-            del self._video_times
