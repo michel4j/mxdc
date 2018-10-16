@@ -281,7 +281,7 @@ class PositionerMotor(MotorBase):
         self.positioner = positioner
         self.name = positioner.name
         self.units = positioner.units
-        self.positioner.connect('changed', self._signal_change)
+        self.positioner.connect('changed', self.notify_change)
 
     def configure(self, props):
         pass
