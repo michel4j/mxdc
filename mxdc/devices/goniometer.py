@@ -116,7 +116,7 @@ class ParkerGonio(Goniometer):
         @param mode_root:  PV name for Beamline PV.
         @param beam_root:  PV name for setting beam Mode.
         """
-        Goniometer.__init__(self)
+        super(ParkerGonio, self).__init__()
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root))
@@ -328,7 +328,7 @@ class MD2Gonio(Goniometer):
 
 class SimGonio(Goniometer):
     def __init__(self):
-        Goniometer.__init__(self, 'SIM Diffractometer')
+        super(SimGonio, self).__init__('SIM Diffractometer')
         self._scanning = False
         self._lock = Lock()
         self.props.mode = self.ModeType.MOUNTING
@@ -388,4 +388,176 @@ class SimGonio(Goniometer):
         bl.omega.stop()
 
 
-__all__ = ['ParkerGonio', 'MD2Gonio', 'SimGonio']
+class GalilGonio(Goniometer):
+
+    def __init__(self, root, ):
+        """
+        EPICS based Parker-type Goniometer at the CLS 08ID-1.
+
+        @param root: (str): PV name of goniometer EPICS record.
+        @param mode_root:  PV name for Beamline PV.
+        @param beam_root:  PV name for setting beam Mode.
+        """
+        super(GalilGonio, self).__init__()
+
+        # initialize process variables
+        self.scan_cmd = self.add_pv("{}:OSCEXEC_SP".format(root))
+        self.scan_fbk = self.add_pv("{}:OSCSTATE_MONITOR".format(root))
+
+        self.scan_fbk.connect('changed', self.on_busy)
+
+        # parameters
+        self.settings = {
+            'time': self.add_pv("{}:EXPOSURE_TIME_SP".format(root), monitor=False),
+            'delta': self.add_pv("{}:OSC_WDDTH_SP".format(root), monitor=False),
+            'angle': self.add_pv("{}:OSC_POS_SP".format(root), monitor=False),
+        }
+        self.requested_mode = None
+
+    def change_mode(self, mode):
+        self.props.mode = mode
+        self.set_state(mode=mode)
+
+    def on_busy(self, obj, st):
+        if self.scan_fbk.get() == 1:
+            self.set_state(busy=True)
+        else:
+            self.set_state(busy=False)
+
+    def configure(self, **kwargs):
+        for key in kwargs.keys():
+            self.settings[key].put(kwargs[key])
+
+    def set_mode(self, mode, wait=False):
+        # convert strings to ModeType
+        mode = mode if isinstance(mode, self.ModeType) else self.ModeType[mode]
+
+        if self.is_busy():
+            self.wait(start=False, stop=True)
+
+        self.requested_mode = mode
+        self.set_state(mode=mode)
+
+        message = 'Switching to {}'.format(mode.name)
+        self.set_state(message=message)
+
+    def scan(self, wait=True, timeout=180):
+        self.set_state(message='Scanning ...')
+        self.wait(start=False, stop=True, timeout=timeout)
+        self.scan_cmd.put(1)
+        self.wait(start=True, stop=wait, timeout=timeout)
+
+        if wait:
+            self.set_state(message='Scan complete!')
+
+    def stop(self):
+        logger.debug('Stopping goniometer ...')
+        self.stopped = True
+
+
+class OldMD2Gonio(Goniometer):
+
+    NULL_VALUE = '__EMPTY__'
+
+    def __init__(self, root):
+        """
+        MD2-type Goniometer. Old Maatel Socket Interface
+
+        @param root: Server PV name
+        """
+        super(OldMD2Gonio, self).__init__('MD2 Diffractometer')
+        self.requested_mode = None
+        # initialize process variables
+        self.mode_cmd = self.add_pv('{}:S:MDPhasePosition:asyn.AOUT'.format(root))
+        self.scan_cmd = self.add_pv("{}:S:StartScan".format(root), monitor=False)
+        self.abort_cmd = self.add_pv("{}:S:AbortScan".format(root), monitor=False)
+        self.fluor_cmd = self.add_pv("{}:S:MoveFluoDetFront".format(root), monitor=False)
+        self.save_pos_cmd = self.add_pv("{}:S:ManCentCmpltd".format(root), monitor=False)
+
+        self.mode_fbk = self.add_pv("{}:G:MDPhasePosition".format(root))
+        self.state_fbk = self.add_pv("{}:G:MachAppState".format(root))
+        self.log_fbk = self.add_pv('{}:G:StatusMsg'.format(root))
+
+        # parameters
+        self.settings = {
+            'time': self.add_pv("{}:S:ScanExposureTime".format(root)),
+            'delta': self.add_pv("{}:S:ScanRange".format(root)),
+            'angle': self.add_pv("{}:S:ScanStartAngle".format(root)),
+            'passes': self.add_pv("{}:S:ScanNumOfPasses".format(root)),
+        }
+
+        # signal handlers
+        self.mode_fbk.connect('changed', self.on_mode_changed)
+        self.state_fbk.connect('changed', self.on_state_changed)
+
+    def configure(self, **kwargs):
+        for key in kwargs.keys():
+            self.settings[key].put(kwargs[key])
+
+    def set_mode(self, mode, wait=False):
+        # convert strings to ModeType
+        mode = mode if isinstance(mode, self.ModeType) else self.ModeType[mode]
+
+        if self.is_busy():
+            self.wait(start=False, stop=True)
+
+        target_mode = mode if mode != self.ModeType.SCANNING else self.ModeType.COLLECT
+
+        # if going from centering/transfer to any other mode , save centering position
+        save_modes = [self.ModeType.CENTERING, self.ModeType.MOUNTING]
+        if self.mode in save_modes and target_mode not in save_modes:
+            self.save_pos_cmd.put(self.NULL_VALUE)
+
+        self.mode_cmd.put(target_mode.value)
+        self.requested_mode = mode
+
+        message = 'Switching to {}'.format(mode.name)
+        if wait:
+            with misc.ContextMessenger(self,  message, ''):
+                self.wait_for_modes({target_mode})
+        else:
+            self.set_state(message=message)
+
+        if mode == self.ModeType.SCANNING:
+            self.fluor_cmd.put(0)
+
+    def on_state_changed(self, *args, **kwargs):
+        state = self.state_fbk.get()
+        if state in [5, 6, 7, 8]:
+            self.set_state(health=(0, 'faults'), busy=True)
+        elif state in [11, 12, 13, 14]:
+            msg = self.log_fbk.get()
+            self.set_state(health=(2, 'faults', msg), busy=False)
+        else:
+            self.set_state(busy=False, health=(0, 'faults'))
+
+    def on_mode_changed(self, *args, **kwargs):
+        mode = self.ModeType(self.mode_fbk.get())
+        if mode == self.ModeType.COLLECT and self.requested_mode in [self.ModeType.COLLECT, self.ModeType.SCANNING]:
+            mode = self.requested_mode
+        self.set_state(mode=mode)
+        self.props.mode = mode
+
+    def scan(self, wait=True, timeout=None):
+        """
+        Perform a data collection scan
+
+        @param wait: Whether to wait for scan to complete
+        @param timeout: maximum time to wait
+        """
+        self.set_state(message='Scanning ...')
+        self.wait(stop=True, start=False, timeout=timeout)
+        self.scan_cmd.toggle(1, 0)
+        self.wait(start=True, stop=wait, timeout=timeout)
+        if wait:
+            self.set_state(message='Scan complete!')
+
+    def stop(self):
+        """
+        Stop and abort the current scan if any.
+        """
+        self.stopped = True
+        self.abort_cmd.toggle(1,0)
+
+
+__all__ = ['ParkerGonio', 'MD2Gonio', 'OldMD2Gonio', 'SimGonio', 'GalilGonio']
