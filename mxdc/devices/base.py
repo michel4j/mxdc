@@ -191,6 +191,7 @@ class BaseDevice(GObject.GObject):
                     GObject.idle_add(self.emit, signal, health)
 
     def add_pv(self, *args, **kwargs):
+        # type: (str, object) -> mxdc.com.ca.PV
         """Add a process variable (PV) to the devices.
         
         Create a new process variable, add it to the devices.
@@ -202,7 +203,7 @@ class BaseDevice(GObject.GObject):
 
         Returns:
             A reference to the created object.
-            @rtype: object
+            @rtype: mxdc.com.ca.PV
         """
 
         #protocol = kwargs.pop('protocol', ca)

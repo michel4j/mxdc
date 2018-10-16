@@ -37,9 +37,12 @@ CONFIG = {
 # maps names to devices objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
-    'energy': motor.EnergyMotor('BL08ID1:energy', 'SMTR16082I1005:deg', mono_unit_cell=CONFIG['mono_unit_cell']),
+    'energy': motor.JunkEnergyMotor(
+        'BL08ID1:energy', 'SMTR16082I1005:deg', encoder="ENC16082I1001:cmbndPos",
+        mono_unit_cell=CONFIG['mono_unit_cell']
+    ),
     'bragg_energy': motor.BraggEnergyMotor(
-        'SMTR16082I1005:deg', motor_type="vme", mono_unit_cell=CONFIG['mono_unit_cell']
+        'SMTR16082I1005:deg', mono_unit_cell=CONFIG['mono_unit_cell']
     ),
     'dcm_pitch': motor.VMEMotor('SMTR16082I1010:deg'),
     'beam_tuner': boss.MOSTABTuner('MOS16082I1001',  'AH501-01:QEM', 'PCT1402-01:mA:fbk', reference='LUT1608-ID-IONC:target'),
@@ -60,9 +63,9 @@ DEVICES = {
 
     # Detector, distance & two_theta
     'distance': motor.PseudoMotor('BL08ID1:2Theta:D:mm'),
-    'detector_z': motor.ENCMotor('SMTR16083I1018:mm'),
+    'detector_z': motor.VMEMotor('SMTR16083I1018:mm', encoded=True),
     'two_theta': motor.PseudoMotor('BL08ID1:2Theta:deg'),
-    'detector': detector.PIL6MImager('DEC1608-01:cam1'),
+    'detector': detector.PilatusDetector('DEC1608-01:cam1'),
     #'detector': detector.SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
     'detector_cover': misc.Shutter('MSHD1608-3-I10-01'),
 
@@ -113,10 +116,10 @@ SERVICES = {
 
 # Devices only available in the console
 CONSOLE = {
-    'vfm_bend': motor.PseudoMotor2('BL08ID1:VFM:Focus:foc'),
-    'vfm_y': motor.PseudoMotor2('BL08ID1:VFM:Height:mm'),
-    'vfm_pitch': motor.PseudoMotor2('BL08ID1:VFM:Pitch:mrad'),
-    'vfm_roll': motor.PseudoMotor2('BL08ID1:VFM:Roll:mrad'),
+    'vfm_bend': motor.PseudoMotor('BL08ID1:VFM:Focus:foc', version=1),
+    'vfm_y': motor.PseudoMotor('BL08ID1:VFM:Height:mm', version=1),
+    'vfm_pitch': motor.PseudoMotor('BL08ID1:VFM:Pitch:mrad', version=1),
+    'vfm_roll': motor.PseudoMotor('BL08ID1:VFM:Roll:mrad', version=1),
     'dcm_roll1': motor.VMEMotor('SMTR16082I1007:deg'),
     'dcm_roll2': motor.VMEMotor('SMTR16082I1008:deg'),
     'dcm_pitch': motor.VMEMotor('SMTR16082I1010:deg'),
@@ -124,10 +127,10 @@ CONSOLE = {
     'dcm_y': motor.VMEMotor('SMTR16082I1006:mm'),
     'dcm_t1': motor.VMEMotor('SMTR16082I1011:mm'),
     'dcm_t2': motor.VMEMotor('SMTR16082I1012:mm'),
-    'wbs_hgap': motor.PseudoMotor2('PSL16082I1001:gap:mm'),
-    'wbs_vgap': motor.PseudoMotor2('PSL16082I1002:gap:mm'),
-    'wbs_x': motor.PseudoMotor2('PSL16082I1001:cntr:mm'),
-    'wbs_y': motor.PseudoMotor2('PSL16082I1002:cntr:mm'),
+    'wbs_hgap': motor.PseudoMotor('PSL16082I1001:gap:mm', version=1),
+    'wbs_vgap': motor.PseudoMotor('PSL16082I1002:gap:mm', version=1),
+    'wbs_x': motor.PseudoMotor('PSL16082I1001:cntr:mm', version=1),
+    'wbs_y': motor.PseudoMotor('PSL16082I1002:cntr:mm', version=1),
     'mbs_top': motor.VMEMotor('SMTR16082I1017:mm'),
     'mbs_bot': motor.VMEMotor('SMTR16082I1018:mm'),
     'es_x': motor.VMEMotor('SMTR16083I1002:mm'),

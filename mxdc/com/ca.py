@@ -1,23 +1,5 @@
-"""
-This module provides an object oriented interface for EPICS Channel Access.
-The main interface to EPICS in this module is the PV object,
-which holds an EPICS Process Variable (aka a 'channel'). This module
-makes use of the GObject system.
-
-Beyond getting and setting a pv's value, a pv includes  these features:
-  1. Automatic connection management. A PV will automatically reconnect
-     if the CA server restarts.
-  2. Each PV is a GObject and thus benefits from all its features
-     such as signals and callback connection.
-  3. For use in multi-threaded applications, the threads_init() function is
-     provided.
-
-See the documentation for the PV class for a more complete description.
-"""
-
 import atexit
 import collections
-import logging
 import os
 import re
 import sys
@@ -26,13 +8,13 @@ import time
 from ctypes import *
 
 import numpy
+from gi.repository import GObject
 
 from mxdc.com import BasePV
+from mxdc.utils import log
 
-# setup module logger with a default do-nothing handler
-module_name = __name__.split('.')[-1]
-logger = logging.getLogger(module_name)
-logger.setLevel(logging.INFO)
+# _setup module logger with a default do-nothing handler
+logger = log.get_module_logger(__name__)
 
 # Define EPICS constants
 (DISABLE_PREEMPTIVE_CALLBACK, ENABLE_PREEMPTIVE_CALLBACK) = range(2)
@@ -222,43 +204,43 @@ _PV_REPR_FMT = (
 
 class PV(BasePV):
     """A Process Variable
-    
+
     A PV encapsulates an EPICS Process Variable.
-    
-    The primary interface methods for a pv are to get() and set()/put() its 
+
+    The primary interface methods for a pv are to get() and set()/put() its
     value:
-    
+
       >>> p = PV(pv_name)    # create a pv object given a pv name
       >>> p.get()            # get pv value
-      >>> p.set(val)         # set pv to specified value. 
-    
+      >>> p.set(val)         # set pv to specified value.
+
     Additional important attributes include:
-    
+
       >>> p.name             # name of pv
       >>> p.count            # number of elements in array pvs
       >>> p.type             # EPICS data type
- 
+
     A pv uses Channel Access monitors to improve efficiency and minimize
     network traffic, so that calls to get() fetches the cached value,
-    which is automatically updated.  
+    which is automatically updated.
 
     Note that GObject, derived features are available only when a GObject
     or compatible main-loop is running.
 
-    In order to communicate with the corresponding channel on the IOC, a PV 
+    In order to communicate with the corresponding channel on the IOC, a PV
     needs to "connect".  This creates a dedicated connection to the IOC on which
-    the PV lives, and creates resources for the PV. A Python PV object cannot 
+    the PV lives, and creates resources for the PV. A Python PV object cannot
     actually do anything to the PV on the IOC until it is connected.
-    
-    Connection is a two-step process.  First a local PV is "created" in local 
-    memory. This happens very quickly, and happens automatically when a PV is 
-    initialized (and has a pvname).  
-  
+
+    Connection is a two-step process.  First a local PV is "created" in local
+    memory. This happens very quickly, and happens automatically when a PV is
+    initialized (and has a pvname).
+
     Second, connection is completed with network communication to the IOC. This
-    is necessary to determine the PV "type" (that is, integer, double, string, 
-    enum, etc) and "count" (that is, whether it holds an array of values) that 
-    are needed to allocate resources on the client machine.  Again, this 
-    connection is not instantaneous but must happen before you can do anything 
+    is necessary to determine the PV "type" (that is, integer, double, string,
+    enum, etc) and "count" (that is, whether it holds an array of values) that
+    are needed to allocate resources on the client machine.  Again, this
+    connection is not instantaneous but must happen before you can do anything
     useful with the PV.
     """
 
@@ -300,14 +282,10 @@ class PV(BasePV):
         else:
             _t = 'UNKNOWN'
         s = _PV_REPR_FMT % (
-            self.name,
-            _t,
-            self.count,
-            self.host,
-            self.access,
-            ALARM_NAMES[self.alarm], SEVERITY_NAMES[self.severity],
-            self.time,
-            OP_messages[self.connected])
+            self.name, _t, self.count, self.host, self.access,
+            ALARM_NAMES[self.alarm], SEVERITY_NAMES[self.severity], self.time,
+            OP_messages[self.connected]
+        )
         return s
 
     def __del__(self):
@@ -323,7 +301,7 @@ class PV(BasePV):
             - Character arrays and strings are equivalent. The return value is
               a string.
             - All other array types will return a numpy.ndarray
-        
+
         """
         if not self.is_connected():
             logger.error('(%s) PV not connected' % (self.name,))
@@ -346,9 +324,10 @@ class PV(BasePV):
         else:
             count = 1  # use count of 1 for control parameters
             _vtype = TypeMap[self.type][0] * count
-            _dtype = type("DBR_%02d_%02d" % (self.ctype, count),
-                          (Structure,),
-                          {'_fields_': BaseFieldMap[self.ctype] + [('value', _vtype)]})
+            _dtype = type(
+                "DBR_{:02d}_{:02d}".format(self.ctype, count), (Structure,),
+                {'_fields_': BaseFieldMap[self.ctype] + [('value', _vtype)]}
+            )
             data = _dtype()
             libca.ca_array_get(self.ctype, self.count, self.chid, byref(data))
             libca.ca_pend_io(1.0)
@@ -364,41 +343,47 @@ class PV(BasePV):
                     params[_k] = v
             return params
 
-    def put(self, val, flush=False):
+    def put(self, val, wait=False):
         """
-        Set the value of the process variable, waiting for up to 1 sec until 
+        Set the value of the process variable, waiting for up to 0.05 sec until
         the put is complete.
-        Array Types:
-            - Character arrays and strings are equivalent, except strings are fixed size.
-              They both expect a string value. Longer strings will be truncated
-            - All other array types expect a list, tuple, numpy.ndarray or array.array 
-              values containing an appropriate type. Longer sequences will be truncated.
-              If a single non-sequence value is given, the first element of the
-              array will be set to the value and the rest will be set to zero. If a 
-              sequence smaller than the element count is given, the rest of the values
-              will be set to zero.
+        :param val: Value to Put
+        :param flush: boolean, if True, flush the channel before returning
+        :return:
         """
+
         if not self.is_connected():
             logger.error('(%s) PV not connected' % (self.name,))
             return
 
         data = self.from_python(val)
         libca.ca_array_put(self.type, self.count, self.chid, byref(data))
-        libca.ca_pend_io(1.0)
-        libca.ca_flush_io()
-        libca.ca_pend_event(0.05)
+        libca.ca_pend_io(0.05)
+        libca.ca_pend_event(1e-4)
+        if wait:
+            flush()
 
     # provide a put method for those used to EPICS terminology
     set = put
 
     def toggle(self, val1, val2, delay=0.001):
-        """Rapidly switch between two values with a maximum delay between."""
+        """
+        Rapidly switch between two values with a maximum delay between.
+        :param val1: First Value
+        :param val2: Second Value
+        :param delay: Delay
+        :return:
+        """
         self.set(val1)
         libca.ca_pend_event(delay)
         self.set(val2)
 
     def from_python(self, val):
-        # convert enums if string is provided instead of short
+        """
+        Convert python value to data suitable for Channel Access
+        :param val: python value
+        :return: Channel Access data
+        """
         if isinstance(val, str) and self.type == DBR_ENUM:
             if not self.params:
                 self.params = self.get_parameters()
@@ -413,8 +398,9 @@ class PV(BasePV):
                 data = self.vtype(*[
                     create_string_buffer(val[i][:MAX_STRING_SIZE], MAX_STRING_SIZE) for i in range(self.count)
                 ])
+
             else:
-                data = self.vtype(*[self.etype(val[i][:MAX_STRING_SIZE]) for i in range(self.count)])
+                data = self.vtype(*[self.etype(v) for v in val])
         elif self.type == DBR_STRING:
             data = create_string_buffer(str(val)[:MAX_STRING_SIZE], MAX_STRING_SIZE)
         elif self.type == DBR_CHAR and isinstance(val, int):
@@ -426,11 +412,11 @@ class PV(BasePV):
     def to_python(self, ca_value, ca_type):
         """
         Convert EPICS value to python representation
-        @param raw: Channel Access data from Get and Monitor
-        @param ca_type: Channel Type
-        @return: python friendly value
-        """
 
+        :param ca_value: Channel Access data from Get and Monitor
+        :param ca_type: Channel Type
+        :return: python friendly value
+        """
         if ca_type in [DBR_STRING, DBR_TIME_STRING, DBR_CTRL_STRING]:
             if self.count > 1:
                 val = [(cast(x.value, c_char_p)).value for x in ca_value.value]
@@ -440,12 +426,17 @@ class PV(BasePV):
             val = ca_value.value
         else:
             if self.count > 1:
-                val = numpy.frombuffer(ca_value, TypeMap[ca_type][0])
+                val = numpy.frombuffer(ca_value.value, dtype=self.etype)
             else:
                 val = ca_value.value
         return val
 
     def on_change(self, event):
+        """
+        Callback for handling change event of Process Variables
+        :param event: CA Event record
+        :return:
+        """
         if self.chid != event.chid or event.type != self.ttype:
             return 0
 
@@ -465,10 +456,15 @@ class PV(BasePV):
         return 0
 
     def is_connected(self):
-        """Returns True if the channel is active"""
+        """
+        Returns True if the channel is active
+        """
         return self.connected == CA_OP_CONN_UP
 
     def create_connection(self):
+        """
+        Try to create a connection synchronously. If not successful, defer it asynchronously
+        """
         libca.ca_create_channel(self.name, None, None, 10, byref(self.chid))
         libca.ca_pend_io(1.0)
         stat = libca.ca_state(self.chid)
@@ -482,6 +478,9 @@ class PV(BasePV):
             self.defer_connection()
 
     def defer_connection(self):
+        """
+        Create a connection asynchronously
+        """
         if not self.is_connected():
             cb_factory = CFUNCTYPE(c_int, ConnectionHandlerArgs)
             cb_function = cb_factory(self.on_connect)
@@ -511,6 +510,11 @@ class PV(BasePV):
         # self.params = self.get_parameters()
 
     def on_connect(self, event):
+        """
+        Called every time a connection is successful
+        :param event:  connection event
+        :return:
+        """
         self.connected = event.op
         if self.is_connected():
             self.chid = event.chid
@@ -526,6 +530,10 @@ class PV(BasePV):
         return 0
 
     def add_monitor(self, callback):
+        """
+        Add a callback function to be called every time a change occurs. Mostly used internally.
+        External users should use the 'changed' and 'time' signals and the 'connect' method
+        """
         if not self.is_connected():
             logger.error('(%s) PV not connected.' % (self.name,))
             return
@@ -543,6 +551,11 @@ class PV(BasePV):
         return event_id.value
 
     def del_monitor(self, event_id):
+        """
+        Remove a monitor by id
+        :param event_id: monitor id to remove
+        :return:
+        """
         libca.ca_clear_subscription(event_id)
         libca.ca_pend_io(0.1)
         del self.monitors[event_id]
@@ -587,19 +600,6 @@ def ca_exception_handler(event):
     logger.debug(msg)
     return 0
 
-
-def _heart_beat(duration=0.001):
-    libca.ca_pend_event(duration)
-    return True
-
-
-def _heart_beat_loop():
-    threads_init()
-    while libca.active:
-        libca.ca_pend_event(0.001)
-        time.sleep(0.01)
-
-
 try:
     libca_file = "%s/lib/%s/libca.so" % (os.environ['EPICS_BASE'], os.environ['EPICS_HOST_ARCH'])
     libca = cdll.LoadLibrary(libca_file)
@@ -609,7 +609,7 @@ except OSError:
 
 libca.last_heart_beat = time.time()
 
-# define argument and return types    
+# define argument and return types
 libca.ca_name.restype = c_char_p
 libca.ca_name.argtypes = [c_ulong]
 
@@ -631,10 +631,10 @@ libca.ca_host_name.argtypes = [c_ulong]
 libca.ca_create_channel.argtypes = [c_char_p, c_void_p, c_void_p, c_int, POINTER(c_ulong)]
 libca.ca_clear_channel.argtypes = [c_ulong]
 
+libca.ca_clear_subscription.argtypes = [c_ulong]
 libca.ca_create_subscription.argtypes = [
     c_long, c_uint, c_ulong, c_ulong, c_void_p, c_void_p, POINTER(c_ulong)
 ]
-libca.ca_clear_subscription.argtypes = [c_ulong]
 
 libca.ca_array_get.argtypes = [c_long, c_uint, c_ulong, c_void_p]
 libca.ca_array_put.argtypes = [c_long, c_uint, c_ulong, c_void_p]
@@ -680,4 +680,4 @@ def ca_cleanup():
     libca.ca_context_destroy()
 
 
-__all__ = ['PV', 'threads_init', 'flush', ]
+__all__ = ['BasePV', 'PV', 'threads_init', 'flush', ]

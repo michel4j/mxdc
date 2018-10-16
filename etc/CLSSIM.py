@@ -59,7 +59,8 @@ DEVICES = {
     'distance': tmp1,
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    'detector': detector.SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
+    #'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
+    'detector': detector.ADSCDetector('13ADCS1:cam1', size=4096, pixel_size=0.07243),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_x': motor.SimMotor('Beamstop X', 0.0, 'mm'),

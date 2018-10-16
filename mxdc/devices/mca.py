@@ -63,18 +63,18 @@ class BasicMCA(BaseDevice):
 
         # Overwrite this method to setup PVs. follow are examples only
         # self.spectra = [self.add_pv("%s:mca%d" % (name, d+1), monitor=False) for d in range(elements)]
-        # self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
-        # self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
-        # self.START = self.add_pv("%s:mca1.ERST" % pv_root, monitor=False)
-        # self.ERASE = self.add_pv("%s:mca1.ERAS" % pv_root, monitor=False)
-        # self.IDTIM = self.add_pv("%s:mca1.IDTIM" % pv_root, monitor=False)
-        # self.ACQG = self.add_pv("%s:mca1.ACQG" % pv_root)
-        # self.STOP = self.add_pv("%s:mca1.STOP" % pv_root, monitor=False)
-        # self._count_time = self.add_pv("%s:mca1.PRTM" % pv_root)
+        # self.READ = self.add_pv("%s:mca1.READ" % name_root, monitor=False)
+        # self.RDNG = self.add_pv("%s:mca1.RDNG" % name_root)
+        # self.START = self.add_pv("%s:mca1.ERST" % name_root, monitor=False)
+        # self.ERASE = self.add_pv("%s:mca1.ERAS" % name_root, monitor=False)
+        # self.IDTIM = self.add_pv("%s:mca1.IDTIM" % name_root, monitor=False)
+        # self.ACQG = self.add_pv("%s:mca1.ACQG" % name_root)
+        # self.STOP = self.add_pv("%s:mca1.STOP" % name_root, monitor=False)
+        # self._count_time = self.add_pv("%s:mca1.PRTM" % name_root)
 
         # Calibration parameters
-        # self._slope = self.add_pv("%s:mca1.CALS" % pv_root)
-        # self._offset = self.add_pv("%s:mca1.CALO" % pv_root)
+        # self._slope = self.add_pv("%s:mca1.CALS" % name_root)
+        # self._offset = self.add_pv("%s:mca1.CALO" % name_root)
 
         # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
         # self.ACQG.connect('changed', self._monitor_state)

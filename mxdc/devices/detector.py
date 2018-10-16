@@ -22,37 +22,25 @@ logger = get_module_logger(__name__)
 TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'test')
 
 
-class SimCCDImager(BaseDevice):
+class SimDetector(BaseDevice):
     implements(IImagingDetector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
     }
 
-    def __init__(self, name, size, resolution, detector_type="MX300"):
+    def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
         BaseDevice.__init__(self)
         self.size = int(size), int(size)
-        self.resolution = float(resolution)
+        self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
         self.name = name
         self.detector_type = detector_type
         self.shutterless = False
         self.file_extension = 'img'
         self.set_state(active=True, health=(0, ''))
-        self._datasets = {
-            '/archive/staff/reference/CLS/SIM-1/sim_{:04d}.img': 180,
-            '/archive/staff/reference/CLS/SIM-2/sim_{:04d}.img': 60,
-            '/archive/staff/reference/CLS/SIM-3/sim_{:04d}.img': 93,
-        }
-        self._powders = {
-            '/archive/staff/michel/powder/LaB6-124_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-125_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-126_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-127_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-128_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-129_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-130_{:04d}.img': 2,
-            '/archive/staff/michel/powder/LaB6-136_{:04d}.img': 2,
-        }
+        self.sim_images_src = images
+        self._datasets = {}
+        self._powders = {}
         self._select_dir()
         self._state = 'idle'
         self._bg_taken = False
@@ -62,7 +50,7 @@ class SimCCDImager(BaseDevice):
     @decorators.async_call
     def prepare_datasets(self):
         self._datasets = {}
-        for root, dir, files in os.walk('/archive/staff/school'):
+        for root, dir, files in os.walk(self.sim_images_src):
             if self._stopped: break
             for file in fnmatch.filter(files, '*_001.img'):
                 if self._stopped: break
@@ -137,7 +125,7 @@ class SimCCDImager(BaseDevice):
         self._stopped = True
 
 
-class PIL6MImager(BaseDevice):
+class PilatusDetector(BaseDevice):
     implements(IImagingDetector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
@@ -147,13 +135,13 @@ class PIL6MImager(BaseDevice):
         'idle': [0]
     }
 
-    def __init__(self, name, description='PILATUS 6M Detector'):
-        super(PIL6MImager, self).__init__()
-        self.size = 2463, 2527
+    def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
+        super(PilatusDetector, self).__init__()
+        self.size = size
         self.resolution = 0.172
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.detector_type = 'PILATUS 6M'
+        self.detector_type = detector_type
         self.shutterless = True
         self.file_extension = 'cbf'
 
@@ -264,7 +252,7 @@ class PIL6MImager(BaseDevice):
         for k, v in params.items():
             if k in self.settings:
                 time.sleep(0.05)
-                self.settings[k].put(v, flush=True)
+                self.settings[k].put(v, wait=True)
 
     def wait_for_state(self, state, timeout=20.0):
         logger.debug('({}) Waiting for state: {}'.format(self.name, state, ))
@@ -300,7 +288,7 @@ class PIL6MImager(BaseDevice):
         return self.acquire_status.get() in self.STATES.get(state, [])
 
 
-class ADRayonixImager(BaseDevice):
+class RayonixDetector(BaseDevice):
     implements(IImagingDetector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
@@ -318,7 +306,7 @@ class ADRayonixImager(BaseDevice):
     }
 
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
-        super(ADRayonixImager, self).__init__()
+        super(RayonixDetector, self).__init__()
         self.size = size, size
         self.resolution = 0.073242
         self.mm_size = self.resolution * min(self.size)
@@ -429,7 +417,7 @@ class ADRayonixImager(BaseDevice):
         for k, v in params.items():
             if k in self.settings:
                 time.sleep(0.05)
-                self.settings[k].put(v, flush=True)
+                self.settings[k].put(v, wait=True)
 
     def wait_for_state(self, *states, **kwargs):
         timeout = kwargs.get('timeout', 10)
@@ -462,4 +450,169 @@ class ADRayonixImager(BaseDevice):
         return any(self.state_value.get() in self.STATES.get(state, []) for state in states)
 
 
-__all__ = ['SimCCDImager', 'PIL6MImager', 'ADRayonixImager']
+class ADSCDetector(BaseDevice):
+    implements(IImagingDetector)
+    __gsignals__ = {
+        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+    }
+    STATES = {
+        'init': [8],
+        'acquiring': [1],
+        'reading': [2],
+        'idle': [0, 4, 5, 6],
+        'error': [3],
+        'busy': [1, 2],
+    }
+
+    def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
+        super(ADSCDetector, self).__init__()
+        self.size = size, size
+        self.resolution = pixel_size
+        self.mm_size = self.resolution * min(self.size)
+        self.name = desc
+        self.detector_type = detector_type
+        self.shutterless = False
+        self.file_extension = 'img'
+        self.initialized = False
+
+        # commands
+        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
+        self.prepare_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
+        self.acquire_cmd = self.add_pv("{}:ExSwTrCtl".format(name), monitor=True)
+        self.reset_cmd = self.add_pv("{}:ADSCSoftReset".format(name), monitor=False)
+        self.save_cmd = self.add_pv("{}:WriteFile".format(name), monitor=False)
+
+        # settings and feedback
+        self.armed_staus = self.add_pv("{}:ExSwTrOkToExp".format(name))
+        self.dezinger_mode = self.add_pv("{}:ADSCDezingr".format(name), monitor=False)
+        self.stored_darks = self.add_pv("{}:ADSCStrDrks".format(name), monitor=True)
+        self.reuse_dark = self.add_pv("{}:ADSCReusDrk".format(name), monitor=False)
+        self.trigger_mode = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
+
+        self.state_value = self.add_pv('{}:ADSCState'.format(name))
+        self.file_format = self.add_pv("{}:FileTemplate".format(name))
+        self.saved_filename = self.add_pv('{}:FullFileName_RBV'.format(name))
+
+        self.saved_filename.connect('changed', self.on_new_frame)
+        self.file_format.connect('changed', self.on_new_format)
+
+        # Data Parameters
+        self.settings = {
+            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
+            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
+            'file_prefix': self.add_pv("{}:FileName".format(name), monitor=True),
+            'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
+
+            'wavelength': self.add_pv("{}:ADSCWavelen".format(name), monitor=False),
+            'beam_x': self.add_pv("{}:ADSCBeamX".format(name), monitor=False),
+            'beam_y': self.add_pv("{}:ADSCBeamY".format(name), monitor=False),
+            'distance': self.add_pv("{}:ADSCDistnce".format(name), monitor=False),
+            'axis': self.add_pv("{}:ADSCAxis".format(name), monitor=False),
+            'start_angle': self.add_pv("{}:ADSCOmega".format(name), monitor=False),
+            'delta_angle': self.add_pv("{}:ADSCImWidth".format(name), monitor=False),
+            'two_theta': self.add_pv("{}:ADSC2Theta".format(name), monitor=False),
+            'kappa': self.add_pv("{}:ADSCKappa".format(name), monitor=False),
+            'phi': self.add_pv("{}:ADSCPhi".format(name), monitor=False),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
+        }
+        self.connected_status.connect('changed', self.on_connection_changed)
+
+
+    def initialize(self, wait=True):
+        logger.debug('({}) Initializing Detector ...'.format(self.name))
+        self.initialized = True
+        self.trigger_mode.put(1)  # External
+        self.reuse_dark.put(1)    # Reuse dark frames for dezingering
+        self.dezinger_mode.put(1) # Dezinger images
+
+    def start(self, first=False):
+        logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        self.wait('idle')
+        self.prepare_cmd.put(1)
+        self.wait('armed')
+        self.acquire_cmd.put(1)
+        self.wait('acquiring')
+
+    def stop(self):
+        logger.debug('({}) Stopping Detector ...'.format(self.name))
+        self.acquire_cmd.put(0)
+        self.wait('idle')
+
+    def get_origin(self):
+        return self.size[0] // 2, self.size[1] // 2
+
+    def save(self):
+        self.acquire_cmd.put(0)
+
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            if os.path.exists(frame_path):
+                try:
+                    os.remove(frame_path)
+                except OSError:
+                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
+
+    def on_connection_changed(self, obj, state):
+        if state == 0:
+            self.initialized = False
+            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
+        else:
+            self.set_state(health=(0, 'socket'))
+
+    def on_new_frame(self, obj, path):
+        file_path = self.saved_filename.get()
+        GObject.idle_add(self.emit, 'new-image', file_path)
+
+    def on_new_format(self, obj, format):
+        self.file_extension = format.split('.')[-1]
+
+    def wait(self, *states):
+        states = states or ('idle',)
+        return self.wait_for_state(*states)
+
+    def set_parameters(self, data):
+        if not self.initialized:
+            self.initialize(True)
+        params = {}
+        params.update(data)
+        for k, v in params.items():
+            if k in self.settings:
+                time.sleep(0.05)
+                self.settings[k].put(v, wait=True)
+
+    def wait_for_state(self, *states, **kwargs):
+        timeout = kwargs.get('timeout', 10)
+        logger.debug('({}) Waiting for state: {}'.format(self.name, '|'.join(states)))
+        while timeout > 0 and not self.is_in_state(*states):
+            timeout -= 0.05
+            time.sleep(0.05)
+        if timeout > 0:
+            logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
+            return True
+        else:
+            logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states), ))
+            return False
+
+    def wait_in_state(self, *states, **kwargs):
+        timeout = kwargs.get('timeout', 60)
+        logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states), ))
+        while self.is_in_state(*states) and timeout > 0:
+            timeout -= 0.05
+            time.sleep(0.05)
+        if timeout > 0:
+            logger.debug(
+                '({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
+            return True
+        else:
+            logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states), ))
+            return False
+
+    def is_in_state(self, *states):
+        cur_state = self.state_value.get()
+        checks = [cur_state in self.STATES.get(state, []) for state in states]
+        checks += ['armed' in states and self.armed_staus.get() == 1]  # Armed state is special
+        return any(checks)
+
+
+__all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector']

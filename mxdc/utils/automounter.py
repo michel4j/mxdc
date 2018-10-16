@@ -202,6 +202,15 @@ class Cassette(Container):
         return {self.loc: (0, -5 / 12.)}
 
 
+class Plate(Container):
+    PIN = 1/24.
+    WIDTH = 7/31.
+    HEIGHT = 5/31.
+    SHAPE = 'rectangle'
+    COORDS = numpy.array([(i/12., 1-j/16. + ((j%2)-0.5)/64.) for x in range(8 * 24) for j, i in [divmod(x, 12)]])
+    NAMES = tuple('{}{}'.format(chr(ord('A') + row//2), (col)+((row%2)*12) + 1) for i in range(8 * 24) for row, col in [divmod(i, 12)])
+
+
 SAM_DEWAR = {
     # Puck Adapters
     'LA': Puck('LA', 0.25 - 1 / 12., 0.25 - 1 / 12.),
