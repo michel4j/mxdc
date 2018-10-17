@@ -41,7 +41,6 @@ class SimDetector(BaseDevice):
         self.sim_images_src = images
         self._datasets = {}
         self._powders = {}
-        self._select_dir()
         self._state = 'idle'
         self._bg_taken = False
         self._stopped = False
@@ -59,6 +58,7 @@ class SimDetector(BaseDevice):
                 data_files = fnmatch.filter(files, data_root)
                 if len(data_files) >= 60:
                     self._datasets[key] = len(data_files)
+        self._select_dir()
 
     def initialize(self, wait=True):
         logger.debug('(%s) Initializing CCD ...' % (self.name,))
