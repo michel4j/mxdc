@@ -1,0 +1,9 @@
+numpy>=1.14.5
+scipy>=1.0.0
+redis>=2.10.6
+cryptography>=2.3
+zope.event>=4.2.0
+matplotlib>=2.2.3
+requests>=2.18.4
+Twisted>=18.4.0
+
