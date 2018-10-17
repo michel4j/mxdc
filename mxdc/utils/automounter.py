@@ -310,3 +310,32 @@ class ISARAMessages(object):
             message = message.replace(old, new)
         if message:
             return message
+
+
+class CATSMessages(object):
+    @staticmethod
+    def trajectory(message):
+        return {
+            'getput': 'Switching sample ...',
+            'get': 'Dismounting sample ...',
+            'getputplate': 'Switching Plate ...',
+            'getplate': 'Dismounting plate ...',
+            'putplate': 'Mounting plate ...',
+            'put': 'Mounting sample ...',
+            'dry': 'Drying gripper ...',
+            'soak': 'Soaking ...',
+            'home': 'Going home ...',
+
+        }.get(message.lower().strip())
+
+    @staticmethod
+    def errors(message):
+        replacements = {
+            'high level alarm Dew1': 'Dewar LN2 topped up',
+            'WAIT for RdTrsf condition / 9 not TRUE': 'Waiting for endstation-ready ...',
+            'WAIT for SplOn condition / not TRUE / 1': 'Checking sample on gonio ...',
+        }
+        for old, new in replacements.items():
+            message = message.replace(old, new)
+        if message:
+            return message

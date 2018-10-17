@@ -8,7 +8,7 @@ from zope.interface import implements
 
 from interfaces import IAutomounter
 from mxdc.devices.base import BaseDevice
-from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR, CATS_DEWAR, ISARAMessages
+from mxdc.utils.automounter import Port, SAM_DEWAR, ISARA_DEWAR, CATS_DEWAR, ISARAMessages, CATSMessages
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import Chain
 
@@ -139,7 +139,7 @@ class AutoMounter(BaseDevice):
         """
         raise NotImplementedError('Sub-classes must implement dismount method')
 
-    def wait(self, states={State.IDLE}, timeout=60):
+    def wait(self, states=(State.IDLE), timeout=60):
         """
         Wait for the given state to be attained
         @param states: requested state to wait for or a list of states
@@ -1175,15 +1175,15 @@ class ISARAMounter(AutoMounter):
             self.set_state(health=(0, 'error', ''))
 
 
-# The following class is a stub for the CATS automounter. It is not yet fully implemented but
-# presents the structure to be used for fleshing out the implementation. It is based on the ISARA code above
+# The following class is a stub for the CATS automounter based on the bobcats driver.
 
 class CATSMounter(AutoMounter):
     PUCKS = [
         '',
-        'L1A', 'L2A', 'L3A',
-        'L1B', 'L2B', 'L3B',
-        'L1C', 'L2C', 'L3C',
+        'L1A', 'L2A', 'L3A', 'L1B', 'L2B', 'L3B', 'L1C', 'L2C', 'L3C',
+    ]
+    PLATES = [
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'
     ]
 
     def __init__(self, root):
@@ -1191,98 +1191,73 @@ class CATSMounter(AutoMounter):
         self.name = 'CATS Auto Mounter'
         self.configure(layout=CATS_DEWAR)
 
-        #TODO : These process variables need to be replaced with the appropriate CATS versions
+        self.power_cmd = self.add_pv('{}:CMD:power'.format(root))
+        self.mount_cmd = self.add_pv('{}:CMD:mount'.format(root))
+        self.dismount_cmd = self.add_pv('{}:CMD:dismount'.format(root))
+        self.next_sample = self.add_pv('{}:PAR:nextPort'.format(root))
 
-        self.sample_number = self.add_pv('{}:trjarg_sampleNumber'.format(root))
-        self.puck_number = self.add_pv('{}:trjarg_puckNumber'.format(root))
-        self.tool_number = self.add_pv('{}:trjarg_toolNumber'.format(root))
+        # extra commands, prefer simplified ones above
+        self.abort_cmd = self.add_pv('{}:CMD:abort'.format(root))
+        self.reset_cmd = self.add_pv('{}:CMD:reset'.format(root))
+        self.clear_cmd = self.add_pv('{}:CMD:clear'.format(root))
+        self.getput_cmd = self.add_pv('{}:CMD:getPut'.format(root))
+        self.get_cmd = self.add_pv('{}:CMD:get'.format(root))
+        self.put_cmd = self.add_pv('{}:CMD:put'.format(root))
 
-        self.gonio_puck_fbk = self.add_pv('{}:stscom_puckNumOnDiff:fbk'.format(root))
-        self.gonio_sample_fbk = self.add_pv('{}:stscom_sampleNumOnDiff:fbk'.format(root))
-        self.sample_detected = self.add_pv('{}:in_10:fbk'.format(root))
-        self.tool_puck_fbk = self.add_pv('{}:stscom_puckNumOnTool:fbk'.format(root))
-        self.tool_sample_fbk = self.add_pv('{}:stscom_sampleNumOnTool:fbk'.format(root))
-        self.power_fbk = self.add_pv('{}:stscom_power:fbk'.format(root))
-        self.puck_probe_fbk = self.add_pv('{}:dewar_puck_sts:fbk'.format(root))
+        # plates
+        self.tilt_plate_cmd = self.add_pv('{}:CMD:tiltPlate'.format(root))
+        self.well_param = self.add_pv('{}:PAR:well'.format(root))
+        self.adjust_x = self.add_pv('{}:PAR:adjustX'.format(root))
+        self.adjust_y = self.add_pv('{}:PAR:adjustY'.format(root))
+        self.adjust_z = self.add_pv('{}:PAR:adjustZ'.format(root))
+        self.plate_ang = self.add_pv('{}:PAR:plateAng'.format(root))
+        self.getputplate_cmd = self.add_pv('{}:CMD:getPutPlate'.format(root))
+        self.putplate_cmd = self.add_pv('{}:CMD:putPlate'.format(root))
+        self.getplate_cmd = self.add_pv('{}:CMD:getPlate'.format(root))
 
-        self.bot_busy_fbk = self.add_pv('{}:out_6:fbk'.format(root))
-        self.cmd_busy_fbk = self.add_pv('{}:stscom_path_run:fbk'.format(root))
-        self.mode_fbk = self.add_pv('{}:stscom_automode:fbk'.format(root))
-        self.sensor_fbk = self.add_pv('{}:in_3:fbk'.format(root))
-        self.air_fbk = self.add_pv('{}:in_2:fbk'.format(root))
-        self.ln2_fbk = self.add_pv('{}:stscom_ln2_reg:fbk'.format(root))
-        self.prog_fbk = self.add_pv('{}:out_9:fbk'.format(root))
+        # feedback
+        self.status_fbk = self.add_pv('{}:STATUS'.format(root))
+        self.power_fbk = self.add_pv('{}:STATE:power'.format(root))
+        self.enabled_fbk = self.add_pv('{}:ENABLED'.format(root))
+        self.connected_fbk = self.add_pv('{}:CONNECTED'.format(root))
+        self.mode_fbk = self.add_pv('{}:STATE:auto'.format(root))
+        self.cmd_busy_fbk = self.add_pv('{}:STATE:running'.format(root))
+        self.ln2_fbk = self.add_pv('{}:STATE:D1LN2'.format(root))
+        self.message_fbk = self.add_pv('{}:LOG'.format(root))
+        self.trajectory_fbk = self.add_pv('{}:STATE:path'.format(root))
+        self.mounted_fbk = self.add_pv('{}:STATE:onDiff'.format(root))
+        self.barcode_fbk = self.add_pv('{}:STATE:barcode'.format(root))
+        self.tooled_fbk = self.add_pv('{}:STATE:onTool'.format(root))
+        self.puck_probe_fbk = self.add_pv('{}:STATE:pucks1'.format(root))
 
-        self.message_fbk = self.add_pv('{}:message'.format(root))
-        self.error_fbk = self.add_pv('{}:last_err:fbk'.format(root))
-        self.status_fbk = self.add_pv('{}:state'.format(root))
-        self.enabled_fbk = self.add_pv('{}:enabled'.format(root))
-
-        self.command_fbk = self.add_pv('{}:cmnd_resp:fbk'.format(root))
-        self.trajectory_fbk = self.add_pv('{}:stscom_path_name:fbk'.format(root))
-
-        self.errors = {
-            'Emergency/Air Pressure Fault': self.add_pv('{}:err_bit_0:fbk'.format(root)),
-            'Collision': self.add_pv('{}:err_bit_1:fbk'.format(root)),
-            'Comm Error': self.add_pv('{}:err_bit_2:fbk'.format(root)),
-            'Foot Collision': self.add_pv('{}:err_bit_9:fbk'.format(root)),
-            'Waiting for condition': self.add_pv('{}:err_bit_10:fbk'.format(root)),
-            'LN2 Error': self.add_pv('{}:err_bit_11:fbk'.format(root)),
-            'Dewar Fill Timeout': self.add_pv('{}:err_bit_12:fbk'.format(root)),
-        }
-
-        self.trajectory_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
-        self.error_fbk.connect('changed', self.on_message, ISARAMessages.errors)
-
-        self.abort_cmd = self.add_pv('{}:abort'.format(root))
-        self.reset_cmd = self.add_pv('{}:reset'.format(root))
-        self.clear_cmd = self.add_pv('{}:clear_memory'.format(root))
-
-        self.getput_cmd = self.add_pv('{}:getput'.format(root))
-        self.power_cmd = self.add_pv('{}:on'.format(root))
-        self.get_cmd = self.add_pv('{}:get'.format(root))
-        self.put_cmd = self.add_pv('{}:put'.format(root))
-        self.on_cmd = self.add_pv('{}:message'.format(root))
-
+        # connect monitors
+        self.trajectory_fbk.connect('changed', self.on_message, CATSMessages.trajectory)
         self.puck_probe_fbk.connect('changed', self.on_pucks_changed)
-        self.gonio_sample_fbk.connect('changed', self.on_sample_changed)
-        self.gonio_puck_fbk.connect('changed', self.on_sample_changed)
-        self.reset_cmd.connect('changed', self.on_reset)
-
-        state_variables = [
-           self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
-           self.prog_fbk,
-           self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
-        ] + self.errors.values()
-        for obj in state_variables:
-            obj.connect('changed', self.on_state_changed)
-
-        for obj in self.errors.values():
-            obj.connect('changed', self.on_error_changed)
+        self.mounted_fbk.connect('changed', self.on_sample_changed)
+        self.status_fbk.connect('change', self.on_status_changed)
 
     def is_mountable(self, port):
         if self.is_valid(port):
-            return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+            return (self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]) or port[0] == 'P'
         return False
 
     def is_valid(self, port):
-        lid, puck, pin = self._port2puck(port)
-        return 3 >= lid >= 1 and 3 >= puck >= 1 and 1 <= pin <= 10
-
-    def _port2puck(self, port):
-        """Convert the port string to a (lid, puck, pin) designation"""
-        position = (0, 0, 0)
-        if len(port) >= 3:
+        if port:
             if port[:3] in self.PUCKS:
-                lid = int(port[1])
-                puck = ' ABC'.index(port[2])
-                pin = int(port[3:])
-                position = (lid, puck, pin)
-        return position
-
-    def _puck2port(self, lid, puck, pin):
-        """Convert the (lid, puck, pin) to string designation"""
-        return 'L{}{}{}'.format(lid, ' ABC'[puck], pin)
+                try:
+                    pin = int(port[3:])
+                    return (pin > 0) and  (pin <= 16)
+                except ValueError:
+                    return False
+            elif port[:2] in self.PLATES:
+                well = port[2:]
+                if well and well[0] in 'ABCDEFGH':
+                    try:
+                        sample = int(port[1:])
+                        return (sample > 0) and (sample <= 24)
+                    except ValueError:
+                        return False
+        return False
 
     def power_on(self):
         if self.power_fbk.get() == 0:
@@ -1300,14 +1275,14 @@ class CATSMounter(AutoMounter):
             logger.info('{}: Sample {} already mounted.'.format(self.name, port))
             self.set_state(message="Sample already mounted!")
             return True
-        else:
-            lid, puck, pin = self._port2puck(port)
+        elif self.is_valid(port) and self.is_mountable(port):
+            self.next_sample.put(port)
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             if self.is_mounted():
-                # TODO: send get_put command using requested (lid, puck, pin)
+                self.mount_cmd.put(1)  # translates to getput, or getputplate within bobcats
                 success = self.wait(states={State.BUSY}, timeout=5)
             else:
-                # TODO: send put command using requested (lid, puck, pin)
+                self.mount_cmd.put(1) # translates to put, putplate  within bobcats
                 success = self.wait(states={State.BUSY}, timeout=5)
 
             if wait and success:
@@ -1317,6 +1292,9 @@ class CATSMounter(AutoMounter):
                 return success
             else:
                 return success
+        else:
+            logger.warning('{}: Invalid Port. Command ignored!'.format(self.name))
+            self.set_state(message="Invalid Port. Command ignored!")
 
     def dismount(self, wait=False):
         self.power_on()
@@ -1332,7 +1310,7 @@ class CATSMounter(AutoMounter):
             self.set_state(message="No Sample mounted!")
             return True
         else:
-            # TODO: send get command
+            self.dis_mount_cmd.put(1)
             logger.info('{}: Dismounting sample.'.format(self.name, ))
             success = self.wait(states={State.BUSY}, timeout=5)
             if wait and success:
@@ -1344,141 +1322,57 @@ class CATSMounter(AutoMounter):
                 return success
 
     def abort(self):
-        # TODO: send abort command
-        pass
-
-    def recover(self, context):
-        failure_type, message = context
-        if failure_type == 'blank-mounted':
-            self.set_state(message='Recovering from: {}'.format(failure_type))
-            # TODO: send commands to recover from fialure_type
-        else:
-            logger.warning('Recovering from: {} not available.'.format(failure_type))
+        self.abort_cmd.put(1)
 
     def on_pucks_changed(self, obj, states):
-        """Called when pucks are changed in the automounter"""
+        """
+        Callback when the puck detection state changes
 
-        # TODO: Parse and setup containers
-        sts = '111111111'
-        if len(sts) == 9:
-            pucks = {self.PUCKS[i + 1] for i, bit in enumerate(sts) if bit == '1'}
-            states = {
-                '{}{}'.format(puck, 1 + pin): Port.UNKNOWN for pin in range(16) for puck in pucks
-            }
-            self.props.ports = states
-            self.props.containers = pucks
-            self.set_state(health=(0, 'pucks', ''))
-        else:
-            self.set_state(health=(16, 'pucks', 'Puck detection problem!'), message='Could not read puck positions!')
-            self.props.ports = {}
-            self.props.containers = set()
+        @param obj: Process Variable which triggered the callback
+        @param states: New states, an integer representing the bits of the puck states, only 9 bits are read
+        """
+
+        puck_states = bin(states)[2:].ljust(9, '0') # convert int to binary, and zero fill to at least 9 bits
+        pucks = {self.PUCKS[i + 1] for i, bit in enumerate(puck_states) if bit == '1'}
+        states = {
+            '{}{}'.format(puck, 1 + pin): Port.UNKNOWN for pin in range(16) for puck in pucks
+        }
+        self.props.ports = states
+        self.props.containers = pucks
+        self.set_state(health=(0, 'pucks', ''))
 
     def on_sample_changed(self, *args):
-        """Called when the currently mounted sample changes"""
-        # TODO: retrieve (lid, puck, pin) currently mounted from robot
-
-        lid = int(self.gonio_lid_fbk.get())
-        puck = int(self.gonio_puck_fbk.get())
-        pin = int(self.gonio_sample_fbk.get())
-
-        # reset state
+        """
+        Called when the currently mounted sample changes
+        """
+        mounted = self.mounted_fbk.get()
         port = self.props.sample.get('port')
         ports = self.ports
-        if 3 >= lid >= 1 and 3 >= puck >= 1 and 1 <= pin <= 10:
-            GObject.timeout_add(2000, self.check_blank)
-            port = self._puck2port(lid, puck, pin)
+        if mounted:
+            port = mounted
+            barcode = self.barcode_fbk.get()
             ports[port] = Port.MOUNTED
             self.props.sample = {
                 'port': port,
-                'barcode': ''
+                'barcode': barcode
             }
-        elif puck == 0 or pin == 0:
+        else:
             if ports.get(port) == Port.MOUNTED:
                 ports[port] = Port.UNKNOWN
                 self.set_state(message='Sample dismounted')
             self.props.sample = {}
         self.configure(ports=ports)
 
-    def check_blank(self):
-        failure_state = all([
-            self.sample_detected.get() == 1,
-            bool(self.props.sample.get('port')),
-            self.cmd_busy_fbk.get() == 1,
-            self.props.status != State.FAILURE
-        ])
-
-        if failure_state:
-            port = self.props.sample['port']
-            ports = self.ports
-            ports[port] = Port.BAD
-            message = (
-                "Automounter either failed to pick the sample at {0}, \n"
-                "or there was no sample at {0}. Make sure there \n"
-                "really is no sample mounted, then proceed to recover."
-            ).format(self.props.sample['port'])
-            self.configure(status=State.FAILURE, failure=('blank-mounted', message), ports=ports)
-        else:
-            self.set_state(message='Sample mounted')
-
-    def on_state_changed(self, *args):
-        cmd_busy = self.cmd_busy_fbk.get() == 1
-        bot_busy = self.bot_busy_fbk.get() == 1
-        auto_mode = self.mode_fbk.get() == 1
-        gripper_good = self.tool_number.get() == 0
-        air_ok = self.air_fbk.get() == 1
-        ln2_ok = self.ln2_fbk.get() == 1
-        sensor_ok = self.sensor_fbk.get() == 1
-        prog_ok = self.prog_fbk.get() == 1
-        enabled = self.enabled_fbk.get() == 1
-
-        controller_good = (air_ok and ln2_ok and sensor_ok and prog_ok)
-        robot_ready = auto_mode and gripper_good
-
-        health = 0
-        diagnosis = []
-
-        if controller_good and robot_ready:
-            if not enabled:
-                status = State.DISABLED
-                health |= 16
-                diagnosis += ['Disabled by staff']
-            elif bot_busy:
-                status = State.BUSY
-            elif cmd_busy:
-                status = State.STANDBY
-            else:
-                status = State.PREPARING if self.status == State.PREPARING else State.IDLE
-        elif not controller_good:
+    def on_status_changed(self, *args):
+        fbk_value = self.status_fbk.get()
+        if fbk_value == 0:
+            status = State.PREPARING if self.status == State.PREPARING else State.IDLE
+        elif fbk_value == 3:
             status = State.ERROR
-            self.set_state(message='Staff Needed! Check Controller.')
-        elif not robot_ready:
-            status = State.WARNING
-            self.set_state(message='Staff Needed! Wrong Mode/Tool.')
+        elif fbk_value == 1:
+            status = State.WAITING
+        elif fbk_value == 2:
+            status = State.BUSY
         else:
-            health |= 4
-            diagnosis += ['Unknown Error! Staff Needed.']
             status = State.ERROR
-
         self.configure(status=status)
-        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
-
-    def on_message(self, obj, value, transform):
-        message = transform(value)
-        if message == 'collision in dewar':
-            self.configure(status=State.FAILURE)
-        if message:
-            self.set_state(message=message)
-
-    def on_reset(self, obj, value):
-        if value == 1:
-            self.configure(failure=None)
-
-    def on_error_changed(self, *args):
-        messages = ', '.join([
-            txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
-        ])
-        self.set_state(message=messages)
-        if messages:
-            self.set_state(health=(4, 'error', 'Staff attention needed'))
-        else:
-            self.set_state(health=(0, 'error', ''))
