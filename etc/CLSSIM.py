@@ -2,7 +2,8 @@
 
 from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import automounter, humidity, video, misc, mca, counter
+from mxdc.devices import humidity, video, misc, mca, counter
+from mxdc.devices.automounter import sim, isara
 from mxdc.services import clients
 
 
@@ -76,7 +77,7 @@ DEVICES = {
     'sample_uvlight': misc.SimLight('UV light', 25.0, '%'),
 
     # 'hutch_video':  SimPTZCamera(),
-    'hutch_video': video.AxisPTZCamera('ccd1608-301.clsi.ca'),
+    'hutch_video': video.AxisPTZCamera('ccd1608-302.clsi.ca'),
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
@@ -93,8 +94,8 @@ DEVICES = {
     'i_2': counter.SimCounter('I_2', zero=65228),
 
     # Misc: Automounter, HC1 etc
-    'automounter': automounter.SimAutoMounter(),
-    #'automounter': automounter.UncleSAMRobot('SAM1608-001'),
+    #'automounter': sim.SimSAM(),
+    'automounter': isara.AuntISARA('ISARA1608-301'),
     #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),

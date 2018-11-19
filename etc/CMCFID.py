@@ -1,8 +1,8 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
 
-from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import automounter, video, misc, mca, counter
+from mxdc.devices import video, misc, mca, counter
+from mxdc.devices.automounter import isara
 from mxdc.services import clients
 
 CONFIG = {
@@ -37,10 +37,7 @@ CONFIG = {
 # maps names to devices objects
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
-    'energy': motor.JunkEnergyMotor(
-        'BL08ID1:energy', 'SMTR16082I1005:deg', encoder="ENC16082I1001:cmbndPos",
-        mono_unit_cell=CONFIG['mono_unit_cell']
-    ),
+    'energy': motor.PseudoMotor("PMTR1608-002:energy:keV"),
     'bragg_energy': motor.BraggEnergyMotor(
         'SMTR16082I1005:deg', mono_unit_cell=CONFIG['mono_unit_cell']
     ),
@@ -98,7 +95,7 @@ DEVICES = {
     'i_2': counter.Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
 
     # Misc: Automounter, HC1 etc
-    'automounter': automounter.ISARAMounter('BOT1608-I01'),
+    'automounter': isara.ISARA('BOT1608-I01'),
     'attenuator': misc.Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': mca.XFlashMCA('XFD1608-101'),
 

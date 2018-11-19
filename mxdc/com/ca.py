@@ -6,12 +6,10 @@ import sys
 import threading
 import time
 from ctypes import *
-
-import numpy
-from gi.repository import GObject
-
-from mxdc.com import BasePV
 from mxdc.utils import log
+import numpy
+from enum import Enum
+from gi.repository import GObject
 
 # _setup module logger with a default do-nothing handler
 logger = log.get_module_logger(__name__)
@@ -202,6 +200,33 @@ _PV_REPR_FMT = (
 )
 
 
+class BasePV(GObject.GObject):
+    """Process Variable Base Class"""
+    __gsignals__ = {
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'time': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'active': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
+        'alarm': (GObject.SignalFlags.RUN_FIRST, None, (object,))
+    }
+
+    def __init__(self, name, monitor=True):
+        GObject.GObject.__init__(self)
+
+    def set_state(self, **kwargs):
+        """
+        Set and emit signals for the current state. Only specified states will be set
+        :param kwargs: keywords correspond to signal names, values are signal values to emit
+        :return:
+        """
+        for st, val in kwargs.items():
+            st = st.replace('_', '-')
+            self.state_info.update({st: val})
+            GObject.idle_add(self.emit, st, val)
+
+    def is_active(self):
+        return self.state_info.get('active', False)
+
+
 class PV(BasePV):
     """A Process Variable
 
@@ -244,14 +269,21 @@ class PV(BasePV):
     useful with the PV.
     """
 
-    def __init__(self, name, monitor=True, timed=False, connect=False):
-        super(PV, self).__init__(name, monitor=monitor, timed=timed)
+    def __init__(self, name, monitor=True, connect=False, ignore_first=False):
+        """
+        Process Variable Object
+        :param name: PV name
+        :param monitor: boolean, whether to enable monitoring of changes and emitting of change signals
+        :param connect:  boolean, connect immediately. No deferred connection
+        :param ignore_first: Do not emit signals for the very first value, since it doesn't actually represent a change
+        """
+        super(PV, self).__init__(name, monitor=monitor)
 
         self.state_info = {'active': False, 'changed': 0, 'time': 0, 'alarm': (0, 0)}
         self._dev_state_patt = re.compile('^(\w+)_state$')
         self.name = name
         self.monitor = monitor
-        self.time_changes = timed
+        self.ignore_next_change = ignore_first
         self.connected = CA_OP_CONN_DOWN
         self.value = None
         self.time = 0.0
@@ -343,12 +375,14 @@ class PV(BasePV):
                     params[_k] = v
             return params
 
-    def put(self, val, wait=False):
+    def put(self, val, wait=False, ignore=False, soft=False):
         """
         Set the value of the process variable, waiting for up to 0.05 sec until
         the put is complete.
         :param val: Value to Put
-        :param flush: boolean, if True, flush the channel before returning
+        :param wait: boolean, if True, flush the channel before returning
+        :param ignore: boolean, do not emit a changed signal for this change
+        :param soft: boolean, if True, do not put if current value is the same as val
         :return:
         """
 
@@ -356,12 +390,14 @@ class PV(BasePV):
             logger.error('(%s) PV not connected' % (self.name,))
             return
 
-        data = self.from_python(val)
-        libca.ca_array_put(self.type, self.count, self.chid, byref(data))
-        libca.ca_pend_io(0.05)
-        libca.ca_pend_event(1e-4)
-        if wait:
-            flush()
+        self.ignore_next_change = ignore
+        if not (soft and self.value == val):
+            data = self.from_python(val)
+            libca.ca_array_put(self.type, self.count, self.chid, byref(data))
+            libca.ca_pend_io(0.05)
+            libca.ca_pend_event(1e-4)
+            if wait:
+                flush()
 
     # provide a put method for those used to EPICS terminology
     set = put
@@ -389,6 +425,9 @@ class PV(BasePV):
                 self.params = self.get_parameters()
             if val in self.params.get('strs', []):
                 val = self.params['strs'].index(val)
+
+        if isinstance(val, Enum):
+            val = val.value
 
         if self.count > 1 and isinstance(val, collections.Iterable):
             if self.type == DBR_CHAR:
@@ -445,8 +484,13 @@ class PV(BasePV):
         self.dbr = dbr
         self.value = self.to_python(dbr.contents, event.type)
         self.time = epics_to_posixtime(dbr.contents.stamp)
-        self.set_state(time=self.time)
-        self.set_state(changed=self.value)
+
+        # do not send signals if change was suspended during put
+        if self.ignore_next_change:
+            self.ignore_next_change = False
+        else:
+            self.set_state(time=self.time)
+            self.set_state(changed=self.value)
 
         _alm, _sev = dbr.contents.status, dbr.contents.severity
         if (_alm, _sev) != (self.alarm, self.severity):

@@ -1,7 +1,7 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
-from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import automounter, humidity, video, misc, mca, counter
+from mxdc.devices import humidity, video, misc, mca, counter
+from mxdc.devices.automounter import sam
 from mxdc.services import clients
 
 CONFIG = {
@@ -90,7 +90,7 @@ DEVICES = {
     'i_1': counter.Counter('AH1608-02:QEM:SumAll:MeanValue_RBV'),
     
     # Misc: Automounter, HC1 etc
-    'automounter':  automounter.SAMRobot('ROB16085B'),
+    'automounter':  sam.SAM('ROB16085B'),
     'humidifier': humidity.Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
     'mca_nozzle': misc.ToggleShutter('MD1608-05:FluoDetectorIsBack', reversed=True),
