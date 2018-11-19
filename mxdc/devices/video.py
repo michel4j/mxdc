@@ -1,18 +1,21 @@
 import os
+import pickle
 import re
-import socket
 import threading
 import time
-import pickle
-import zlib
 from StringIO import StringIO
 from io import BytesIO
+
+import gi
+gi.require_version('Gtk', '3.0')
+
+from gi.repository import GObject
 
 import numpy
 import redis
 import requests
 from PIL import Image
-from interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor, IVideoSink
+from interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 from scipy import misc
@@ -25,6 +28,9 @@ session = requests.Session()
 
 
 class VideoSrc(BaseDevice):
+    __gsignals__ = {
+        "resize": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
         """
@@ -36,12 +42,18 @@ class VideoSrc(BaseDevice):
         BaseDevice.__init__(self)
         self.frame = None
         self.name = name
+        self.size = (768, 576)
         self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0e-3
         self.zoom_save = False
         self.sinks = []
         self._stopped = True
-        self._active = True
+        self.set_state(active=True)
+
+    def notify_size(self, frame):
+        if frame and frame.size != self.size:
+            self.size = self.frame.size
+            self.set_state(resize=self.size)
 
     def configure(self, **kwargs):
         """
@@ -70,7 +82,6 @@ class VideoSrc(BaseDevice):
         """
         Start producing video frames.
         """
-
         if self._stopped:
             self._stopped = False
             worker = threading.Thread(target=self.streamer)
@@ -88,9 +99,10 @@ class VideoSrc(BaseDevice):
         dur = 1.0 / self.maxfps
         while not self._stopped:
             t = time.time()
-            if self._active and any(not (sink.stopped) for sink in self.sinks):
+            if self.is_active() and self.is_enabled() and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     img = self.get_frame()
+                    self.notify_size(img)
                     if not img: continue
                     for sink in self.sinks:
                         if not sink.stopped:
@@ -118,8 +130,8 @@ class SimCamera(VideoSrc):
         VideoSrc.__init__(self, name)
         if img is not None:
             fname = '%s/data/%s' % (os.environ.get('BCM_CONFIG_PATH'), img)
-            self._frame = Image.open(fname)
-            self.size = self._frame.size
+            self.frame = Image.open(fname)
+            self.size = self.frame.size
             self.resolution = 1.0e-3
         else:
             self.size = (640, 480)
@@ -127,13 +139,13 @@ class SimCamera(VideoSrc):
             self._packet_size = self.size[0] * self.size[1]
             self._fsource = open('/dev/urandom', 'rb')
             data = self._fsource.read(self._packet_size)
-            self._frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
+            self.frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
                 self.size[1],
                 self.size[0]))
         self.set_state(active=True, health=(0, ''))
 
     def get_frame(self):
-        return self._frame
+        return self.frame
 
 
 class SimZoomableCamera(SimCamera):
@@ -186,7 +198,6 @@ class MJPGCamera(VideoSrc):
         self.url = url
         self._last_frame = time.time()
         self.stream = None
-        self._frame = None
         self.set_state(active=True)
         self.lock = threading.Lock()
 
@@ -206,14 +217,13 @@ class MJPGCamera(VideoSrc):
                     if a != -1 and b != -1:
                         jpg = self.data[a:b + 2]
                         self.data = self.data[b + 2:]
-                        self._frame = Image.open(StringIO(jpg))
-                        self.size = self._frame.size
+                        self.frame = Image.open(StringIO(jpg))
                         both_found = True
                     time.sleep(0)
         except Exception as e:
             logger.error(e)
             self.stream = requests.get(self.url, stream=True).raw
-        return self._frame
+        return self.frame
 
 
 class JPGCamera(VideoSrc):
@@ -224,7 +234,6 @@ class JPGCamera(VideoSrc):
         self.size = size
         self.url = url
         self.session = requests.Session()
-        self._frame = None
         self.set_state(active=True)
 
     def get_frame(self):
@@ -233,9 +242,8 @@ class JPGCamera(VideoSrc):
     def get_frame_raw(self):
         r = self.session.get(self.url)
         if r.status_code == 200:
-            self._frame = Image.open(BytesIO(r.content))
-            self.size = self._frame.size
-        return self._frame
+            self.frame = Image.open(BytesIO(r.content))
+        return self.frame
 
 
 class REDISCamera(VideoSrc):
@@ -257,7 +265,6 @@ class REDISCamera(VideoSrc):
         self.stream = None
         self.data = ''
 
-        self._frame = None
         self._last_frame = time.time()
         self._read_size = 48 * 1024
 
@@ -280,15 +287,14 @@ class REDISCamera(VideoSrc):
                 data = self.store.get('{}:RAW'.format(self.key))
                 time.sleep(0.002)
             img = Image.frombytes('RGB', self.size, data, 'raw')
-            self._frame = img.transpose(Image.FLIP_LEFT_RIGHT)
-        return self._frame
+            self.frame = img.transpose(Image.FLIP_LEFT_RIGHT)
+        return self.frame
 
     def get_frame_jpg(self):
         with self.lock:
             data = self.store.get('{}:JPG'.format(self.key))
-            self._frame = Image.open(StringIO(data))
-            self.size = self._frame.size
-        return self._frame
+            self.frame = Image.open(StringIO(data))
+        return self.frame
 
 
 class AxisCamera(JPGCamera):

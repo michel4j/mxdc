@@ -73,12 +73,10 @@ def get_config_modules(config_dir, name=None):
     return None, {}
 
 
-def initialize(name=None, verbose=True):
+def initialize(name=None):
     global CONFIGS, Settings, SettingSchema, SettingKeys, APP_CACHE_DIR, PROPERTIES
 
     app_config_dir = os.path.join(misc.get_project_home(), '.config', 'mxdc')
-    if verbose:
-        log_to_console()
     try:
         # initiallize users settings
         if not os.path.exists(app_config_dir):

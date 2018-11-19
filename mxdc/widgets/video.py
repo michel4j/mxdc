@@ -69,6 +69,7 @@ class VideoWidget(Gtk.DrawingArea):
 
     def set_src(self, src):
         self.camera = src
+        self.camera.connect('resize', self.on_resize)
         self.camera.start()
 
     def mm_scale(self):
@@ -90,29 +91,40 @@ class VideoWidget(Gtk.DrawingArea):
         self.camera.del_sink(self)
         self.camera.stop()
 
-    def on_configure_event(self, widget, event):
-        frame_width, frame_height = event.width, event.height
-        video_width, video_height = self.camera.size
+    def configure_video(self, dwidth, dheight, vwidth, vheight):
+        """
+        Configure the display
+        @param dwidth: display widget width in pixels
+        @param dheight: display widget height in pixels
+        @param vwidth: video width in pixels
+        @param vheight: video height in pixels
+        """
 
-        video_ratio = float(video_width) / video_height
-        frame_ratio = float(frame_width) / frame_height
+        video_aspect = float(vwidth) / vheight
+        display_aspect = float(dwidth) / dheight
 
-        if frame_ratio < video_ratio:
-            width = frame_width
-            self.scale = float(width) / video_width
-            height = int(round(width / video_ratio))
-            self.voffset = (frame_height - height) // 2
+        if display_aspect < video_aspect:
+            width = dwidth
+            self.scale = float(width) / vwidth
+            height = int(round(width / video_aspect))
+            self.voffset = (dheight - height) // 2
             self.hoffset = 0
         else:
-            height = frame_height
-            self.scale = float(height) / video_height
-            width = int(round(video_ratio * height))
-            self.hoffset = (frame_width - width) // 2
+            height = dheight
+            self.scale = float(height) / vheight
+            width = int(round(video_aspect * height))
+            self.hoffset = (dwidth - width) // 2
             self.voffset = 0
 
         self.display_width, self.display_height = width, height
-        if event.width > 12:
-            self.props.parent.set(0.5, 0.5, video_ratio, False)
+        if dwidth > 12:
+            self.props.parent.set(0.5, 0.5, video_aspect, False)
+
+    def on_configure_event(self, widget, event):
+        self.configure_video(event.width, event.height, *self.camera.size)
+
+    def on_resize(self, camera, size):
+        self.configure_video(self.display_width, self.display_height, *size)
 
     def get_size(self):
         return self.display_width, self.display_height

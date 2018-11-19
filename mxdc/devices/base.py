@@ -6,7 +6,7 @@
 
 import re
 
-from gi.repository import GObject  # @UnresolvedImport
+from gi.repository import GObject
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 

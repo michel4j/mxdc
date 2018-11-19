@@ -6,11 +6,11 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from mxdc import conf
-conf.initialize(verbose=False)
-
-from mxdc.consoleapp import ConsoleApp
 
 if __name__ == "__main__":
+    conf.initialize()
+    from mxdc.consoleapp import ConsoleApp
+
     app = ConsoleApp()
     app.run()
 

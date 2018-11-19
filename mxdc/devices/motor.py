@@ -411,10 +411,10 @@ class VMEMotor(Motor):
         self.VAL = self.add_pv(self.name)
         self.DESC = self.add_pv("{}:desc".format(self.name_root))
         if self.use_encoder:
-            self.RBV = self.add_pv("{}:fbk".format(self.name), timed=True)
+            self.RBV = self.add_pv("{}:fbk".format(self.name))
             self.PREC = self.add_pv("{}:fbk.PREC".format(self.name))
         else:
-            self.RBV = self.add_pv("{}:sp".format(self.name), timed=True)
+            self.RBV = self.add_pv("{}:sp".format(self.name))
             self.PREC = self.add_pv("{}:sp.PREC".format(self.name))
         self.STAT = self.add_pv("{}:status".format(self.name_root))
         self.MOVN = self.STAT
@@ -473,13 +473,13 @@ class PseudoMotor(VMEMotor):
         if self.version == 2:
             self.moving_value = 1
             self.PREC = self.add_pv("%s:fbk.PREC" % (self.name))
-            self.RBV = self.add_pv("%s:fbk" % (self.name), timed=True)
+            self.RBV = self.add_pv("%s:fbk" % (self.name))
             self.MOVN = self.add_pv("%s:moving" % self.name_root)
 
         else:
             self.moving_value = 0
             self.PREC = self.add_pv("%s:sp.PREC" % (self.name))
-            self.RBV = self.add_pv("%s:sp" % (self.name), timed=True)
+            self.RBV = self.add_pv("%s:sp" % (self.name))
             self.MOVN = self.add_pv("%s:stopped" % self.name_root)
 
     def connect_monitors(self):
@@ -503,10 +503,10 @@ class JunkEnergyMotor(Motor):
     def setup(self):
         self.VAL = self.add_pv(self.name1)
         if self.encoder is not None:
-            self.RBV = self.add_pv(self.encoder, timed=True)
+            self.RBV = self.add_pv(self.encoder)
             self.PREC = self.add_pv("{}.PREC".format(self.encoder))
         else:
-            self.RBV = self.add_pv("{}:sp".format(self.name2), timed=True)
+            self.RBV = self.add_pv("{}:sp".format(self.name2))
             self.PREC = self.add_pv("{}:sp.PREC".format(self.name2))
         self.MOVN = self.add_pv("{}:moving:fbk".format(self.name1))
         self.STOP = self.add_pv("{}:stop".format(self.name1))
