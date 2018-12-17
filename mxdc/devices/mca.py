@@ -4,14 +4,12 @@ import time
 
 import numpy
 from gi.repository import GObject
-from zope.interface import implements
-
 from interfaces import IMultiChannelAnalyzer
 from mxdc import conf
-from mxdc.com import ca
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
+from zope.interface import implements
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -31,9 +29,6 @@ class BasicMCA(BaseDevice):
         but before that, the following key-worded arguments are used if available.
         
         Kwargs:
-            - `nozzle` (:class:`mxdc.devices.misc.Positioner`): positioning devices
-              for controling nozzle position. nozzle.set(0) should move it
-              closer to the sample and nozzle.set(1) should move it further away.
             - `elements` (int): Number of detector elements. (default 1)
             - `channels` (int): Number of channels per element. (default 4096)           
         """
@@ -52,7 +47,6 @@ class BasicMCA(BaseDevice):
         self._monitor_id = None
         self.acquiring = False
         self._command_sent = False
-        self.nozzle = kwargs.get('nozzle', None)
 
     def custom_setup(self, *args, **kwargs):
         """This is where all the custom setup for derived classes is performed. 
@@ -84,15 +78,12 @@ class BasicMCA(BaseDevice):
         """Configure the detector for data acquisition.
         
         Kwargs:
-            - `retract` (bool): True means retract the nozzle.
             - `roi` (tuple(int, int)): bounding channels enclosing region of interest.
             - `energy` (float): an energy value in keV around which to construct
               a region of interest. The ROI is calculated as a 150 eV window around
               the requested energy. If both `roi` and `energy` are given, `energy`
               takes precendence.        
         """
-        if 'retract' in kwargs.keys():
-            self._set_nozzle(kwargs['retract'])
 
         for k, v in kwargs.items():
             if k == 'roi':
@@ -110,17 +101,6 @@ class BasicMCA(BaseDevice):
 
     def get_roi(self, energy):
         return [energy - self.half_roi_width, energy + self.half_roi_width]
-
-    def _set_nozzle(self, out):
-        if self.nozzle is None:
-            return
-        if out:
-            logger.debug('(%s) Moving nozzle closer to sample' % (self.name,))
-            self.nozzle.open(wait=True)
-        else:
-            logger.debug('(%s) Moving nozzle away from sample' % (self.name,))
-            self.nozzle.close()
-
 
     def _monitor_state(self, obj, state):
         if state == 1:
@@ -271,16 +251,15 @@ class BasicMCA(BaseDevice):
 class XFlashMCA(BasicMCA):
     """mcaRecord based single element fluorescence detector object."""
 
-    def __init__(self, name, nozzle=None, channels=4096):
+    def __init__(self, name, channels=4096):
         """
         Args:
             - `name` (str): Root PV name of the mcaRecord.
         
         Kwargs:
-            - `nozzle` (:class:`mxdc.devices.misc.Positioner`): Nozzle positioner.
             - `channels` (int):  Number of channels.
         """
-        BasicMCA.__init__(self, name, nozzle=nozzle, elements=1, channels=channels)
+        BasicMCA.__init__(self, name, elements=1, channels=channels)
         self.name = 'XFlash MCA'
 
     def custom_setup(self, pv_root, **kwargs):
@@ -316,7 +295,6 @@ class XFlashMCA(BasicMCA):
         """Configure the detector for data acquisition.
         
         Kwargs:
-            - `retract` (bool): True means retract the nozzle.
             - `roi` (tuple(int, int)): bounding channels enclosing region of interest.
             - `energy` (float): an energy value in keV around which to construct
               a region of interest. The ROI is calculated as a 150 eV window around
@@ -369,7 +347,7 @@ class VortexMCA(BasicMCA):
         Kwargs:
             `channels` (int): Number of channels.
         """
-        BasicMCA.__init__(self, name, nozzle=None, elements=4, channels=channels)
+        BasicMCA.__init__(self, name, elements=4, channels=channels)
         self.name = 'Vortex MCA'
 
     def custom_setup(self, pv_root, **kwargs):
@@ -425,11 +403,10 @@ class SimMultiChannelAnalyzer(BasicMCA):
         """
         self.energy = energy
         self.acquiring = False
-        self.half_life = 60 * 30 # 1 hr
+        self.half_life = 60 * 30  # 1 hr
         self.start_time = time.time()
-        BasicMCA.__init__(self, name, nozzle=None, elements=1, channels=channels)
+        BasicMCA.__init__(self, name, elements=1, channels=channels)
         self.name = name
-
 
     def custom_setup(self, *args, **kwargs):
         # Default parameters
@@ -445,9 +422,9 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.start_time = time.time()
         x = numpy.linspace(edge - 0.5, edge + 1, 10000)
         y = (
-            fitting.step_response(x, [0.5+random.random(), fwhm, edge, 0])
-            + fitting.gauss(x, [0.5+random.random(), fwhm, edge + fwhm*0.5, 0])
-        ) + numpy.random.uniform(0.01, 0.02, len(x))
+                    fitting.step_response(x, [0.5 + random.random(), fwhm, edge, 0])
+                    + fitting.gauss(x, [0.5 + random.random(), fwhm, edge + fwhm * 0.5, 0])
+            ) + numpy.random.uniform(0.01, 0.02, len(x))
         self.count_source = fitting.SplineRep(x, 5000 * y)
 
     def on_energy_value(self, obj, val):
@@ -467,7 +444,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.aquiring = True
         time.sleep(t)
         elapsed = time.time() - self.start_time
-        decay = 2.0**(-elapsed/self.half_life)
+        decay = 2.0 ** (-elapsed / self.half_life)
         self.acquiring = False
         val = decay * t * self.count_source(self._energy_pos)
         self._roi_count = val
