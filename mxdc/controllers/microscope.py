@@ -111,7 +111,7 @@ class Microscope(GObject.GObject):
         self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
 
-        self.beamline.goniometer.connect('mode', self.on_gonio_mode)
+        self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.sample_stage.connect('changed', self.update_grid)
         self.beamline.sample_zoom.connect('changed', self.update_grid)
 
@@ -476,7 +476,7 @@ class Microscope(GObject.GObject):
 
     def on_gonio_mode(self, obj, mode):
         self.props.mode = mode
-        centering_tool = self.mode.name in ['CENTERING', 'BEAM']
+        centering_tool = self.mode.name in ['CENTER', 'ALIGN']
         self.widget.microscope_centering_box.set_sensitive(centering_tool)
         self.widget.microscope_grid_box.set_sensitive(centering_tool)
         if centering_tool:
@@ -484,7 +484,7 @@ class Microscope(GObject.GObject):
         else:
             self.change_tool(self.ToolState.DEFAULT)
 
-        if self.mode.name == 'BEAM':
+        if self.mode.name == 'ALIGN':
             self.widget.microscope_colorize_tbtn.set_active(True)
             self.camera.configure(gain=17)
         else:
