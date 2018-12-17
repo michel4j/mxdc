@@ -89,9 +89,13 @@ class RunItem(GObject.GObject):
 
     @staticmethod
     def sorter(a_pointer, b_pointer):
-
-        a = glibref.capi.to_object(a_pointer)
-        b = glibref.capi.to_object(b_pointer)
+        # if objects correctly translated do not translate again
+        if isinstance(a_pointer, RunItem):
+            a = a_pointer
+            b = b_pointer
+        else:
+            a = glibref.capi.to_object(a_pointer)
+            b = glibref.capi.to_object(b_pointer)
 
         if a.props.state == b.props.state == RunItem.StateType.ADD:
             return 0
