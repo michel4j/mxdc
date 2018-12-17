@@ -581,7 +581,7 @@ class PV(BasePV):
         if not self.is_connected():
             logger.error('(%s) PV not connected.' % (self.name,))
             return
-            # raise ChannelAccessError('PV not connected')
+            #raise ChannelAccessError('PV not connected')
         event_id = c_ulong()
         cb_factory = CFUNCTYPE(c_int, EventHandlerArgs)
         cb_function = cb_factory(callback)

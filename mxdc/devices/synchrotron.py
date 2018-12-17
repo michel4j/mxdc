@@ -62,10 +62,14 @@ class StorageRing(BaseStorageRing):
             self.set_state(ready=False, health=(4, 'mode', 'Beam Unavailable'))
 
     def update(self, *args, **kwargs):
-        self.props.current = self.current_pv.get()
-        self.props.mode = self.mode_pv.get()
-        self.props.state = self.state_pv.get()
-        self.props.message = ', '.join(filter(None, [msg.get().strip() for msg in self.messages]))
+        mode = self.mode_pv.get()
+        current = self.current_pv.get()
+        state = self.state_pv.get()
+        if not None in (mode, current, state):
+            self.props.current = self.current_pv.get()
+            self.props.mode = self.mode_pv.get()
+            self.props.state = self.state_pv.get()
+            self.props.message = ', '.join(filter(None, [msg.get().strip() for msg in self.messages]))
 
 
 class SimStorageRing(BaseStorageRing):
