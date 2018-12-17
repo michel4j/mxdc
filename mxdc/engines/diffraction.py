@@ -96,7 +96,7 @@ class DataCollector(GObject.GObject):
         with self.beamline.lock:
             # Take snapshots and prepare endstation mode
             self.take_snapshots()
-            self.beamline.goniometer.set_mode('COLLECT', wait=True)
+            self.beamline.manager.collect(wait=True)
             GObject.idle_add(self.emit, 'started')
             try:
                 if self.beamline.detector.shutterless:

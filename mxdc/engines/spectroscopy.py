@@ -48,7 +48,7 @@ class XRFScanner(BasicScan):
     def prepare_for_scan(self):
         self.notify_progress(0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['energy'])
-        self.beamline.goniometer.set_mode('SCANNING')
+        self.beamline.manager.scan()
         self.beamline.mca.configure(retract=True, cooling=True, energy=None)
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
@@ -89,7 +89,7 @@ class XRFScanner(BasicScan):
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.mca.configure(retract=False)
-                self.beamline.goniometer.set_mode('COLLECT')
+                self.beamline.manager.collect()
         return self.results
 
     def stop(self, error=''):
@@ -206,7 +206,7 @@ class MADScanner(BasicScan):
     def prepare_for_scan(self):
         self.notify_progress(0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
-        self.beamline.goniometer.set_mode('SCANNING')
+        self.beamline.manager.scan()
         self.beamline.mca.configure(retract=True, cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'])
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
@@ -236,7 +236,7 @@ class MADScanner(BasicScan):
                         while self.paused and not self.stopped:
                             time.sleep(0.05)
 
-                        self.beamline.goniometer.set_mode('SCANNING', wait=True)
+                        self.beamline.manager.scan(wait=True)
                         GObject.idle_add(self.emit, 'paused', False, '')
                         logger.info("Scan resumed.")
                     if self.stopped:
@@ -276,7 +276,7 @@ class MADScanner(BasicScan):
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.mca.configure(retract=False)
                 logger.info('Edge scan done.')
-                self.beamline.goniometer.set_mode('COLLECT')
+                self.beamline.manager.collect()
         return self.results
 
     def analyse(self):
@@ -383,7 +383,7 @@ class XASScanner(BasicScan):
     def prepare_for_scan(self):
         self.notify_progress(0.001, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
-        self.beamline.goniometer.set_mode('SCANNING')
+        self.beamline.manager.scan()
         self.beamline.multi_mca.configure(retract=True, cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'])
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
@@ -427,7 +427,7 @@ class XASScanner(BasicScan):
                             while self.paused and not self.stopped:
                                 time.sleep(0.05)
 
-                            self.beamline.goniometer.set_mode('SCANNING', wait=True)
+                            self.beamline.manager.scan(wait=True)
                             GObject.idle_add(self.emit, 'paused', False, '')
                             logger.info("Scan resumed.")
                         if self.stopped:
@@ -480,7 +480,7 @@ class XASScanner(BasicScan):
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.multi_mca.configure(retract=False)
                 logger.info('Edge scan done.')
-                self.beamline.goniometer.set_mode('COLLECT')
+                self.beamline.manager.collect()
         return self.results
 
     def set_data(self, raw_data):

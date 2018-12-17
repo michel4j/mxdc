@@ -322,8 +322,25 @@ class IModeManager(IDevice):
     def get_mode():
         """Return the current mode"""
 
-    def set_mode(mode):
-        """Set the mode"""
-
-    def wait(modes=set(), timeout=30):
+    def wait(modes=(), start=True, stop=True, timeout=30):
         """Wait until the mode is one of the requested ones or until the mode switcher is idle"""
+
+    def is_busy():
+        """Return True if mode is in transition"""
+
+    def mount():
+        """Switch to mount mode"""
+
+    def center():
+        """Switch to mount mode"""
+
+    def collect():
+        """Switch to mount mode"""
+
+    def align():
+        """Switch to mount mode"""
+
+    def scan():
+        """Switch to mount mode"""
+
+

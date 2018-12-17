@@ -10,11 +10,11 @@ logger = get_module_logger(__name__)
 def auto_mount_manual(bl, port, wash=False):
     with bl.lock:
         bl.automounter.prepare()
-        bl.goniometer.set_mode('MOUNTING', wait=False)
+        bl.manager.mount()
         success = bl.automounter.mount(port, wait=True)
         if success:
             logger.info('Sample mounting succeeded')
-            bl.goniometer.set_mode('CENTERING', wait=False)
+            bl.manager.center()
         else:
             logger.warning('Sample mounting failed')
     return success
@@ -23,7 +23,7 @@ def auto_mount_manual(bl, port, wash=False):
 def auto_dismount_manual(bl):
     with bl.lock:
         bl.automounter.prepare()
-        bl.goniometer.set_mode('MOUNTING', wait=False)
+        bl.manager.mount()
         success = bl.automounter.dismount(wait=True)
         if success:
             logger.info('Sample dismounting succeeded')
