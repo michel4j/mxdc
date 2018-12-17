@@ -80,7 +80,7 @@ class SingleCollector(GObject.GObject):
         # switch to collect mode
         img = self.beamline.sample_camera.get_frame()
         img.save(os.path.join(self.config['params']['directory'], '{}.png'.format(self.config['params']['name'])))
-        self.beamline.goniometer.set_mode('COLLECT', wait=True)
+        self.beamline.manager.collect(wait=True)
 
     def run(self):
         self.paused = False

@@ -88,7 +88,7 @@ class SetupController(object):
         self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.tunable)
 
         # Some scripts need to reactivate settings frame on completion
-        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenteringMode', 'SetCollectMode', 'RestoreBeam', 'SetBeamMode']:
+        for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenterMode', 'SetCollectMode', 'RestoreBeam', 'SetAlignMode']:
             self.scripts[sc].connect('busy', self.on_scripts_busy)
 
 

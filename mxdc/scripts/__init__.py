@@ -10,12 +10,12 @@ class SetMountMode(Script):
             if self.beamline.detector_z.get_position() < safe_distance:
                 self.beamline.detector_z.move_to(safe_distance)
 
-            self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+            self.beamline.manager.mount(wait=True)
             self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=False)
             self.beamline.cryojet.nozzle.open()
 
 
-class SetCenteringMode(Script):
+class SetCenterMode(Script):
     description = "Preparing for crystal centering."
 
     def run(self):
@@ -31,7 +31,7 @@ class SetCenteringMode(Script):
                 restore_distance = self.beamline.distance.target_state[1]
                 if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                     self.beamline.detector_z.move_to(restore_distance, wait=False)
-            self.beamline.goniometer.set_mode('CENTERING', wait=True)
+            self.beamline.manager.center(wait=True)
 
 
 class SetCollectMode(Script):
@@ -39,16 +39,16 @@ class SetCollectMode(Script):
 
     def run(self):
         with self.beamline.lock:
-            self.beamline.goniometer.set_mode('COLLECT', wait=True)
+            self.beamline.manager.collect(wait=True)
             self.beamline.cryojet.nozzle.close()
 
 
-class SetBeamMode(Script):
-    description = "Switch to BEAM inspection mode."
+class SetAlignMode(Script):
+    description = "Switch to beam alignment/inspection mode."
 
     def run(self):
         with self.beamline.lock:
-            self.beamline.goniometer.set_mode('BEAM', wait=True)
+            self.beamline.manager.align(wait=True)
 
 
 class SetFreezeMode(Script):
@@ -60,7 +60,7 @@ class SetFreezeMode(Script):
             if self.beamline.detector_z.get_position() < safe_distance:
                 self.beamline.detector_z.move_to(safe_distance)
 
-            self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+            self.beamline.manager.mount(wait=True)
             self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=True)
             if 'kappa' in self.beamline.registry:
                 self.beamline.omega.move_to(32.5, wait=True)
@@ -98,11 +98,11 @@ class DeiceGonio(Script):
             self.beamline.goniometer.scan(wait=True)
             self.beamline.omega.move_to(pos)
             self.beamline.deicer.off()
-            self.beamline.goniometer.set_mode('MOUNTING', wait=True)
+            self.beamline.manager.mount(wait=True)
         return
 
 
 __all__ = [
-    'RestoreBeam', 'OptimizeBeam', 'SetFreezeMode', 'SetBeamMode',
-    'SetCollectMode', 'SetMountMode', 'SetCenteringMode', 'DeiceGonio',
+    'RestoreBeam', 'OptimizeBeam', 'SetFreezeMode', 'SetAlignMode',
+    'SetCollectMode', 'SetMountMode', 'SetCenterMode', 'DeiceGonio',
 ]

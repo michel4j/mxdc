@@ -133,12 +133,12 @@ class CryoJet(CryoJetBase):
 
 class CryoJet5(CryoJetBase):
     def setup(self, name, nozzle_name):
-        self.temp_fbk = self.add_pv('{}:SAMPLET:TEMP:FBK'.format(name))
-        self.sample_fbk = self.add_pv('{}:SAMPLEF:FLOW:FBK'.format(name))
-        self.shield_fbk = self.add_pv('{}:SHIELDF:FLOW:FBK'.format(name))
-        self.sample_sp = self.add_pv('{}:SAMPLET:FLOW'.format(name))
-        self.level_fbk = self.add_pv('{}:LEVEL:LEVL:FBK'.format(name))
-        self.fill_status = self.add_pv('{}:AUTOFILL:STEP'.format(name))
+        self.temp_fbk = self.add_pv('{}:sample:temp:fbk'.format(name))
+        self.sample_fbk = self.add_pv('{}:sample:flow:fbk'.format(name))
+        self.shield_fbk = self.add_pv('{}:shield:flow:fbk'.format(name))
+        self.sample_sp = self.add_pv('{}:sample:flow'.format(name))
+        self.level_fbk = self.add_pv('{}:autofill:level:fbk'.format(name))
+        self.fill_status = self.add_pv('{}:autofill:state'.format(name))
         self.nozzle = CryoJetNozzle(nozzle_name)
 
         # connect signals for monitoring state

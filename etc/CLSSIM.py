@@ -2,7 +2,7 @@
 
 from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import humidity, video, misc, mca, counter
+from mxdc.devices import humidity, video, misc, mca, counter, manager
 from mxdc.devices.automounter import sim, isara
 from mxdc.services import clients
 
@@ -47,6 +47,7 @@ DEVICES = {
     'beam_tuner': boss.SimTuner('Simulated Beam Tuner'),
 
     # Goniometer/goniometer head devices
+    'manager': manager.SimModeManager(),
     'goniometer': goniometer.SimGonio(),
     'omega': motor.SimMotor('Omega', 0.0, 'deg', speed=120.0, precision=3),
     'sample_x': motor.SimMotor('Sample X', 0.0, units='mm', speed=0.2),
@@ -94,8 +95,8 @@ DEVICES = {
     'i_2': counter.SimCounter('I_2', zero=65228),
 
     # Misc: Automounter, HC1 etc
-    #'automounter': sim.SimSAM(),
-    'automounter': isara.AuntISARA('ISARA1608-301'),
+    'automounter': sim.SimSAM(),
+    #'automounter': isara.AuntISARA('ISARA1608-301'),
     #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),

@@ -1,7 +1,7 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
 
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import video, misc, mca, counter
+from mxdc.devices import video, misc, mca, counter, manager
 from mxdc.devices.automounter import isara
 from mxdc.services import clients
 
@@ -45,6 +45,7 @@ DEVICES = {
     'beam_tuner': boss.MOSTABTuner('MOS16082I1001',  'AH501-01:QEM', 'PCT1402-01:mA:fbk', reference='LUT1608-ID-IONC:target'),
 
     # Goniometer/goniometer head devices
+    'manager': manager.ModeManager('MODE1608-ID'),
     'goniometer': goniometer.ParkerGonio('GV6K1608-001', 'BL08ID1:mode', 'OAV1608-3-I10-02'),
     'omega': motor.VMEMotor('GV6K1608-001:deg'),
     'sample_x': motor.VMEMotor('SMTR16083I1008:mm'),

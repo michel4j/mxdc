@@ -89,7 +89,7 @@ class RasterCollector(GObject.GObject):
             self.beamline.distance.move_to(params['distance'], wait=True)
 
         #switch to collect mode
-        self.beamline.goniometer.set_mode('COLLECT', wait=True)
+        self.beamline.manager.collect(wait=True)
 
     def run(self):
         ca.threads_init()
@@ -103,7 +103,7 @@ class RasterCollector(GObject.GObject):
                 self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
 
                 # take snapshot
-                self.beamline.goniometer.set_mode('CENTERING', wait=True)
+                self.beamline.manager.center(wait=True)
                 logger.info('Taking snapshot ...')
                 img = self.beamline.sample_camera.get_frame()
                 img.save(

@@ -1,6 +1,6 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
-from mxdc.devices import humidity, video, misc, mca, counter
+from mxdc.devices import humidity, video, misc, mca, counter, manager
 from mxdc.devices.automounter import sam
 from mxdc.services import clients
 
@@ -42,6 +42,7 @@ DEVICES = {
     'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
     
     # Goniometer/goniometer head devices
+    'manager': manager.MD2Manager('MD1608-05'),
     'goniometer': goniometer.MD2Gonio('MD1608-05'),
     'omega':    motor.PseudoMotor('PMTR1608-001:omega:deg'),
     'phi': motor.PseudoMotor('PMTR1608-001:phi:deg'),

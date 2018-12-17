@@ -247,45 +247,42 @@
                         <property name="can_focus">False</property>
                         <property name="layout_style">start</property>
                         <child>
-                          <object class="GtkToggleButton" id="mode_mount_btn">
+                          <object class="GtkButton" id="mode_mount_btn">
                             <property name="label" translatable="yes">Mount</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Sample Mounting Mode</property>
                           </object>
                           <packing>
-                            <property name="expand">False</property>
+                            <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToggleButton" id="mode_center_btn">
+                          <object class="GtkButton" id="mode_center_btn">
                             <property name="label" translatable="yes">Center</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Centering Mode</property>
                           </object>
                           <packing>
-                            <property name="expand">False</property>
+                            <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkToggleButton" id="mode_beam_btn">
-                            <property name="label" translatable="yes">Beam</property>
+                          <object class="GtkButton" id="mode_align_btn">
+                            <property name="label" translatable="yes">Align</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Beam Viewing Mode</property>
                           </object>
                           <packing>
-                            <property name="expand">False</property>
+                            <property name="expand">True</property>
                             <property name="fill">True</property>
-                            <property name="position">3</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <style>

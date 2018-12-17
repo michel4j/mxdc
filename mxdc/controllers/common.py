@@ -131,7 +131,6 @@ class ModeMonitor(object):
 
     def on_signal(self, obj, state):
         self.label.set_markup(self.markup.format(state.name))
-
         color = Gdk.RGBA(alpha=1)
         color.parse(self.color_map.get(self.value_map.get(state, state), '#708090'))
         fg_color = Gdk.RGBA(alpha=1)
@@ -235,9 +234,6 @@ class StatusMonitor(object):
         if message:
             self.title.set_text(device.name)
             self.text.set_text(message)
-        else:
-            self.title.set_text('')
-            self.text.set_text('')
         self.check_busy()
 
     def check_busy(self, *args, **kwargs):
@@ -245,6 +241,8 @@ class StatusMonitor(object):
             self.spinner.start()
         else:
             self.spinner.stop()
+            self.title.set_text('Status')
+            self.text.set_text('')
 
 
 class LogMonitor(object):
