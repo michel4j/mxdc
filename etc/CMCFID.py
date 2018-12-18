@@ -96,7 +96,8 @@ DEVICES = {
     'i_2': counter.Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
 
     # Misc: Automounter, HC1 etc
-    'automounter': isara.ISARA('BOT1608-I01'),
+    #'automounter': isara.ISARA('BOT1608-I01'),
+    'automounter': isara.AuntISARA('ISARA1608-301'),
     'attenuator': misc.Attenuator('PFIL1608-3-I10-01', 'BL08ID1:energy'),
     'mca': mca.XFlashMCA('XFD1608-101'),
 
