@@ -84,8 +84,6 @@ class ParkerGonio(Goniometer):
         self.stop_cmd = self.add_pv("{}:stop".format(root))
         self.scan_fbk = self.add_pv("{}:scanFrame:status".format(root))
 
-        self.busy_fbk.connect('changed', self.check_state)
-        self.busy_fbk.connect('changed', self.on_busy)
         self.scan_fbk.connect('changed', self.on_busy)
 
         # parameters
@@ -96,11 +94,11 @@ class ParkerGonio(Goniometer):
         }
 
     def check_state(self, *args, **kwargs):
-        if (self.busy_fbk.get() == 1) or (self.scan_fbk.get() == 1):
+        if self.scan_fbk.get() == 1:
             self.set_state(busy=True)
 
     def on_busy(self, obj, st):
-        if self.scan_fbk.get() == 1 or self.busy_fbk.get() == 1:
+        if self.scan_fbk.get() == 1:
             self.set_state(busy=True)
         else:
             self.set_state(busy=False)
