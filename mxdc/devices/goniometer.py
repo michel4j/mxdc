@@ -70,26 +70,21 @@ class Goniometer(BaseDevice):
 
 class ParkerGonio(Goniometer):
 
-    def __init__(self, root, mode_root, beam_root):
+    def __init__(self, root):
         """
         EPICS based Parker-type Goniometer at the CLS 08ID-1.
 
         @param root: (str): PV name of goniometer EPICS record.
-        @param mode_root:  PV name for Beamline PV.
-        @param beam_root:  PV name for setting beam Mode.
+
         """
         super(ParkerGonio, self).__init__()
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root))
         self.stop_cmd = self.add_pv("{}:stop".format(root))
-
         self.scan_fbk = self.add_pv("{}:scanFrame:status".format(root))
-        self.busy_fbk = self.add_pv("{}:moving:fbk".format(mode_root))
-        self.calibrated_fbk = self.add_pv("{}:calibrated:fbk".format(mode_root))
 
         self.busy_fbk.connect('changed', self.check_state)
-        self.calibrated_fbk.connect('changed', self.check_state)
         self.busy_fbk.connect('changed', self.on_busy)
         self.scan_fbk.connect('changed', self.on_busy)
 
@@ -99,7 +94,6 @@ class ParkerGonio(Goniometer):
             'delta': self.add_pv("{}:deltaOmega".format(root), monitor=False),
             'angle': self.add_pv("{}:openSHPos".format(root), monitor=False),
         }
-        self.requested_mode = None
 
     def check_state(self, *args, **kwargs):
         if (self.busy_fbk.get() == 1) or (self.scan_fbk.get() == 1):
@@ -247,13 +241,11 @@ class SimGonio(Goniometer):
 
 class GalilGonio(Goniometer):
 
-    def __init__(self, root, ):
+    def __init__(self, root):
         """
         EPICS based Parker-type Goniometer at the CLS 08ID-1.
 
         @param root: (str): PV name of goniometer EPICS record.
-        @param mode_root:  PV name for Beamline PV.
-        @param beam_root:  PV name for setting beam Mode.
         """
         super(GalilGonio, self).__init__()
 

@@ -46,7 +46,7 @@ DEVICES = {
 
     # Goniometer/goniometer head devices
     'manager': manager.ModeManager('MODE1608-ID'),
-    'goniometer': goniometer.ParkerGonio('GV6K1608-001', 'BL08ID1:mode', 'OAV1608-3-I10-02'),
+    'goniometer': goniometer.ParkerGonio('GV6K1608-001'),
     'omega': motor.VMEMotor('GV6K1608-001:deg'),
     'sample_x': motor.VMEMotor('SMTR16083I1008:mm'),
     'sample_y1': motor.VMEMotor('SMTR16083I1012:mm'),  # if no sample_y, it will be determined from
