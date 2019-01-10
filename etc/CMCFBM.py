@@ -156,6 +156,4 @@ CONSOLE = {
     'gt_x': motor.PseudoMotor('TBL1608-5-B10-01:htrans:mm'),
     'gt_x1': motor.VMEMotor('SMTR1608-5-B10-12:mm', encoded=True),
     'gt_x2': motor.VMEMotor('SMTR1608-5-B10-13:mm', encoded=True),
-    'h1': misc.Positioner('michel:H1:setCurrentC'),
-    'pm5': counter.Counter('michel:PM5:intensityM'),
 }

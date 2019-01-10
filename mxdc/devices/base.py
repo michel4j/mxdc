@@ -216,7 +216,8 @@ class BaseDevice(GObject.GObject):
         """ Add one or more devices as children of this devices. """
 
         for dev in devices:
-            self.pending.append(dev)
+            if not dev.is_active():
+                self.pending.append(dev)
             dev.connect('active', self.on_device_active)
 
     def on_device_active(self, dev, state):

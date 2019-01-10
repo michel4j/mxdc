@@ -68,8 +68,8 @@ class SAM(AutoMounter):
         self.abort_cmd = self.add_pv('%s:abort:opr' % root)
 
         self.wash_param = self.add_pv('%s:washX:param' % root)
-        self.bar_code = self.add_pv('%s:bcode:barcode' % root)
-        self.barcode_reset = self.add_pv('%s:bcode:clear' % root)
+        #self.bar_code = self.add_pv('%s:bcode:barcode' % root)
+        #self.barcode_reset = self.add_pv('%s:bcode:clear' % root)
         self.robot_busy = self.add_pv('%s:sample:sts' % root)
 
         self.ports_fbk.connect('changed', self.on_ports_changed)
@@ -106,7 +106,7 @@ class SAM(AutoMounter):
             return True
         else:
             param = '{} {} {}'.format(port[0].lower(), port[2:], port[1])
-            self.barcode_reset.put(1)
+            #self.barcode_reset.put(1)
 
             if self.is_mounted():
                 dismount_param = self.sample_fbk.get()
@@ -207,7 +207,7 @@ class SAM(AutoMounter):
             port = '{}{}{}'.format(port_str[0], port_str[2], port_str[1])
             sample = {
                 'port': port.upper(),
-                'barcode': self.bar_code.get()
+                'barcode': '' #self.bar_code.get()
             }
             if sample != self.props.sample:
                 self.props.sample = sample
