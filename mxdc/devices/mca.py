@@ -38,6 +38,7 @@ class BasicMCA(BaseDevice):
         self.elements = kwargs.get('elements', 1)
         self.region_of_interest = (0, self.channels)
         self.data = None
+        self.nozzle = None
 
         # Setup the PVS
         self.custom_setup(*args, **kwargs)
@@ -100,6 +101,12 @@ class BasicMCA(BaseDevice):
                     self.region_of_interest = (
                         self.energy_to_channel(v - self.half_roi_width),
                         self.energy_to_channel(v + self.half_roi_width))
+            if k == 'nozzle' and self.nozzle:
+                if v:
+                    self.nozzle.on()
+                else:
+                    self.nozzle.off()
+
 
     def get_roi(self, energy):
         return [energy - self.half_roi_width, energy + self.half_roi_width]
@@ -253,16 +260,18 @@ class BasicMCA(BaseDevice):
 class XFlashMCA(BasicMCA):
     """mcaRecord based single element fluorescence detector object."""
 
-    def __init__(self, name, channels=4096):
+    def __init__(self, name, channels=4096, nozzle=None):
         """
         Args:
             - `name` (str): Root PV name of the mcaRecord.
+            - `nozzle` (device): An OnOff toggle device for controlling the nozzle
         
         Kwargs:
             - `channels` (int):  Number of channels.
         """
         BasicMCA.__init__(self, name, elements=1, channels=channels)
         self.name = 'XFlash MCA'
+        self.nozzle = nozzle
 
     def custom_setup(self, pv_root, **kwargs):
 
@@ -319,12 +328,6 @@ class XFlashMCA(BasicMCA):
                         time.sleep(0.2)
                 else:
                     self._set_temp(v)
-            if k == 'nozzle' and hasattr(self, 'nozzle'):
-                if v:
-                    self.nozzle.on()
-                else:
-                    self.nozzle.off()
-
         BasicMCA.configure(self, **kwargs)
 
     def _set_temp(self, on):
@@ -347,7 +350,7 @@ class XFlashMCA(BasicMCA):
 class VortexMCA(BasicMCA):
     """EPICS based 4-element Vortex ME4 detector object."""
 
-    def __init__(self, name, channels=2048):
+    def __init__(self, name, channels=2048, nozzle=None):
         """
         Args:
             `name` (str): Root PV name of EPICS record.
@@ -357,6 +360,7 @@ class VortexMCA(BasicMCA):
         """
         BasicMCA.__init__(self, name, elements=4, channels=channels)
         self.name = 'Vortex MCA'
+        self.nozzle = nozzle
 
     def custom_setup(self, pv_root, **kwargs):
         self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d + 1), monitor=False) for d in range(self.elements)]
@@ -401,7 +405,7 @@ class VortexMCA(BasicMCA):
 class SimMultiChannelAnalyzer(BasicMCA):
     """Simulated single channel MCA detector."""
 
-    def __init__(self, name, energy=None, channels=4096):
+    def __init__(self, name, energy=None, channels=4096, nozzle=None):
         """
         Args:
             `name` (str): Name of devices.
@@ -415,6 +419,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.start_time = time.time()
         BasicMCA.__init__(self, name, elements=1, channels=channels)
         self.name = name
+        self.nozzle = nozzle
 
     def custom_setup(self, *args, **kwargs):
         # Default parameters
@@ -439,12 +444,6 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._energy_pos = val
 
     def configure(self, **kwargs):
-        for k, v in kwargs.items():
-            if k == 'nozzle' and hasattr(self, 'nozzle'):
-                if v:
-                    self.nozzle.on()
-                else:
-                    self.nozzle.off()
         BasicMCA.configure(self, **kwargs)
         self.update_spectrum(kwargs.get('edge', 12.658))
 
