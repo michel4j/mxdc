@@ -21,7 +21,7 @@ class BaseManager(BaseDevice):
     }
 
     class ModeType(Enum):
-        MOUNT, CENTER, COLLECT, ALIGN, SCAN, BUSY, UNKNOWN = range(7)
+        MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = range(6)
 
     mode = GObject.property(type=object)
 
@@ -103,13 +103,6 @@ class BaseManager(BaseDevice):
         """
         raise NotImplementedError('Sub-classes must implement "align"')
 
-    def scan(self, wait=False):
-        """
-        Switch to Scan mode
-        @param wait: wait for switch to complete
-        """
-        raise NotImplementedError('Sub-classes must implement "align"')
-
     def get_mode(self):
         """
         Return the current mode
@@ -128,7 +121,6 @@ class SimModeManager(BaseManager):
             self.ModeType.MOUNT: 8,
             self.ModeType.CENTER: 5,
             self.ModeType.COLLECT: 7,
-            self.ModeType.SCAN: 5,
             self.ModeType.ALIGN: 10,
         }
         self.set_state(active=True, busy=False, health=(0, 'faults'), mode=self.ModeType.MOUNT)
@@ -176,15 +168,6 @@ class SimModeManager(BaseManager):
         if wait:
             self.wait(self.ModeType.ALIGN)
 
-    def scan(self, wait=False):
-        """
-        Switch to Mount mode
-        @param wait: wait for switch to complete
-        """
-        self._switch_mode(self.ModeType.SCAN)
-        if wait:
-            self.wait(self.ModeType.SCAN)
-
 
 class MD2Manager(BaseManager):
     """
@@ -195,14 +178,12 @@ class MD2Manager(BaseManager):
         super(MD2Manager, self).__init__(name='Beamline Modes')
 
         self.mode_cmd = self.add_pv('{}:CurrentPhase'.format(root))
-        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
         self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
         self.state_fbk = self.add_pv("{}:State".format(root))
 
         # signal handlers
         self.mode_fbk.connect('changed', self.on_status_changed)
         self.state_fbk.connect('changed', self.on_status_changed)
-        self.fluor_cmd.connect('changed', self.on_status_changed)
 
         # mode types
         self.int_to_mode = {
@@ -213,19 +194,16 @@ class MD2Manager(BaseManager):
             4: self.ModeType.UNKNOWN,
             5: self.ModeType.BUSY,
             6: self.ModeType.ALIGN,
-            7: self.ModeType.SCAN
         }
         self.mode_to_int = {
             self.ModeType.CENTER: 0,
             self.ModeType.ALIGN: 1,
             self.ModeType.COLLECT: 2,
             self.ModeType.MOUNT: 3,
-            self.ModeType.SCAN: 2,
         }
 
     def on_status_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
-        fluor = self.fluor_cmd.get()
         mode_val = self.mode_fbk.get()
         message = ''
         if state in [5, 6, 7, 8]:
@@ -239,8 +217,6 @@ class MD2Manager(BaseManager):
             current_mode = self.ModeType.UNKNOWN
         else:
             current_mode = self.int_to_mode.get(mode_val, self.ModeType.UNKNOWN)
-            if current_mode == self.ModeType.COLLECT and fluor == 0:
-                current_mode = self.ModeType.SCAN
             health=(0, 'faults')
             busy=False
 
@@ -284,17 +260,6 @@ class MD2Manager(BaseManager):
         if wait:
             self.wait(self.ModeType.ALIGN)
 
-    def scan(self, wait=False):
-        """
-        Switch to Mount mode
-        @param wait: wait for switch to complete
-        """
-        self.fluor_cmd.put(0)
-        self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
-
-        if wait:
-            self.wait(self.ModeType.SCAN)
-
 
 class ModeManager(BaseManager):
     """
@@ -308,7 +273,6 @@ class ModeManager(BaseManager):
             self.ModeType.MOUNT: self.add_pv('{}:Mount:cmd'.format(root)),
             self.ModeType.CENTER: self.add_pv('{}:Center:cmd'.format(root)),
             self.ModeType.COLLECT: self.add_pv('{}:Collect:cmd'.format(root)),
-            self.ModeType.SCAN: self.add_pv('{}:Scan:cmd'.format(root)),
             self.ModeType.ALIGN: self.add_pv('{}:Align:cmd'.format(root)),
 
         }
@@ -328,8 +292,7 @@ class ModeManager(BaseManager):
             1: self.ModeType.MOUNT,
             2: self.ModeType.CENTER,
             3: self.ModeType.COLLECT,
-            4: self.ModeType.SCAN,
-            5: self.ModeType.ALIGN,
+            4: self.ModeType.ALIGN,
         }
 
     def on_status_changed(self, *args, **kwargs):
@@ -390,12 +353,3 @@ class ModeManager(BaseManager):
         self.mode_commands[self.ModeType.ALIGN].put(1)
         if wait:
             self.wait(self.ModeType.ALIGN)
-
-    def scan(self, wait=False):
-        """
-        Switch to Mount mode
-        @param wait: wait for switch to complete
-        """
-        self.mode_commands[self.ModeType.SCAN].put(1)
-        if wait:
-            self.wait(self.ModeType.SCAN)

@@ -48,8 +48,8 @@ class XRFScanner(BasicScan):
     def prepare_for_scan(self):
         self.notify_progress(0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['energy'])
-        self.beamline.manager.scan(wait=True)
-        self.beamline.mca.configure(cooling=True, energy=None)
+        self.beamline.manager.collect(wait=True)
+        self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
         self.beamline.goniometer.wait(start=False)
@@ -88,6 +88,7 @@ class XRFScanner(BasicScan):
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
+                self.beamline.mca.configure(cooling=False, nozzle=False)
                 self.beamline.manager.collect()
         return self.results
 
@@ -205,8 +206,10 @@ class MADScanner(BasicScan):
     def prepare_for_scan(self):
         self.notify_progress(0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
-        self.beamline.manager.scan()
-        self.beamline.mca.configure(cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'])
+        self.beamline.manager.collect(wait=True)
+        self.beamline.mca.configure(
+            cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'], nozzle=True
+        )
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
@@ -234,8 +237,8 @@ class MADScanner(BasicScan):
                         logger.warning("Edge Scan paused at point %s." % str(x))
                         while self.paused and not self.stopped:
                             time.sleep(0.05)
-
-                        self.beamline.manager.scan(wait=True)
+                        self.beamline.manager.collect(wait=True)
+                        self.beamline.mca.configure(cooling=True, nozzle=True)
                         GObject.idle_add(self.emit, 'paused', False, '')
                         logger.info("Scan resumed.")
                     if self.stopped:
@@ -273,6 +276,7 @@ class MADScanner(BasicScan):
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
+                self.beamline.mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
         return self.results
@@ -381,8 +385,10 @@ class XASScanner(BasicScan):
     def prepare_for_scan(self):
         self.notify_progress(0.001, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
-        self.beamline.manager.scan()
-        self.beamline.multi_mca.configure(cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'])
+        self.beamline.manager.collect(wait=True)
+        self.beamline.multi_mca.configure(
+            cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'], nozzle=True
+        )
         self.beamline.attenuator.set(self.config['attenuation'])
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
@@ -425,7 +431,8 @@ class XASScanner(BasicScan):
                             while self.paused and not self.stopped:
                                 time.sleep(0.05)
 
-                            self.beamline.manager.scan(wait=True)
+                            self.beamline.manager.collect(wait=True)
+                            self.beamline.multi_mca.configure(nozzle=True, cooling=True)
                             GObject.idle_add(self.emit, 'paused', False, '')
                             logger.info("Scan resumed.")
                         if self.stopped:
@@ -476,6 +483,7 @@ class XASScanner(BasicScan):
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
+                self.beamline.multi_mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
         return self.results
