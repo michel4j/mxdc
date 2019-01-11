@@ -82,7 +82,9 @@ class BasicMCA(BaseDevice):
             - `energy` (float): an energy value in keV around which to construct
               a region of interest. The ROI is calculated as a 150 eV window around
               the requested energy. If both `roi` and `energy` are given, `energy`
-              takes precendence.        
+              takes precendence.
+            - `cooling` (bool): cool down if available, ignore otherwise
+            - `nozzle` (bool): move nozzle in if True and out if False, if nozzle is available, ignore otherwise
         """
 
         for k, v in kwargs.items():
@@ -317,6 +319,12 @@ class XFlashMCA(BasicMCA):
                         time.sleep(0.2)
                 else:
                     self._set_temp(v)
+            if k == 'nozzle' and hasattr(self, 'nozzle'):
+                if v:
+                    self.nozzle.on()
+                else:
+                    self.nozzle.off()
+
         BasicMCA.configure(self, **kwargs)
 
     def _set_temp(self, on):
@@ -431,6 +439,12 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._energy_pos = val
 
     def configure(self, **kwargs):
+        for k, v in kwargs.items():
+            if k == 'nozzle' and hasattr(self, 'nozzle'):
+                if v:
+                    self.nozzle.on()
+                else:
+                    self.nozzle.off()
         BasicMCA.configure(self, **kwargs)
         self.update_spectrum(kwargs.get('edge', 12.658))
 
