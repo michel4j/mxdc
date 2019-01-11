@@ -226,18 +226,19 @@ class OnOffToggle(BaseDevice):
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
-    def __init__(self, pv_name):
+    def __init__(self, pv_name, values=(1, 0)):
         super(OnOffToggle, self).__init__()
+        self.on_value, self.off_value = values
         self.onoff_cmd = self.add_pv(pv_name)
         self.onoff_cmd.connect('changed', self.on_changed)
 
     def set_on(self):
-        self.onoff_cmd.put(1)
+        self.onoff_cmd.put(self.on_value)
 
     on = set_on
 
     def set_off(self):
-        self.onoff_cmd.put(0)
+        self.onoff_cmd.put(self.off_value)
 
     off = set_off
 
@@ -245,7 +246,7 @@ class OnOffToggle(BaseDevice):
         return self.changed_state
 
     def on_changed(self, obj, val):
-        self.set_state(changed=(val == 1))
+        self.set_state(changed=(val == self.on_value))
 
 
 class SimLight(SimPositioner):

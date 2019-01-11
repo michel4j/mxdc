@@ -12,7 +12,6 @@ logger = get_module_logger(__name__)
 MODE_MAP = {
     BaseManager.ModeType.MOUNT: 'blue',
     BaseManager.ModeType.CENTER: 'orange',
-    BaseManager.ModeType.SCAN: 'violet',
     BaseManager.ModeType.COLLECT: 'green',
     BaseManager.ModeType.ALIGN: 'red',
     BaseManager.ModeType.BUSY: 'gray',
