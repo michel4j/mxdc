@@ -277,7 +277,7 @@ class AuntISARA(AutoMounter):
                 health |= 16
                 diagnosis += ['Disabled by staff']
             elif status_value in [1, 2]:
-                status_value = State.BUSY
+                status = State.BUSY
             elif status_value == 3:
                 status = State.STANDBY
             elif status_value == 4:
