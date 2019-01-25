@@ -42,7 +42,8 @@ DEVICES = {
     'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
     
     # Goniometer/goniometer head devices
-    'manager': manager.MD2Manager('MD1608-05'),
+    #'manager': manager.MD2Manager('MD1608-05'),
+    'manager': manager.ModeManager('MODE1608-BM'),
     'goniometer': goniometer.MD2Gonio('MD1608-05'),
     'omega':    motor.PseudoMotor('PMTR1608-001:omega:deg'),
     'phi': motor.PseudoMotor('PMTR1608-001:phi:deg'),
