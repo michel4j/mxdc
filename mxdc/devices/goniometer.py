@@ -167,6 +167,7 @@ class MD2Gonio(Goniometer):
             self.set_state(health=(2, 'faults', msg), busy=False)
         else:
             self.set_state(busy=False, health=(0, 'faults'))
+            self.save_pos_cmd.put(1)
 
     def scan(self, wait=True, timeout=None):
         """
