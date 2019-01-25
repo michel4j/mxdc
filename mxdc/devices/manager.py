@@ -310,7 +310,6 @@ class ModeManager(BaseManager):
             current_mode = self.ModeType.BUSY
             message = 'Switching mode ...'
         else:
-
             current_mode = self.int_to_mode.get(state, self.ModeType.UNKNOWN)
             health=(0, 'faults')
             busy=False

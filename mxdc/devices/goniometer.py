@@ -141,7 +141,9 @@ class MD2Gonio(Goniometer):
         self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root), monitor=False)
 
         self.state_fbk = self.add_pv("{}:State".format(root))
+        self.phase_fbk = self.add_pv("{}:CurrentPhase".format(root))
         self.log_fbk = self.add_pv('{}:Status'.format(root))
+        self.prev_state = 0
 
         # parameters
         self.settings = {
@@ -160,6 +162,7 @@ class MD2Gonio(Goniometer):
 
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
+        phase = self.phase_fbk.get()
         if state in [5, 6, 7, 8]:
             self.set_state(health=(0, 'faults'), busy=True)
         elif state in [11, 12, 13, 14]:
@@ -167,7 +170,10 @@ class MD2Gonio(Goniometer):
             self.set_state(health=(2, 'faults', msg), busy=False)
         else:
             self.set_state(busy=False, health=(0, 'faults'))
+
+        if phase == 0 and self.prev_state == 6 and state == 4:
             self.save_pos_cmd.put(1)
+        self.prev_state = state
 
     def scan(self, wait=True, timeout=None):
         """
