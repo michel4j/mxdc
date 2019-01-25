@@ -242,7 +242,7 @@ class AuntISARA(AutoMounter):
 
     def check_blank(self):
         failure_state = all([
-            self.sample_detected.get() == 1,
+            self.sample_detected.get() == 0,
             bool(self.props.sample.get('port')),
             self.props.status in [State.BUSY],
             self.props.status != State.FAILURE
