@@ -246,7 +246,7 @@ class MD2Manager(BaseManager):
         Switch to Mount mode
         @param wait: wait for switch to complete
         """
-        self.fluor_cmd.put(1)
+        #self.fluor_cmd.put(1)
         self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
         if wait:
             self.wait(self.ModeType.COLLECT)
