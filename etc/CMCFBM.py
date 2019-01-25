@@ -14,7 +14,7 @@ CONFIG = {
     'subnet': '10.52.4.0/22',
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000, 4054, 33670],
     'distance_limits': (110.0, 800.0),
-    'energy_range': (5.0, 18.0),
+    'energy_range': (5.0, 20.5),
     'zoom_levels': (2, 5, 8),
     'default_attenuation': 90.0,
     'default_exposure': 2.5,
