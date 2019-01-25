@@ -135,10 +135,10 @@ class MD2Gonio(Goniometer):
         super(MD2Gonio, self).__init__('MD2 Diffractometer')
 
         # initialize process variables
-        self.scan_cmd = self.add_pv("{}:startScan".format(root), monitor=False)
-        self.abort_cmd = self.add_pv("{}:abort".format(root), monitor=False)
-        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root), monitor=False)
-        self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root), monitor=False)
+        self.scan_cmd = self.add_pv("{}:startScan".format(root))
+        self.abort_cmd = self.add_pv("{}:abort".format(root))
+        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
+        self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root))
 
         self.state_fbk = self.add_pv("{}:State".format(root))
         self.phase_fbk = self.add_pv("{}:CurrentPhase".format(root))
@@ -172,7 +172,7 @@ class MD2Gonio(Goniometer):
             self.set_state(busy=False, health=(0, 'faults'))
 
         if phase == 0 and self.prev_state == 6 and state == 4:
-            self.save_pos_cmd.put(1)
+            self.save_pos_cmd.put(self.NULL_VALUE)
         self.prev_state = state
 
     def scan(self, wait=True, timeout=None):
