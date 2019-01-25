@@ -85,7 +85,7 @@ class AuntISARA(AutoMounter):
         self.configure(layout=ISARA_DEWAR)
 
         # parameters and commands
-        self.next_port = self.add_pv('{}:PAR:nextPort'.format(root))
+        self.next_smpl = self.add_pv('{}:PAR:nextPort'.format(root))
         self.power_cmd = self.add_pv('{}:CMD:power'.format(root))
         self.mount_cmd = self.add_pv('{}:CMD:mount'.format(root))
         self.dismount_cmd = self.add_pv('{}:CMD:dismount'.format(root))
@@ -157,7 +157,7 @@ class AuntISARA(AutoMounter):
             self.set_state(message="Port cannot be mounted!")
             return False
         else:
-            self.next_port.put(port)
+            self.next_smpl.put(port)
             self.mount_cmd.put(1)
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
