@@ -275,8 +275,9 @@ class AutomationController(GObject.GObject):
                     buttons=(('OK', Gtk.ResponseType.OK),)
                 )
                 response = self.pause_info.run()
-                self.pause_info.destroy()
-                self.pause_info = None
+                if self.pause_info:
+                    self.pause_info.destroy()
+                    self.pause_info = None
         else:
             self.props.state = self.StateType.ACTIVE
             if self.pause_info:
