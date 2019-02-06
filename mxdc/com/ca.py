@@ -465,7 +465,7 @@ class PV(BasePV):
             val = ca_value.value
         else:
             if self.count > 1:
-                val = numpy.frombuffer(ca_value.value, dtype=self.etype)
+                val = numpy.frombuffer(ca_value, dtype=self.etype)
             else:
                 val = ca_value.value
         return val
