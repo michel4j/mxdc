@@ -112,6 +112,10 @@ class StatusPanel(object):
     def on_mode_change(self, obj, mode):
         for btn, btn_mode in self.button_modes.items():
             btn.set_sensitive(mode != btn_mode)
+        if mode.name == 'ALIGN':
+            self.widget.shutter_switch.set_sensitive(True)
+        elif mode.name not in ['BUSY', 'UNKNOWN']:
+            self.widget.shutter_switch.set_sensitive(False)
 
     def on_devices_busy(self, obj, state):
         script_names = ['SetCenterMode', 'SetAlignMode', 'SetCollectMode', 'SetMountMode']

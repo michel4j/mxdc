@@ -487,7 +487,7 @@ class Microscope(GObject.GObject):
         if self.mode.name == 'ALIGN':
             self.widget.microscope_colorize_tbtn.set_active(True)
             self.camera.configure(gain=17)
-        else:
+        elif self.mode.name not in ['BUSY', 'UNKNOWN']:
             self.widget.microscope_colorize_tbtn.set_active(False)
             self.camera.configure(gain=3)
 
@@ -523,7 +523,7 @@ class Microscope(GObject.GObject):
         self.beamline.omega.move_to(target)
 
     def on_mouse_scroll(self, widget, event):
-        if 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['CENTERING', 'BEAM']:
+        if 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['CENTER', 'ALIGN']:
             if event.direction == Gdk.ScrollDirection.UP:
                 self.on_rotate(widget, 45)
             elif event.direction == Gdk.ScrollDirection.DOWN:
@@ -540,11 +540,11 @@ class Microscope(GObject.GObject):
         )
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measurement[1] = (x, y)
-        elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['COLLECT', 'SCANNING']:
+        elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['COLLECT']:
             self.change_tool(tool=self.ToolState.CENTERING)
         elif self.tool == self.ToolState.MEASUREMENT:
             self.change_tool()
-        elif self.tool == self.ToolState.CENTERING and self.mode.name in ['COLLECT', 'SCANNING']:
+        elif self.tool == self.ToolState.CENTERING and self.mode.name in ['COLLECT']:
             self.change_tool()
 
     def on_image_click(self, widget, event):
