@@ -89,8 +89,7 @@ class SetupController(object):
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenterMode', 'SetCollectMode', 'RestoreBeam', 'SetAlignMode']:
             self.scripts[sc].connect('busy', self.on_scripts_busy)
-
-        self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.is_tunable() and self.beamline.all_shutters.is_open())            
+         
         self.beamline.all_shutters.connect('changed', self.on_shutter)
 
     def on_scripts_busy(self, obj, busy):
