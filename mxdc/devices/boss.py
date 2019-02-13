@@ -200,7 +200,7 @@ class MOSTABTuner(BaseTuner):
         perc = 0.0 if ref == 0 else 100.0 * tgt/ref
         if cur > 10.0:
             # dynamic tune step
-            self.tune_step = 5*2**round((90.0 - max(0, min(90, perc)))/10, 0) 
+            self.tune_step = min(100, 5*2**round((90.0 - max(0, min(90, perc)))/10, 0)) 
         else:
             self.tune_step = 0   # disable tuning if no beam
         self.set_state(changed=val, percent=perc)
