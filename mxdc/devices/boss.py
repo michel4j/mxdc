@@ -198,7 +198,7 @@ class MOSTABTuner(BaseTuner):
         cur = self.current_fbk.get()
         tgt = 0.0 if cur == 0 else val/cur
         perc = 0.0 if ref == 0 else 100.0 * tgt/ref
-        if cur < 10.0:
+        if cur > 10.0:
             # dynamic tune step
             self.tune_step = 5*2**round((90.0 - max(0, min(90, perc)))/10, 0) 
         else:
