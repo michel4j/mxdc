@@ -77,23 +77,28 @@ class SetupController(object):
         self.tuner_monitors = [
             common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl),
             common.DeviceMonitor(
-                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:5.0f} %',
-                signal='percent', warning=90.0, error=80.0
+                self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:6.1f} %',
+                signal='percent', warning=80.0, error=60.0
             ),
             common.Tuner(
                 self.beamline.beam_tuner, self.widget.tuner_up_btn, self.widget.tuner_dn_btn,
                 reset_btn=self.widget.tuner_reset_btn, repeat_interval=100,
             )
         ]
-        self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.tunable)
 
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenterMode', 'SetCollectMode', 'RestoreBeam', 'SetAlignMode']:
             self.scripts[sc].connect('busy', self.on_scripts_busy)
 
+        self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.is_tunable() and self.beamline.all_shutters.is_open())            
+        self.beamline.all_shutters.connect('changed', self.on_shutter)
 
     def on_scripts_busy(self, obj, busy):
         if busy:
             self.widget.setup_device_box.set_sensitive(False)
         else:
             self.widget.setup_device_box.set_sensitive(True)
+    
+    def on_shutter(self, obj, state):
+        self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.is_tunable() and self.beamline.all_shutters.is_open())
+        
