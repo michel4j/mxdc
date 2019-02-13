@@ -269,9 +269,14 @@ class MADScanner(BasicScan):
                     GObject.idle_add(self.emit, "stopped")
                 else:
                     logger.info("Scan complete. Performing Analyses")
-                    self.analyse()
-                    self.save_metadata()
-                    GObject.idle_add(self.emit, "done")
+                    success = self.analyse()
+                    if success:
+                        self.save_metadata()
+                        GObject.idle_add(self.emit, "done")
+                    else:
+                        GObject.idle_add(self.emit, "stopped")
+            except ValueError:
+                GObject.idle_add(self.emit, "stopped")
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.fast_shutter.close()
@@ -294,9 +299,10 @@ class MADScanner(BasicScan):
             with open(filename, 'w') as handle:
                 json.dump(self.results, handle)
                 logger.info("MAD Analysis Saved: {}".format(filename))
-
+                return True
         else:
             GObject.idle_add(self.emit, 'error', 'Analysis Failed')
+            return False
 
     def set_data(self, raw_data):
         self.data_types = {

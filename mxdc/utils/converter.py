@@ -39,7 +39,6 @@ def wavelength_to_energy(wavelength):
         return 0.0
     return (_h * _c) / (wavelength * 1000.0)
 
-
 def radians(angle):
     """Convert angle from degrees to radians."""
 
