@@ -1,4 +1,5 @@
 import re
+import time
 from gi.repository import GObject
 from mxdc.devices.automounter import AutoMounter, State, logger
 from mxdc.utils.automounter import Port, Puck
@@ -101,6 +102,7 @@ class AuntISARA(AutoMounter):
         self.mode_fbk = self.add_pv('{}:STATE:mode'.format(root))
         self.cryo_fbk = self.add_pv('{}:INP:cryoLevel'.format(root))
         self.autofill_fbk = self.add_pv('{}:STATE:autofill'.format(root))
+        self.position_fbk = self.add_pv('{}:STATE:pos'.format(root))
 
         self.enabled_fbk = self.add_pv('{}:ENABLED'.format(root))
         self.connected_fbk = self.add_pv('{}:CONNECTED'.format(root))
@@ -203,8 +205,9 @@ class AuntISARA(AutoMounter):
     def recover(self, context):
         failure_type, message = context
         if failure_type == 'blank-mounted':
-            self.set_state(message='Recovering from: {}'.format(failure_type))
-            chn = Chain(1000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
+            self.set_state(message='Recovering from: {}, please wait!'.format(failure_type))
+            self.wait_for_position('SOAK')
+            chn = Chain(2000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
         else:
             logger.warning('Recovering from: {} not available.'.format(failure_type))
 
@@ -317,6 +320,24 @@ class AuntISARA(AutoMounter):
             self.set_state(health=(4, 'error', 'Staff attention needed'))
         else:
             self.set_state(health=(0, 'error', ''))
+
+    def wait_for_position(self, position, timeout=120):
+        """
+        Wait for the given position to be reached
+        @param position: requested position to wait for
+        @param timeout: maximum time to wait
+        @return: bool, True if state was attained or False if timeout was exhausted
+        """
+
+        time_remaining = timeout
+        poll = 0.05
+        while time_remaining > 0 and self.position_fbk.get() != position:
+            time_remaining -= poll
+            time.sleep(poll)
+
+        if time_remaining <= 0:
+            logger.warning('Timed out waiting for {} to reach {} position'.format(self.name, position))
+            return False
 
 
 class ISARA(AutoMounter):
