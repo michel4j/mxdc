@@ -4,7 +4,7 @@ from gi.repository import GObject
 from mxdc.devices.automounter import AutoMounter, State, logger
 from mxdc.utils.automounter import Port, Puck
 from mxdc.utils.misc import Chain
-
+from mxdc.utils.decorators import async_call
 
 ISARA_DEWAR = {
     '1A': Puck('1A', 0.1667, 1.75 / 13.),
@@ -202,12 +202,18 @@ class AuntISARA(AutoMounter):
     def abort(self):
         self.abort_cmd.put(1)
 
+    @async_call
     def recover(self, context):
         failure_type, message = context
         if failure_type == 'blank-mounted':
             self.set_state(message='Recovering from: {}, please wait!'.format(failure_type))
             self.wait_for_position('SOAK')
-            chn = Chain(2000, (self.abort_cmd.put, 1), (self.reset_cmd.put, 1), (self.clear_cmd.put, 1))
+            self.abort_cmd.put(1)
+            time.sleep(2)
+            self.reset_cmd.put(1)
+            time.sleep(2)
+            self.clear_cmd.put(1)
+            logger.warning('Recovery complete.')
         else:
             logger.warning('Recovering from: {} not available.'.format(failure_type))
 
