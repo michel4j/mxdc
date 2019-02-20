@@ -165,6 +165,10 @@ class DewarController(GObject.GObject):
             self.failure_dialog = None
         if response == Gtk.ButtonsType.OK:
             self.beamline.automounter.recover(context)
+            message = ("Recovery in progress. The automounter will be ready\n"
+                       "again when recovery is complete. This operation\n"
+                       "may take a few minutes.")
+            dialogs.info('Automounter Recovery', message, modal=False)
 
     def on_failure_changed(self, *args, **kwargs):
         failure_context = self.beamline.automounter.failure
