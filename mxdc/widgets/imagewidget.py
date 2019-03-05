@@ -83,25 +83,9 @@ def gray_palette(start=0.0, end=1.0):
     return rpal
 
 
-def image2pixbuf(im):
-    arr = array.array('B', im.tobytes())
-    width, height = im.size
-    return GdkPixbuf.Pixbuf.new_from_data(arr, GdkPixbuf.Colorspace.RGB, True, 8, width, height, width * 4)
-
-
-def _lut(offset=0, scale=1.0, lo=0, hi=65536):
-    nlo = offset + lo
-    lut = scale * 254. * (numpy.arange(65536) - nlo) / (hi - nlo)
-    lut[lut > 254] = 254
-    lut[lut < 1] = 1
-    lut[:2] = 0
-    return lut.astype(int)
-
-
 def calc_histogram(data, lo=0.1, hi=95, bins='auto'):
     rmin, rmax = numpy.percentile(data, (lo, hi))
     hist, edges = numpy.histogram(data, bins=bins, range=(rmin, rmax))
-    #v1 = numpy.stack((edges[2:], hist[1:]), axis=1)
     return numpy.dstack((edges[2:], hist[1:]))[0]
 
 
@@ -225,7 +209,7 @@ class ImageWidget(Gtk.DrawingArea):
         self._rubber_band = False
         self._shifting = False
         self._measuring = False
-        self.pseudocolor = False
+        self.pseudocolor = True
         self.image_loaded = False
         self.show_histogram = False
         self._canvas_is_clean = False
@@ -254,9 +238,8 @@ class ImageWidget(Gtk.DrawingArea):
         self.connect('scroll-event', self.on_mouse_scroll)
         self.connect('button_release_event', self.on_mouse_release)
         self.set_size_request(size, size)
-        self.pseudocolor = False
         self.palettes = {
-            True: color_palette(cmaps.magma),
+            True: color_palette(cmaps.inferno),
             False: gray_palette(0.1)
         }
         self.file_loader = FileLoader()
@@ -523,7 +506,7 @@ class ImageWidget(Gtk.DrawingArea):
             self.display_gamma = gamma
 
     def colorize(self, color=False):
-        self.pseudocolor = color
+        self.pseudocolor = not color
         self._canvas_is_clean = False
         self.create_surface()
         self.queue_draw()
@@ -536,27 +519,6 @@ class ImageWidget(Gtk.DrawingArea):
         self.create_surface()
         self.queue_draw()
 
-    def _calc_pos(self, x, y):
-        Ix = int(x / self.scale) + self.extents[0]
-        Iy = int(y / self.scale) + self.extents[1]
-        Ix = max(1, min(Ix, self.image_width - 2))
-        Iy = max(1, min(Iy, self.image_height - 2))
-        return Ix, Iy
-
-    def _res(self, x, y):
-        displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
-        if self.distance == 0.0:
-            angle = math.pi/2
-        else:
-            angle = 0.5 * math.atan(displacement / self.distance)
-        if angle < 1e-3:
-            angle = 1e-3
-        return self.wavelength / (2.0 * math.sin(angle))
-
-    def _rdist(self, x0, y0, x1, y1):
-        d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
-        return d  # (self.wavelength * self.distance/d)
-
     def get_position(self, x, y):
         if not self.image_loaded:
             return 0, 0, 0.0, 0
@@ -565,15 +527,6 @@ class ImageWidget(Gtk.DrawingArea):
         Res = self._res(Ix, Iy)
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
-    def _set_cursor_mode(self, cursor=None):
-        window = self.get_window()
-        if window is None:
-            return
-        if cursor is None:
-            window.set_cursor(None)
-        else:
-            window.set_cursor(Gdk.Cursor.new(cursor))
-        Gtk.main_iteration()
 
     def on_mouse_motion(self, widget, event):
         if not self.image_loaded:
@@ -710,3 +663,34 @@ class ImageWidget(Gtk.DrawingArea):
 
     def on_unmap(self, obj):
         self.stopped = True
+
+    def _calc_pos(self, x, y):
+        Ix = int(x / self.scale) + self.extents[0]
+        Iy = int(y / self.scale) + self.extents[1]
+        Ix = max(1, min(Ix, self.image_width - 2))
+        Iy = max(1, min(Iy, self.image_height - 2))
+        return Ix, Iy
+
+    def _res(self, x, y):
+        displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
+        if self.distance == 0.0:
+            angle = math.pi/2
+        else:
+            angle = 0.5 * math.atan(displacement / self.distance)
+        if angle < 1e-3:
+            angle = 1e-3
+        return self.wavelength / (2.0 * math.sin(angle))
+
+    def _rdist(self, x0, y0, x1, y1):
+        d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
+        return d  # (self.wavelength * self.distance/d)
+
+    def _set_cursor_mode(self, cursor=None):
+        window = self.get_window()
+        if window is None:
+            return
+        if cursor is None:
+            window.set_cursor(None)
+        else:
+            window.set_cursor(Gdk.Cursor.new(cursor))
+        Gtk.main_iteration()
