@@ -10,7 +10,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from mxdc.utils import gui
 from mxdc.widgets import dialogs
-from mxdc.widgets.imagewidget import ImageWidget, image_loadable
+from mxdc.widgets.imagewidget import ImageWidget
 from twisted.python.components import globalRegistry
 from zope.interface import Interface
 
@@ -54,6 +54,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         super(ImageViewer, self).__init__()
         self.setup_gui()
         self.set(0.5, 0.5, 1, 1)
+        self.dataset = None
         self._canvas_size = size
         self._brightness = 1.0
         self.file_template = None
@@ -77,10 +78,9 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def build_gui(self):
         self.info_dialog.set_transient_for(dialogs.MAIN_WINDOW)
         self.image_canvas = ImageWidget(self._canvas_size)
-        self.image_canvas.connect('image-loaded', self._update_info)
+        self.image_canvas.connect('image-loaded', self.on_data_loaded)
         self.image_frame.add(self.image_canvas)
         self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
-        self.histogram.connect('draw', self.image_canvas.img_histogram)
 
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
@@ -99,9 +99,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
         self.add(self.image_viewer)
         self.show_all()
-
-    def log(self, msg):
-        logger.info(msg)
 
     def _load_spots(self, filename):
         try:
@@ -124,60 +121,15 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 1]
         return image_spots
 
-    def _rescan_dataset(self):
-        if self.file_template is not None:
-            self._dataset_frames = glob.glob(self.file_template)
-            self._dataset_frames.sort()
-            try:
-                self._dataset_pos = self._dataset_frames.index(self.filename)
-            except:
-                self._dataset_pos = -1
-
-            # test next and prev        
-            self.next_btn.set_sensitive(False)
-            self.prev_btn.set_sensitive(False)
-            if 0 <= self._dataset_pos + 1 < len(self._dataset_frames) and image_loadable(
-                    self._dataset_frames[self._dataset_pos + 1]):
-                self.next_btn.set_sensitive(True)
-
-            if 0 <= self._dataset_pos - 1 < len(self._dataset_frames) and image_loadable(
-                    self._dataset_frames[self._dataset_pos - 1]):
-                self.prev_btn.set_sensitive(True)
-
-    def _set_file_specs(self, filename):
-        self.filename = filename
-        self.directory = os.path.dirname(os.path.abspath(filename))
-
-        # determine file template and frame_number
-        fm = FILE_PATTERN.match(os.path.basename(self.filename))
-        if fm:
-            if fm.group('ext') is not None:
-                extension = fm.group('ext')
-            else:
-                extension = ''
-            self.frame_number = int(fm.group('num'))
-            self.file_template = os.path.join(self.directory,
-                                              "{}*{}".format(fm.group('base'), extension))
-
-        self._rescan_dataset()
-        self.back_btn.set_sensitive(True)
-        self.zoom_fit_btn.set_sensitive(True)
-        self.colorize_tbtn.set_sensitive(True)
-        self.reset_btn.set_sensitive(True)
-        self.follow_tbtn.set_sensitive(True)
-        self.info_btn.set_sensitive(True)
-
     def open_image(self, filename):
         # select spots and display for current image
-        self._set_file_specs(filename)
-
         if len(self.all_spots) > 0:
             image_spots = self._select_image_spots(self.all_spots)
             indexed, unindexed = self._select_spots(image_spots)
             self.image_canvas.set_spots(indexed, unindexed)
 
         logger.info("Loading image {}".format(filename))
-        self.image_canvas.load_frame(filename)
+        self.image_canvas.open(filename)
 
     def set_collect_mode(self, state=True):
         self._collecting = state
@@ -197,10 +149,22 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_pos.set_alignment(1, 0.5)
         self.info_data.set_alignment(1, 0.5)
 
-    def _update_info(self, obj=None):
+    def on_data_loaded(self, obj=None):
         color = 'DarkSlateGray'  # colors.Category.CAT20C[0]
-        info = self.image_canvas.get_image_info()
-        self._set_file_specs(info['filename'])
+        dataset = self.image_canvas.get_image_info()
+        if dataset.header.get('dataset'):
+            self.directory = dataset.header['dataset']['directory']
+
+        self.back_btn.set_sensitive(True)
+        self.zoom_fit_btn.set_sensitive(True)
+        self.colorize_tbtn.set_sensitive(True)
+        self.reset_btn.set_sensitive(True)
+        self.follow_tbtn.set_sensitive(True)
+        self.info_btn.set_sensitive(True)
+        self.prev_btn.set_sensitive(True)
+        self.next_btn.set_sensitive(True)
+
+        info = dataset.header
 
         for name, format in self.Formats.items():
             field_name = '{}_lbl'.format(name)
@@ -215,43 +179,31 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                         color, format.format(info[name])
                     )
                 field.set_markup(txt)
-        self.histogram.queue_draw()
 
-    def add_frame(self, filename):
-        if self._collecting and self._following:
-            self.image_canvas.queue_frame(filename)
-
-    def queue_frame(self, filename):
-        self.image_canvas.queue_frame(filename)
+    def open_frame(self, filename):
+        self.image_canvas.open(filename)
 
     def _replay_frames(self):
-        self._rescan_dataset()
         if self._following and 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
-            self.image_canvas.queue_frame(self._dataset_frames[self._dataset_pos + 1])
+            self.image_canvas.open(self._dataset_frames[self._dataset_pos + 1])
             return True
         else:
             return False
 
     def on_image_info(self, obj):
-        self._update_info()
+        self.on_data_loaded()
         self.info_dialog.show_all()
 
     def on_info_hide(self, obj):
         self.info_dialog.hide()
 
     def on_next_frame(self, widget):
-        if 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
-            if image_loadable(self._dataset_frames[self._dataset_pos + 1]):
-                self.open_image(self._dataset_frames[self._dataset_pos + 1])
-        else:
-            self._rescan_dataset()
+        dataset = self.image_canvas.get_image_info()
+        dataset.next_frame()
 
     def on_prev_frame(self, widget):
-        if 0 <= self._dataset_pos - 1 < len(self._dataset_frames):
-            if image_loadable(self._dataset_frames[self._dataset_pos - 1]):
-                self.open_image(self._dataset_frames[self._dataset_pos - 1])
-        else:
-            self._rescan_dataset()
+        dataset = self.image_canvas.get_image_info()
+        dataset.prev_frame()
 
     def on_file_open(self, widget):
         filename, flt = dialogs.select_open_image(parent=self.get_toplevel(),

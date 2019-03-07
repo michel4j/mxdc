@@ -17,6 +17,11 @@ APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 SHARE_DIR = os.path.join(APP_DIR, 'share')
 CONFIG_DIR = os.path.join(APP_DIR, 'etc')
 DOCS_DIR = os.path.join(APP_DIR, 'docs/html')
+LIBS_DIR = os.path.join(APP_DIR, 'mxdc/libs')
+
+# Add external libs directory to path
+sys.path.append(os.environ.get('MXDC_EXT_LIBS', LIBS_DIR))
+
 
 APP_CACHE_DIR = ''
 CONFIGS = ''

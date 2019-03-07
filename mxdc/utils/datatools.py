@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import date
 
 import numpy
-from mxdc.libs.imageio import read_header
+from imageio import read_header
 
 from mxdc.conf import settings
 from mxdc.utils import misc

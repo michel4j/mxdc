@@ -291,7 +291,7 @@ class RasterController(GObject.GObject):
     def on_new_image(self, widget, file_path):
         image_viewer = globalRegistry.lookup([], IImageViewer)
         frame = os.path.splitext(os.path.basename(file_path))[0]
-        image_viewer.queue_frame(file_path)
+        image_viewer.open_frame(file_path)
         logger.info('Frame acquired: {}'.format(frame))
 
     def on_results(self, collector, cell, results):

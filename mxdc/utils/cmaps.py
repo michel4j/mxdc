@@ -14,7 +14,7 @@
 
 import numpy
 
-__all__ = ['magma', 'inferno', 'plasma', 'viridis']
+__all__ = ['magma', 'inferno', 'plasma', 'viridis', 'binary']
 
 _magma_data = [[0.001462, 0.000466, 0.013866],
                [0.002258, 0.001295, 0.018331],
@@ -1058,7 +1058,7 @@ for (name, data) in (('magma', _magma_data),
 
 
 values = numpy.linspace(0, 1, 256)
-for name in ['jet', 'rainbow', 'gist_ncar']:
+for name in ['jet', 'rainbow', 'gist_ncar', 'binary']:
     cmap = cm.get_cmap(name)
     data = cmap(values)[:,:3].tolist()
     cmaps[name] = ListedColormap(data, name=name)
@@ -1071,4 +1071,4 @@ viridis = cmaps['viridis']
 jet = cmaps['jet']
 rainbow = cmaps['rainbow']
 gist_ncar = cmaps['gist_ncar']
-
+binary = cmaps['binary']
