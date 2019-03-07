@@ -56,14 +56,10 @@ def add_hc_decorations(img, x1, x2, y1, y2):
     return img
 
 
-def image_to_surface2(img):
-    """Transform a PIL Image into a Cairo ImageSurface."""
+def opencv_to_surface(img):
+    """Transform a OpenCV Image into a Cairo ImageSurface."""
 
-    if img.mode != 'RGBA':
-        img = img.convert('RGBA')
-    return cairo.ImageSurface.create_for_data(
-        numpy.fromstring(img.tobytes('raw', 'BGRA', 0, 1)), cairo.FORMAT_ARGB32, img.size[0], img.size[1]
-    )
+    return cairo.ImageSurface.create_for_data(img, cairo.FORMAT_ARGB32, *img.shape[:2][::-1])
 
 
 def image_to_surface(im):

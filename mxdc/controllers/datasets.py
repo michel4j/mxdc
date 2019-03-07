@@ -687,7 +687,7 @@ class DatasetsController(GObject.GObject):
         current_dir = directory.replace(home_dir, '~')
         self.widget.dsets_dir_fbk.set_text(current_dir)
         frame = os.path.splitext(os.path.basename(file_path))[0]
-        self.image_viewer.add_frame(file_path)
+        self.image_viewer.open_frame(file_path)
         run_item = self.frame_manager.get(frame)
         if run_item:
 
