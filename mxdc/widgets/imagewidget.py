@@ -16,7 +16,7 @@ from gi.repository import Gtk
 from matplotlib import cm
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
-from matplotlib.colors import LinearSegmentedColormap
+
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from imageio import read_image
 from mxdc.utils import cmaps, colors
@@ -29,7 +29,7 @@ img_logger = logging.getLogger(__log_section__)
 DEFAULT_ZSCALE = 3
 MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
-COLORMAPS = ('magma', 'binary')
+COLORMAPS = ('viridis', 'binary')
 
 
 def cmap(name):
