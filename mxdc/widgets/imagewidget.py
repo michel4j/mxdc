@@ -26,7 +26,7 @@ from mxdc.utils.gui import color_palette
 __log_section__ = 'mxdc.imagewidget'
 img_logger = logging.getLogger(__log_section__)
 
-DEFAULT_ZSCALE = 3
+DEFAULT_ZSCALE = 2
 MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
 COLORMAPS = ('inferno', 'binary')
@@ -37,9 +37,6 @@ def cmap(name):
     rgba_data = cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
     rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
     return rgba_data[:, :, ::-1]
-
-
-
 
 def adjust_spines(ax, spines, color):
     for loc, spine in ax.spines.items():
