@@ -114,9 +114,9 @@ class DataLoader(GObject.GObject):
             self.colormap = cmap(COLORMAPS[index])
         else:
             self.colormap = {
-                0: cv2.COLORMAP_OCEAN,
+                0: cv2.COLORMAP_BONE,
                 1: cv2.COLORMAP_HOT,
-            }.get(index, cv2.COLORMAP_OCEAN)
+            }.get(index, cv2.COLORMAP_BONE)
 
     def adjust(self, direction=None):
         if not direction:
