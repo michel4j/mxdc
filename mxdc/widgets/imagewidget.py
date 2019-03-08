@@ -39,6 +39,8 @@ def cmap(name):
     return rgba_data[:, :, ::-1]
 
 
+
+
 def adjust_spines(ax, spines, color):
     for loc, spine in ax.spines.items():
         if loc in spines:
@@ -81,7 +83,7 @@ class DataLoader(GObject.GObject):
         self.skip_count = 10  # number of frames to skip at once
         self.zscale = DEFAULT_ZSCALE # Standard zscale above mean for palette maximum
         self.inbox = Queue.Queue(10000)
-        self.colormap = cmap(COLORMAPS[0])
+        self.set_colormap(0)
         self.start()
         if path:
             self.open(path)
@@ -106,8 +108,15 @@ class DataLoader(GObject.GObject):
         self.zscale = DEFAULT_ZSCALE  # return to default for new datasets
         self.setup()
 
-    def set_colormap(self, name):
-        self.colormap = cmap(name)
+    def set_colormap(self, index):
+
+        if cv2.__version__ >='3.0.0':
+            self.colormap = cmap(COLORMAPS[index])
+        else:
+            self.colormap = {
+                0: cv2.COLORMAP_OCEAN,
+                1: cv2.COLORMAP_HOT,
+            }.get(index, cv2.COLORMAP_OCEAN)
 
     def adjust(self, direction=None):
         if not direction:
@@ -122,10 +131,7 @@ class DataLoader(GObject.GObject):
         self.header = self.dataset.header
         scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
         img = cv2.convertScaleAbs(self.data, None, 256/scale, 0)
-        try:
-            img1 = cv2.applyColorMap(img, self.colormap)
-        except:
-            img1 = cv2.applyColorMap(img, cv2.COLORMAP_OCEAN)
+        img1 = cv2.applyColorMap(img, self.colormap)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         GObject.idle_add(self.emit, 'new-image')
 
@@ -422,9 +428,9 @@ class ImageWidget(Gtk.DrawingArea):
 
     def colorize(self, color=False):
         if color:
-            self.data_loader.set_colormap(COLORMAPS[1])
+            self.data_loader.set_colormap(1)
         else:
-            self.data_loader.set_colormap(COLORMAPS[0])
+            self.data_loader.set_colormap(0)
         self.data_loader.setup()
 
     def reset_filters(self):
