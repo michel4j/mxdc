@@ -29,7 +29,7 @@ img_logger = logging.getLogger(__log_section__)
 DEFAULT_ZSCALE = 3
 MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
-COLORMAPS = ('viridis', 'binary')
+COLORMAPS = ('inferno', 'binary')
 
 
 def cmap(name):
