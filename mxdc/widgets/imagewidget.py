@@ -122,7 +122,10 @@ class DataLoader(GObject.GObject):
         self.header = self.dataset.header
         scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
         img = cv2.convertScaleAbs(self.data, None, 256/scale, 0)
-        img1 = cv2.applyColorMap(img, self.colormap)
+        try:
+            img1 = cv2.applyColorMap(img, self.colormap)
+        except:
+            img1 = cv2.applyColorMap(img, cv2.COLORMAP_OCEAN)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         GObject.idle_add(self.emit, 'new-image')
 
