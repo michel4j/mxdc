@@ -179,10 +179,12 @@ def select_open_file(title, parent=None, filters=[], default_folder=None):
 
 def select_open_image(parent=None, default_folder=None):
     filters = [
-        ('Diffraction Frames',
-         ["*.img", "*.marccd", "*.mccd", "*.pck", "*.cbf", "*.h5", "*.osc", "*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]"]),
-        ('XDS Spot files', ["SPOT.XDS*", "*.HKL*"]),
-        ('All files', ["*.*"])
+        ('Diffraction Frames', [
+            "*.img", "*.marccd", "*.mccd", "*.pck",
+            "*.cbf", "*.h5", "*.osc", "*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]"]
+        ),
+        ('XDS Spot files', ["SPOT.XDS*"]),
+        ('XDS ASCII file', ["X*.HKL*"]),
     ]
     return select_opensave_file('Select Image', Gtk.FileChooserAction.OPEN, parent=parent, filters=filters,
                                 default_folder=default_folder)
