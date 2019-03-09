@@ -1,6 +1,6 @@
 # -*- coding: UTF8 -*-
 
-import glob
+import time
 import logging
 import os
 import re
@@ -16,7 +16,7 @@ from zope.interface import Interface
 
 logger = logging.getLogger(__name__)
 
-FILE_PATTERN = re.compile('^(?P<base>[\w-]+\.?)(?<!\d)(?P<num>\d{3,4})(?P<ext>\.?[\w.]+)?$')
+MAX_FOLLOW_DURATION = 20
 
 
 class IImageViewer(Interface):
@@ -55,38 +55,28 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.setup_gui()
         self.set(0.5, 0.5, 1, 1)
         self.dataset = None
-        self._canvas_size = size
-        self._brightness = 1.0
-        self.file_template = None
-        self._following = False
-        self._collecting = False
-        self._br_hide_id = None
-        self._co_hide_id = None
-        self._cl_hide_id = None
-        self._follow_id = None
-
-        self._dataset_frames = []
-        self._dataset_pos = 0
-
-        self._last_queued = ''
+        self.canvas = None
+        self.size = size
+        self.following = False
+        self.collecting = False
+        self.following_id = None
         self.directory = None
-        self.filename = None
-        self.all_spots = []
+
+        self.reflections = []
+
         self.build_gui()
         globalRegistry.register([], IImageViewer, '', self)
 
     def build_gui(self):
         self.info_dialog.set_transient_for(dialogs.MAIN_WINDOW)
-        self.image_canvas = ImageWidget(self._canvas_size)
-        self.image_canvas.connect('image-loaded', self.on_data_loaded)
-        self.image_frame.add(self.image_canvas)
-        self.image_canvas.connect('motion_notify_event', self.on_mouse_motion)
+        self.canvas = ImageWidget(self.size)
+        self.canvas.connect('image-loaded', self.on_data_loaded)
+        self.image_frame.add(self.canvas)
+        self.canvas.connect('motion_notify_event', self.on_mouse_motion)
 
         self.info_btn.connect('clicked', self.on_image_info)
         self.follow_tbtn.connect('toggled', self.on_follow_toggled)
-
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
-
         self.reset_btn.connect('clicked', self.on_reset_filters)
 
         # signals
@@ -100,50 +90,39 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.add(self.image_viewer)
         self.show_all()
 
-    def _load_spots(self, filename):
+    def load_reflections(self, filename):
         try:
-            self.all_spots = numpy.loadtxt(filename)
-        except:
-            logger.error('Could not load spots from %s' % filename)
-
-    def _select_spots(self, spots):
-        def _zeros(a):
-            for v in a:
-                if abs(v) > 0.01:
-                    return False
-            return True
-
-        indexed = [sp for sp in spots if not _zeros(sp[4:])]
-        unindexed = [sp for sp in spots if _zeros(sp[4:])]
-        return indexed, unindexed
-
-    def _select_image_spots(self, spots):
-        image_spots = [sp for sp in spots if abs(self.frame_number - sp[2]) <= 1]
-        return image_spots
+            raw = numpy.loadtxt(filename)
+            rows, cols = raw.shape
+            if cols < 7:
+                self.reflections = numpy.zeros((rows, 7))
+                self.reflections[:,:cols] = raw
+            else:
+                self.reflections = raw
+        except IOError:
+            logger.error('Could not load reflections from %s' % filename)
 
     def open_image(self, filename):
         # select spots and display for current image
-        if len(self.all_spots) > 0:
-            image_spots = self._select_image_spots(self.all_spots)
-            indexed, unindexed = self._select_spots(image_spots)
-            self.image_canvas.set_spots(indexed, unindexed)
+        if len(self.reflections) > 0:
+            self.canvas.select_reflections(self.reflections)
 
         logger.info("Loading image {}".format(filename))
-        self.image_canvas.open(filename)
+        self.canvas.open(filename)
 
     def set_collect_mode(self, state=True):
-        self._collecting = state
+        self.collecting = state
         self.follow_tbtn.set_active(state)
 
     def on_reset_filters(self, widget):
-        self.image_canvas.reset_filters()
+        self.canvas.reset_filters()
 
     def on_go_back(self, widget, full):
-        self.image_canvas.go_back(full)
+        self.canvas.go_back(full)
         return True
 
     def on_mouse_motion(self, widget, event):
-        ix, iy, ires, ivalue = self.image_canvas.get_position(event.x, event.y)
+        ix, iy, ires, ivalue = self.canvas.get_position(event.x, event.y)
         self.info_pos.set_markup("<tt><small>X:{0:5}\nY:{1:5}</small></tt>".format(ix, iy))
         self.info_data.set_markup("<tt><small>I:{0:5}\nÅ:{1:5.1f}</small></tt>".format(ivalue, ires))
         self.info_pos.set_alignment(1, 0.5)
@@ -151,7 +130,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_data_loaded(self, obj=None):
         color = 'DarkSlateGray'  # colors.Category.CAT20C[0]
-        dataset = self.image_canvas.get_image_info()
+        dataset = self.canvas.get_image_info()
         if dataset.header.get('dataset'):
             self.directory = dataset.header['dataset']['directory']
 
@@ -181,14 +160,12 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 field.set_markup(txt)
 
     def open_frame(self, filename):
-        self.image_canvas.open(filename)
+        self.canvas.open(filename)
 
-    def _replay_frames(self):
-        if self._following and 0 <= self._dataset_pos + 1 < len(self._dataset_frames):
-            self.image_canvas.open(self._dataset_frames[self._dataset_pos + 1])
+    def follow_frames(self):
+        if time.time() - self.last_follow_time < MAX_FOLLOW_DURATION:
+            self.canvas.dataset.next_frame()
             return True
-        else:
-            return False
 
     def on_image_info(self, obj):
         self.on_data_loaded()
@@ -198,34 +175,38 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_dialog.hide()
 
     def on_next_frame(self, widget):
-        dataset = self.image_canvas.get_image_info()
+        dataset = self.canvas.get_image_info()
         dataset.next_frame()
 
     def on_prev_frame(self, widget):
-        dataset = self.image_canvas.get_image_info()
+        dataset = self.canvas.get_image_info()
         dataset.prev_frame()
 
     def on_file_open(self, widget):
-        filename, flt = dialogs.select_open_image(parent=self.get_toplevel(),
-                                                  default_folder=self.directory)
-        if filename is not None and os.path.isfile(filename):
+        filename, flt = dialogs.select_open_image(
+            parent=self.get_toplevel(), default_folder=self.directory
+        )
+        if filename and os.path.isfile(filename):
             name, ext = os.path.splitext(filename)
             if flt.get_name() == 'XDS Spot files' or name == 'SPOT' or ext == '.XDS':
-                self._load_spots(filename)
-                # if spot information is available  and an image is loaded display it
-                if self.image_canvas.image_loaded:
-                    image_spots = self._select_image_spots(self.all_spots)
-                    indexed, unindexed = self._select_spots(image_spots)
-                    self.image_canvas.set_spots(indexed, unindexed)
-                    GObject.idle_add(self.image_canvas.queue_draw)
+                self.load_reflections(filename)
+                # if reflections information is available  and an image is loaded display it
+                if self.canvas.image_loaded:
+                    self.select_reflections(self.reflections)
+                    GObject.idle_add(self.canvas.queue_draw)
             else:
                 self.open_image(filename)
 
     def on_colorize_toggled(self, button):
-        self.image_canvas.colorize(self.colorize_tbtn.get_active())
+        self.canvas.colorize(self.colorize_tbtn.get_active())
 
     def on_follow_toggled(self, widget):
-        self._following = widget.get_active()
-        if not self._collecting:
-            GObject.timeout_add(2500, self._replay_frames)
-        return True
+        self.following = widget.get_active()
+        if self.following:
+            if not self.collecting:
+                self.following_id = GObject.timeout_add(1000, self.follow_frames)
+        else:
+            if self.following_id:
+                self.following_id = None
+                GObject.source_remove(self.following_id)
+
