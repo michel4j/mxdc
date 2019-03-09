@@ -60,6 +60,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.following = False
         self.collecting = False
         self.following_id = None
+        self.last_follow_time = 0
         self.directory = None
 
         self.reflections = []
@@ -90,15 +91,20 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.add(self.image_viewer)
         self.show_all()
 
-    def load_reflections(self, filename):
+    def load_reflections(self, filename, hkl=False):
         try:
-            raw = numpy.loadtxt(filename)
+            raw = numpy.loadtxt(filename, comments="!")
             rows, cols = raw.shape
-            if cols < 7:
+            if hkl:
                 self.reflections = numpy.zeros((rows, 7))
-                self.reflections[:,:cols] = raw
+                self.reflections[:,:3] = raw[:,5:8]
+                self.reflections[:,4:] = raw[:,:3]
             else:
-                self.reflections = raw
+                if cols < 7:
+                    self.reflections = numpy.zeros((rows, 7))
+                    self.reflections[:,:cols] = raw
+                else:
+                    self.reflections = raw
         except IOError:
             logger.error('Could not load reflections from %s' % filename)
 
@@ -112,7 +118,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def set_collect_mode(self, state=True):
         self.collecting = state
-        self.follow_tbtn.set_active(state)
 
     def on_reset_filters(self, widget):
         self.canvas.reset_filters()
@@ -130,9 +135,9 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_data_loaded(self, obj=None):
         color = 'DarkSlateGray'  # colors.Category.CAT20C[0]
-        dataset = self.canvas.get_image_info()
-        if dataset.header.get('dataset'):
-            self.directory = dataset.header['dataset']['directory']
+        self.dataset = self.canvas.get_image_info()
+        if self.dataset.header.get('dataset'):
+            self.directory = self.dataset.header['dataset']['directory']
 
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
@@ -143,7 +148,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.prev_btn.set_sensitive(True)
         self.next_btn.set_sensitive(True)
 
-        info = dataset.header
+        info = self.dataset.header
 
         for name, format in self.Formats.items():
             field_name = '{}_lbl'.format(name)
@@ -158,13 +163,14 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                         color, format.format(info[name])
                     )
                 field.set_markup(txt)
+        self.last_follow_time = time.time()
 
     def open_frame(self, filename):
         self.canvas.open(filename)
 
     def follow_frames(self):
         if time.time() - self.last_follow_time < MAX_FOLLOW_DURATION:
-            self.canvas.dataset.next_frame()
+            self.dataset.next_frame()
             return True
 
     def on_image_info(self, obj):
@@ -187,12 +193,13 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             parent=self.get_toplevel(), default_folder=self.directory
         )
         if filename and os.path.isfile(filename):
-            name, ext = os.path.splitext(filename)
-            if flt.get_name() == 'XDS Spot files' or name == 'SPOT' or ext == '.XDS':
-                self.load_reflections(filename)
+            self.directory = os.path.dirname(os.path.abspath(filename))
+            file_type = flt.get_name()
+            if file_type in ['XDS Spot files', 'XDS ASCII file']:
+                self.load_reflections(filename, hkl=(file_type=='XDS ASCII file'))
                 # if reflections information is available  and an image is loaded display it
                 if self.canvas.image_loaded:
-                    self.select_reflections(self.reflections)
+                    self.canvas.select_reflections(self.reflections)
                     GObject.idle_add(self.canvas.queue_draw)
             else:
                 self.open_image(filename)
@@ -207,6 +214,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 self.following_id = GObject.timeout_add(1000, self.follow_frames)
         else:
             if self.following_id:
-                self.following_id = None
                 GObject.source_remove(self.following_id)
+                self.following_id = None
 

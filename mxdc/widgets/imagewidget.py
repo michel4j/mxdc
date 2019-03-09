@@ -134,7 +134,7 @@ class DataLoader(GObject.GObject):
         self.data = self.dataset.data
         self.header = self.dataset.header
 
-        img = cv2.convertScaleAbs(self.data**0.5, None, 255/self.scale, 0)
+        img = cv2.convertScaleAbs(self.data, None, 255/self.scale, 0)
         img1 = cv2.applyColorMap(img, self.colormap)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         GObject.idle_add(self.emit, 'new-image')
@@ -234,12 +234,13 @@ class ImageWidget(Gtk.DrawingArea):
         self.data_loader.connect('new-image', self.on_data_loaded)
 
     def select_reflections(self, reflections=None):
-        if reflections:
-            diff = (self.reflections[:,2] - self.frame_number)
+        if reflections is not None:
+            diff = (reflections[:,2] - self.frame_number)
             frame_sel = (diff >= 0) & (diff < 1)
-            sel = numpy.abs(reflections[frame_sel, 4:]).sum(1) > 0
-            indexed = reflections[sel]
-            unindexed = reflections[~sel]
+            frame_reflections = reflections[frame_sel]
+            sel = numpy.abs(frame_reflections[:, 4:]).sum(1) > 0
+            indexed = frame_reflections[sel]
+            unindexed = frame_reflections[~sel]
 
             self.indexed_spots = indexed
             self.unindexed_spots = unindexed
@@ -260,6 +261,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.raw_img = obj.image
         self.frame_number = obj.header['frame_number']
         self.filename = obj.header['filename']
+        self.name = '{} [{:6d}]'.format(obj.header['name'], self.frame_number)
         self.image_size = obj.header['detector_size']
         self.create_surface()
         self.emit('image-loaded')
@@ -352,7 +354,6 @@ class ImageWidget(Gtk.DrawingArea):
         plot = figure.add_subplot(111)
         plot.patch.set_alpha(1.0)
         adjust_spines(plot, ['left'], color)
-        #figure.subplots_adjust(left=0.18, right=0.95)
         formatter = FormatStrFormatter('%g')
         plot.yaxis.set_major_formatter(formatter)
         plot.yaxis.set_major_locator(MaxNLocator(5))
@@ -409,22 +410,22 @@ class ImageWidget(Gtk.DrawingArea):
         alloc = self.get_allocation()
         font_desc = pcontext.get_font_description()
         cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        cr.set_font_size(12)
+        cr.set_font_size(11)
         # cr.set_line_width(0.85)
         cr.move_to(6, alloc.height - 6)
-        cr.show_text(os.path.basename(self.filename))
+        cr.show_text(os.path.basename(self.name))
         cr.stroke()
 
     def draw_spots(self, cr):
         # draw spots
         x, y, w, h = self.extents
         cr.set_line_width(0.75)
-        cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
+        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
         for i, spots in enumerate([self.indexed_spots, self.unindexed_spots]):
             if i == 0:
-                cr.set_source_rgba(0.1, 0.1, 0.8, 0.75)
+                cr.set_source_rgba(0.0, 0.5, 1.0, 0.75)
             else:
-                cr.set_source_rgba(0.8, 0.1, 0.1, 0.75)
+                cr.set_source_rgba(1.0, 0.5, 0.0, 0.75)
             for spot in spots:
                 sx, sy = spot[:2]
                 if (0 < (sx - x) < x + w) and (0 < (sy - y) < y + h):
