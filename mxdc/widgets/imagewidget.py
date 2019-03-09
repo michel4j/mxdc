@@ -79,7 +79,13 @@ class DataLoader(GObject.GObject):
         self.paused = False
         self.skip_count = 10  # number of frames to skip at once
         self.zscale = DEFAULT_ZSCALE # Standard zscale above mean for palette maximum
+        self.scale = 1.0
         self.inbox = Queue.Queue(10000)
+
+        self.needs_refresh = False
+        self.load_next = False
+        self.load_prev = False
+
         self.set_colormap(0)
         self.start()
         if path:
@@ -96,17 +102,15 @@ class DataLoader(GObject.GObject):
             m = re.match(self.header['dataset']['regex'], filename)
             if m:
                 index = int(m.group(1))
-                success = self.dataset.get_frame(index)
-                if success:
-                    self.setup()
+                self.needs_refresh = self.dataset.get_frame(index)
                 return
 
         self.dataset = read_image(path)
         self.zscale = DEFAULT_ZSCALE  # return to default for new datasets
-        self.setup()
+        self.scale = self.dataset.header['average_intensity'] + self.zscale * self.dataset.header['std_dev']
+        self.needs_refresh = True
 
     def set_colormap(self, index):
-
         if cv2.__version__ >='3.0.0':
             self.colormap = cmap(COLORMAPS[index])
         else:
@@ -116,31 +120,30 @@ class DataLoader(GObject.GObject):
             }.get(index, cv2.COLORMAP_BONE)
 
     def adjust(self, direction=None):
+        prev_scale = self.scale
         if not direction:
             self.zscale = DEFAULT_ZSCALE
         else:
-            step = direction * max(round(self.zscale/10, 2), 0.025)
+            step = direction * max(round(self.zscale/10, 2), 0.1)
             self.zscale = min(MAX_ZSCALE, max(MIN_ZSCALE, self.zscale + step))
-        self.setup()
+        self.scale = self.dataset.header['average_intensity'] + self.zscale * self.dataset.header['std_dev']
+        self.needs_refresh = (prev_scale != self.scale)
 
     def setup(self):
+        self.needs_refresh = False
         self.data = self.dataset.data
         self.header = self.dataset.header
-        scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
-        img = cv2.convertScaleAbs(self.data, None, 256/scale, 0)
+
+        img = cv2.convertScaleAbs(self.data**0.5, None, 255/self.scale, 0)
         img1 = cv2.applyColorMap(img, self.colormap)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         GObject.idle_add(self.emit, 'new-image')
 
     def next_frame(self):
-        success = self.dataset.next_frame()
-        if success:
-            self.setup()
+        self.load_next = True
 
     def prev_frame(self):
-        success = self.dataset.prev_frame()
-        if success:
-            self.setup()
+        self.load_prev = True
 
     def start(self):
         self.stopped = False
@@ -152,26 +155,34 @@ class DataLoader(GObject.GObject):
     def stop(self):
         self.stopped = True
 
-    def pause(self):
-        self.paused = True
-
-    def resume(self):
-        self.paused = False
-
     def run(self):
-        path = None
+
         while not self.stopped:
-            if self.paused:
-                continue
+
+            # Load frame if path exists
             count = 0
+            path = None
             while not self.inbox.empty() and count < self.skip_count:
                 path = self.inbox.get()
                 count += 1
 
             if path:
                 self.load(path)
-                path = None
-            time.sleep(0.5)
+
+            # Check if next_frame or prev_frame has been requested
+            if self.load_next:
+                self.needs_refresh = self.dataset.next_frame()
+                self.load_next = False
+
+            if self.load_prev:
+                self.needs_refresh = self.dataset.prev_frame()
+                self.load_prev = False
+
+            # check if setup is needed
+            if self.needs_refresh:
+                self.setup()
+
+            time.sleep(0.05)
 
 
 class ImageWidget(Gtk.DrawingArea):
@@ -197,7 +208,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.extents_back = []
         self.extents_forward = []
         self.extents = None
-        self.set_spots()
+        self.select_reflections()
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
@@ -222,12 +233,19 @@ class ImageWidget(Gtk.DrawingArea):
         self.data_loader = DataLoader()
         self.data_loader.connect('new-image', self.on_data_loaded)
 
-    def set_cross(self, x, y):
-        self.beam_x, self.beam_y = x, y
+    def select_reflections(self, reflections=None):
+        if reflections:
+            diff = (self.reflections[:,2] - self.frame_number)
+            frame_sel = (diff >= 0) & (diff < 1)
+            sel = numpy.abs(reflections[frame_sel, 4:]).sum(1) > 0
+            indexed = reflections[sel]
+            unindexed = reflections[~sel]
 
-    def set_spots(self, indexed=[], unindexed=[]):
-        self.indexed_spots = indexed
-        self.unindexed_spots = unindexed
+            self.indexed_spots = indexed
+            self.unindexed_spots = unindexed
+        else:
+            self.indexed_spots = []
+            self.unindexed_spots = []
 
     def open(self, filename):
         self.data_loader.open(filename)
@@ -240,6 +258,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.wavelength = obj.header['wavelength']
         self.pixel_data = obj.data.T
         self.raw_img = obj.image
+        self.frame_number = obj.header['frame_number']
         self.filename = obj.header['filename']
         self.image_size = obj.header['detector_size']
         self.create_surface()

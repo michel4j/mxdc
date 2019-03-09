@@ -180,7 +180,7 @@ def select_open_file(title, parent=None, filters=[], default_folder=None):
 def select_open_image(parent=None, default_folder=None):
     filters = [
         ('Diffraction Frames',
-         ["*.img", "*.marccd", "*.mccd", "*.pck", "*.cbf", "*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]"]),
+         ["*.img", "*.marccd", "*.mccd", "*.pck", "*.cbf", "*.h5", "*.osc", "*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]"]),
         ('XDS Spot files', ["SPOT.XDS*", "*.HKL*"]),
         ('All files', ["*.*"])
     ]
