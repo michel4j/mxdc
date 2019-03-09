@@ -107,8 +107,17 @@ class DataLoader(GObject.GObject):
 
         self.dataset = read_image(path)
         self.zscale = DEFAULT_ZSCALE  # return to default for new datasets
-        self.scale = self.dataset.header['average_intensity'] + self.zscale * self.dataset.header['std_dev']
+
+
+        p50, p98 = self.dataset.header['percentiles']
+        avg = self.dataset.header['average_intensity']
+        stdev = self.dataset.header['std_dev']
+
+        self.scale = avg + self.zscale * stdev
         self.needs_refresh = True
+
+        skew = (avg - p50) / p98
+        print("SKEW: p50={:0.6f} avg={:0.6f} p98={:0.6f} skew={:0.6f} stdev={:0.6f}".format(p50, avg, p98, skew, stdev))
 
     def set_colormap(self, index):
         if cv2.__version__ >='3.0.0':

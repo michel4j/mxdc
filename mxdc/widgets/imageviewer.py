@@ -34,7 +34,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'data/image_viewer': ['image_viewer', 'info_dialog']
     }
     Formats = {
-        'average_intensity': '{:0.0f}',
+        'average_intensity': '{:0.2f}',
         'max_intensity': '{:0.0f}',
         'overloads': '{:0.0f}',
         'wavelength': u'{:0.4f} \u212B',
@@ -172,6 +172,8 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         if time.time() - self.last_follow_time < MAX_FOLLOW_DURATION:
             self.dataset.next_frame()
             return True
+        else:
+            self.follow_tbtn.set_active(False)
 
     def on_image_info(self, obj):
         self.on_data_loaded()
