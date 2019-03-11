@@ -24,9 +24,9 @@ from mxdc.utils.gui import color_palette
 
 
 __log_section__ = 'mxdc.imagewidget'
-img_logger = logging.getLogger(__log_section__)
+logger = logging.getLogger(__log_section__)
 
-DEFAULT_ZSCALE = 2
+ZSCALE_MULTIPLIER = 3
 MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
 COLORMAPS = ('inferno', 'binary')
@@ -37,6 +37,7 @@ def cmap(name):
     rgba_data = cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
     rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
     return rgba_data[:, :, ::-1]
+
 
 def adjust_spines(ax, spines, color):
     for loc, spine in ax.spines.items():
@@ -78,7 +79,8 @@ class DataLoader(GObject.GObject):
         self.stopped = False
         self.paused = False
         self.skip_count = 10  # number of frames to skip at once
-        self.zscale = DEFAULT_ZSCALE # Standard zscale above mean for palette maximum
+        self.zscale = ZSCALE_MULTIPLIER # Standard zscale above mean for palette maximum
+        self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
         self.inbox = Queue.Queue(10000)
 
@@ -106,32 +108,28 @@ class DataLoader(GObject.GObject):
                 return
 
         self.dataset = read_image(path)
-        self.zscale = DEFAULT_ZSCALE  # return to default for new datasets
-
-
-        p50, p98 = self.dataset.header['percentiles']
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
-
+        pLo, pHi = numpy.percentile(self.dataset.stats_data, (1., 99.))
+        self.default_zscale = ZSCALE_MULTIPLIER * (pHi - avg) / stdev  # default Z-scale
+        self.zscale = self.default_zscale
         self.scale = avg + self.zscale * stdev
         self.needs_refresh = True
-
-        skew = (avg - p50) / p98
-        print("SKEW: p50={:0.6f} avg={:0.6f} p98={:0.6f} skew={:0.6f} stdev={:0.6f}".format(p50, avg, p98, skew, stdev))
+        #print("SKEW: avg={:0.6f} stdev={:0.6f} max={:0.6f} pLo={:0.6f} pHi={:0.6f}".format(avg, stdev, mx, pLo, pHi))
 
     def set_colormap(self, index):
         if cv2.__version__ >='3.0.0':
             self.colormap = cmap(COLORMAPS[index])
         else:
             self.colormap = {
-                0: cv2.COLORMAP_BONE,
-                1: cv2.COLORMAP_HOT,
+                0: cv2.COLORMAP_HOT,
+                1: cv2.COLORMAP_BONE,
             }.get(index, cv2.COLORMAP_BONE)
 
     def adjust(self, direction=None):
         prev_scale = self.scale
         if not direction:
-            self.zscale = DEFAULT_ZSCALE
+            self.zscale = self.default_zscale
         else:
             step = direction * max(round(self.zscale/10, 2), 0.1)
             self.zscale = min(MAX_ZSCALE, max(MIN_ZSCALE, self.zscale + step))
