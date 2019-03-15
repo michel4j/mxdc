@@ -92,7 +92,7 @@ DEVICES = {
     'i_1': counter.Counter('AH1608-02:QEM:SumAll:MeanValue_RBV'),
     
     # Misc: Automounter, HC1 etc
-    'automounter':  sam.SAM('ROB16085B'),
+    'automounter':  sam.UncleSAM('SAM1608-501'),
     'humidifier': humidity.Humidifier('HC1608-01'),
     'attenuator': misc.Attenuator2('PFIL1608-5-B10-01', 'DCM1608-4-B10-01:energy:KeV:fbk'),
     'mca': mca.XFlashMCA('XFD1608-501', nozzle=misc.OnOffToggle('MD1608-05:FluoDetectorIsBack', values=(0, 1))),
