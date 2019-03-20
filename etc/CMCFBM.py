@@ -76,7 +76,7 @@ DEVICES = {
     'sample_camera': video.REDISCamera('V2E1608-501.clsi.ca', mac='000F31030CAA'),
     'sample_backlight': misc.SampleLight('MD1608-05:BackLightLevel', 'MD1608-05:BackLightLevel', 'MD1608-05:BackLightIsOn', 100.0),
     'sample_frontlight': misc.SampleLight('MD1608-05:FrontLightLevel', 'MD1608-05:FrontLightLevel', 'MD1608-05:FrontLightIsOn',100.0),
-    'hutch_video':  video.AxisPTZCamera('ccd1608-500'),
+    'hutch_video':  video.AxisPTZCamera('ccd1608-501.clsi.ca'),
     
     # Facility, storage-ring, shutters, etc
     'synchrotron':  synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
