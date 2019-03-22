@@ -61,7 +61,8 @@ class AppWindow(Gtk.ApplicationWindow):
         style.add_provider_for_screen(Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
         self.builder = AppBuilder()
-        self.set_size_request(1290, 890)
+        #self.set_size_request(1290, 890)
+        self.set_size_request(1400, 940)
         self.set_resizable(False)
         dialogs.MAIN_WINDOW = self
 
