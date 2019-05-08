@@ -1,4 +1,3 @@
-
 import uuid
 from collections import OrderedDict
 from collections import defaultdict
@@ -6,14 +5,14 @@ from copy import copy
 
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject
 from twisted.python.components import globalRegistry
-from zope.interface import Interface, implements
+from zope.interface import Interface, implementer
 
-from automounter import DewarController
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
 from mxdc.utils.automounter import Port, PortColors
 from mxdc.utils.decorators import async_call
+from .automounter import DewarController
 
 
 class ISampleStore(Interface):
@@ -56,8 +55,8 @@ class GroupItem(GObject.GObject):
         changed = set()
         for sample in self.sample_model:
             can_change = (
-                sample[SampleStore.Data.GROUP] == self.props.name and
-                sample[SampleStore.Data.SELECTED] != self.props.selected
+                    sample[SampleStore.Data.GROUP] == self.props.name and
+                    sample[SampleStore.Data.SELECTED] != self.props.selected
             )
             if can_change:
                 self.items[sample[SampleStore.Data.UUID]] = self.props.selected
@@ -72,9 +71,8 @@ class GroupItem(GObject.GObject):
         return '<Group: {}|{}>'.format(self.props.name, self.props.selected)
 
 
+@implementer(ISampleStore)
 class SampleStore(GObject.GObject):
-    implements(ISampleStore)
-
     class Data(object):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
@@ -235,7 +233,7 @@ class SampleStore(GObject.GObject):
             item.get('port', ''),
             '{} ({})'.format(item.get('container'), item.get('location')),
             item.get('barcode', ''),
-            False, # not mismatched
+            False,  # not mismatched
             item.get('priority', 0),
             item.get('comments', ''),
             state,
@@ -310,11 +308,10 @@ class SampleStore(GObject.GObject):
             if row:
                 self.props.next_sample = row[self.Data.DATA]
             else:
-                self.props.next_sample = {'port': port }
+                self.props.next_sample = {'port': port}
         else:
             name_style.remove_class('prefetched')
             port_style.remove_class('prefetched')
-
 
     def on_cur_changed(self, *args, **kwargs):
         self.widget.samples_cur_sample.set_text(self.current_sample.get('name', '...'))
@@ -607,8 +604,8 @@ class SampleQueue(GObject.GObject):
     def queued_data(self, model, itr, dat):
         """Test if the row is visible"""
         return (
-            self.model.get_value(itr, SampleStore.Data.SELECTED) or
-            self.model.get_value(itr, SampleStore.Data.PROGRESS) != SampleStore.Progress.NONE
+                self.model.get_value(itr, SampleStore.Data.SELECTED) or
+                self.model.get_value(itr, SampleStore.Data.PROGRESS) != SampleStore.Progress.NONE
         )
 
     def clean(self):

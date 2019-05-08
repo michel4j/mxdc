@@ -5,7 +5,7 @@ import json
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
 from twisted.internet.defer import  inlineCallbacks, returnValue
-from zope.interface import implements
+from zope.interface import implementer
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc, datatools
@@ -16,9 +16,9 @@ from mxdc.conf import settings
 logger = get_module_logger(__name__)
 
 
+@implementer(IAnalyst)
 class Analyst(GObject.GObject):
 
-    implements(IAnalyst)
     __gsignals__ = {
         'new-report': (GObject.SIGNAL_RUN_LAST, None, (str, object)),
         'error': (GObject.SIGNAL_RUN_LAST, None, (str, object))

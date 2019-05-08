@@ -1,10 +1,13 @@
+import math
+import random
+
 from gi.repository import GObject
+from zope.interface import Interface, Attribute
+from zope.interface import implementer
+
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
-from zope.interface import implements
-from zope.interface import Interface, Attribute, invariant
-import random
-import math
+
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
@@ -38,8 +41,9 @@ class IBeamTuner(Interface):
     def stop(self):
         """Stop Tuner"""
 
+
+@implementer(IBeamTuner)
 class BaseTuner(BaseDevice):
-    implements(IBeamTuner)
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
         "percent": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
@@ -51,7 +55,7 @@ class BaseTuner(BaseDevice):
 
     def is_tunable(self):
         return self.tunable
-        
+
     def tune_up(self):
         pass
 
@@ -65,7 +69,7 @@ class BaseTuner(BaseDevice):
         pass
 
     def pause(self):
-       pass
+        pass
 
     def resume(self):
         pass
@@ -78,13 +82,13 @@ class BaseTuner(BaseDevice):
 
 
 class BOSSTuner(BaseTuner):
-    def __init__(self, name,  picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e8):
+    def __init__(self, name, picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e8):
         BaseTuner.__init__(self)
         self.name = name
         self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
         self.enabled_fbk = self.add_pv('{}:EnableDacIN'.format(name))
         self.beam_threshold = self.add_pv('{}:OffIntOUT'.format(name))
-        self.value_fbk = self.add_pv('{}'.format(picoameter))        
+        self.value_fbk = self.add_pv('{}'.format(picoameter))
         self.current_fbk = self.add_pv(current)
         self.enabled_fbk.connect('changed', self.on_state_changed)
         self.value_fbk.connect('changed', self.on_value_changed)
@@ -134,13 +138,13 @@ class BOSSTuner(BaseTuner):
             self.pause()
 
     def on_state_changed(self, obj, val):
-        self.set_state(enabled=(val==1))
+        self.set_state(enabled=(val == 1))
 
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
         cur = self.current_fbk.get()
-        tgt = 0.0 if cur == 0 else val/cur
-        perc = 0.0 if ref == 0 else 100.0 * tgt/ref
+        tgt = 0.0 if cur == 0 else val / cur
+        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
         self.set_state(changed=val, percent=perc)
 
 
@@ -191,18 +195,18 @@ class MOSTABTuner(BaseTuner):
             self.acquire_cmd.put(0)
 
     def on_state_changed(self, obj, val):
-        self.set_state(enabled=(val==1))
+        self.set_state(enabled=(val == 1))
 
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
         cur = self.current_fbk.get()
-        tgt = 0.0 if cur == 0 else val/cur
-        perc = 0.0 if ref == 0 else 100.0 * tgt/ref
+        tgt = 0.0 if cur == 0 else val / cur
+        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
         if cur > 10.0:
             # dynamic tune step
-            self.tune_step = min(100, 5*2**round((90.0 - max(0, min(90, perc)))/10, 0)) 
+            self.tune_step = min(100, 5 * 2 ** round((90.0 - max(0, min(90, perc))) / 10, 0))
         else:
-            self.tune_step = 0   # disable tuning if no beam
+            self.tune_step = 0  # disable tuning if no beam
         self.set_state(changed=val, percent=perc)
 
 
@@ -227,7 +231,7 @@ class SimTuner(BaseTuner):
         self.pos = -1.0
 
     def _calc_int(self):
-        return self.reference * (1/math.sqrt(0.4*math.pi)) * math.exp(-0.5*(self.pos**2)/0.2)/0.892
+        return self.reference * (1 / math.sqrt(0.4 * math.pi)) * math.exp(-0.5 * (self.pos ** 2) / 0.2) / 0.892
 
     def _change_value(self):
         self.value = self._calc_int()
@@ -236,5 +240,6 @@ class SimTuner(BaseTuner):
         perc = 100.0 * value / self.reference
         self.set_state(changed=value, percent=perc)
         return True
+
 
 __all__ = ['BOSSTuner', 'MOSTABTuner', 'SimTuner']

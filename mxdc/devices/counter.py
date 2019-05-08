@@ -4,17 +4,19 @@ import time
 
 import numpy
 from gi.repository import GObject
-from zope.interface import implements
+from zope.interface import implementer
 
-from interfaces import ICounter
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import decorators
 from mxdc.utils.log import get_module_logger
+
+from .interfaces import ICounter
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
 
+@implementer(ICounter)
 class Counter(BaseDevice):
     """EPICS based Counter Device objects. Enables counting and averaging of 
     process variables over given time periods.
@@ -23,8 +25,7 @@ class Counter(BaseDevice):
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
-    implements(ICounter)
-    
+
     def __init__(self, pv_name, zero=0.0):
         """        
         Args:
@@ -83,7 +84,7 @@ class Counter(BaseDevice):
         self.avg_value = self.count(t)
                         
 
-
+@implementer(ICounter)
 class SimCounter(BaseDevice):
     """Simulated Counter Device objects. Optionally reads from external file.
     """
@@ -92,7 +93,6 @@ class SimCounter(BaseDevice):
     }
 
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
-    implements(ICounter)
     
     def __init__(self, name, zero=12345):
         """        

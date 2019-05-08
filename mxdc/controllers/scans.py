@@ -8,16 +8,16 @@ from enum import Enum
 from gi.repository import Gtk, GObject
 from twisted.python.components import globalRegistry
 
-import common
-from datasets import IDatasets
-from mxdc.conf import load_cache, save_cache
 from mxdc.beamlines.mx import IBeamline
+from mxdc.conf import load_cache, save_cache
 from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
 from mxdc.utils import colors, datatools, misc, scitools
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs, periodictable, plotter
-from samplestore import ISampleStore
+from . import common
+from .datasets import IDatasets
+from .samplestore import ISampleStore
 
 logger = get_module_logger(__name__)
 
@@ -351,6 +351,7 @@ class XRFResultsManager(TreeManager):
         else:
             self.props.directory = ''
 
+
 class XASResultsManager(TreeManager):
     class Data(Enum):
         NAME, EDGE, SCAN, TIME, X_PEAK, Y_PEAK, DIRECTORY = range(7)
@@ -450,7 +451,6 @@ class MADScanController(ScanController):
                 'directory': scanner.config['directory'],
             })
 
-
     def load_data(self, meta, data, analysis):
         choices = analysis.get('choices')
         if choices is None:
@@ -477,7 +477,6 @@ class MADScanController(ScanController):
                 title='{} Edge MAD Scan'.format(meta['edge']),
                 x_label='Energy (keV)', y1_label='Fluorescence'
             )
-
 
 
 class XRFScanController(ScanController):

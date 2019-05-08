@@ -1,21 +1,21 @@
-import common
 import uuid
 from datetime import datetime
-import numpy
 
+import numpy
 from gi.repository import Gtk
+from twisted.python.components import globalRegistry
+
 from mxdc.beamlines.mx import IBeamline
+from mxdc.conf import load_cache, save_cache
 from mxdc.devices.misc import SimPositioner
+from mxdc.engines.humidity import SingleCollector
+from mxdc.utils import gui, datatools
+from mxdc.utils.converter import resol_to_dist
+from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
 from mxdc.widgets import ticker
-from mxdc.conf import load_cache, save_cache
-from mxdc.utils.log import get_module_logger
-from mxdc.utils import gui, datatools
-from mxdc.engines.humidity import SingleCollector
-from mxdc.utils.converter import resol_to_dist
-from twisted.python.components import globalRegistry
-from samplestore import ISampleStore
-
+from . import common
+from .samplestore import ISampleStore
 
 logger = get_module_logger(__name__)
 
@@ -101,7 +101,7 @@ class HumidityController(gui.Builder):
         if not self.ConfigSpec: return
         for name, details in self.ConfigSpec.items():
             field_type, fmt, conv, default = details
-            field_name = '{}_{}_{}'.format(self.ConfigPrefix,name, field_type)
+            field_name = '{}_{}_{}'.format(self.ConfigPrefix, name, field_type)
             value = info.get(name, default)
             field = getattr(self, field_name, None)
             if not field: continue
@@ -178,7 +178,7 @@ class HumidityController(gui.Builder):
     def setup(self):
         self.monitors = [
             common.DeviceMonitor(self.humidifier.dew_point, self.hc_dewpoint_fbk, format='{:0.2f} K'),
-            #common.DeviceMonitor(self.humidifier.drop_size, self.hc_dropsize_fbk, format='{:0.0f} px')
+            # common.DeviceMonitor(self.humidifier.drop_size, self.hc_dropsize_fbk, format='{:0.0f} px')
         ]
         self.entries = {
             'humidity': misc.ActiveEntry(self.humidifier.humidity, 'Relative Humidity', fmt="%0.2f"),

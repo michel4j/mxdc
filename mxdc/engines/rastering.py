@@ -16,7 +16,7 @@ from mxdc.utils import datatools,  misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 
-from zope.interface import Interface, implements, Attribute
+from zope.interface import Interface, implementer, Attribute
 
 logger = get_module_logger(__name__)
 
@@ -31,8 +31,8 @@ class IRasterCollector(Interface):
         """Run the acquisition asynchronously"""
 
 
+@implementer(IRasterCollector)
 class RasterCollector(GObject.GObject):
-    implements(IRasterCollector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
         'result': (GObject.SIGNAL_RUN_LAST, None, (int, object)),

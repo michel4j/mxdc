@@ -1,20 +1,21 @@
 from enum import Enum
 from gi.repository import GObject
-from interfaces import IDiagnostic
+from twisted.python.components import globalRegistry
+from zope.interface import implementer
+
 from mxdc.devices.base import HealthManager
 from mxdc.utils.log import get_module_logger
-from twisted.python.components import globalRegistry
-from zope.interface import implements
+from .interfaces import IDiagnostic
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
 
+@implementer(IDiagnostic)
 class Diagnostic(GObject.GObject):
     """
     Base class for diagnostics.
     """
-    implements(IDiagnostic)
 
     class State(Enum):
         GOOD, WARN, BAD, UNKNOWN, DISABLED = range(5)

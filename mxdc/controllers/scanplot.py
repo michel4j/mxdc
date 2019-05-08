@@ -9,15 +9,15 @@ from mxdc.utils import fitting
 from mxdc.utils import xdi
 from mxdc.widgets import plotter
 from twisted.python.components import globalRegistry
-from zope.interface import implements
+from zope.interface import implementer
 
 
 class Fit(object):
     pass
 
 
+@implementer(IScanPlotter)
 class ScanPlotter(object):
-    implements(IScanPlotter)
 
     def __init__(self, widget):
         self.plotter = plotter.Plotter()

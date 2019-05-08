@@ -1,12 +1,15 @@
-import numpy
 import time
+
+import numpy
 from gi.repository import GObject
-from zope.interface import implements
-from mxdc.utils.log import get_module_logger
-from interfaces import IDevice
+from zope.interface import implementer
+
 from mxdc.devices.base import BaseDevice
+from mxdc.utils.log import get_module_logger
+from .interfaces import IDevice
 
 logger = get_module_logger(__name__)
+
 
 class ISampleStage(IDevice):
     """A specialized stage for the goniometer sample alignment"""
@@ -45,6 +48,7 @@ class ISampleStage(IDevice):
         """Is the stage busy"""
 
 
+@implementer(ISampleStage)
 class SampleStageBase(BaseDevice):
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
@@ -54,11 +58,11 @@ class SampleStageBase(BaseDevice):
         return x, numpy.hypot(y, z), numpy.arctan2(z, y)
 
     def xvw_to_xyz(self, x, v, w):
-        return x, v * numpy.cos(w), v* numpy.sin(w)
+        return x, v * numpy.cos(w), v * numpy.sin(w)
 
     def xvw_to_screen(self, x, v, w):
         theta = self.get_omega() - w
-        return x, v*numpy.cos(theta), v*numpy.sin(theta)
+        return x, v * numpy.cos(theta), v * numpy.sin(theta)
 
     def xyz_to_screen(self, x, y, z):
         x, v, w = self.xyz_to_xvw(x, y, z)
@@ -67,7 +71,7 @@ class SampleStageBase(BaseDevice):
     def screen_to_xyz(self, x, y, z):
         phi = self.get_omega() - numpy.arctan2(z, y)
         h = numpy.hypot(z, y)
-        return x, h*numpy.cos(phi), h*numpy.sin(phi)
+        return x, h * numpy.cos(phi), h * numpy.sin(phi)
 
     def get_omega(self):
         return numpy.radians(self.omega.get_position() - self.offset)
@@ -104,7 +108,6 @@ class SampleStageBase(BaseDevice):
 
 
 class SampleStage(SampleStageBase):
-    implements(ISampleStage)
 
     def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False):
         SampleStageBase.__init__(self)
@@ -168,5 +171,3 @@ class SampleStage(SampleStageBase):
 
     def is_busy(self):
         return any((self.x.is_busy(), self.y1.is_busy(), self.y2.is_busy()))
-
-

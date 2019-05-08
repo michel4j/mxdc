@@ -4,21 +4,21 @@ import time
 
 import numpy
 from gi.repository import GObject
-from interfaces import IMultiChannelAnalyzer
 from mxdc import conf
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
-from zope.interface import implements
+from zope.interface import implementer
+
+from . interfaces import IMultiChannelAnalyzer
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
-
+@implementer(IMultiChannelAnalyzer)
 class BasicMCA(BaseDevice):
     """Base class for single and multi-element fluorescence MCA detector objects."""
 
-    implements(IMultiChannelAnalyzer)
 
     __gsignals__ = {
         "deadtime": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
@@ -73,7 +73,7 @@ class BasicMCA(BaseDevice):
 
         # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
         # self.ACQG.connect('changed', self._monitor_state)
-        raise NotImplementedError, "Derived class does not implement a`custom_setup` method!"
+        raise NotImplementedError("Derived class does not implement a`custom_setup` method!")
 
     def configure(self, **kwargs):
         """Configure the detector for data acquisition.

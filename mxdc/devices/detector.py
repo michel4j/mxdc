@@ -8,13 +8,14 @@ from datetime import datetime
 
 
 from gi.repository import GObject
-from zope.interface import implements
+from zope.interface import implementer
 
-from interfaces import IImagingDetector
 from mxdc.com import ca
 from mxdc.utils import decorators
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
+
+from .interfaces import IImagingDetector
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -22,8 +23,8 @@ logger = get_module_logger(__name__)
 TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'test')
 
 
+@implementer(IImagingDetector)
 class SimDetector(BaseDevice):
-    implements(IImagingDetector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
     }
@@ -124,9 +125,8 @@ class SimDetector(BaseDevice):
     def cleanup(self):
         self._stopped = True
 
-
+@implementer(IImagingDetector)
 class PilatusDetector(BaseDevice):
-    implements(IImagingDetector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
     }
@@ -197,8 +197,7 @@ class PilatusDetector(BaseDevice):
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
         self.wait('idle')
-        self.acquire_cmd.put(1)
-        ca.flush()
+        self.acquire_cmd.put(1, wait=True)
         self.wait('acquiring')
 
     def stop(self):
@@ -288,8 +287,9 @@ class PilatusDetector(BaseDevice):
         return self.acquire_status.get() in self.STATES.get(state, [])
 
 
+@implementer(IImagingDetector)
 class RayonixDetector(BaseDevice):
-    implements(IImagingDetector)
+
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
     }
@@ -450,8 +450,8 @@ class RayonixDetector(BaseDevice):
         return any(self.state_value.get() in self.STATES.get(state, []) for state in states)
 
 
+@implementer(IImagingDetector)
 class ADSCDetector(BaseDevice):
-    implements(IImagingDetector)
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
     }

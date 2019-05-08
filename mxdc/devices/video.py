@@ -3,10 +3,16 @@ import pickle
 import re
 import threading
 import time
-from StringIO import StringIO
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from io import BytesIO
 
 import gi
+
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import GObject
@@ -15,11 +21,11 @@ import numpy
 import redis
 import requests
 from PIL import Image
-from interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
+from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
 from scipy import misc
-from zope.interface import implements
+from zope.interface import implementer
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -123,8 +129,8 @@ class VideoSrc(BaseDevice):
         self.stop()
 
 
+@implementer(ICamera)
 class SimCamera(VideoSrc):
-    implements(ICamera)
 
     def __init__(self, name="Camera Simulator", img="sim_sample_video.png"):
         VideoSrc.__init__(self, name)
@@ -148,8 +154,8 @@ class SimCamera(VideoSrc):
         return self.frame
 
 
+@implementer(IZoomableCamera)
 class SimZoomableCamera(SimCamera):
-    implements(IZoomableCamera)
 
     def __init__(self, name, motor):
         SimCamera.__init__(self, name)
@@ -168,8 +174,8 @@ class SimZoomableCamera(SimCamera):
         self.resolution = 5.34e-6 * numpy.exp(-0.18 * val)
 
 
+@implementer(IPTZCameraController)
 class SimPTZCamera(SimCamera):
-    implements(IPTZCameraController)
 
     def __init__(self):
         SimCamera.__init__(self, img="sim_hutch_video.png")
@@ -188,8 +194,8 @@ class SimPTZCamera(SimCamera):
         return presets
 
 
+@implementer(ICamera)
 class MJPGCamera(VideoSrc):
-    implements(ICamera)
 
     def __init__(self, url, size=(768, 576), name='MJPG Camera'):
         VideoSrc.__init__(self, name, maxfps=10.0)
@@ -226,8 +232,8 @@ class MJPGCamera(VideoSrc):
         return self.frame
 
 
+@implementer(ICamera)
 class JPGCamera(VideoSrc):
-    implements(ICamera)
 
     def __init__(self, url, size=(768, 576), name='JPG Camera'):
         VideoSrc.__init__(self, name, maxfps=10.0)
@@ -246,9 +252,8 @@ class JPGCamera(VideoSrc):
         return self.frame
 
 
+@implementer(ICamera)
 class REDISCamera(VideoSrc):
-    implements(ICamera)
-
     # Camera Attributes
     ATTRS = {
         'gain': 'GainRaw',
@@ -259,7 +264,7 @@ class REDISCamera(VideoSrc):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
-        self.zoom_slave=zoom_slave
+        self.zoom_slave = zoom_slave
         self.server = server
         self.size = pickle.loads(self.store.get('{}:SIZE'.format(mac)))
         self.stream = None
@@ -283,7 +288,7 @@ class REDISCamera(VideoSrc):
     def get_frame_raw(self):
         with self.lock:
             data = self.store.get('{}:RAW'.format(self.key))
-            while len(data) < self.size[0]*self.size[1]*3:
+            while len(data) < self.size[0] * self.size[1] * 3:
                 data = self.store.get('{}:RAW'.format(self.key))
                 time.sleep(0.002)
             img = Image.frombytes('RGB', self.size, data, 'raw')
@@ -297,8 +302,8 @@ class REDISCamera(VideoSrc):
         return self.frame
 
 
+@implementer(ICamera)
 class AxisCamera(JPGCamera):
-    implements(ICamera)
 
     def __init__(self, hostname, idx=None, name='Axis Camera'):
         if idx is None:
@@ -310,8 +315,8 @@ class AxisCamera(JPGCamera):
         super(AxisCamera, self).__init__(url, name=name)
 
 
+@implementer(IZoomableCamera)
 class ZoomableCamera(object):
-    implements(IZoomableCamera)
 
     def __init__(self, camera, zoom_motor, scale_device=None):
         self.camera = camera
@@ -338,8 +343,6 @@ class ZoomableCamera(object):
     def update_resolution(self, *args, **kwar):
         self.camera.resolution = self._scale.get() or 0.0028
 
-
-
     def update_zoom(self, *args, **kwar):
         scale = 1360. / self.camera.size[0]
         self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
@@ -351,8 +354,8 @@ class ZoomableCamera(object):
             raise
 
 
+@implementer(IPTZCameraController)
 class AxisPTZCamera(AxisCamera):
-    implements(IPTZCameraController)
 
     def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
         AxisCamera.__init__(self, hostname, idx, name)
@@ -398,4 +401,3 @@ class AxisPTZCamera(AxisCamera):
                 if m:
                     presets.append(m.group('name'))
         self.presets = presets
-

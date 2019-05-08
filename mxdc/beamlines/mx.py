@@ -2,17 +2,19 @@ import imp
 import os
 import threading
 
-from interfaces import IBeamline
+from .interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.conf import settings
 from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_project_id
 from twisted.python.components import globalRegistry
-from zope.interface import implements
+from zope.interface import implementer
 
 logger = get_module_logger(__name__)
 
+
+@implementer(IBeamline)
 class MXBeamline(object):
     """MX Beamline(Macromolecular Crystallography Beamline) objects
 
@@ -32,7 +34,6 @@ class MXBeamline(object):
                                 in addition to the above
               SERVICES = A dictionary mapping services names to services client objects
     """
-    implements(IBeamline)
 
     def __init__(self, console=False):
         """Kwargs:

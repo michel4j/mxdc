@@ -1,9 +1,8 @@
-import os
-import pickle
 import time
 
 import gi
 import numpy
+from enum import Enum
 from PIL import Image
 
 gi.require_version('Gtk', '3.0')
@@ -11,7 +10,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import GObject
 from gi.repository import Gdk
 from gi.repository import Gtk
-from zope.interface import implements
+from zope.interface import implementer
 import cairo
 
 from mxdc.utils import cmaps
@@ -23,15 +22,19 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-class VideoWidget(Gtk.DrawingArea):
-    implements(IVideoSink)
+class VideoBox(Enum):
+    PAD, CROP = range(2)
 
-    def __init__(self, camera):
+@implementer(IVideoSink)
+class VideoWidget(Gtk.DrawingArea):
+
+    def __init__(self, camera, mode=VideoBox.PAD):
         super(VideoWidget, self).__init__()
         self.props.expand = True
         self.props.halign = Gtk.Align.FILL
         self.props.valign = Gtk.Align.FILL
         self.camera = camera
+        self.mode = mode
         self.scale = 1
         self.voffset = 0
         self.hoffset = 0
@@ -100,6 +103,12 @@ class VideoWidget(Gtk.DrawingArea):
         @param vheight: video height in pixels
         """
 
+        if self.mode == VideoBox.CROP:
+            self.configure_crop(dwidth, dheight, vwidth, vheight)
+        else:
+            self.configure_pad(dwidth, dheight, vwidth, vheight)
+
+    def configure_pad(self, dwidth, dheight, vwidth, vheight):
         video_aspect = float(vwidth) / vheight
         display_aspect = float(dwidth) / dheight
 
@@ -117,6 +126,28 @@ class VideoWidget(Gtk.DrawingArea):
             self.voffset = 0
 
         self.display_width, self.display_height = width, height
+        if dwidth > 12:
+            self.props.parent.set(0.5, 0.5, video_aspect, False)
+
+    def configure_crop(self, dwidth, dheight, vwidth, vheight):
+        video_aspect = float(vwidth) / vheight
+        display_aspect = float(dwidth) / dheight
+
+        if display_aspect > video_aspect:
+            width = dwidth
+            self.scale = float(width) / vwidth
+            height = int(round(width / video_aspect))
+            self.voffset = (dheight - height) // 2
+            self.hoffset = 0
+        else:
+            height = dheight
+            self.scale = float(height) / vheight
+            width = int(round(video_aspect * height))
+            self.hoffset = (dwidth - width) // 2
+            self.voffset = 0
+
+        self.display_width, self.display_height = width, height
+
         if dwidth > 12:
             self.props.parent.set(0.5, 0.5, video_aspect, False)
 

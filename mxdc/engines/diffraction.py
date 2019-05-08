@@ -5,7 +5,7 @@ import time
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
-from zope.interface import implements
+from zope.interface import implementer
 
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
@@ -21,8 +21,9 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
+@implementer(IDataCollector)
 class DataCollector(GObject.GObject):
-    implements(IDataCollector)
+
     __gsignals__ = {
         'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
         'progress': (GObject.SIGNAL_RUN_LAST, None, (float,)),

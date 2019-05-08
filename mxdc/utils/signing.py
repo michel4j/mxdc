@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import serialization
 try:
     from django.utils import baseconv
 except ImportError:
-    import baseconv
+    from . import baseconv
 
 
 class Signer(object):

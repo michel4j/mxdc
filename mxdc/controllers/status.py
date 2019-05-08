@@ -1,4 +1,4 @@
-import common
+from . import common
 from gi.repository import Gtk
 from mxdc.beamlines.mx import IBeamline
 from mxdc.devices.manager import BaseManager

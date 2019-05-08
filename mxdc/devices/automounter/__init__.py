@@ -1,7 +1,7 @@
 import time
 
 from enum import Enum
-from zope.interface import implements
+from zope.interface import implementer
 from gi.repository import GObject
 
 from mxdc.devices.base import BaseDevice
@@ -19,9 +19,9 @@ def set_object_properties(obj, kwargs):
     for k,v in kwargs.items():
         obj.set_property(k,v)
 
-
+@implementer(IAutomounter)
 class AutoMounter(BaseDevice):
-    implements(IAutomounter)
+
 
     layout = GObject.Property(type=object)
     sample = GObject.Property(type=object)
