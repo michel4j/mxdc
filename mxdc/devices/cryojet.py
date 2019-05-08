@@ -1,10 +1,12 @@
 from gi.repository import GObject
-from zope.interface import implements
+from zope.interface import implementer
 
-from interfaces import ICryojet
+
 from mxdc.devices import misc
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
+
+from .interfaces import ICryojet
 
 logger = get_module_logger(__name__)
 
@@ -26,12 +28,11 @@ class CryoJetNozzle(misc.BasicShutter):
         self._name = 'Cryojet Nozzle'
 
 
+@implementer(ICryojet)
 class CryoJetBase(BaseDevice):
     """
     Cryogenic Nozzle Jet Device
     """
-
-    implements(ICryojet)
 
     temperature = GObject.Property(type=float, default=0.0)
     shield = GObject.Property(type=float, default=0.0)

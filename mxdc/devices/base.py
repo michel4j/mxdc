@@ -43,7 +43,7 @@ class BaseDevice(GObject.GObject):
     
         - `pending_devs`: a list of inactive child devices.
         - `health_manager`: A :class:`HealthManager` object.
-        - `state_info`: A dict containing state information.
+        - `_state`: A dict containing state information.
         - `name`:  the name of the devices
     
     **Signals:**    
@@ -134,7 +134,7 @@ class BaseDevice(GObject.GObject):
         severity, message = self.health_state
         return severity <= 1
 
-    def get_state(self):
+    def get_states(self):
         """Obtain a copy of the devices state.
          
         Returns:
@@ -147,6 +147,13 @@ class BaseDevice(GObject.GObject):
                 - `message`: string        
         """
         return self.state_info.copy()
+
+    def get_state(self, item):
+        """
+        Get a specific state from the the device status by key
+        @param item: state key
+        """
+        return self.state_info.get(item)
 
     def set_state(self, *args, **kwargs):
         """Set the state of the devices and emit the corresponding signal.

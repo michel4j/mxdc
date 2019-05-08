@@ -2,7 +2,7 @@ from twisted.application import service
 from twisted.internet import reactor, defer
 from twisted.python import components
 from twisted.spread import pb
-from zope.interface import Interface, implements
+from zope.interface import Interface, implementer
 
 from mxdc.utils.log import get_module_logger
 
@@ -20,9 +20,8 @@ class IPerspectiveMXDC(Interface):
     def remote_shutdown(*args, **kwargs):
         """Shutdown MxDC"""
 
-
+@implementer(IPerspectiveMXDC)
 class PerspectiveMXDCFromService(pb.Root):
-    implements(IPerspectiveMXDC)
 
     def __init__(self, service):
         self.service = service
@@ -34,9 +33,8 @@ class PerspectiveMXDCFromService(pb.Root):
 
 components.registerAdapter(PerspectiveMXDCFromService, IMXDCService, IPerspectiveMXDC)
 
-
+@implementer(IMXDCService)
 class MXDCService(service.Service):
-    implements(IMXDCService)
 
     def shutdown(self):
         logger.warning('Remote Shutdown ...')

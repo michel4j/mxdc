@@ -12,7 +12,7 @@ from twisted.application import internet, service
 from twisted.internet import defer, threads
 from twisted.python import components, log as twistedlog
 from twisted.spread import pb
-from zope.interface import implements, Interface
+from zope.interface import implementer, Interface
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -84,8 +84,8 @@ class IDSSPerspective(Interface):
         """configure adaptor"""
 
 
+@implementer(IDSSPerspective)
 class DSSPerspective2Service(pb.Root):
-    implements(IDSSPerspective)
 
     def __init__(self, service):
         self.service = service
@@ -146,8 +146,8 @@ class Archiver(object):
         self.processing = False
 
 
+@implementer(IDSService)
 class DSService(service.Service):
-    implements(IDSService)
     ARCHIVE_ROOT = '/archive'
     FILE_MODE = 0o777
     INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas']

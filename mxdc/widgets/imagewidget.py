@@ -1,5 +1,8 @@
 # -*- coding: UTF8 -*-
-import Queue
+try:
+    from Queue import Queue
+except ImportError:
+    from queue import Queue
 import re
 import logging
 import math
@@ -82,7 +85,7 @@ class DataLoader(GObject.GObject):
         self.zscale = ZSCALE_MULTIPLIER # Standard zscale above mean for palette maximum
         self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
-        self.inbox = Queue.Queue(10000)
+        self.inbox = Queue(10000)
 
         self.needs_refresh = False
         self.load_next = False

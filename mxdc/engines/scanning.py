@@ -6,7 +6,7 @@ import numpy
 from gi.repository import GObject
 from scipy import interpolate
 from twisted.python.components import globalRegistry
-from zope.interface import implements
+from zope.interface import implementer
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.com import ca
@@ -23,8 +23,8 @@ class ScanError(Exception):
     """Scan Error."""
 
 
+@implementer(IScan)
 class BasicScan(GObject.GObject):
-    implements(IScan)
     name = 'Basic Scan'
     __gsignals__ = {}
     __gsignals__['new-point'] = (GObject.SignalFlags.RUN_FIRST, None, (object,))

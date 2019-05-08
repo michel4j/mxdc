@@ -1,26 +1,28 @@
 import os
-import numpy
+
 import gi
+import numpy
+from enum import Enum
 
 gi.require_version('WebKit2', '4.0')
-from enum import Enum
 from gi.repository import GObject, WebKit2, Gtk, Gdk
+from twisted.python.components import globalRegistry
+
 from mxdc.conf import settings
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import colors, misc
-from mxdc.utils.decorators import async_call
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
 from mxdc.engines.analysis import Analyst
-from samplestore import ISampleStore
-from twisted.python.components import globalRegistry
 from mxdc.engines import auto
-from mxdc.widgets import dialogs, datawidget
+from mxdc.widgets import dialogs
 from mxdc.controllers.datasets import IDatasets
+from .samplestore import ISampleStore
 
 logger = get_module_logger(__name__)
 
-#DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs-src', '_build', 'html', 'index.html')
+
+# DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs-src', '_build', 'html', 'index.html')
 
 
 class ReportManager(TreeManager):
@@ -155,11 +157,11 @@ class AnalysisController(GObject.GObject):
 
     def import_metafile(self, *args, **kwargs):
         filters = [
-                ('MxDC Meta-File', ["*.meta"]),
-                ('AutoProcess Meta-File', ["*.json"]),
+            ('MxDC Meta-File', ["*.meta"]),
+            ('AutoProcess Meta-File', ["*.json"]),
         ]
         directory = os.path.join(misc.get_project_home(), settings.get_session())
-        filename, filter =  dialogs.select_opensave_file(
+        filename, filter = dialogs.select_opensave_file(
             'Select Meta-File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
             default_folder=directory
         )
@@ -211,7 +213,8 @@ class AnalysisController(GObject.GObject):
         sample = item.get('sample', {})
         strategy = report.get('strategy')
 
-        self.widget.proc_mount_btn.set_sensitive(bool(sample) and bool(sample.get('port')) and item['state'] == self.reports.State.SUCCESS)
+        self.widget.proc_mount_btn.set_sensitive(
+            bool(sample) and bool(sample.get('port')) and item['state'] == self.reports.State.SUCCESS)
         self.widget.proc_strategy_btn.set_sensitive(bool(self.reports.strategy))
         if sample and sample.get('port'):
             sample_text = '{name}|{port}'.format(
@@ -252,7 +255,7 @@ class AnalysisController(GObject.GObject):
         strategy = self.reports.strategy
         dataset_controller = globalRegistry.lookup([], IDatasets)
         if strategy:
-            default_rate = self.beamline.config['default_delta']/self.beamline.config['default_exposure']
+            default_rate = self.beamline.config['default_delta'] / self.beamline.config['default_exposure']
             exposure_rate = strategy.get('exposure_rate', default_rate)
             max_delta = strategy.get('max_delta', self.beamline.config['default_delta'])
 
@@ -261,7 +264,7 @@ class AnalysisController(GObject.GObject):
                 'start': strategy.get('start_angle', 0.0),
                 'range': strategy.get('total_angle', 180),
                 'resolution': strategy.get('resolution', 2.0),
-                'exposure': max_delta/exposure_rate,
+                'exposure': max_delta / exposure_rate,
                 'delta': max_delta,
                 'name': 'data',
             }
@@ -295,4 +298,3 @@ class AnalysisController(GObject.GObject):
                 self.analyst.process_dataset(metas[0], flags=options, sample=sample)
         elif data_type == 'XRD_DATA':
             self.analyst.process_powder(metas[0], flags=options, sample=sample)
-

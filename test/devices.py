@@ -6,7 +6,7 @@ class BaseDeviceTestCase(unittest.TestCase):
         self.device = BaseDevice()
     
     def test_get_status(self):
-        sts = self.device.get_state()
+        sts = self.device.get_states()
         expected = set(['active','busy','error','message'])
         observed = set(sts.keys())
         self.assertEqual(expected,  observed,

@@ -1,21 +1,22 @@
 import math
 import os
 
-import common
 import numpy
 from gi.repository import Gtk, Gdk, GObject
 from matplotlib.path import Path
+from twisted.python.components import globalRegistry
+from zope.interface import Interface, Attribute, implementer
+
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import save_cache, load_cache
+from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils import imgproc, colors
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
-from mxdc.engines import centering
 from mxdc.widgets.video import VideoWidget
-from twisted.python.components import globalRegistry
-from zope.interface import Interface, Attribute, implements
+from . import common
 
 logger = get_module_logger(__name__)
 
@@ -37,9 +38,8 @@ class IMicroscope(Interface):
     points = Attribute("A list of points")
 
 
+@implementer(IMicroscope)
 class Microscope(GObject.GObject):
-    implements(IMicroscope)
-
     class GridState:
         PENDING, COMPLETE = range(2)
 
@@ -252,7 +252,7 @@ class Microscope(GObject.GObject):
             cr.stroke()
             label = '{:0.3f} mm'.format(dist)
             xb, yb, w, h = cr.text_extents(label)[:4]
-            cr.move_to(x2 + 2*h, y2 + 2*h)
+            cr.move_to(x2 + 2 * h, y2 + 2 * h)
             cr.show_text(label)
             cr.stroke()
 
@@ -338,7 +338,7 @@ class Microscope(GObject.GObject):
             self.change_tool()
 
     def bbox_grid(self, bbox):
-        step_size = 0.75*1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
+        step_size = 0.75 * 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         grid_size = bbox[1] - bbox[0]
 
         nX, nY = grid_size / step_size
@@ -367,7 +367,7 @@ class Microscope(GObject.GObject):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
 
     def configure_grid(self, params):
-        for k,v in params.items():
+        for k, v in params.items():
             self.set_property(k, v)
 
     def add_polygon_point(self, x, y):
@@ -384,7 +384,7 @@ class Microscope(GObject.GObject):
                 self.widget.microscope_grid_btn.set_active(False)
 
     def calc_polygon_grid(self, polygon, grow=1, scaled=True):
-        step_size = 0.75*1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
+        step_size = 0.75 * 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
         factor = 1.0 if scaled else self.video.scale
         if len(polygon) == 3:
             points = numpy.array(polygon[:-1]) * factor
@@ -411,7 +411,7 @@ class Microscope(GObject.GObject):
 
         return {
             'grid_state': self.GridState.PENDING,
-            'grid_xyz' : grid_xyz,
+            'grid_xyz': grid_xyz,
             'grid_params': {
                 'origin': (ox, oy, oz),
                 'angle': angle,
@@ -451,6 +451,7 @@ class Microscope(GObject.GObject):
         self.draw_grid(cr)
         self.draw_polygon(cr)
         self.draw_points(cr)
+
     # callbacks
 
     def update_grid(self, *args, **kwargs):
@@ -491,13 +492,11 @@ class Microscope(GObject.GObject):
             self.widget.microscope_colorize_tbtn.set_active(False)
             self.camera.configure(gain=3)
 
-
     def on_scripts_started(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(False)
 
     def on_scripts_done(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(True)
-
 
     def on_save(self, obj=None, arg=None):
         img_filename, _ = dialogs.select_save_file(

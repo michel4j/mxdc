@@ -1,21 +1,21 @@
-
 import time
+
 from enum import Enum
 from gi.repository import GObject
+from zope.interface import implementer
 
-from zope.interface import implements
-from interfaces import IModeManager
-from mxdc.utils.log import get_module_logger
 from mxdc.devices.base import BaseDevice
-
+from mxdc.utils.log import get_module_logger
+from .interfaces import IModeManager
 
 # setup module logger with a default handler
 logger = get_module_logger(__name__)
 
 
+@implementer(IModeManager)
 class BaseManager(BaseDevice):
     """Base class for goniometer."""
-    implements(IModeManager)
+
     __gsignals__ = {
         "mode": (GObject.SIGNAL_RUN_FIRST, None, (object,)),
     }
@@ -127,7 +127,7 @@ class SimModeManager(BaseManager):
 
     def _switch_mode(self, mode):
         self.set_state(busy=True, mode=self.ModeType.BUSY, message='Switching mode ...')
-        GObject.timeout_add(self.mode_delay[mode]*1000, self._notify_mode, mode)
+        GObject.timeout_add(self.mode_delay[mode] * 1000, self._notify_mode, mode)
 
     def _notify_mode(self, mode):
         self.set_state(busy=False, mode=mode)
@@ -210,15 +210,15 @@ class MD2Manager(BaseManager):
             health = (0, 'faults')
             busy = True
             current_mode = self.ModeType.BUSY
-            message='Switching mode ...'
+            message = 'Switching mode ...'
         elif state in [11, 12, 13, 14]:
             health = (2, 'faults', 'Gonio Error')
             busy = False
             current_mode = self.ModeType.UNKNOWN
         else:
             current_mode = self.int_to_mode.get(mode_val, self.ModeType.UNKNOWN)
-            health=(0, 'faults')
-            busy=False
+            health = (0, 'faults')
+            busy = False
 
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)
         self.props.mode = current_mode
@@ -246,7 +246,7 @@ class MD2Manager(BaseManager):
         Switch to Mount mode
         @param wait: wait for switch to complete
         """
-        #self.fluor_cmd.put(1)
+        # self.fluor_cmd.put(1)
         self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
         if wait:
             self.wait(self.ModeType.COLLECT)
@@ -311,8 +311,8 @@ class ModeManager(BaseManager):
             message = 'Switching mode ...'
         else:
             current_mode = self.int_to_mode.get(state, self.ModeType.UNKNOWN)
-            health=(0, 'faults')
-            busy=False
+            health = (0, 'faults')
+            busy = False
 
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)
         self.props.mode = current_mode

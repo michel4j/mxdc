@@ -4,8 +4,7 @@ import importlib
 
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
-from zope.interface import Interface, Attribute
-from zope.interface import implements
+from zope.interface import Interface, Attribute, implementer
 
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.devices.base import BaseDevice
@@ -39,8 +38,8 @@ class ScriptError(Exception):
     """Exceptioins for Scripting Engine."""
 
 
+@implementer(IScript)
 class Script(BaseDevice):
-    implements(IScript)
     __gsignals__ = {
         'done': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         'error': (GObject.SignalFlags.RUN_FIRST, None, []),

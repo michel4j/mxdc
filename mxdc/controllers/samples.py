@@ -1,10 +1,11 @@
-import cryo
 from gi.repository import GObject
+from twisted.python.components import globalRegistry
+
 from mxdc.beamlines.mx import IBeamline
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc, imageviewer
-from twisted.python.components import globalRegistry
+from . import cryo
 
 logger = get_module_logger(__name__)
 
@@ -100,9 +101,7 @@ class HutchSamplesController(GObject.GObject):
         self.microscope.clear_objects()
         if self.beamline.automounter.sample and self.beamline.is_admin():
             self.widget.samples_cur_sample.set_text('...')
-            port =  self.beamline.automounter.sample.get('port')
+            port = self.beamline.automounter.sample.get('port')
             if port:
                 self.widget.samples_cur_port.set_text(port)
                 self.widget.samples_dismount_btn.set_sensitive(True)
-
-

@@ -4,13 +4,10 @@ import time
 import uuid
 from datetime import datetime
 
-import numpy
 from enum import Enum
 from gi.repository import Gtk, GObject
 from twisted.python.components import globalRegistry
 
-import common
-from microscope import IMicroscope
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.rastering import RasterCollector
@@ -20,7 +17,9 @@ from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import IImageViewer
-from samplestore import ISampleStore
+from . import common
+from .microscope import IMicroscope
+from .samplestore import ISampleStore
 
 RASTER_DELTA = 0.5
 
@@ -34,7 +33,7 @@ class RasterResultsManager(TreeManager):
     Types = [str, float, float, float, float, float, int, float, str, str]
     Columns = ColumnSpec(
         (Data.CELL, 'Label', ColumnType.TEXT, '{}', True),
-        (Data.ANGLE, 'Angle',  ColumnType.NUMBER, '{:0.1f}\xc2\xb0', True),
+        (Data.ANGLE, 'Angle', ColumnType.NUMBER, '{:0.1f}\xc2\xb0', True),
         (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Z_POS, 'Z (mm)', ColumnType.NUMBER, '{:0.4f}', True),
@@ -342,10 +341,9 @@ class RasterController(GObject.GObject):
             self.widget.raster_grid_info.set_text('Defined grid has {} points'.format(len(grid)))
             self.widget.raster_command_box.set_sensitive(True)
             self.widget.samples_stack.set_visible_child_name('rastering')
-            #self.widget.samples_stack.child_set(raster_page, needs_attention=True)
+            # self.widget.samples_stack.child_set(raster_page, needs_attention=True)
         else:
             msg = 'Please define a new grid using the sample viewer!'
             self.widget.raster_grid_info.set_text(msg)
             self.widget.raster_command_box.set_sensitive(False)
-            self.widget.samples_stack.child_set(raster_page, needs_attention = False)
-
+            self.widget.samples_stack.child_set(raster_page, needs_attention=False)

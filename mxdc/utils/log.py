@@ -1,7 +1,10 @@
 """This module implements utility classes and functions for logging."""
 import logging
 from logging.handlers import RotatingFileHandler
-import repr as reprlib
+try:
+    import reprlib
+except ImportError:
+    import repr as reprlib
 import os
 
 

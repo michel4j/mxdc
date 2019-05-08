@@ -4,21 +4,21 @@ from threading import Lock
 
 warnings.simplefilter("ignore")
 from datetime import datetime
-from zope.interface import implements
-from interfaces import IGoniometer
+from zope.interface import implementer
 from twisted.python.components import globalRegistry
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call
 from mxdc.devices.base import BaseDevice
+from .interfaces import IGoniometer
 
 # setup module logger with a default handler
 logger = get_module_logger(__name__)
 
 
+@implementer(IGoniometer)
 class Goniometer(BaseDevice):
     """Base class for goniometer."""
-    implements(IGoniometer)
 
     def __init__(self, name='Diffractometer'):
         BaseDevice.__init__(self)

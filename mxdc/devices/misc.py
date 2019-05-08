@@ -3,7 +3,8 @@ import time
 
 import numpy
 from gi.repository import GObject
-from interfaces import *
+from zope.interface import implementer
+
 from mxdc import registry
 from mxdc.com import ca
 from mxdc.com.ca import PV
@@ -12,19 +13,19 @@ from mxdc.devices.motor import MotorBase
 from mxdc.utils import converter, misc
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
-from zope.interface import implements
+from .interfaces import *
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
 
+@implementer(IPositioner)
 class PositionerBase(BaseDevice):
     """Base class for a simple positioning devices.
     
     Signals:
         - `changed` : Data is the new value of the devices.
     """
-    implements(IPositioner)
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
@@ -90,9 +91,9 @@ class SimPositioner(PositionerBase):
 
     def _drive(self):
         if abs(self._pos - self._fbk) >= self._noise:
-            self._fbk += (self._pos - self._fbk)/3
+            self._fbk += (self._pos - self._fbk) / 3
         else:
-            self._fbk = numpy.random.normal(self._pos, 0.5*self._noise/2.35)
+            self._fbk = numpy.random.normal(self._pos, 0.5 * self._noise / 2.35)
         if self._fbk != self._pos:
             self.set_state(changed=self._fbk)
         return True
@@ -199,8 +200,8 @@ class SimChoicePositioner(PositionerBase):
         self.set_state(changed=self._pos)
 
 
+@implementer(IOnOff)
 class SampleLight(Positioner):
-    implements(IOnOff)
 
     def __init__(self, set_name, fbk_name, onoff_name, scale=100, units=""):
         super(SampleLight, self).__init__(set_name, fbk_name, scale, units)
@@ -220,8 +221,8 @@ class SampleLight(Positioner):
         return self.onoff_cmd.get() == 1
 
 
+@implementer(IOnOff)
 class OnOffToggle(BaseDevice):
-    implements(IOnOff)
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
@@ -249,8 +250,8 @@ class OnOffToggle(BaseDevice):
         self.set_state(changed=(val == self.on_value))
 
 
+@implementer(IOnOff)
 class SimLight(SimPositioner):
-    implements(IOnOff)
 
     def __init__(self, name, pos=0, units="", active=True):
         super(SimLight, self).__init__(name, pos, units, active)
@@ -266,11 +267,11 @@ class SimLight(SimPositioner):
         return self._on == 1
 
 
+@implementer(IMotor)
 class PositionerMotor(MotorBase):
     """Adapts a positioner so that it behaves like a Motor (ie, provides the
     `IMotor` interface.
     """
-    implements(IMotor)
     __used_for__ = IPositioner
 
     def __init__(self, positioner):
@@ -300,7 +301,7 @@ class PositionerMotor(MotorBase):
         return self.positioner.get()
 
     def wait(self):
-        ca.flush()
+        time.sleep(0.02)
 
 
 registry.register([IPositioner], IMotor, '', PositionerMotor)
@@ -423,9 +424,8 @@ class Attenuator2(Attenuator):
                 self._open[i].put(1)
 
 
+@implementer(IShutter)
 class BasicShutter(BaseDevice):
-    implements(IShutter)
-
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
@@ -450,9 +450,8 @@ class BasicShutter(BaseDevice):
         if self.changed_state:
             return
         logger.debug(' '.join([self._messages[0], self.name]))
-        self._open_cmd.set(1)
-        ca.flush()
-        self._open_cmd.set(0)
+        self._open_cmd.put(1, wait=True)
+        self._open_cmd.put(0)
         if wait:
             self.wait(state=True)
 
@@ -460,9 +459,8 @@ class BasicShutter(BaseDevice):
         if not self.changed_state:
             return
         logger.debug(' '.join([self._messages[1], self.name]))
-        self._close_cmd.set(1)
-        ca.flush()
-        self._close_cmd.set(0)
+        self._close_cmd.put(1, wait=True)
+        self._close_cmd.put(0)
         if wait:
             self.wait(state=False)
 
@@ -480,9 +478,8 @@ class BasicShutter(BaseDevice):
             self.set_state(changed=False)
 
 
+@implementer(IShutter)
 class StateLessShutter(BaseDevice):
-    implements(IShutter)
-
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
     }
@@ -507,9 +504,8 @@ class StateLessShutter(BaseDevice):
         logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
 
 
+@implementer(IShutter)
 class ToggleShutter(BaseDevice):
-    implements(IShutter)
-
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
     }
@@ -552,9 +548,8 @@ class ToggleShutter(BaseDevice):
             self.set_state(changed=self.reversed)
 
 
-
+@implementer(IShutter)
 class ShutterGroup(BaseDevice):
-    implements(IShutter)
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST,
                     None,
@@ -600,9 +595,8 @@ class ShutterGroup(BaseDevice):
             logger.warning('Timed-out waiting for %s.' % (self.name))
 
 
+@implementer(IShutter)
 class SimShutter(BaseDevice):
-    implements(IShutter)
-
     __gsignals__ = {
         "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
@@ -716,6 +710,3 @@ class Enclosures(BaseDevice):
             self.set_state(health=(2, 'ready', self.get_messages()))
         else:
             self.set_state(health=(0, 'ready', self.get_messages()))
-
-
-

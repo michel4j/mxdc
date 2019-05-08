@@ -6,11 +6,11 @@ from gi.repository import GObject
 from mxdc.devices.base import BaseDevice
 from mxdc.devices.interfaces import IStorageRing
 from mxdc.devices.misc import logger
-from zope.interface import implements
+from zope.interface import implementer
 
-
+@implementer(IStorageRing)
 class BaseStorageRing(BaseDevice):
-    implements(IStorageRing)
+
     __gsignals__ = {
         "ready": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
     }

@@ -1,9 +1,10 @@
-import common
+from gi.repository import GObject, GdkPixbuf, Gtk
+from twisted.python.components import globalRegistry
+
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.log import get_module_logger
-from twisted.python.components import globalRegistry
-from gi.repository import GObject, GdkPixbuf, Gtk
 from mxdc.widgets import dialogs
+from . import common
 
 logger = get_module_logger(__name__)
 
@@ -23,7 +24,6 @@ class CryoController(GObject.GObject):
         self.formats = {}
         self.setup()
         self._animation = GdkPixbuf.PixbufAnimation.new_from_resource("/org/mxdc/data/active_stop.gif")
-
 
     def setup(self):
         self.labels = {
@@ -112,10 +112,8 @@ class CryoController(GObject.GObject):
         self.stopped = True
 
     def monitor_annealing(self, dur):
-        self.props.anneal_time = max(self.props.anneal_time - dur/1000., 0)
+        self.props.anneal_time = max(self.props.anneal_time - dur / 1000., 0)
         if self.anneal_time <= 0.0 or self.stopped:
             self.stop_annealing()
             return False
         return True
-
-

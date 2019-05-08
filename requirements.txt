@@ -6,4 +6,9 @@ zope.event>=4.2.0
 matplotlib>=2.2.3
 requests>=2.18.4
 Twisted>=18.4.0
-
+msgpack
+opencv-python
+pyyaml
+h5py
+hdf5plugin
+redis

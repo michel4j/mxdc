@@ -3,13 +3,13 @@ from threading import Lock
 
 import numpy
 from gi.repository import GObject
-from zope.interface import implements
+from zope.interface import implementer
 
-from interfaces import IMotor
 from mxdc.devices.base import BaseDevice
 from mxdc.utils import converter
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
+from .interfaces import IMotor
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -19,6 +19,7 @@ class MotorError(Exception):
     """Base class for errors in the motor module."""
 
 
+@implementer(IMotor)
 class MotorBase(BaseDevice):
     """Base class for motors.
     
@@ -32,7 +33,6 @@ class MotorBase(BaseDevice):
         - `starting` (None): Emitted when this a command to move has been accepted by this instance of the motor.
         - `done` (None): Emitted within the instance when a commanded move has completed.
     """
-    implements(IMotor)
 
     # Motor signals
     __gsignals__ = {
@@ -84,7 +84,7 @@ class MotorBase(BaseDevice):
         @param obj: process variable object
         @param value: value of process variable
         """
-        t = obj.time_state or time.time()
+        t = obj.get_state('time') or time.time()
         self.set_state(time=t)
         self.set_state(changed=self.get_position())
 
@@ -230,8 +230,8 @@ class MotorBase(BaseDevice):
         return success
 
 
+@implementer(IMotor)
 class SimMotor(MotorBase):
-    implements(IMotor)
 
     def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3, health=(0, '')):
         super(SimMotor, self).__init__(name, precision=precision, units=units)
@@ -304,10 +304,9 @@ class SimMotor(MotorBase):
         self._stopped = True
 
 
+@implementer(IMotor)
 class Motor(MotorBase):
     """Base Motor object for EPICS based motor records."""
-
-    implements(IMotor)
 
     def __init__(self, name, **kwargs):
         name_parts = name.split(':')
@@ -487,8 +486,8 @@ class PseudoMotor(VMEMotor):
         self.LOG.connect('changed', self.on_log)
 
 
+@implementer(IMotor)
 class JunkEnergyMotor(Motor):
-    implements(IMotor)
 
     def __init__(self, name1, name2, encoder=None, mono_unit_cell=5.4310209, **kwargs):
         self.name1 = name1
@@ -547,7 +546,7 @@ class BraggEnergyMotor(VMEMotor):
 
     def notify_change(self, obj, value):
         val = converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
-        self.set_state(time=obj.time_state)  # make sure time is set before changed value
+        self.set_state(time=obj.get_state('time'))  # make sure time is set before changed value
         self.set_state(changed=val)
 
     def notify_target(self, obj, value):

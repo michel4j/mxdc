@@ -2,9 +2,10 @@ import copy
 import os
 import time
 
-import common
 from gi.repository import GObject, Gio, Gtk
-from microscope import IMicroscope
+from twisted.python.components import globalRegistry
+from zope.interface import Interface
+
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
@@ -13,9 +14,9 @@ from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
-from samplestore import ISampleStore, SampleQueue, SampleStore
-from twisted.python.components import globalRegistry
-from zope.interface import Interface
+from . import common
+from .microscope import IMicroscope
+from .samplestore import ISampleStore, SampleQueue, SampleStore
 
 logger = get_module_logger(__name__)
 
@@ -432,7 +433,7 @@ class DatasetsController(GObject.GObject):
         num_items = self.run_store.get_n_items()
         if item.state == item.StateType.ADD and num_items < 8:
             if position > 0:
-                prev = self.run_store.get_item(position-1)
+                prev = self.run_store.get_item(position - 1)
                 config = prev.info
             else:
                 config = self.run_editor.get_default()

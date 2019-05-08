@@ -1,7 +1,8 @@
 import logging
 
-import common
 from gi.repository import GObject
+from twisted.python.components import globalRegistry
+
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.controllers.diagnostics import DiagnosticsController
 from mxdc.engines.scripting import get_scripts
@@ -9,8 +10,8 @@ from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc
 from mxdc.widgets.textviewer import GUIHandler
 from mxdc.widgets.ticker import ChartManager
-from ptzvideo import AxisController
-from twisted.python.components import globalRegistry
+from .ptzvideo import AxisController
+from . import common
 
 logger = get_module_logger(__name__)
 
@@ -89,7 +90,7 @@ class SetupController(object):
         # Some scripts need to reactivate settings frame on completion
         for sc in ['OptimizeBeam', 'SetMountMode', 'SetCenterMode', 'SetCollectMode', 'RestoreBeam', 'SetAlignMode']:
             self.scripts[sc].connect('busy', self.on_scripts_busy)
-         
+
         self.beamline.all_shutters.connect('changed', self.on_shutter)
 
     def on_scripts_busy(self, obj, busy):
@@ -97,7 +98,7 @@ class SetupController(object):
             self.widget.setup_device_box.set_sensitive(False)
         else:
             self.widget.setup_device_box.set_sensitive(True)
-    
+
     def on_shutter(self, obj, state):
-        self.widget.tuner_control_box.set_sensitive(self.beamline.beam_tuner.is_tunable() and self.beamline.all_shutters.is_open())
-        
+        self.widget.tuner_control_box.set_sensitive(
+            self.beamline.beam_tuner.is_tunable() and self.beamline.all_shutters.is_open())

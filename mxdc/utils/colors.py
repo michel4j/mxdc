@@ -1,5 +1,5 @@
 from matplotlib import cm, colors
-import cmaps
+from . import cmaps
 import numpy
 from scipy import interpolate
 

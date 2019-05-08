@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import pwd
@@ -9,14 +10,14 @@ import subprocess
 import threading
 import time
 import uuid
-import hashlib
 
+import numpy
+from gi.repository import GObject
+
+from mxdc.com import ca
 from . import decorators
 from . import ipaddress
 from . import log
-import numpy
-from gi.repository import GObject
-from mxdc.com import ca
 
 logger = log.get_module_logger(__name__)
 
@@ -53,6 +54,7 @@ class NameToInt(object):
         else:
             cls.registry[name] = len(cls.registry)
             return cls.registry[name]
+
 
 class SignalWatcher(object):
     def __init__(self):
@@ -134,6 +136,7 @@ def slugify(s, empty=""):
 
 def format_partial(fmt, *args, **kwargs):
     import string
+
     class SafeDict(dict):
         def __missing__(self, key):
             return '{' + key + '}'
@@ -143,8 +146,12 @@ def format_partial(fmt, *args, **kwargs):
 
 _COLOR_PATTERN = re.compile('#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2}).*')
 
+
 def short_hash(w):
-    return hashlib.md5(w).hexdigest()[:9]
+    h = hashlib.new('md5')
+    h.update(w.encode())
+    return h.hexdigest()[:9]
+
 
 def logistic_score(x, best=1, fair=0.5):
     t = 3 * (x - fair) / (best - fair)
@@ -191,6 +198,7 @@ def _get_gateway():
                 continue
             return socket.inet_ntoa(struct.pack("<L", int(fields[2], 16)))
 
+
 def _get_address(gateway, port=22):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect((gateway, port))
@@ -211,6 +219,7 @@ def get_free_tcp_port():
     tcp.close()
     return port
 
+
 def frame_score(info):
     return info['signal']
 
@@ -225,7 +234,7 @@ class ContextMessenger(object):
         GObject.idle_add(self.device.emit, 'message', self.enter_message)
         return self
 
-    def __exit__(self ,type, value, traceback):
+    def __exit__(self, type, value, traceback):
         GObject.idle_add(self.device.emit, 'message', self.exit_message)
         return False
 
@@ -267,7 +276,7 @@ class Chain(object):
 
 
 def wait_for_file(file_path, timeout=10):
-    poll=0.05
+    poll = 0.05
     time_left = timeout
     while not os.path.exists(file_path) and time_left > 0:
         time.sleep(poll)
