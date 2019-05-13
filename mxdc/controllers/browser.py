@@ -50,6 +50,7 @@ class Browser(gui.Builder):
 
     def on_realized(self, *args, **kwargs):
         uri = 'file://{}?v={}'.format(DOCS_PATH, numpy.random.rand())
+        print(uri)
         GObject.idle_add(self.view.load_uri, uri)
 
     def close_window(self, button, disable=False):

@@ -3,7 +3,7 @@ import pickle
 import re
 import threading
 import time
-
+from math import ceil
 try:
     from StringIO import StringIO
 except ImportError:
@@ -51,6 +51,8 @@ class VideoSrc(BaseDevice):
         self.size = (768, 576)
         self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0e-3
+        self.gain_factor = 1.0
+        self.gain_value = 1.0
         self.zoom_save = False
         self.sinks = []
         self._stopped = True
@@ -260,7 +262,7 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, zoom_slave=False, name='REDIS Camera'):
+    def __init__(self, server, mac, zoom_slave=True, name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
@@ -277,10 +279,20 @@ class REDISCamera(VideoSrc):
         self.lock = threading.Lock()
 
     def configure(self, **kwargs):
+        if 'gain_factor' in kwargs:
+            self.gain_factor = kwargs.pop('gain_factor')
+            kwargs['gain'] = self.gain_value
+
         for k, v in kwargs.items():
             attr = self.ATTRS.get(k)
             if not attr: continue
-            self.store.publish('{}:CFG:{}'.format(self.key, attr), pickle.dumps(v))
+            if k == 'gain':
+                if int(v) == self.gain_value: continue
+                self.gain_value = int(v)
+                value = max(1, min(22, self.gain_factor * self.gain_value))
+            else:
+                value = v
+            self.store.publish('{}:CFG:{}'.format(self.key, attr), pickle.dumps(value))
 
     def get_frame(self):
         return self.get_frame_jpg()
@@ -337,8 +349,6 @@ class ZoomableCamera(object):
         @param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
         self._zoom.move_to(value, wait=wait)
-        if self.camera.zoom_slave:
-            pass
 
     def update_resolution(self, *args, **kwar):
         self.camera.resolution = self._scale.get() or 0.0028
@@ -346,6 +356,8 @@ class ZoomableCamera(object):
     def update_zoom(self, *args, **kwar):
         scale = 1360. / self.camera.size[0]
         self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
+        if self.camera.zoom_slave:
+            self.camera.configure(gain=(self._zoom.get_position()**2)/4)
 
     def __getattr__(self, key):
         try:
