@@ -136,7 +136,7 @@ class DataLoader(GObject.GObject):
         else:
             step = direction * max(round(self.zscale/10, 2), 0.1)
             self.zscale = min(MAX_ZSCALE, max(MIN_ZSCALE, self.zscale + step))
-        self.scale = self.dataset.header['average_intensity'] + self.zscale * self.dataset.header['std_dev']
+        self.scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
         self.needs_refresh = (prev_scale != self.scale)
 
     def setup(self):
