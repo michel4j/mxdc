@@ -453,6 +453,26 @@ class APSMotor(VMEMotor):
         self.ENAB = self.CALIB
 
 
+class CLSMotor(motor.VMEMotor):
+    """Ancient CLS type motor records."""
+
+    def setup(self):
+        self.moving_value = 4
+        self.calibrated_value = 1
+        self.disabled_value = 0
+
+        self.DESC = self.add_pv("{}:desc".format(self.name_root))
+        self.VAL = self.add_pv("{}".format(self.name))
+        self.PREC = self.add_pv("{}.PREC".format(self.name))
+        self.EGU = self.add_pv("{}.EGU".format(self.name))
+        self.RBV = self.add_pv("{}:fbk".format(self.name))
+        self.MOVN = self.add_pv("{}:state".format(self.name_root))
+        self.STOP = self.add_pv("{}:emergStop".format(self.name_root))
+        self.CALIB = self.add_pv("{}:isCalib".format(self.name_root))
+        self.STAT = self.add_pv("{}:state".format(self.name_root))
+        self.ENAB = self.CALIB
+
+
 class PseudoMotor(VMEMotor):
     """CLS Pseudo Motor."""
 
