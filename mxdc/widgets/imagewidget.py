@@ -105,12 +105,14 @@ class DataLoader(GObject.GObject):
         # if file belongs to current set, skip to it
         if self.header and 'dataset' in self.header:
             m = re.match(self.header['dataset']['regex'], filename)
-            if m:
+            if m and directory == self.header['directory']:
                 index = int(m.group(1))
                 self.needs_refresh = self.dataset.get_frame(index)
                 return
-
-        self.dataset = read_image(path)
+        try:
+            self.dataset = read_image(path)
+        except IOError:
+            logger.error('Error loading frame "{}"'.format(path))
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
         pLo, pHi = numpy.percentile(self.dataset.stats_data, (1., 99.))
