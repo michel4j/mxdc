@@ -113,6 +113,7 @@ class DataLoader(GObject.GObject):
             self.dataset = read_image(path)
         except IOError:
             logger.error('Error loading frame "{}"'.format(path))
+            return
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
         pLo, pHi = numpy.percentile(self.dataset.stats_data, (1., 99.))
