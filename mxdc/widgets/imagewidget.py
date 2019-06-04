@@ -108,13 +108,16 @@ class DataLoader(GObject.GObject):
             if m and directory == self.header['directory']:
                 index = int(m.group(1))
                 self.needs_refresh = self.dataset.get_frame(index)
+
+        if self.needs_refresh:
+            return 
+        else:
+            try:
+                self.dataset = read_image(path)
+            except IOError:
+                logger.error('Error loading frame "{}"'.format(path))
                 return
-        try:
-            self.dataset = read_image(path)
-        except IOError:
-            logger.error('Error loading frame "{}"'.format(path))
-            return
-            
+
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
         pLo, pHi = numpy.percentile(self.dataset.stats_data, (1., 99.))
