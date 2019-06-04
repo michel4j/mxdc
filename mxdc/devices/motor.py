@@ -453,7 +453,7 @@ class APSMotor(VMEMotor):
         self.ENAB = self.CALIB
 
 
-class CLSMotor(motor.VMEMotor):
+class CLSMotor(VMEMotor):
     """Ancient CLS type motor records."""
 
     def setup(self):
