@@ -85,6 +85,7 @@ class DataLoader(GObject.GObject):
         self.zscale = ZSCALE_MULTIPLIER # Standard zscale above mean for palette maximum
         self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
+        self.loading = False
         self.inbox = Queue(10000)
 
         self.needs_refresh = False
@@ -100,23 +101,21 @@ class DataLoader(GObject.GObject):
         self.inbox.put(path)
 
     def load(self, path):
+        self.loading = True
         directory, filename = os.path.split(path)
 
-        # if file belongs to current set, skip to it
-        if self.header and 'dataset' in self.header:
-            m = re.match(self.header['dataset']['regex'], filename)
-            if m and directory == self.header['directory']:
-                index = int(m.group(1))
-                self.needs_refresh = self.dataset.get_frame(index)
-
-        if self.needs_refresh:
-            return 
-        else:
-            try:
-                self.dataset = read_image(path)
-            except IOError:
-                logger.error('Error loading frame "{}"'.format(path))
-                return
+        # # if file belongs to current set, skip to it
+        # if self.dataset and self.header and 'dataset' in self.header:
+        #     m = re.match(self.header['dataset']['regex'], filename)
+        #     if m and directory == self.dataset.header['directory']:
+        #         index = int(m.group(1))
+        #         self.needs_refresh = self.dataset.get_frame(index)
+        #         return
+        try:
+            self.dataset = read_image(path)
+        except IOError:
+            logger.error('Error loading frame "{}"'.format(path))
+            return
 
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
@@ -125,6 +124,7 @@ class DataLoader(GObject.GObject):
         self.zscale = self.default_zscale
         self.scale = avg + self.zscale * stdev
         self.needs_refresh = True
+        self.loading = False
         #print("SKEW: avg={:0.6f} stdev={:0.6f} max={:0.6f} pLo={:0.6f} pHi={:0.6f}".format(avg, stdev, mx, pLo, pHi))
 
     def set_colormap(self, index):
@@ -183,7 +183,7 @@ class DataLoader(GObject.GObject):
                 path = self.inbox.get()
                 count += 1
 
-            if path:
+            if path and not self.loading:
                 self.load(path)
 
             # Check if next_frame or prev_frame has been requested
