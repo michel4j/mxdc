@@ -4,6 +4,7 @@ import sys
 import numpy
 import argparse
 import matplotlib
+matplotlib.use('GtkAgg')
 from matplotlib import colors, gridspec, rcParams
 from matplotlib import pyplot as plt
 
@@ -16,7 +17,7 @@ rcParams['legend.loc'] = 'best'
 rcParams['legend.fontsize'] = 8
 rcParams['figure.facecolor'] = 'white'
 rcParams['figure.edgecolor'] = 'white'
-rcParams['font.sans-serif'] = 'Cantarell'
+rcParams['font.family'] = 'Cantarell'
 rcParams['font.size'] = 12
 
 if __name__ == '__main__':
