@@ -68,7 +68,8 @@ class Plotter(Gtk.Alignment):
         self.axis = []
         self.axis.append(self.fig.add_subplot(111))
         self.format_x = FormatStrFormatter(xformat)
-        self.axis[0].xaxis.set_major_formatter(self.format_x)
+        self.axis[0].ticklabel_format(scilimits=(4,4))
+        #self.axis[0].xaxis.set_major_formatter(self.format_x)
         self.axis[0].yaxis.tick_left()
         self.line = []
         self.x_data = []
@@ -115,7 +116,8 @@ class Plotter(Gtk.Alignment):
 
         self.line[-1].axes.set_xlim(xmin, xmax)
         self.line[-1].axes.set_ylim(ymin, ymax)
-        self.line[-1].axes.xaxis.set_major_formatter(self.format_x)
+        #self.line[-1].axes.xaxis.set_major_formatter(self.format_x)
+        self.line[-1].axes.ticklabel_format(scilimits=(4, 4))
 
         if redraw:
             self.canvas.draw_idle()
@@ -154,7 +156,7 @@ class Plotter(Gtk.Alignment):
         if not self.grid_mode:
             self.grid_data = None
             self.grid_specs = None
-            self.axis[0].xaxis.set_major_formatter(self.format_x)
+            #self.axis[0].xaxis.set_major_formatter(self.format_x)
 
     def set_grid(self, data):
         self.grid_data = numpy.zeros((data['steps'], data['steps']))
@@ -204,7 +206,8 @@ class Plotter(Gtk.Alignment):
             else:
                 self.line[lin].axes.set_xlim(xmin, xmax)
             self.line[lin].axes.set_ylim(ymin, ymax)
-            self.axis[0].xaxis.set_major_formatter(self.format_x)
+            self.line[lin].axes.ticklabel_format(scilimits=(4, 4))
+            #self.axis[0].xaxis.set_major_formatter(self.format_x)
 
             if redraw:
                 self.redraw()
