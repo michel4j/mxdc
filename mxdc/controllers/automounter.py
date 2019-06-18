@@ -148,7 +148,7 @@ class DewarController(GObject.GObject):
         code, h_msg = self.beamline.automounter.health_state
         status = self.beamline.automounter.status
 
-        if status.name in ['IDLE', ] and code < 2:
+        if status.name in ['IDLE', ]:
             self.widget.automounter_command_box.set_sensitive(True)
         else:
             self.widget.automounter_command_box.set_sensitive(False)

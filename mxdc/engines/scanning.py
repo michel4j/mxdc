@@ -156,24 +156,28 @@ class AbsScan(BasicScan):
         self.units[misc.slugify(self.config.m1.name)] = self.config.m1.units
 
         self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)
-        self.config.step_size = (self.config.p2 - self.config.p1) / float(self.config.steps)
         self.config.position = 0
+        self.config.positions = numpy.linspace(self.config.p1, self.config.p2, self.config.steps)
+        self.config.step_size = self.config.positions[1] - self.config.positions[0]
 
     def extend(self, steps):
         self.append = True
         self.config.position = self.config.steps
+        self.config.p2 = steps + self.config.step_size * steps
         self.config.steps += steps
+        self.config.positions = numpy.linspace(self.config.p1, self.config.p2, self.config.steps)
 
     def run(self):
         if not self.append:
             GObject.idle_add(self.emit, "started")
             self.data_rows = []
 
-        for i in range(self.config.position, self.config.steps):
+        for i, x in enumerate(self.config.positions):
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
-            x = self.config.p1 + (i * self.config.step_size)
+            if i < self.config.position:
+                continue
             self.config.m1.move_to(x, wait=True)
             if self.config.i0:
                 y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
@@ -185,6 +189,7 @@ class AbsScan(BasicScan):
             GObject.idle_add(self.emit, "new-point", [x, y / i0, y, i0])
             GObject.idle_add(self.emit, "progress", (i + 1.0) / (self.config.steps), "")
         self.set_data(self.data_rows)
+        self.append = False
         GObject.idle_add(self.emit, "done")
 
 
@@ -288,26 +293,33 @@ class AbsScan2(BasicScan):
             'formats': [float, float, float, float, float]
         }
         self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)
-        self.config.step_size = (self.config.p2 - self.config.p1) / float(self.config.steps)
+        self.config.positions1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
+        self.config.positions2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
         self.config.position = 0
-        self.config.step_size1 = (self.config.p12 - self.config.p11) / float(self.config.steps)
-        self.config.step_size2 = (self.config.p22 - self.config.p21) / float(self.config.steps)
+        self.config.step_size1 = (self.config.positions1[1] - self.config.positions1[0])
+        self.config.step_size2 = (self.config.positions2[1] - self.config.positions2[0])
 
     def extend(self, steps):
         self.append = True
         self.config.position = self.config.steps
+        self.p12 +=  self.config.step_size1 * steps
+        self.p22 += self.config.step_size2 * steps
         self.config.steps += steps
+        self.config.positions1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
+        self.config.positions2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
 
     def run(self):
         if not self.append:
             GObject.idle_add(self.emit, "started")
             self.data_rows = []
-        for i in range(self.config.position, self.config.steps):
+
+        for i in range(self.config.steps):
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
-            x1 = self.config.p11 + (i * self.config.step_size1)
-            x2 = self.config.p21 + (i * self.config.step_size2)
+            if i < self.config.position : continue
+            x1 = self.positions1[i]
+            x2 = self.positions2[i]
             self.config.m1.move_to(x1)
             self.config.m2.move_to(x2)
             self.config.m1.wait()

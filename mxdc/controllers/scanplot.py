@@ -148,38 +148,45 @@ class ScanPlotter(object):
             xc = numpy.linspace(xo.min(), xo.max(), 1000)
             yc = fitting.gauss(xc, params)
 
-            ymax, fwhm, midp  = params[:3]
+            ymax, fwhm, midp = params[:3]
+            ymax = yc.max()
             histo_pars, _ = fitting.histogram_fit(xo, yo)
-            ymax_his, fwhm_his, midp_his, fwhm_left_his, fwhm_right_his, cema = histo_pars
-
+            ymax_his, fwhm_his, xmax_his, fwhm_left_his, fwhm_right_his, cema = histo_pars
+            midp_his = (fwhm_left_his + fwhm_right_his) / 2.
+            fwhm_his = abs(fwhm_left_his - fwhm_right_his)
             self.plotter.clear()
             ax = self.plotter.axis[0]
 
             ax.set_xlabel(x_label)
             ax.set_ylabel(y_label)
-            self.plotter.add_line(xo, yo, '-', markevery=1)
-            self.plotter.add_line(xc, yc, '-', alpha=0.5)
-            hh = 0.5*(ymax_his - yo.min())
-            ax.plot([midp_his, midp_his], [yo.min(), yo.max()], c='b', ls='--', lw=0.5)
-            ax.plot([fwhm_left_his, fwhm_right_his], [hh, hh], c='b', ls='--', lw=0.5)
-            ax.set_xlim(min(xo), max(xo))
+            ax.plot(xo, yo, '-o', markevery=1, markersize=4, markerfacecolor='w')
+            ax.plot(xc, yc, '-', alpha=0.5)
+            ax.plot([midp, midp], [yc.min(), yc.max()], c='r', ls=':', lw=1)
 
+            hh = 0.5 * (yo.max() - yo.min()) + yo.min()
+            ax.axvline(cema, label='CEMA-his', c='c', ls='--', lw=0.5)
+            ax.axvline(midp_his, label='MIDP-his', c='b', ls='--', lw=0.5)
+            ax.plot([fwhm_left_his, fwhm_right_his], [hh, hh], c='b', ls='--', lw=0.5)
+            ax.set_xlim(xo.min(), xo.max())
+            ax.set_ylim(yo.min() - 0.02 * hh, yo.max() + 0.15 * hh)
+            #ax.ticklabel_format(scilimits=(4, 4))
             # set font parameters for the ouput table
             fontpar = {}
-            fontpar["family"] = "monospace"
-            fontpar["size"] = 8
-            info = "YMAX-fit = {:11.4e}\n".format(ymax)
-            info += "MIDP-fit = {:11.4e}\n".format(midp)
-            info += "FWHM-fit = {:11.4e}\n".format(fwhm)
+            fontpar["family"] = "TheSansMonoCd Office"
+            fontpar["size"] = 9
+            info = "YMAX-fit = {:0.4g}\n".format(ymax)
+            info += "MIDP-fit = {:0.4g}\n".format(midp)
+            info += "FWHM-fit = {:0.4g}\n".format(fwhm)
             print(info)
-            self.plotter.fig.text(0.65, 0.75, info, fontdict=fontpar, color='r')
-            info = "YMAX-his = {:11.4e}\n".format(ymax_his)
-            info += "MIDP-his = {:11.4e}\n".format(midp_his)
-            info += "FWHM-his = {:11.4e}\n".format(fwhm_his)
-            info += "CEMA-his = {:11.4e}\n".format(cema)
-            self.plotter.fig.text(0.65, 0.60, info, fontdict=fontpar, color='b')
+            self.plotter.fig.text(0.7, 0.78, info, fontdict=fontpar, color='r')
+            info = "YMAX-his = {:0.4g}\n".format(ymax_his)
+            info += "XMAX-his = {:0.4g}\n".format(xmax_his)
+            info += "MIDP-his = {:0.4g}\n".format(midp_his)
+            info += "FWHM-his = {:0.4g}\n".format(fwhm_his)
+            self.plotter.fig.text(0.7, 0.68, info, fontdict=fontpar, color='b')
+            self.plotter.fig.text(0.7, 0.65, "CEMA-his = {:0.4g}\n".format(cema), fontdict=fontpar, color='c')
+            print(info)
             self.plotter.canvas.draw()
-            print(info)
             self.fit.midp = midp
             self.fit.midp_his = midp_his
             self.fit.fwhm = fwhm

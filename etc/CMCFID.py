@@ -77,7 +77,7 @@ DEVICES = {
     'sample_backlight': misc.SampleLight('ILC1608-3-I10-02:sp', 'ILC1608-3-I10-02:fbk', 'ILC1608-3-I10-02:on', 100.0),
     'sample_frontlight': misc.SampleLight('ILC1608-3-I10-01:sp', 'ILC1608-3-I10-01:fbk', 'ILC1608-3-I10-01:on', 100.0),
     'sample_uvlight': misc.SampleLight('BL08ID1:UVLight', 'BL08ID1:UVLight:fbk', 'BL08ID1:UVLight:OnOff', 100.0),
-    'hutch_video': video.AxisPTZCamera('CCD1608-301'),
+    'hutch_video': video.AxisPTZCamera('CCD1608-302.clsi.ca'),
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
