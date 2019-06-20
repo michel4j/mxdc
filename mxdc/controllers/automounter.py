@@ -151,7 +151,8 @@ class DewarController(GObject.GObject):
         if status.name in ['IDLE', ]:
             self.widget.automounter_command_box.set_sensitive(True)
         else:
-            self.widget.automounter_command_box.set_sensitive(False)
+            #self.widget.automounter_command_box.set_sensitive(False)
+            pass
 
         self.widget.automounter_status_fbk.set_text(status.name)
 
