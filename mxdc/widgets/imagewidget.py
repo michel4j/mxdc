@@ -112,11 +112,20 @@ class DataLoader(GObject.GObject):
         #         index = int(m.group(1))
         #         self.needs_refresh = self.dataset.get_frame(index)
         #         return
-        try:
-            self.dataset = read_image(path)
-        except IOError:
-            logger.error('Error loading frame "{}"'.format(path))
-            return
+        attempts = 0
+        success = False
+        error = None
+        while not success and attempts < 5:         
+            try:
+                self.dataset = read_image(path)
+                success = True
+            except (IOError, AttributeError) as error:
+                attempts += 1
+                time.sleep(0.1)
+        
+        if not success:
+            logger.error('Error loading frame "{}". Error: {}'.format(path, error))
+            return False
 
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
@@ -126,6 +135,7 @@ class DataLoader(GObject.GObject):
         self.scale = avg + self.zscale * stdev
         self.needs_refresh = True
         self.loading = False
+        return True
         #print("SKEW: avg={:0.6f} stdev={:0.6f} max={:0.6f} pLo={:0.6f} pHi={:0.6f}".format(avg, stdev, mx, pLo, pHi))
 
     def set_colormap(self, index):
@@ -174,18 +184,19 @@ class DataLoader(GObject.GObject):
         self.stopped = True
 
     def run(self):
-
+        path = None
         while not self.stopped:
 
             # Load frame if path exists
             count = 0
-            path = None
             while not self.inbox.empty() and count < self.skip_count:
                 path = self.inbox.get()
                 count += 1
 
             if path and not self.loading:
-                self.load(path)
+                success = self.load(path)
+                if success:
+                   path = None
 
             # Check if next_frame or prev_frame has been requested
             if self.load_next:
