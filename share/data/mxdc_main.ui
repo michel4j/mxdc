@@ -215,6 +215,8 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="tooltip_text" translatable="yes">Restore Beam</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
                       </object>
                     </child>
                     <child type="label">
@@ -319,6 +321,8 @@
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
+                        <property name="halign">center</property>
+                        <property name="valign">center</property>
                       </object>
                     </child>
                     <child type="label">
