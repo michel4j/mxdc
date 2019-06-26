@@ -82,15 +82,15 @@ class ShutterSwitcher(object):
     def on_state_change(self, obj, state):
         self.unwatch()
         self.switch.set_state(operator.xor(state, self.reverse))
-        if self.openonly:
-            self.switch.set_sensitive(not state)
+        # if self.openonly:
+        #     self.switch.set_sensitive(not state)
         self.watch()
 
     def on_shutter_activated(self, obj, param):
         state = self.switch.get_active()
         if operator.xor(state, self.reverse):
             self.device.open()
-        else:
+        elif not self.openonly:
             self.device.close()
 
 

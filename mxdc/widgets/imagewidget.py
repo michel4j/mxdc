@@ -33,7 +33,7 @@ logger = logging.getLogger(__log_section__)
 ZSCALE_MULTIPLIER = 3
 MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
-COLORMAPS = ('inferno', 'binary')
+COLORMAPS = ('binary', 'inferno')
 
 
 def cmap(name):
@@ -119,12 +119,14 @@ class DataLoader(GObject.GObject):
             try:
                 self.dataset = read_image(path)
                 success = True
-            except (IOError, AttributeError) as error:
+            except Exception as error:
                 attempts += 1
+                logger.debug(os.path.getsize(path))
                 time.sleep(0.1)
         
         if not success:
             logger.error('Error loading frame "{}". Error: {}'.format(path, error))
+            self.loading = False
             return False
 
         avg = self.dataset.header['average_intensity']
@@ -136,7 +138,6 @@ class DataLoader(GObject.GObject):
         self.needs_refresh = True
         self.loading = False
         return True
-        #print("SKEW: avg={:0.6f} stdev={:0.6f} max={:0.6f} pLo={:0.6f} pHi={:0.6f}".format(avg, stdev, mx, pLo, pHi))
 
     def set_colormap(self, index):
         if cv2.__version__ >='3.0.0':
