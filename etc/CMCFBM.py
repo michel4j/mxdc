@@ -115,7 +115,6 @@ SERVICES = {
 # Devices only available in the console
 CONSOLE = {
     'i_2': counter.Counter('VCMBVBPM:I'),
-
     'wbs_hgap': motor.PseudoMotor('PSL1608-4-B10-02:gap:mm'),
     'wbs_vgap': motor.PseudoMotor('PSL1608-4-B10-01:gap:mm'),
     'wbs_x': motor.PseudoMotor('PSL1608-4-B10-02:cntr:mm'),

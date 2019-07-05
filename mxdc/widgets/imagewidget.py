@@ -86,6 +86,7 @@ class DataLoader(GObject.GObject):
         self.zscale = ZSCALE_MULTIPLIER # Standard zscale above mean for palette maximum
         self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
+        self.duration = 0.05
         self.loading = False
         self.inbox = Queue(10000)
 
@@ -101,6 +102,12 @@ class DataLoader(GObject.GObject):
     def open(self, path):
         self.inbox.put(path)
 
+    def loadable(self, path):
+        if os.path.basename(path) in os.listdir(os.path.dirname(path)):
+            statinfo = os.stat(path)
+            return  ((time.time() - statinfo.st_mtime) > self.duration and os.access(path, os.R_OK))
+        return False
+
     def load(self, path):
         self.loading = True
         directory, filename = os.path.split(path)
@@ -112,23 +119,20 @@ class DataLoader(GObject.GObject):
         #         index = int(m.group(1))
         #         self.needs_refresh = self.dataset.get_frame(index)
         #         return
+
         attempts = 0
-        success = False
-        error = None
-        while not success and attempts < 5:         
-            try:
-                self.dataset = read_image(path)
-                success = True
-            except Exception as error:
-                attempts += 1
-                logger.debug(os.path.getsize(path))
-                time.sleep(0.1)
-        
-        if not success:
-            logger.error('Error loading frame "{}". Error: {}'.format(path, error))
+        loadable = self.loadable(path)
+        while not loadable and attempts < 10:
+            time.sleep(self.duration)
+            loadable = self.loadable(path)
+            attempts += 1
+
+        if not loadable:
+            logger.error('Error loading frame "{}".'.format(path))
             self.loading = False
             return False
 
+        self.dataset = read_image(path)
         avg = self.dataset.header['average_intensity']
         stdev = self.dataset.header['std_dev']
         pLo, pHi = numpy.percentile(self.dataset.stats_data, (1., 99.))
@@ -212,7 +216,7 @@ class DataLoader(GObject.GObject):
             if self.needs_refresh:
                 self.setup()
 
-            time.sleep(0.05)
+            time.sleep(self.duration)
 
 
 class ImageWidget(Gtk.DrawingArea):
