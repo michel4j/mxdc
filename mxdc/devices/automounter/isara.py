@@ -95,6 +95,7 @@ class AuntISARA(AutoMounter):
         self.clear_cmd = self.add_pv('{}:CMD:clear'.format(root))
         self.back_cmd = self.add_pv('{}:CMD:back'.format(root))
         self.safe_cmd = self.add_pv('{}:CMD:safe'.format(root))
+        self.set_smpl_cmd = self.add_pv('{}:CMD:setDiffSmpl'.format(root))
 
         # feedback
         self.status_fbk = self.add_pv('{}:STATUS'.format(root))
@@ -207,12 +208,29 @@ class AuntISARA(AutoMounter):
         failure_type, message = context
         if failure_type == 'blank-mounted':
             self.set_state(message='Recovering from: {}, please wait!'.format(failure_type))
-            self.wait_for_position('SOAK')
+            self.wait_for_position('SOAK', timeout=200)
             self.abort_cmd.put(1)
             time.sleep(2)
             self.reset_cmd.put(1)
             time.sleep(2)
             self.clear_cmd.put(1)
+            logger.warning('Recovery complete.')
+        elif failure_type == 'get-failed':
+            self.set_state(message='Recovering from: {}, please wait!'.format(failure_type))
+            port = self.tooled_fbk.get()
+            self.clear_cmd.put(1)
+            time.sleep(2)
+            self.next_smpl.put(port)
+            self.set_smpl_cmd.put(1)
+            time.sleep(2)
+            self.abort_cmd.put(1)
+            time.sleep(2)
+            self.safe_cmd.put(1)
+            self.wait_for_position('HOME')
+            time.sleep(2)
+            self.dry_cmd.put(1)
+            self.wait_for_position('SOAK', timeout=200)
+            time.sleep(5)
             logger.warning('Recovery complete.')
         else:
             logger.warning('Recovering from: {} not available.'.format(failure_type))
@@ -244,6 +262,7 @@ class AuntISARA(AutoMounter):
             }
         else:
             if ports.get(port) == Port.MOUNTED:
+                GObject.timeout_add(2000, self.check_no_get)
                 ports[port] = Port.UNKNOWN
                 self.set_state(message='Sample dismounted')
             self.props.sample = {}
@@ -269,6 +288,23 @@ class AuntISARA(AutoMounter):
             self.configure(status=State.FAILURE, failure=('blank-mounted', message), ports=ports)
         else:
             self.set_state(message='Sample mounted')
+
+    def check_no_get(self):
+        failure_state = all([
+            self.sample_detected.get() == 1,
+            bool(self.mounted_fbk.get()) == False,
+            bool(self.tooled_fbk.get()),
+            self.position_fbk.get() == 'UNKNOWN',
+            self.props.status in [State.BUSY],
+            self.props.status != State.FAILURE
+        ])
+
+        if failure_state:
+            message = (
+                "Automounter failed to get sample from Gonio.\n"
+                "Make sure samples is still on gonio then then proceed to recover."
+            )
+            self.configure(status=State.FAILURE, failure=('get-failed', message))
 
     def on_state_changed(self, *args):
 
