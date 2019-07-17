@@ -262,7 +262,7 @@ class AuntISARA(AutoMounter):
             }
         else:
             if ports.get(port) == Port.MOUNTED:
-                GObject.timeout_add(2000, self.check_no_get)
+                #GObject.timeout_add(2000, self.check_no_get)
                 ports[port] = Port.UNKNOWN
                 self.set_state(message='Sample dismounted')
             self.props.sample = {}
