@@ -548,7 +548,7 @@ class JunkEnergyMotor(Motor):
 
 class BraggEnergyMotor(VMEMotor):
 
-    def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, **kwargs):
+    def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, fixed_lo=2.0, fixed_hi=2.1, fixed_value=8.157, **kwargs):
         """
         VME Motor for Bragg based Energy
         @param name: PV name
@@ -557,15 +557,23 @@ class BraggEnergyMotor(VMEMotor):
         """
         self.encoder = encoder
         self.mono_unit_cell = mono_unit_cell
+        self.fixed_lo, self.fixed_hi = fixed_lo, fixed_hi
+        self.fixed_value = fixed_value
         kwargs['units'] = 'keV'
         super(BraggEnergyMotor, self).__init__(name, **kwargs)
         self.description = 'Bragg Energy'
 
+    def convert(self, value):
+        if self.fixed_hi > value > self.fixed_lo:
+            return self.fixed_value
+        else:
+            converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
+
     def get_position(self):
-        return converter.bragg_to_energy(self.RBV.get(), unit_cell=self.mono_unit_cell)
+        return self.convert(self.RBV.get())
 
     def notify_change(self, obj, value):
-        val = converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
+        val = self.convert(value)
         self.set_state(time=obj.get_state('time'))  # make sure time is set before changed value
         self.set_state(changed=val)
 
