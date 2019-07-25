@@ -567,7 +567,7 @@ class BraggEnergyMotor(VMEMotor):
         if self.fixed_hi > value > self.fixed_lo:
             return self.fixed_value
         else:
-            converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
+            return converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
 
     def get_position(self):
         return self.convert(self.RBV.get())
