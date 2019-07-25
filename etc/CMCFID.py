@@ -29,7 +29,7 @@ CONFIG = {
     'shutter_sequence': ('ssh1', 'psh1', 'psh2', 'ssh2'),
     'orientation': 'right',
     'linked_sample_stage': False,
-    'centering_backlight': 60,
+    'centering_backlight': 40,
     'zoom_levels': (2, 6, 9),
     'bug_report': ['michel.fodje@lightsource.ca']
 }
@@ -109,7 +109,7 @@ DEVICES = {
 SERVICES = {
     'dss': clients.DSSClient(),
     'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
-    'dps': clients.DPSClient(),
+    'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
     'messenger': clients.Messenger('cmcf.lightsource.ca', realm=CONFIG['name'])
 }
 

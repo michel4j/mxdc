@@ -115,14 +115,13 @@ class Centering(GObject.GObject):
         logger.info('Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(time.time() - start_time,
                                                                                       100 * self.score))
 
-    def center_loop(self):
+    def center_loop(self, low_trials=3, med_trials=2):
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
         self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
 
         scores = []
         # Find tip of loop at low and high zoom
-        low_trials, med_trials = 3, 2
         max_trials = low_trials + med_trials
         trial_count = 0
         failed = False
@@ -153,7 +152,8 @@ class Centering(GObject.GObject):
 
                 # final 90 rotation not needed
                 if trial_count < max_trials:
-                    self.beamline.omega.move_by(90, wait=True)
+                    cur_pos = self.beamline.omega.get_position()
+                    self.beamline.omega.move_to((90 + cur_pos) % 360, wait=True)
 
         # Center in loop on loop face
         if not failed:
@@ -174,7 +174,7 @@ class Centering(GObject.GObject):
         self.center_loop()
 
     def center_diffraction(self):
-        self.center_loop()
+        self.center_loop(3,1)
         scores = []
         if self.score < 0.5:
             logger.error('Loop-centering failed, aborting!')
@@ -186,13 +186,13 @@ class Centering(GObject.GObject):
             logger.info('Performing raster scan on {}'.format(step))
             raster_params = {}
             self.beamline.goniometer.wait(start=False)
-            if step == 'edge':
-                self.beamline.omega.move_by(90, wait=True)
+            if step == 'face':
+                self.beamline.omega.move_by(-90, wait=True)
 
             angle, info = self.get_features()
             if step == 'edge':
                 # close polygon
-                if info['points'][0] != info['points'][-1]:
+                if info['points'] and (info['points'][0] != info['points'][-1]):
                     info['points'].append(info['points'][0])
                 points = info['points']
             else:
@@ -202,6 +202,10 @@ class Centering(GObject.GObject):
                     (info['center-x'], info['loop-y'] + info['loop-size']),
                     (info['center-x'], info['loop-y'] - info['loop-size']),
                 ]
+            if not len(points):
+                logger.error('Unable to find loop edges')
+                return
+                
             grid_info = self.microscope.calc_polygon_grid(points, grow=0.5, scaled=False)
             GObject.idle_add(self.microscope.configure_grid, grid_info)
             raster_params.update(grid_info['grid_params'])
