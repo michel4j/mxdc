@@ -4,7 +4,7 @@ import sys
 import numpy
 import argparse
 import matplotlib
-matplotlib.use('GtkAgg')
+matplotlib.use('Gtk3Agg')
 from matplotlib import colors, gridspec, rcParams
 from matplotlib import pyplot as plt
 
