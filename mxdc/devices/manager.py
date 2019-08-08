@@ -21,7 +21,7 @@ class BaseManager(BaseDevice):
     }
 
     class ModeType(Enum):
-        MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = range(6)
+        MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = list(range(6))
 
     mode = GObject.property(type=object)
 

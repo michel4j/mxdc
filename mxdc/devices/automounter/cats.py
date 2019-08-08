@@ -38,7 +38,7 @@ class CATSMessages(object):
             'WAIT for RdTrsf condition / 9 not TRUE': 'Waiting for endstation-ready ...',
             'WAIT for SplOn condition / not TRUE / 1': 'Checking sample on gonio ...',
         }
-        for old, new in replacements.items():
+        for old, new in list(replacements.items()):
             message = message.replace(old, new)
         if message:
             return message

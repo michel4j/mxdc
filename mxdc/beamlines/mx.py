@@ -122,20 +122,20 @@ class MXBeamline(object):
         for settings in [global_settings, local_settings]:
             devs = getattr(settings, 'DEVICES', {})
             # Setup devices
-            for dev_name, dev in devs.items():
+            for dev_name, dev in list(devs.items()):
                 self.registry[dev_name] = dev
                 self.logger.debug('Setting up devices: %s' % (dev_name))
 
             # Setup Console-only Devices
             if self.console:
                 devs = getattr(settings, 'CONSOLE', {})
-                for dev_name, dev in devs.items():
+                for dev_name, dev in list(devs.items()):
                     self.registry[dev_name] = dev
                     self.logger.debug('Setting up devices: %s' % (dev_name))
 
             # Setup services
             services = getattr(settings, 'SERVICES', {})
-            for srv_name, srv in services.items():
+            for srv_name, srv in list(services.items()):
                 self.registry[srv_name] = srv
                 self.logger.debug('Setting up services: %s' % (srv_name))
 
@@ -182,7 +182,7 @@ class MXBeamline(object):
         self.diagnostics.append(diagnostics.DeviceDiag(self.registry['disk_space']))
 
     def cleanup(self):
-        for name, device in self.registry.items():
+        for name, device in list(self.registry.items()):
             if hasattr(device, 'cleanup'):
                 device.cleanup()
 

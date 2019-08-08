@@ -4,7 +4,7 @@ from logging.handlers import RotatingFileHandler
 try:
     import reprlib
 except ImportError:
-    import repr as reprlib
+    import reprlib as reprlib
 import os
 
 
@@ -120,7 +120,7 @@ def log_call(f):
 
     def new_f(*args, **kwargs):
         params = ['{}'.format(reprlib.repr(a)) for a in args[1:]]
-        params.extend(['{}={}'.format(p[0], reprlib.repr(p[1])) for p in kwargs.items()])
+        params.extend(['{}={}'.format(p[0], reprlib.repr(p[1])) for p in list(kwargs.items())])
         params = ', '.join(params)
         logger.info('<{}({})>'.format(f.__name__, params))
         return f(*args, **kwargs)

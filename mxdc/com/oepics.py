@@ -15,16 +15,16 @@ from gi.repository import GObject
 logger = log.get_module_logger(__name__)
 
 # Define EPICS constants
-(DISABLE_PREEMPTIVE_CALLBACK, ENABLE_PREEMPTIVE_CALLBACK) = range(2)
+(DISABLE_PREEMPTIVE_CALLBACK, ENABLE_PREEMPTIVE_CALLBACK) = list(range(2))
 
-(NEVER_CONNECTED, PREVIOUSLY_CONNECTED, CONNECTED, CLOSED) = range(4)
+(NEVER_CONNECTED, PREVIOUSLY_CONNECTED, CONNECTED, CLOSED) = list(range(4))
 
 # Alarm type
 (
     NO_ALARM, READ_ALARM, WRITE_ALARM, HIHI_ALARM, HIGH_ALARM, LOLO_ALARM, LOW_ALARM,
     STATE_ALARM, COS_ALARM, COMM_ALARM, TIMEOUT_ALARM, HW_LIMIT_ALARM, CALC_ALARM,
     SCAN_ALARM, LINK_ALARM, SOFT_ALARM, BAD_SUB_ALARM, UDF_ALARM, DISABLE_ALARM,
-    SIMM_ALARM, READ_ACCESS_ALARM, WRITE_ACCESS_ALARM, ALARM_NSTATUS) = range(23)
+    SIMM_ALARM, READ_ACCESS_ALARM, WRITE_ACCESS_ALARM, ALARM_NSTATUS) = list(range(23))
 
 ALARM_NAMES = [
     'NONE', 'READ_ALARM', 'WRITE_ALARM', 'HIHI_ALARM', 'HIGH_ALARM', 'LOLO_ALARM',
@@ -34,13 +34,13 @@ ALARM_NAMES = [
 ]
 
 # Alarm Severity
-(NONE, MINOR_ALARM, MAJOR_ALARM, INVALID_ALARM) = range(4)
+(NONE, MINOR_ALARM, MAJOR_ALARM, INVALID_ALARM) = list(range(4))
 SEVERITY_NAMES = ['', 'MINOR', 'MAJOR', 'INVALID']
 
 (
     CA_OP_GET, CA_OP_PUT, CA_OP_CREATE_CHANNEL, CA_OP_ADD_EVENT, CA_OP_CLEAR_EVENT,
     CA_OP_OTHER, CA_OP_CONN_UP, CA_OP_CONN_DOWN,
-) = range(8)
+) = list(range(8))
 
 POSIX_TIME_AT_EPICS_EPOCH = 631152000.0
 MAX_STRING_SIZE = 40
@@ -59,7 +59,7 @@ DBE_LOG = 1 << 2
     DBR_TIME_DOUBLE, DBR_GR_STRING, DBR_GR_SHORT, DBR_GR_FLOAT, DBR_GR_ENUM, DBR_GR_CHAR,
     DBR_GR_LONG, DBR_GR_DOUBLE, DBR_CTRL_STRING, DBR_CTRL_SHORT, DBR_CTRL_FLOAT, DBR_CTRL_ENUM,
     DBR_CTRL_CHAR, DBR_CTRL_LONG, DBR_CTRL_DOUBLE
-) = range(35)
+) = list(range(35))
 
 DBF_SHORT = DBF_INT
 DBR_STRING = DBF_STRING
@@ -222,7 +222,7 @@ class BasePV(GObject.GObject):
         :param kwargs: keywords correspond to signal names, values are signal values to emit
         :return:
         """
-        for state, value in kwargs.items():
+        for state, value in list(kwargs.items()):
             self._state[state] = value
             GObject.idle_add(self.emit, state, value)
 
@@ -333,7 +333,7 @@ class PV(BasePV):
         return s
 
     def __del__(self):
-        for key, val in self.monitors.items():
+        for key, val in list(self.monitors.items()):
             self.del_monitor(key)
 
     def get(self):

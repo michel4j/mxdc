@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 class Automator(GObject.GObject):
     class Task:
-        (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = range(6)
+        (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = list(range(6))
 
     TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
 

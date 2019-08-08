@@ -63,7 +63,7 @@ class ISARAMessages(object):
             'WAIT for RdTrsf condition / 9 not TRUE': 'Waiting for endstation-ready ...',
             'WAIT for SplOn condition / not TRUE / 1': 'Checking sample on gonio ...'
         }
-        for old, new in replacements.items():
+        for old, new in list(replacements.items()):
             message = message.replace(old, new)
         if message:
             return message
@@ -355,7 +355,7 @@ class AuntISARA(AutoMounter):
 
     def on_error_changed(self, *args):
         messages = ', '.join([
-            txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
+            txt for txt, obj in list(self.errors.items()) if obj.is_active() and obj.get() == 1
         ])
         self.set_state(message=messages)
         if messages:
@@ -458,11 +458,11 @@ class ISARA(AutoMounter):
            self.bot_busy_fbk, self.cmd_busy_fbk, self.mode_fbk, self.tool_number, self.air_fbk,
            self.prog_fbk,
            self.sensor_fbk, self.prog_fbk, self.ln2_fbk, self.enabled_fbk
-        ] + self.errors.values()
+        ] + list(self.errors.values())
         for obj in state_variables:
             obj.connect('changed', self.on_state_changed)
 
-        for obj in self.errors.values():
+        for obj in list(self.errors.values()):
             obj.connect('changed', self.on_error_changed)
 
     def is_mountable(self, port):
@@ -669,7 +669,7 @@ class ISARA(AutoMounter):
 
     def on_error_changed(self, *args):
         messages = ', '.join([
-            txt for txt, obj in self.errors.items() if obj.is_active() and obj.get() == 1
+            txt for txt, obj in list(self.errors.items()) if obj.is_active() and obj.get() == 1
         ])
         self.set_state(message=messages)
         if messages:

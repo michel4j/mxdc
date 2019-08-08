@@ -21,7 +21,7 @@ import threading
 import time
 from gi.repository import Gtk, Gdk
 from gi.repository import GObject
-import Queue
+import queue
 try:
     import readline
 except ImportError:
@@ -34,14 +34,14 @@ class MTConsole(code.InteractiveConsole):
 
     def __init__(self,on_kill=None,*args,**kw):
         code.InteractiveConsole.__init__(self,*args,**kw)
-        self.code_queue = Queue.Queue(1)
+        self.code_queue = queue.Queue(1)
         self._kill = False
         if on_kill is None:
             on_kill = []
         # Check that all things to kill are callable:
         for _ in on_kill:
             if not callable(_):
-                raise TypeError,'on_kill must be a list of callables'
+                raise TypeError('on_kill must be a list of callables')
         self.on_kill = on_kill
         # Set up tab-completer
         if has_readline:
@@ -111,11 +111,11 @@ class MTConsole(code.InteractiveConsole):
         traceback."""
 
         if self._kill:
-            print 'Closing threads...',
+            print('Closing threads...', end=' ')
             sys.stdout.flush()
             for tokill in self.on_kill:
                 tokill()
-            print 'Done.'
+            print('Done.')
         if not self.code_queue.empty():
             ccode = self.code_queue.get()
             code.InteractiveConsole.runcode(self, ccode )
@@ -187,7 +187,7 @@ class BeamlineConsole(GTKInterpreter):
                  "bl = beamline",
                  "plot = ScanPlotter()",
                  ]
-        map(push,lines)
+        list(map(push,lines))
         
 
 
@@ -195,5 +195,5 @@ if __name__ == '__main__':
     try:
         BeamlineConsole().mainloop()
     finally:
-        print 'Quiting...'
+        print('Quiting...')
 

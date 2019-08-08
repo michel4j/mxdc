@@ -114,12 +114,12 @@ class BOSSTuner(BaseTuner):
         logger.debug('Pausing BOSS')
         if self.active_state and self.enabled_state and self.beam_threshold.get() != self._pause_value:
             self._off_value = self.beam_threshold.get()
-            self.beam_threshold.set(self._pause_value)
+            self.beam_threshold.put(self._pause_value)
 
     def resume(self):
         logger.debug('Resuming BOSS')
         if self.active_state:
-            self.beam_threshold.set(self._off_value)
+            self.beam_threshold.put(self._off_value)
 
     def start(self):
         logger.debug('Enabling BOSS')

@@ -1,6 +1,6 @@
 # -*- coding: UTF8 -*-
 try:
-    from Queue import Queue
+    from queue import Queue
 except ImportError:
     from queue import Queue
 
@@ -44,7 +44,7 @@ def cmap(name):
 
 
 def adjust_spines(ax, spines, color):
-    for loc, spine in ax.spines.items():
+    for loc, spine in list(ax.spines.items()):
         if loc in spines:
             spine.set_position(('outward', 10))  # outward by 10 points
             spine.set_smart_bounds(True)
@@ -114,17 +114,18 @@ class DataLoader(GObject.GObject):
         #         return
         attempts = 0
         success = False
-        error = None
         while not success and attempts < 5:         
             try:
                 self.dataset = read_image(path)
                 success = True
             except Exception as error:
+                logger.error(error)
                 attempts += 1
                 time.sleep(0.1)
+                raise
         
         if not success:
-            logger.error('Error loading frame "{}". Error: {}'.format(path, error))
+            logger.warning('Error loading frame "{}".'.format(path))
             self.loading = False
             return False
 
@@ -194,9 +195,12 @@ class DataLoader(GObject.GObject):
                 count += 1
 
             if path and not self.loading:
-                success = self.load(path)
-                if success:
-                   path = None
+                try:
+                    success = self.load(path)
+                    if success:
+                        path = None
+                except KeyError:
+                    success = False
 
             # Check if next_frame or prev_frame has been requested
             if self.load_next:

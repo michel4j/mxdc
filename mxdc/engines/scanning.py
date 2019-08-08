@@ -249,9 +249,9 @@ class CntScan(AbsScan):
 
         self.config.m1.disconnect(src_id)
         # Perform interpolation
-        xi, tx = zip(*x_ot)
-        yi, ty = zip(*y_ot)
-        ii, ti = zip(*i_ot)
+        xi, tx = list(zip(*x_ot))
+        yi, ty = list(zip(*y_ot))
+        ii, ti = list(zip(*i_ot))
 
         mintx, maxtx = min(tx), max(tx)
         minty, maxty = min(ty), max(ty)
@@ -268,7 +268,7 @@ class CntScan(AbsScan):
         inew = interpolate.splev(tx, tcki, der=0)
 
         yinew = ynew / inew
-        self.data_rows = zip(xi, yinew, ynew, inew)
+        self.data_rows = list(zip(xi, yinew, ynew, inew))
         self.set_data(self.data_rows)
         GObject.idle_add(self.emit, "done")
 

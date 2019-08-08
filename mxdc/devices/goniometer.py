@@ -105,7 +105,7 @@ class ParkerGonio(Goniometer):
         self.check_state()
 
     def configure(self, **kwargs):
-        for key in kwargs.keys():
+        for key in list(kwargs.keys()):
             self.settings[key].put(kwargs[key])
 
     def scan(self, wait=True, timeout=None):
@@ -157,7 +157,7 @@ class MD2Gonio(Goniometer):
         self.state_fbk.connect('changed', self.on_state_changed)
 
     def configure(self, **kwargs):
-        for key in kwargs.keys():
+        for key in list(kwargs.keys()):
             self.settings[key].put(kwargs[key])
 
     def on_state_changed(self, *args, **kwargs):
@@ -274,7 +274,7 @@ class GalilGonio(Goniometer):
             self.set_state(busy=False)
 
     def configure(self, **kwargs):
-        for key in kwargs.keys():
+        for key in list(kwargs.keys()):
             self.settings[key].put(kwargs[key])
 
     def scan(self, wait=True, timeout=180):
@@ -323,7 +323,7 @@ class OldMD2Gonio(Goniometer):
         self.state_fbk.connect('changed', self.on_state_changed)
 
     def configure(self, **kwargs):
-        for key in kwargs.keys():
+        for key in list(kwargs.keys()):
             self.settings[key].put(kwargs[key])
 
     def on_state_changed(self, *args, **kwargs):

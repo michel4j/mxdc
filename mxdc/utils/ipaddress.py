@@ -8,7 +8,7 @@ and networks.
 
 """
 
-from __future__ import unicode_literals
+
 
 
 import itertools
@@ -19,11 +19,11 @@ __version__ = '1.0.18'
 # Compatibility functions
 _compat_int_types = (int,)
 try:
-    _compat_int_types = (int, long)
+    _compat_int_types = (int, int)
 except NameError:
     pass
 try:
-    _compat_str = unicode
+    _compat_str = str
 except NameError:
     _compat_str = str
     assert bytes != str
@@ -1270,7 +1270,7 @@ class _BaseV4(object):
 
         try:
             return _compat_int_from_byte_vals(
-                map(cls._parse_octet, octets), 'big')
+                list(map(cls._parse_octet, octets)), 'big')
         except ValueError as exc:
             raise AddressValueError("%s in %r" % (exc, ip_str))
 

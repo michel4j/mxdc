@@ -26,7 +26,7 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         bw = beamline.aperture.get() * 0.001
         bh = beamline.aperture.get() * 0.001
         pix_size = beamline.sample_video.resolution
-        x, y = map(lambda x: 0.5*x, beamline.sample_video.size)
+        x, y = [0.5*x for x in beamline.sample_video.size]
         w = int(bw / pix_size)
         h = int(bh / pix_size)
 

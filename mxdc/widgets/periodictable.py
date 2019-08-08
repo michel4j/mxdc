@@ -10,8 +10,8 @@ def hex2rgba(spec, alpha=0.5):
     return col
 
 
-TYPE_COLORS = map(hex2rgba, colors.Category.CAT20)
-EDGE_COLORS = map(hex2rgba, colors.Category.EDGES)
+TYPE_COLORS = list(map(hex2rgba, colors.Category.CAT20))
+EDGE_COLORS = list(map(hex2rgba, colors.Category.EDGES))
 
 
 def set_area_cursor(widget, cursor='pointer'):
@@ -82,7 +82,7 @@ class EdgeSelector(Gtk.Grid):
         # self.attach(self.close_btn, 15, 1, 2, 1)
         self.entry = None
         self.emissions = scitools.get_energy_database(min_energy, max_energy)
-        for symbol in scitools.PERIODIC_TABLE.keys():
+        for symbol in list(scitools.PERIODIC_TABLE.keys()):
             element, edges = self.get_element(symbol)
             elm_box = Gtk.EventBox()
             elm_box.override_background_color(Gtk.StateType.NORMAL, TYPE_COLORS[int(element['type'])])

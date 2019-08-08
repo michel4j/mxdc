@@ -1,11 +1,11 @@
-from __future__ import division
+
 
 import cairo
 import numpy
 
 
 class Port(object):
-    EMPTY, UNKNOWN, GOOD, MOUNTED, BAD = range(5)
+    EMPTY, UNKNOWN, GOOD, MOUNTED, BAD = list(range(5))
 
 
 PortColors = {
@@ -71,14 +71,13 @@ class ContainerMeta(type):
             cls.plugins[cls.key] = cls
 
     def get_all(cls, *args, **kwargs):
-        return {key: val for key, val in cls.plugins.items()}
+        return {key: val for key, val in list(cls.plugins.items())}
 
     def get(cls, key):
         return cls.plugins.get(key)
 
 
-class Container(object):
-    __metaclass__ = ContainerMeta
+class Container(object, metaclass=ContainerMeta):
     PIN = 12 / 31.
     WIDTH = 1 / 12.
     HEIGHT = 1 / 12.
@@ -142,7 +141,7 @@ class Container(object):
         # draw labels
         cr.set_source_rgba(0.0, 0.375, 0.75, 1.0)
         cr.select_font_face('Cantarell', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        for label, (lx, ly) in self.labels().items():
+        for label, (lx, ly) in list(self.labels().items()):
             xb, yb, w, h = cr.text_extents(label)[:4]
             cr.move_to(lx - w / 2. - xb, ly - h / 2. - yb)
             cr.show_text(label)

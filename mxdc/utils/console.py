@@ -197,11 +197,11 @@ class BeamlineConsole(GTKInterpreter):
                  "bl = beamline",
                  "plot = ScanPlotWindow()",
                  ]
-        map(push, lines)
+        list(map(push, lines))
 
 
 if __name__ == '__main__':
     try:
         BeamlineConsole().mainloop()
     finally:
-        print 'Quitting...'
+        print('Quitting...')

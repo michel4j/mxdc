@@ -27,12 +27,12 @@ logger = get_module_logger(__name__)
 
 class ReportManager(TreeManager):
     class Data(Enum):
-        NAME, GROUP, ACTIVITY, TYPE, SCORE, TITLE, STATE, UUID, SAMPLE, DIRECTORY, DATA, REPORT, ERROR = range(13)
+        NAME, GROUP, ACTIVITY, TYPE, SCORE, TITLE, STATE, UUID, SAMPLE, DIRECTORY, DATA, REPORT, ERROR = list(range(13))
 
     Types = [str, str, str, str, float, str, int, str, object, str, object, object, object]
 
     class State:
-        PENDING, ACTIVE, SUCCESS, FAILED = range(4)
+        PENDING, ACTIVE, SUCCESS, FAILED = list(range(4))
 
     Columns = ColumnSpec(
         (Data.NAME, 'Name', ColumnType.TEXT, '{}', True),
@@ -275,7 +275,7 @@ class AnalysisController(GObject.GObject):
             self.widget.notifier.notify("Datasets added. Switch to Data page to proceed.")
 
     def get_options(self):
-        return [k for k, w in self.options.items() if w.get_active()]
+        return [k for k, w in list(self.options.items()) if w.get_active()]
 
     def on_run_analysis(self, *args, **kwargs):
         options = self.get_options()

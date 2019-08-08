@@ -128,8 +128,8 @@ def get_energy_database(min_energy=0, max_energy=1000):
         'L3': 'L3M4',
     }
     data_dict = {}
-    for symbol, db in EMISSIONS_DATA.items():
-        for edge, data in db.items():
+    for symbol, db in list(EMISSIONS_DATA.items()):
+        for edge, data in list(db.items()):
             edge_descr = "{}-{}".format(symbol, edge)
             if emissions[edge] in data[1]:
                 e_val = data[1][emissions[edge]][0]
@@ -246,12 +246,12 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
     peak_energies = set([nearest(v[0], prec) for v in peaks])
     elements = []
     lonly = []
-    for symbol, edges in EMISSIONS_DATA.items():
+    for symbol, edges in list(EMISSIONS_DATA.items()):
         entry = [symbol, ]
         entry_peaks = []
-        for edge, data in edges.items():
+        for edge, data in list(edges.items()):
             if data[0] >= energy: continue
-            _fl = [(v[0], v[1], edge) for v in data[1].values()]
+            _fl = [(v[0], v[1], edge) for v in list(data[1].values())]
             entry_peaks.extend(_fl)
         if len(entry_peaks) > 1:
             entry_peaks.sort(key=lambda v: v[1], reverse=True)
@@ -281,7 +281,7 @@ def get_line_info(element_info, factor):
 
     for edge in edges:
         edge_data = EMISSIONS_DATA[el][edge]
-        for _ln, _pars in edge_data[1].items():
+        for _ln, _pars in list(edge_data[1].items()):
             if factor * _pars[1] > 0.1:
                 el_peaks.append((_ln, _pars[0], round(_pars[1] * factor, 2)))
     if len(el_peaks) > 0:
@@ -310,7 +310,7 @@ def generate_spectrum(info, energy, xa):
     for edge in edges:
         edge_data = EMISSIONS_DATA[el][edge]
         # if edge in ['L1', 'L2', 'L3']:  continue  # ignore 'L' edges
-        for _pos, _ri in edge_data[1].values():
+        for _pos, _ri in list(edge_data[1].values()):
             if _ri >= 0.001 and _pos < energy:
                 fwhm = PEAK_FWHM * (1.0 + _pos / energy)  # fwhm increases by energy
                 coeffs.extend([_ri, fwhm, _pos, 0.0])

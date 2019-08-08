@@ -57,7 +57,8 @@ def get_keys():
         }
     else:
         with open(_KEY_FILE, 'rb') as handle:
-            data = msgpack.load(handle)
+            raw_data = msgpack.load(handle)
+            data = {key.decode('utf-8') if isinstance(key, bytes) else key: value for key, value in raw_data.items()}
     return data
 
 

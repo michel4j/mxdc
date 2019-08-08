@@ -264,7 +264,7 @@ class LogMonitor(object):
             logging.WARNING: 'Magenta',
         }
         self.tags = {}
-        for key, v in color_chart.items():
+        for key, v in list(color_chart.items()):
             self.tags[key] = self.text_buffer.create_tag(foreground=v)
         self.view.connect('size-allocate', self.content_changed)
 

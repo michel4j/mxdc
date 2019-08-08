@@ -60,7 +60,7 @@ def summarize_lines(data):
 
 class ScanController(GObject.GObject):
     class StateType:
-        READY, ACTIVE, PAUSED = range(3)
+        READY, ACTIVE, PAUSED = list(range(3))
 
     state = GObject.Property(type=int, default=StateType.READY)
     config = GObject.Property(type=object)
@@ -144,7 +144,7 @@ class ScanController(GObject.GObject):
 
     def configure(self, info, disable=()):
         if not self.ConfigSpec: return
-        for name, details in self.ConfigSpec.items():
+        for name, details in list(self.ConfigSpec.items()):
             field_type, fmt, conv, default = details
             field_name = '{}_{}'.format(name, field_type)
             value = info.get(name, default)
@@ -175,7 +175,7 @@ class ScanController(GObject.GObject):
     def get_parameters(self):
         info = {}
         if not self.ConfigSpec: return info
-        for name, details in self.ConfigSpec.items():
+        for name, details in list(self.ConfigSpec.items()):
             field_type, fmt, conv, default = details
             field_name = '{}_{}'.format(name, field_type)
             field = getattr(self, field_name, None)
@@ -294,13 +294,13 @@ class ScanController(GObject.GObject):
 
 class MADResultsManager(TreeManager):
     class Data(Enum):
-        NAME, LABEL, ENERGY, EDGE, WAVELENGTH, FPP, FP, DIRECTORY = range(8)
+        NAME, LABEL, ENERGY, EDGE, WAVELENGTH, FPP, FP, DIRECTORY = list(range(8))
 
     Types = [str, str, float, str, float, float, float, str]
     Columns = ColumnSpec(
         (Data.LABEL, 'Label', ColumnType.TEXT, '{}', True),
         (Data.ENERGY, 'Energy', ColumnType.NUMBER, '{:0.3f}', True),
-        (Data.WAVELENGTH, u"\u03BB", ColumnType.NUMBER, '{:0.4f}', True),
+        (Data.WAVELENGTH, "\u03BB", ColumnType.NUMBER, '{:0.4f}', True),
         (Data.FP, "f'", ColumnType.NUMBER, '{:0.1f}', True),
         (Data.FPP, 'f"', ColumnType.NUMBER, '{:0.1f}', True),
     )
@@ -328,7 +328,7 @@ class MADResultsManager(TreeManager):
 
 class XRFResultsManager(TreeManager):
     class Data(Enum):
-        SELECTED, SYMBOL, NAME, PERCENT, DIRECTORY = range(5)
+        SELECTED, SYMBOL, NAME, PERCENT, DIRECTORY = list(range(5))
 
     Types = [bool, str, str, float, str]
     Columns = ColumnSpec(
@@ -354,7 +354,7 @@ class XRFResultsManager(TreeManager):
 
 class XASResultsManager(TreeManager):
     class Data(Enum):
-        NAME, EDGE, SCAN, TIME, X_PEAK, Y_PEAK, DIRECTORY = range(7)
+        NAME, EDGE, SCAN, TIME, X_PEAK, Y_PEAK, DIRECTORY = list(range(7))
 
     Types = [str, str, int, str, float, float, str]
     Columns = ColumnSpec(
@@ -533,7 +533,7 @@ class XRFScanController(ScanController):
         ax.set_xlim(-0.25, energy + 1.5)
 
         # get list of elements sorted in descending order of prevalence
-        element_list = [(v[0], k) for k, v in assignments.items()]
+        element_list = [(v[0], k) for k, v in list(assignments.items())]
         element_list.sort(reverse=True)
 
         for index, (amount, symbol) in enumerate(element_list):
@@ -652,7 +652,7 @@ class ScanManager(GObject.GObject):
         }
         self.monitors = {
             name: common.DeviceMonitor(dev, lbl, **kw)
-            for name, (dev, lbl, kw) in labels.items()
+            for name, (dev, lbl, kw) in list(labels.items())
         }
 
         if hasattr(self.beamline, 'multi_mca'):

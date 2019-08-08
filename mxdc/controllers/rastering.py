@@ -28,7 +28,7 @@ logger = get_module_logger(__name__)
 
 class RasterResultsManager(TreeManager):
     class Data(Enum):
-        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = range(10)
+        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = list(range(10))
 
     Types = [str, float, float, float, float, float, int, float, str, str]
     Columns = ColumnSpec(
@@ -45,7 +45,7 @@ class RasterResultsManager(TreeManager):
 
 class RasterController(GObject.GObject):
     class StateType:
-        READY, ACTIVE, PAUSED = range(3)
+        READY, ACTIVE, PAUSED = list(range(3))
 
     ConfigSpec = {
         'exposure': ['entry', '{:0.3g}', float, 1.0],
@@ -102,7 +102,7 @@ class RasterController(GObject.GObject):
         }
         self.monitors = {
             name: common.DeviceMonitor(dev, lbl, **kw)
-            for name, (dev, lbl, kw) in labels.items()
+            for name, (dev, lbl, kw) in list(labels.items())
         }
         self.load_from_cache()
 
@@ -113,7 +113,7 @@ class RasterController(GObject.GObject):
 
     def get_parameters(self):
         info = {}
-        for name, details in self.ConfigSpec.items():
+        for name, details in list(self.ConfigSpec.items()):
             field_type, fmt, conv, default = details
             field_name = 'raster_{}_{}'.format(name, field_type)
             field = getattr(self.widget, field_name)
@@ -133,7 +133,7 @@ class RasterController(GObject.GObject):
 
     def configure(self, info):
         if not self.ConfigSpec: return
-        for name, details in self.ConfigSpec.items():
+        for name, details in list(self.ConfigSpec.items()):
             field_type, fmt, conv, default = details
             field_name = 'raster_{}_{}'.format(name, field_type)
             value = info.get(name, default)

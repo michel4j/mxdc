@@ -125,13 +125,13 @@ class SimSAM(AutoMounter):
         port_states = {}
 
         container_spec = {
-            'puck': ('ABCD', range(1, 17)),
-            'cassette': ('ABCDEFGHIJKL', range(1, 9)),
-            'calib': ('ABCDEFGHIJKL', range(1, 9)),
+            'puck': ('ABCD', list(range(1, 17))),
+            'cassette': ('ABCDEFGHIJKL', list(range(1, 9))),
+            'calib': ('ABCDEFGHIJKL', list(range(1, 9))),
         }
         containers = set()
 
-        for location, (type_code, port_states_str) in info.items():
+        for location, (type_code, port_states_str) in list(info.items()):
             type_name = self.TypeCodes.get(type_code, 'puck')
             spec = container_spec.get(type_name)
 

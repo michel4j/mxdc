@@ -155,7 +155,7 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
             txt = cbox.get_active_text()
             fext = os.path.splitext(filename)[1].lstrip('.').lower()
             if fext == '':
-                fext = format_info.values()[0]
+                fext = list(format_info.values())[0]
             fltr = format_info.get(txt, fext)
             filename = "%s.%s" % (os.path.splitext(filename)[0], fltr)
         else:

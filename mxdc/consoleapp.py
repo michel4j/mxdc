@@ -65,7 +65,7 @@ class ConsoleApp(object):
         self.window = self.builder.scan_window
         self.window.set_deletable(False)
 
-        self.log_viewer = common.LogMonitor(self.builder.scan_log, 'Candara 7')
+        self.log_viewer = common.LogMonitor(self.builder.scan_log, font='Candara 7')
         log_handler = textviewer.GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
