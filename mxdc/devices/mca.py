@@ -88,7 +88,7 @@ class BasicMCA(BaseDevice):
             - `nozzle` (bool): move nozzle in if True and out if False, if nozzle is available, ignore otherwise
         """
 
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             if k == 'roi':
                 if v is None:
                     self.region_of_interest = (0, self.channels)
@@ -206,7 +206,7 @@ class BasicMCA(BaseDevice):
 
     def stop(self):
         """Stop data acquisition."""
-        self.STOP.set(1)
+        self.STOP.put(1)
 
     def wait(self):
         """Wait for the detector to start and then stop data acquisition."""
@@ -214,7 +214,7 @@ class BasicMCA(BaseDevice):
         self._wait_stop()
 
     def _start(self, wait=True):
-        self.START.set(1)
+        self.START.put(1)
         if wait:
             self._wait_start()
 
@@ -227,7 +227,7 @@ class BasicMCA(BaseDevice):
 
     def _acquire_data(self, t=1.0):
         self.data = numpy.zeros((self.channels, len(self.spectra) + 2))  # one more for x-axis, one more for sum
-        self._count_time.set(t)
+        self._count_time.put(t)
         self._start()
         self._wait_stop()
         self.data[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
@@ -319,7 +319,7 @@ class XFlashMCA(BasicMCA):
         self._status_scan.put(9)  # 0.1 second
         self._read_scan.put(0)  # Passive
 
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             if k == 'cooling':
                 if self.TMP.get() >= -25.0 and v:
                     self._set_temp(v)
@@ -332,9 +332,9 @@ class XFlashMCA(BasicMCA):
 
     def _set_temp(self, on):
         if on:
-            self.TMODE.set(2)
+            self.TMODE.put(2)
         else:
-            self.TMODE.set(0)
+            self.TMODE.put(0)
 
     def _schedule_warmup(self, obj, val):
         if val == 0:
@@ -395,7 +395,7 @@ class VortexMCA(BasicMCA):
 
     def get_count_rates(self):
         # get IRC and OCR tuples
-        pairs = zip(self.ICRS, self.OCRS)
+        pairs = list(zip(self.ICRS, self.OCRS))
         _crs = []
         for ICR, OCR in pairs:
             _crs.append((ICR.get(), OCR.get()))
@@ -468,12 +468,12 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.aquiring = True
         time.sleep(t)
         self.acquiring = False
-        fname = os.path.join(conf.APP_DIR, 'test/scans/xrf_%03d.raw' % random.choice(range(1, 7)))
+        fname = os.path.join(conf.APP_DIR, 'test/scans/xrf_%03d.raw' % random.choice(list(range(1, 7))))
         logger.debug('Simulated Spectrum: %s' % fname)
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:, 0]
         self.set_state(deadtime=random.random() * 51.0)
-        return numpy.array(zip(self._x_axis, self._raw_data[:, 1], self._raw_data[:, 1]))
+        return numpy.array(list(zip(self._x_axis, self._raw_data[:, 1], self._raw_data[:, 1])))
 
     def get_roi_counts(self):
         return [self._roi_count] * self.elements

@@ -25,7 +25,7 @@ class Analyst(GObject.GObject):
     }
 
     class ResultType(object):
-        MX, XRD, RASTER = range(3)
+        MX, XRD, RASTER = list(range(3))
 
     def __init__(self, manager):
         GObject.GObject.__init__(self)
@@ -60,7 +60,7 @@ class Analyst(GObject.GObject):
             self.failed(e, params['uuid'], self.ResultType.MX)
             returnValue({})
         else:
-            report['data_id'] = filter(None, [metadata.get('id')])
+            report['data_id'] = [_f for _f in [metadata.get('id')] if _f]
             self.save_report(report)
             self.succeeded(report, params['uuid'], self.ResultType.MX)
             returnValue(report)
@@ -103,7 +103,7 @@ class Analyst(GObject.GObject):
             self.failed(e, params['uuid'], self.ResultType.MX)
             returnValue({})
         else:
-            report['data_id'] = filter(None, [metadata.get('id') for metadata in metadatas])
+            report['data_id'] = [_f for _f in [metadata.get('id') for metadata in metadatas] if _f]
             self.save_report(report)
             self.succeeded(report, params['uuid'], self.ResultType.MX)
             returnValue(report)
@@ -141,7 +141,7 @@ class Analyst(GObject.GObject):
             self.failed(e, params['uuid'], self.ResultType.MX)
             returnValue({})
         else:
-            report['data_id'] = filter(None, [metadata.get('id')])
+            report['data_id'] = [_f for _f in [metadata.get('id')] if _f]
             self.save_report(report)
             self.succeeded(report, params['uuid'], self.ResultType.MX)
             returnValue(report)
@@ -161,7 +161,7 @@ class Analyst(GObject.GObject):
             self.failed(e, params['uuid'], self.ResultType.RASTER)
             returnValue({})
         else:
-            report['data_id'] = filter(None, [params.get('id')])
+            report['data_id'] = [_f for _f in [params.get('id')] if _f]
             self.succeeded(report, params['uuid'], self.ResultType.RASTER)
             returnValue(report)
 
@@ -194,7 +194,7 @@ class Analyst(GObject.GObject):
             self.failed(e, params['uuid'], self.ResultType.XRD)
             returnValue({})
         else:
-            report['data_id'] = filter(None, [metadata.get('id')])
+            report['data_id'] = [_f for _f in [metadata.get('id')] if _f]
             self.save_report(report)
             self.succeeded(report, params['uuid'], self.ResultType.XRD)
             returnValue(report)

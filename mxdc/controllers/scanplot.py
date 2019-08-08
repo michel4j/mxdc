@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import time
 
@@ -89,7 +89,7 @@ class ScanPlotter(object):
     def plot_file(self, filename):
         """Do fitting and plot Fits"""
         info = xdi.read_xdi(filename)
-        columns = info['Column'].items()
+        columns = list(info['Column'].items())
         data = info.data
         self.fit.data = data
         if info['CMCF.scan_type'] == 'GridScan':

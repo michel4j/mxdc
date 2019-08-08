@@ -25,7 +25,7 @@ logger = get_module_logger(__name__)
     RESPONSE_REPLACE_BAD,
     RESPONSE_SKIP,
     RESPONSE_CANCEL,
-) = range(4)
+) = list(range(4))
 
 
 class IDatasets(Interface):
@@ -59,7 +59,7 @@ class ConfigDisplay(object):
         self.item.connect('notify::info', self.on_item_changed)
 
     def on_item_changed(self, item, param):
-        for name, format in self.Formats.items():
+        for name, format in list(self.Formats.items()):
             field_name = '{}_{}_lbl'.format(self.prefix, name, name)
             field = getattr(self.widget, field_name, None)
             if field and name in self.item.props.info:
@@ -68,7 +68,7 @@ class ConfigDisplay(object):
 
 class AutomationController(GObject.GObject):
     class StateType:
-        STOPPED, PAUSED, ACTIVE, PENDING = range(4)
+        STOPPED, PAUSED, ACTIVE, PENDING = list(range(4))
 
     state = GObject.Property(type=int, default=0)
 
@@ -141,10 +141,10 @@ class AutomationController(GObject.GObject):
         config = load_cache('auto')
         if config:
             self.config.info = config['info']
-            for name, btn in self.tasks.items():
+            for name, btn in list(self.tasks.items()):
                 if name in config:
                     btn.set_active(config[name])
-            for name, option in self.options.items():
+            for name, option in list(self.options.items()):
                 if name in config:
                     option.set_active(config[name])
 
@@ -214,7 +214,7 @@ class AutomationController(GObject.GObject):
         self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
         self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
 
-        for btn in self.tasks.values():
+        for btn in list(self.tasks.values()):
             btn.connect('toggled', self.on_save_acquisition)
 
         self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
@@ -235,9 +235,9 @@ class AutomationController(GObject.GObject):
         cache = {
             'info': self.config.info,
         }
-        for name, btn in self.tasks.items():
+        for name, btn in list(self.tasks.items()):
             cache[name] = btn.get_active()
-        for name, option in self.options.items():
+        for name, option in list(self.options.items()):
             cache[name] = option.get_active()
         save_cache(cache, 'auto')
 
@@ -416,7 +416,7 @@ class DatasetsController(GObject.GObject):
         self.group_selectors = []
         self.monitors = {
             name: common.DeviceMonitor(dev, lbl, fmt)
-            for name, (dev, lbl, fmt) in labels.items()
+            for name, (dev, lbl, fmt) in list(labels.items())
         }
         self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
         self.microscope.connect('notify::points', self.on_points)
@@ -499,7 +499,7 @@ class DatasetsController(GObject.GObject):
         success = True
         collected = 0
         if any(existing.values()):
-            details = '\n'.join(['{}: {}'.format(k, v) for k, v in existing.items()])
+            details = '\n'.join(['{}: {}'.format(k, v) for k, v in list(existing.items())])
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
                 '\n\n<b>What would you like to do with them? </b>\n'

@@ -5,7 +5,7 @@ import json
         
 import logging
 import logging.handlers
-import commands
+import subprocess
 
 if __name__ == '__main__':
     confdir = os.path.join(os.environ.get('MXDC_PATH'), 'etc')
@@ -43,13 +43,13 @@ if __name__ == '__main__':
 
     # Check if excludes file exists, otherwise create a blank file
     if  not os.path.exists("%s/%s" % (backupdir, exclude_file)):
-        sts, out = commands.getstatusoutput('/bin/touch %s/%s' % (backupdir, exclude_file))
+        sts, out = subprocess.getstatusoutput('/bin/touch %s/%s' % (backupdir, exclude_file))
         logger.info('Created `excludes` file. Edit it to specify which files should not be backed-up.')
     
     # and perform the backups one client at a time
     backup_sources = sources.get('hosts',{})
     backup_sources['global'] = sources.get('global',[])
-    for host, directories in backup_sources.items():
+    for host, directories in list(backup_sources.items()):
         logger.info('Performing the backups for %s' % host)
         success = False
         todays_dir = os.path.join(backupdir, host, today)
@@ -62,20 +62,20 @@ if __name__ == '__main__':
             cmd1 = '/bin/rm -rf %s' % (thisweeks_dir)
             cmd2 = "/bin/mv %s %s" % (todays_dir, thisweeks_dir)
             logger.info('Removing %s' % thisweeks_dir)
-            sts, out = commands.getstatusoutput(cmd1)
+            sts, out = subprocess.getstatusoutput(cmd1)
             logger.info('Copying %s to %s' % (todays_dir, thisweeks_dir))
-            sts, out = commands.getstatusoutput(cmd2)
+            sts, out = subprocess.getstatusoutput(cmd2)
     
         # Step 2: Copy yesterdays backup into todays directory before updating it
         logger.info('Copy yesterdays backup into todays directory before updating it')
         if os.path.exists(yesterdays_dir):
             cmd = '/bin/cp -apl %s %s' % (yesterdays_dir, todays_dir)
             logger.info(' - Copying %s to %s' % (yesterdays_dir, todays_dir))
-            sts, out = commands.getstatusoutput(cmd)
+            sts, out = subprocess.getstatusoutput(cmd)
         else:
             cmd = '/bin/mkdir -p %s' % (todays_dir)
             logger.info(' - Creating missing directory %s' % (todays_dir))
-            sts, out = commands.getstatusoutput(cmd)
+            sts, out = subprocess.getstatusoutput(cmd)
     
         # Step 3: rsync from system into today's snapshot directory
         for directory in directories:
@@ -90,10 +90,10 @@ if __name__ == '__main__':
             if not os.path.exists(dir_backup_loc):
                 cmd = 'mkdir -p %s' % (dir_backup_loc)
                 logger.info(' - Updating %s' % (dir_backup_loc))
-                sts, out = commands.getstatusoutput(cmd)
+                sts, out = subprocess.getstatusoutput(cmd)
                 
             #print rsync_cmd
-            sts, out = commands.getstatusoutput(rsync_cmd)
+            sts, out = subprocess.getstatusoutput(rsync_cmd)
             success = (sts == 0)
                  
             if success: 
@@ -105,4 +105,4 @@ if __name__ == '__main__':
                 
         # Step 4: Update the time on todays backup to reflect the snapshot time
         cmd = "touch %s" % (todays_dir)
-        sts, out = commands.getstatusoutput(cmd)
+        sts, out = subprocess.getstatusoutput(cmd)

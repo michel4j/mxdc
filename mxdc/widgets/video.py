@@ -23,7 +23,7 @@ logger = get_module_logger(__name__)
 
 
 class VideoBox(Enum):
-    PAD, CROP = range(2)
+    PAD, CROP = list(range(2))
 
 @implementer(IVideoSink)
 class VideoWidget(Gtk.DrawingArea):

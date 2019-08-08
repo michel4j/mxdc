@@ -69,7 +69,7 @@ class HumidityController(gui.Builder):
             'score': self.hc_score_option,
             'resolution': self.hc_resolution_option
         }
-        for key, option in self.plot_options.items():
+        for key, option in list(self.plot_options.items()):
             option.connect('toggled', self.on_plot_option)
 
     def load_from_cache(self):
@@ -79,7 +79,7 @@ class HumidityController(gui.Builder):
 
     def get_parameters(self):
         info = {}
-        for name, details in self.ConfigSpec.items():
+        for name, details in list(self.ConfigSpec.items()):
             field_type, fmt, conv, default = details
             field_name = '{}_{}_{}'.format(self.ConfigPrefix, name, field_type)
             field = getattr(self, field_name)
@@ -99,7 +99,7 @@ class HumidityController(gui.Builder):
 
     def configure(self, info):
         if not self.ConfigSpec: return
-        for name, details in self.ConfigSpec.items():
+        for name, details in list(self.ConfigSpec.items()):
             field_type, fmt, conv, default = details
             field_name = '{}_{}_{}'.format(self.ConfigPrefix, name, field_type)
             value = info.get(name, default)
@@ -169,7 +169,7 @@ class HumidityController(gui.Builder):
 
     def on_plot_option(self, button):
         active = 'drop'
-        for key, option in self.plot_options.items():
+        for key, option in list(self.plot_options.items()):
             if option.get_active():
                 active = key
                 break
@@ -185,7 +185,7 @@ class HumidityController(gui.Builder):
             'temperature': misc.ActiveEntry(self.humidifier.temperature, 'Temperature', fmt="%0.2f"),
         }
         self.plotter.add_plot(self.humidifier.humidity, 'Relative Humidity', axis=0)
-        for name, device in self.diff_devices.items():
+        for name, device in list(self.diff_devices.items()):
             self.plotter.add_plot(device, self.PLOTS[name], axis=1, alternate=True)
         self.plotter.add_plot(self.humidifier.drop_size, self.PLOTS['drop'], axis=1, alternate=True)
 

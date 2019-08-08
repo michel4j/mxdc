@@ -41,10 +41,10 @@ class IMicroscope(Interface):
 @implementer(IMicroscope)
 class Microscope(GObject.GObject):
     class GridState:
-        PENDING, COMPLETE = range(2)
+        PENDING, COMPLETE = list(range(2))
 
     class ToolState(object):
-        DEFAULT, CENTERING, GRID, MEASUREMENT = range(4)
+        DEFAULT, CENTERING, GRID, MEASUREMENT = list(range(4))
 
     grid = GObject.Property(type=object)
     grid_xyz = GObject.Property(type=object)
@@ -202,7 +202,7 @@ class Microscope(GObject.GObject):
     def load_from_cache(self):
         cache = load_cache('microscope')
         if cache and isinstance(cache, dict):
-            for name, value in cache.items():
+            for name, value in list(cache.items()):
                 if name == 'grid-xyz':
                     value = None if not isinstance(value, list) else numpy.array(value)
                 self.set_property(name, value)
@@ -367,7 +367,7 @@ class Microscope(GObject.GObject):
         self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
 
     def configure_grid(self, params):
-        for k, v in params.items():
+        for k, v in list(params.items()):
             self.set_property(k, v)
 
     def add_polygon_point(self, x, y):
@@ -427,7 +427,7 @@ class Microscope(GObject.GObject):
 
     def add_grid_score(self, position, score):
         self.props.grid_scores[position] = score
-        self.props.grid_cmap.autoscale(self.props.grid_scores.values())
+        self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
         self.props.grid_state = self.GridState.COMPLETE
 
     def load_grid(self, grid_xyz, params, scores):
@@ -435,7 +435,7 @@ class Microscope(GObject.GObject):
         self.props.grid_scores = scores
         self.props.grid_params = params
         self.props.grid_state = self.GridState.COMPLETE
-        self.props.grid_cmap.autoscale(self.props.grid_scores.values())
+        self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
 
     @async_call
     def center_pixel(self, x, y):

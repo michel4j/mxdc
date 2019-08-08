@@ -37,7 +37,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'average_intensity': '{:0.2f}',
         'max_intensity': '{:0.0f}',
         'overloads': '{:0.0f}',
-        'wavelength': u'{:0.4f} \u212B',
+        'wavelength': '{:0.4f} \u212B',
         'delta_angle': '{:0.2f} deg',
         'two_theta': '{:0.1f} deg',
         'start_angle': '{:0.2f} deg',
@@ -150,16 +150,16 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
         info = self.dataset.header
 
-        for name, format in self.Formats.items():
+        for name, format in list(self.Formats.items()):
             field_name = '{}_lbl'.format(name)
             field = getattr(self, field_name, None)
             if field and name in info:
                 if isinstance(info[name], (tuple, list)):
-                    txt = u'<span color="{}"><tt>{}</tt></span>'.format(
+                    txt = '<span color="{}"><tt>{}</tt></span>'.format(
                         color, format.format(*info[name])
                     )
                 else:
-                    txt = u'<span color="{}"><tt>{}</tt></span>'.format(
+                    txt = '<span color="{}"><tt>{}</tt></span>'.format(
                         color, format.format(info[name])
                     )
                 field.set_markup(txt)

@@ -77,14 +77,14 @@ class SampleStore(GObject.GObject):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
             PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, DATA
-        ) = range(15)
+        ) = list(range(15))
         TYPES = (
             bool, str, str, str, str, str, str, bool,
             int, str, int, str, int, str, object
         )
 
     class Progress(object):
-        NONE, PENDING, ACTIVE, DONE = range(4)
+        NONE, PENDING, ACTIVE, DONE = list(range(4))
 
     Column = OrderedDict([
         (Data.SELECTED, ''),
@@ -160,14 +160,14 @@ class SampleStore(GObject.GObject):
 
     def setup(self):
         # Selected Column
-        for data, title in self.Column.items():
+        for data, title in list(self.Column.items()):
             if data == self.Data.SELECTED:
                 renderer = Gtk.CellRendererToggle(activatable=True)
                 renderer.connect('toggled', self.on_row_toggled, self.filter_model)
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, active=data)
                 column.set_fixed_width(30)
             elif data == self.Data.STATE:
-                renderer = Gtk.CellRendererText(text=u"\u25c9")
+                renderer = Gtk.CellRendererText(text="\u25c9")
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
                 column.set_fixed_width(20)
@@ -209,7 +209,7 @@ class SampleStore(GObject.GObject):
         for item in data:
             key = self.add_item(item)
             groups[item['group']].append(key)
-        for name, samples in groups.items():
+        for name, samples in list(groups.items()):
             group_item = GroupItem(name, self.model, items=samples)
             group_item.connect('notify::changed', self.on_group_changed)
             self.group_model.append(group_item)
@@ -344,23 +344,23 @@ class SampleStore(GObject.GObject):
         mismatched = model[itr][self.Data.MISMATCHED]
 
         if not loaded:
-            cell.set_property("text", u"")
+            cell.set_property("text", "")
         elif mismatched:
             col = Gdk.RGBA(red=0.5, green=0.5, blue=0.0, alpha=1.0)
             cell.set_property("foreground-rgba", col)
-            cell.set_property("text", u"\u2b24")
+            cell.set_property("text", "\u2b24")
         elif value in [Port.EMPTY]:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5)
             cell.set_property("foreground-rgba", col)
-            cell.set_property("text", u"\u2b24")
+            cell.set_property("text", "\u2b24")
         elif value in [Port.UNKNOWN]:
             col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=1.0)
             cell.set_property("foreground-rgba", col)
-            cell.set_property("text", u"\u25ef")
+            cell.set_property("text", "\u25ef")
         else:
             col = Gdk.RGBA(**PortColors[value])
             cell.set_property("foreground-rgba", col)
-            cell.set_property("text", u"\u2b24")
+            cell.set_property("text", "\u2b24")
 
     def format_progress(self, column, cell, model, itr, data):
         value = model.get_value(itr, self.Data.PROGRESS)
@@ -574,7 +574,7 @@ class SampleQueue(GObject.GObject):
 
     def setup(self):
         # Selected Column
-        for data, title in self.Column.items():
+        for data, title in list(self.Column.items()):
             if data == SampleStore.Data.STATE:
                 renderer = Gtk.CellRendererPixbuf()
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer)

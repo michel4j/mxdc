@@ -3,13 +3,7 @@ import pickle
 import re
 import threading
 import time
-from math import ceil
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-from io import BytesIO
+from io import BytesIO, StringIO
 
 import gi
 
@@ -283,7 +277,7 @@ class REDISCamera(VideoSrc):
             self.gain_factor = kwargs.pop('gain_factor')
             kwargs['gain'] = self.gain_value
 
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             attr = self.ATTRS.get(k)
             if not attr: continue
             if k == 'gain':
@@ -310,7 +304,7 @@ class REDISCamera(VideoSrc):
     def get_frame_jpg(self):
         with self.lock:
             data = self.store.get('{}:JPG'.format(self.key))
-            self.frame = Image.open(StringIO(data))
+            self.frame = Image.open(BytesIO(data))
         return self.frame
 
 

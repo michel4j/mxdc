@@ -40,7 +40,7 @@ class MotorBase(BaseDevice):
         "starting": (GObject.SignalFlags.RUN_FIRST, None, []),
         "done": (GObject.SignalFlags.RUN_FIRST, None, []),
         "target": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        "time": (GObject.SignalFlags.RUN_FIRST, None, (int,)),
+        "time": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     def __init__(self, name, precision=2, units=''):
@@ -573,9 +573,9 @@ class BraggEnergyMotor(VMEMotor):
         return self.convert(self.RBV.get())
 
     def notify_change(self, obj, value):
-        val = self.convert(value)
+        #val = self.convert(value)
         self.set_state(time=obj.get_state('time'))  # make sure time is set before changed value
-        self.set_state(changed=val)
+        self.set_state(changed=value)
 
     def notify_target(self, obj, value):
         pass  # not needed for bragg

@@ -69,7 +69,7 @@ class StorageRing(BaseStorageRing):
             self.props.current = self.current_pv.get()
             self.props.mode = self.mode_pv.get()
             self.props.state = self.state_pv.get()
-            self.props.message = ', '.join(filter(None, [msg.get().strip() for msg in self.messages]))
+            self.props.message = ', '.join([_f for _f in [msg.get().strip() for msg in self.messages] if _f])
 
 
 class SimStorageRing(BaseStorageRing):
@@ -83,7 +83,7 @@ class SimStorageRing(BaseStorageRing):
     def update(self, *args, **kwargs):
         if numpy.random.normal() > 0.5:
             self.props.current = numpy.random.rand() * 250
-            self.props.mode = random.choice(range(5))
+            self.props.mode = random.choice(list(range(5)))
             self.props.state = random.choice([0, 1, 1, 1, 1])
         return True
 

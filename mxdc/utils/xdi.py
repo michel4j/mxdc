@@ -1,5 +1,5 @@
 # coding=utf-8
-from __future__ import print_function
+
 
 import collections
 import gzip
@@ -233,7 +233,7 @@ class XDIData(object):
     def __getitem__(self, key):
         if '.' in key:
             namespace, tag = key.lower().split('.')
-            if not namespace in TAGS.keys():
+            if not namespace in list(TAGS.keys()):
                 namespace, tag = key.split('.') # preserve case for non-standard namespaces
             if namespace == 'column':
                 tag = int(tag)
@@ -243,7 +243,7 @@ class XDIData(object):
 
     def __setitem__(self, key, entry):
         if isinstance(entry, dict) and not '.' in key:
-            for k,v in entry.items():
+            for k,v in list(entry.items()):
                 self.__setitem__('{}.{}'.format(key, k), v)
         else:
             namespace, tag = key.lower().split('.')
@@ -277,7 +277,7 @@ class XDIData(object):
                 namespace.islower() and namespace.capitalize() or namespace, tag,
                 format_field(field),
             )
-            for namespace, fields in self.header.items() for tag, field in fields.items()
+            for namespace, fields in list(self.header.items()) for tag, field in list(fields.items())
         ] + ['///'] + textwrap.wrap(self.comments) + ['---'] + [' '.join(self.data.dtype.names)]
         data_format = ''.join(['  {}'] * len(self.data.dtype.names))
         data_lines = [ data_format.format(*row) for row in self.data ]
@@ -321,7 +321,7 @@ class XDIData(object):
                 self.header[namespace] = collections.OrderedDict()
             self.header[namespace][tag] = field
 
-        columns = collections.OrderedDict(sorted(self.header['column'].items())).values()
+        columns = list(collections.OrderedDict(sorted(self.header['column'].items())).values())
         header_columns = [col.value for col in columns]
 
         self.comments = ' '.join(raw['comments_text'].replace('#', '').split())
@@ -336,9 +336,9 @@ class XDIData(object):
             for field in REQUIRED_FIELDS
         }
         if not permissive and any(missing.values()):
-            sys.stderr.write('Required fields missing: {}\n'.format([key for key, value in missing.items() if value]))
+            sys.stderr.write('Required fields missing: {}\n'.format([key for key, value in list(missing.items()) if value]))
 
-        self.data = numpy.genfromtxt(StringIO(u'{}'.format(raw['data_text'])), dtype=None, names=data_columns, deletechars='')
+        self.data = numpy.genfromtxt(StringIO('{}'.format(raw['data_text'])), dtype=None, names=data_columns, deletechars='')
 
 
 def read_xdi(filename):

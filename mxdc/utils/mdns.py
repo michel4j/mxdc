@@ -4,20 +4,16 @@
 # by Michel Fodje
 
 from mxdc.utils.log import get_module_logger
-from dbus.mainloop.glib import DBusGMainLoop
-import avahi
-import dbus
 from gi.repository import GObject
+from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo
 import socket
+import random
+from typing import cast
 
 # get logging object
 log = get_module_logger(__name__)
 
-DBusGMainLoop(set_as_default=True)
-_bus = dbus.SystemBus()
-
-class mDNSError(Exception):
-    pass
+BUS = Zeroconf()
 
 class Provider(GObject.GObject):
     """
@@ -32,7 +28,14 @@ class Provider(GObject.GObject):
 
     def __init__(self, name, service_type, port, data={}, unique=False, hostname=""):
         GObject.GObject.__init__(self)
-        self._bus = _bus
+        self.info = ServiceInfo(
+            service_type,
+            name,
+            addresses = [socket.inet_aton(hostname,)],
+            port = port,
+            properties = data,
+            server = "ash-2.local.",
+        )
         self._avahi = dbus.Interface(
             self._bus.get_object( avahi.DBUS_NAME, avahi.DBUS_PATH_SERVER ),
             avahi.DBUS_INTERFACE_SERVER )
@@ -42,7 +45,7 @@ class Provider(GObject.GObject):
         self._entrygroup.connect_to_signal('StateChanged', self._state_changed)
         self._services = {}
         data_list = []
-        for k,v in data.items():
+        for k,v in list(data.items()):
             data_list.append("%s=%s" % (k, v))
         self._params = [
             avahi.IF_UNSPEC,            # interface
@@ -57,7 +60,7 @@ class Provider(GObject.GObject):
         ]
         self._add_service(unique)
 
-    def _state_changed(self, cur, prev):
+    def _state_changed(self, bus, service_type, name, state):
         
         if cur == avahi.SERVER_COLLISION:
             GObject.idle_add(self.emit, 'collision')
@@ -113,84 +116,48 @@ class Browser(GObject.GObject):
 
     def __init__(self, service_type):
         GObject.GObject.__init__(self)
-        self._bus = _bus
-        self._avahi = dbus.Interface(
-            self._bus.get_object( avahi.DBUS_NAME, avahi.DBUS_PATH_SERVER ),
-            avahi.DBUS_INTERFACE_SERVER )
-        self._entrygroup = dbus.Interface(
-            self._bus.get_object( avahi.DBUS_NAME, self._avahi.EntryGroupNew()),
-            avahi.DBUS_INTERFACE_ENTRY_GROUP)
-
-        # get object path for service_type.
-        obj = self._avahi.ServiceBrowserNew(
-            avahi.IF_UNSPEC, avahi.PROTO_INET, service_type, "", dbus.UInt32(0))
-
-        # Create browser interface for the new object
-        self._browser = dbus.Interface(self._bus.get_object(avahi.DBUS_NAME, obj),
-                                 avahi.DBUS_INTERFACE_SERVICE_BROWSER)
-        self._browser.connect_to_signal('ItemNew', self._on_service_added)
-        self._browser.connect_to_signal('ItemRemove', self._on_service_removed)
-        self._services = {}
+        self.service_type = service_type
+        self.services = {}
+        self.browser = ServiceBrowser(BUS, self.service_type + '._tcp.local.', handlers=[self.on_service_state_change])
 
     def get_services(self):
-        return self._services.values()
+        return list(self.services.values())
 
-    def _on_service_removed(self, interface, protocol, name, service_type, domain, flags):
-        """
-        Callback from dbus when a services is removed.
-        """
-        key = (str(name), str(service_type))
-        if key in self._services:
-            GObject.idle_add(self.emit, 'removed', self._services.pop(key))
+    def on_service_state_change(self, zeroconf, service_type, name, state_change):
+        if state_change is ServiceStateChange.Added:
+            self.add_service(zeroconf, name)
+        elif  state_change is ServiceStateChange.Removed:
+            self.remove_service(zeroconf, name)
+        elif state_change is ServiceStateChange.Updated:
+            self.update_service(zeroconf, name)
 
-    def _on_service_added(self, interface, protocol, name, service_type, domain, flags):
-        """
-        Callback from dbus when a new services is available.
-        """
-        self._avahi.ResolveService(
-            interface, protocol, name, service_type, domain, avahi.PROTO_INET, dbus.UInt32(0),
-            reply_handler=self._on_service_resolved, error_handler=self._on_error)
+    def add_service(self, zeroconf, name):
+        info = zeroconf.get_service_info(self.service_type, name)
+        addresses = [socket.inet_ntoa(addr) for addr in info.addresses]
+        address = random.choice(addresses)
+        hostname = socket.gethostbyaddr(address)[0].lower()
 
-    def _on_service_resolved(self, interface, protocol, name, service_type, domain, host,
-                          aprotocol, address, port, txt, flags):
-        """
-        Callback from dbus when a new services is available and resolved.
-        """
-        txtdict = {}
-        for record in avahi.txt_array_to_string_array(txt):
-            if record.find('=') > 0:
-                k, v = record.split('=', 2)
-                txtdict[k] = v
-        local = False
-        try:
-            if flags & avahi.LOOKUP_RESULT_LOCAL:
-                local = True
-        except dbus.DBusException:
-            pass
-        
-        try:
-            hostname = socket.gethostbyaddr(str(address))[0].lower()
-        except:
-            hostname = address
+        parameters = {
+            'name': info.name,
+            'domain': info.server,
+            'host': hostname,
+            'address': address,
+            'addresses': addresses,
+            'port': cast(int, info.port),
+            'data': info.properties
+        }
 
-        self._services[(str(name), str(service_type))] = {
-            'interface': int(interface), 
-            'protocol': int(protocol), 
-            'name': str(name),
-            'domain':  str(domain),
-            'host':  hostname, 
-            'address': str(address), 
-            'port': int(port),
-            'local': local,
-            'data': txtdict}
-        GObject.idle_add(self.emit, 'added', self._services[(str(name), str(service_type))])
+        self.services[(info.name, self.service_type)] = parameters
+        GObject.idle_add(self.emit, 'added', parameters)
 
-    def _on_error(self, error=None):
-        """
-        Handle event when dbus command is finished.
-        """
-        if error:
-            #log.error(error)
-            pass
+    def remove_service(self, zeroconf, name):
+        key = (name, zeroconf)
+        if key in self.services:
+            GObject.idle_add(self.emit, 'removed', self.services.pop(key))
+
+    def update_service(self, zeroconf, name):
+        self.remove_service(zeroconf, name)
+        self.add_service(zeroconf, name)
+
 
 __all__ = ['Browser', 'Provider']

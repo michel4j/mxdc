@@ -105,7 +105,7 @@ class BaseDevice(GObject.GObject):
 
     def __repr__(self):
         state_txts = []
-        for key, value in self.state_info.items():
+        for key, value in list(self.state_info.items()):
             state_txts.append(' %12s: %s' % (key, str(value)))
         state_txts.sort()
         txt = "<{}: {}\n{}\n>".format(self.__class__.__name__, self.name, '\n'.join(state_txts))
@@ -176,7 +176,7 @@ class BaseDevice(GObject.GObject):
             assert signal in self.signals, 'Invalid signal for {}: {}'.format(self.__class__.__name__, signal)
             GObject.idle_add(self.emit, signal)
 
-        for signal, value in kwargs.items():
+        for signal, value in list(kwargs.items()):
             assert signal in self.signals, 'Invalid signal for {}: {}'.format(self.__class__.__name__, signal)
             if signal != 'health':
                 # only signal a state change if it actually changes for non

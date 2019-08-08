@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 from datetime import datetime
 
@@ -76,7 +76,7 @@ class DewarController(GObject.GObject):
         user_containers = self.store.containers
         self.props.ports = {
             port: self.get_port_state(port)
-            for port in robot_ports.keys()
+            for port in list(robot_ports.keys())
             if (port in user_ports or self.beamline.is_admin())
         }
         self.props.containers = {
@@ -93,7 +93,7 @@ class DewarController(GObject.GObject):
         cr.scale(alloc.width, alloc.height)
 
         if self.layout:
-            for loc, container in self.layout.items():
+            for loc, container in list(self.layout.items()):
                 container.draw(cr, self.ports, self.containers)
         else:
             xscale, yscale = cr.device_to_user_distance(1, 1)
@@ -109,7 +109,7 @@ class DewarController(GObject.GObject):
         cr.restore()
 
     def find_port(self, x, y):
-        for loc, container in self.layout.items():
+        for loc, container in list(self.layout.items()):
             port = container.get_port(x, y)
             if port:
                 return loc, port

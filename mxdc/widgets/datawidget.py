@@ -39,7 +39,7 @@ def calculate_skip(strategy, total_range, delta, first):
 class RunItem(GObject.GObject):
 
     class StateType:
-        (ADD, DRAFT, ACTIVE, ERROR, COMPLETE) = range(5)
+        (ADD, DRAFT, ACTIVE, ERROR, COMPLETE) = list(range(5))
 
     state = GObject.Property(type=int, default=StateType.DRAFT)
     position = GObject.Property(type=int, default=0)
@@ -204,7 +204,7 @@ class DataEditor(gui.BuilderMixin):
         )
         defaults = self.get_default(info['strategy'])
 
-        for name, details in self.Specs.items():
+        for name, details in list(self.Specs.items()):
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
             if default is None:
@@ -241,7 +241,7 @@ class DataEditor(gui.BuilderMixin):
 
     def get_parameters(self):
         info = {}
-        for name, details in self.Specs.items():
+        for name, details in list(self.Specs.items()):
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
             field = getattr(self, field_name, None)
@@ -266,7 +266,7 @@ class DataEditor(gui.BuilderMixin):
 
         # Fill in defaults
         defaults = self.get_default(info.get('strategy', 1))
-        for k,v in info.items():
+        for k,v in list(info.items()):
             if v is None:
                 info[k] = defaults.get(k)
 
@@ -285,7 +285,7 @@ class DataEditor(gui.BuilderMixin):
 
     def get_default(self, strategy_type=StrategyType.SINGLE):
         default = {
-            name: details[-1] for name, details in self.Specs.items()
+            name: details[-1] for name, details in list(self.Specs.items())
         }
         info = Strategy[strategy_type]
         delta, exposure = self.beamline.config['default_delta'], self.beamline.config['default_delta']
@@ -301,7 +301,7 @@ class DataEditor(gui.BuilderMixin):
         return default
 
     def build_gui(self):
-        for name, details in self.Specs.items():
+        for name, details in list(self.Specs.items()):
             field_type, fmt, conv, default = details
             field_name = 'data_{}_{}'.format(name, field_type)
             field = getattr(self, field_name, None)
@@ -315,7 +315,7 @@ class DataEditor(gui.BuilderMixin):
             else:
                 self.handlers[name] = field.connect('activate', self.on_entry_changed, None, name)
                 field.connect('focus-out-event', self.on_entry_changed, name)
-        for id, params in Strategy.items():
+        for id, params in list(Strategy.items()):
             field_name = 'data_strategy_cbox'
             field = getattr(self, field_name)
             field.append(str(id), params['desc'])
@@ -380,7 +380,7 @@ class DataEditor(gui.BuilderMixin):
     def has_changed(self, new_values):
         if self.item and self.item.info:
             info = self.item.info
-            return any(v != new_values.get(k) for k, v in info.items())
+            return any(v != new_values.get(k) for k, v in list(info.items()))
         elif self.item:
             return True
         return False
@@ -388,7 +388,7 @@ class DataEditor(gui.BuilderMixin):
 
 class RunEditor(DataEditor):
     class Column:
-        NAME, COORDS, CHOICE = range(3)
+        NAME, COORDS, CHOICE = list(range(3))
 
     def build_gui(self):
         super(RunEditor, self).build_gui()
@@ -502,7 +502,7 @@ class RunConfig(gui.Builder):
 
     def update(self):
         style_context = self.saved_run_row.get_style_context()
-        for state, (style_class, icon_name) in STATE_PROPERTIES.items():
+        for state, (style_class, icon_name) in list(STATE_PROPERTIES.items()):
             if self.item.state == state:
                 style_context.add_class(style_class)
                 self.data_icon.set_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)

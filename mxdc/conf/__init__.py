@@ -66,12 +66,12 @@ def get_config_modules(config_dir, name=None):
     }
 
     host = misc.get_address()
-    for mods, entry in entries.items():
+    for mods, entry in list(entries.items()):
         if name:
             if entry['name'] == name:
                 return mods, entry
         else:
-            subnet_text = u'{}'.format(entry.get('subnet', '0.0.0.0/32'))
+            subnet_text = '{}'.format(entry.get('subnet', '0.0.0.0/32'))
             subnet = ipaddress.ip_network(subnet_text)
             if host in subnet:
                 return mods, entry
@@ -115,15 +115,15 @@ def load_cache(realm):
     data = {}
     if os.path.exists(cache_file):
         try:
-            with open(cache_file, 'r') as handle:
-                data = msgpack.load(handle)
+            with open(cache_file, 'rb') as handle:
+                data = msgpack.load(handle, encoding="utf-8")
         except (IOError, msgpack.UnpackValueError):
             os.remove(cache_file)
     return data
 
 
 def save_cache(data, realm):
-    with open(os.path.join(APP_CACHE_DIR, realm), 'w') as handle:
+    with open(os.path.join(APP_CACHE_DIR, realm), 'wb') as handle:
         msgpack.dump(data, handle)
 
 

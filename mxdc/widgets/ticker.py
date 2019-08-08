@@ -97,7 +97,7 @@ class TickerChart(Gtk.Box):
         self.data[name][:] = numpy.nan
 
     def resize_data(self):
-        for name, data in self.data.items():
+        for name, data in list(self.data.items()):
             self.data[name] = numpy.empty(self.keep_size)
             if self.max_samples > len(data):
                 self.data[name][-len(data):] = data
@@ -113,7 +113,7 @@ class TickerChart(Gtk.Box):
         self.alternates.add(name)
 
     def shift_data(self):
-        for name, data in self.data.items():
+        for name, data in list(self.data.items()):
             data[:-1] = data[1:]
 
     def add_plot(self, name, color=None, linestyle='-', axis=0, alternate=False):
@@ -132,7 +132,7 @@ class TickerChart(Gtk.Box):
         self.add_data(name)
 
     def clear(self):
-        for name, line in self.plots.items():
+        for name, line in list(self.plots.items()):
             self.data[name][:] = numpy.nan
 
     def update(self):
@@ -145,7 +145,7 @@ class TickerChart(Gtk.Box):
 
         extrema = defaultdict(lambda: (numpy.nan, numpy.nan))
 
-        for name, line in self.plots.items():
+        for name, line in list(self.plots.items()):
             if name in self.alternates and name != self.active: continue
             axis = self.info[name]['axis']
             ymin, ymax = extrema[axis]
@@ -155,7 +155,7 @@ class TickerChart(Gtk.Box):
             extrema[axis] = (ymin, ymax)
             line.set_data(x_data, y_data)
 
-        for i, (ymin, ymax) in extrema.items():
+        for i, (ymin, ymax) in list(extrema.items()):
             self.axes[i].set_ylim(ymin, ymax)
             self.axes[i].set_xlim(xmin, xmax)
 
@@ -164,7 +164,7 @@ class TickerChart(Gtk.Box):
 
     def animate(self, i):
         self.update()
-        return self.plots.values()
+        return list(self.plots.values())
 
     def save(self):
         dialog = Gtk.FileChooserDialog(
@@ -238,7 +238,7 @@ class ChartManager(GObject.GObject):
         while not self._stopped:
             self.chart.shift_data()
             if not self.is_paused():
-                for name, value in self.values.items():
+                for name, value in list(self.values.items()):
                     if name in self.chart.data:
                         self.chart.data[name][-1] = value
             self.chart.data['time'][-1] = time.time()

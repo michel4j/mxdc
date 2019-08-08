@@ -82,13 +82,13 @@ class SimDetector(BaseDevice):
         import hashlib
         # always select the same dataset for the same name and date
         name_int  = int(hashlib.sha1(name).hexdigest(), 16) % (10 ** 8)
-        chosen = (datetime.today().day + name_int) % len(self._datasets.keys())
+        chosen = (datetime.today().day + name_int) % len(list(self._datasets.keys()))
         if 'pow' in name:
-            chosen = (datetime.today().day + name_int) % len(self._powders.keys())
-            self._src_template, self._num_frames = self._powders.items()[chosen]
+            chosen = (datetime.today().day + name_int) % len(list(self._powders.keys()))
+            self._src_template, self._num_frames = list(self._powders.items())[chosen]
         else:
-            chosen = (datetime.today().day + name_int) % len(self._datasets.keys())
-            self._src_template, self._num_frames = self._datasets.items()[chosen]
+            chosen = (datetime.today().day + name_int) % len(list(self._datasets.keys()))
+            self._src_template, self._num_frames = list(self._datasets.items())[chosen]
         if not os.path.exists(self._src_template.format(1)):
             self._src_template = os.path.join(TEST_IMAGES, 'sim_{:04d}.img')
             self._num_frames = 2
@@ -248,7 +248,7 @@ class PilatusDetector(BaseDevice):
         params['exposure_time'] -= 0.002
 
         self.mode_cmd.put(2)  # External Trigger Mode
-        for k, v in params.items():
+        for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
@@ -414,7 +414,7 @@ class RayonixDetector(BaseDevice):
             self.initialize(True)
         params = {}
         params.update(data)
-        for k, v in params.items():
+        for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
@@ -576,7 +576,7 @@ class ADSCDetector(BaseDevice):
             self.initialize(True)
         params = {}
         params.update(data)
-        for k, v in params.items():
+        for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)

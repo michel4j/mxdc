@@ -57,7 +57,7 @@ class BuilderMixin(object):
     def setup_gui(self):
         self.gui_objects = {
             root: GUIFile(path, root)
-            for path, roots in self.gui_roots.items() for root in roots
+            for path, roots in list(self.gui_roots.items()) for root in roots
         }
 
     def build_gui(self):
@@ -67,7 +67,7 @@ class BuilderMixin(object):
         if self.gui_objects:
             builder = Builder({
                 root: GUIFile(path, root)
-                for path, roots in self.gui_roots.items() for root in roots
+                for path, roots in list(self.gui_roots.items()) for root in roots
             })
             builder.gui_top = self.gui_top
             builder.gui_roots = self.gui_roots
@@ -75,7 +75,7 @@ class BuilderMixin(object):
 
     def __getattr__(self, item):
         if self.gui_objects:
-            for root in self.gui_objects.values():
+            for root in list(self.gui_objects.values()):
                 obj = root.get_object(item)
                 if obj:
                     return obj
@@ -110,13 +110,13 @@ class ColumnSpec(object):
         return self.info[item]
 
     def items(self):
-        return self.info.items()
+        return list(self.info.items())
 
     def keys(self):
-        return self.info.keys()
+        return list(self.info.keys())
 
     def values(self):
-        return self.info.values()
+        return list(self.info.values())
 
 
 class ColumnType(object):
@@ -128,7 +128,7 @@ class ColumnType(object):
 
 
 class TreeManager(GObject.GObject):
-    class Data(Enum):  A, B = range(2)
+    class Data(Enum):  A, B = list(range(2))
     Types = [int, int]
     Columns = ColumnSpec(
         (Data.A, 'A', ColumnType.TEXT, '{}', True),
@@ -219,7 +219,7 @@ class TreeManager(GObject.GObject):
         @param row: TreeModelRow
         @return: dict representing the item
         """
-        return dict(zip(self.keys, row))
+        return dict(list(zip(self.keys, row)))
 
     def get_item(self, itr):
         """
@@ -275,7 +275,7 @@ class TreeManager(GObject.GObject):
         @return: a dict suitable for adding to the model as a parent
         """
         parent_row = ['']*len(self.keys)
-        parent_row[self.Columns.keys()[0].value] = row[self.parent.value]
+        parent_row[list(self.Columns.keys())[0].value] = row[self.parent.value]
         return parent_row
 
     def add_columns(self):
@@ -283,7 +283,7 @@ class TreeManager(GObject.GObject):
         Add Columns to the TreeView and link all signals
         """
 
-        for data, spec in self.Columns.items():
+        for data, spec in list(self.Columns.items()):
             if spec.type == ColumnType.TOGGLE:
                 renderer = Gtk.CellRendererToggle(activatable=True)
                 renderer.connect('toggled', self.row_toggled, spec)
@@ -336,7 +336,7 @@ class TreeManager(GObject.GObject):
             value = model[itr][spec.data.value]
             color = Gdk.RGBA(**self.colormap.rgba(value))
             renderer.set_property("foreground-rgba", color)
-            renderer.set_property("text", u"\u25a0")
+            renderer.set_property("text", "\u25a0")
 
     def format_icon(self, column, renderer, model, itr, spec):
         """

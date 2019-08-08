@@ -140,10 +140,10 @@ class Positioner(PositionerBase):
 
     def set(self, pos, wait=False):
         if self.scale is None:
-            self.set_pv.set(pos)
+            self.set_pv.put(pos)
         else:
             val = self.scale * pos / 100
-            self.set_pv.set(val)
+            self.set_pv.put(val)
         if wait:
             time.sleep(self._wait_time)
 
@@ -692,7 +692,7 @@ class Enclosures(BaseDevice):
         self.name = "Beamline Enclosures"
         self.hutches = {}
         self.ready = False
-        for k, n in kwargs.items():
+        for k, n in list(kwargs.items()):
             p = self.add_pv(n)
             self.hutches[k] = p
             p.connect('changed', self.handle_change)
@@ -701,11 +701,11 @@ class Enclosures(BaseDevice):
         if self.ready:
             return "All secure"
         else:
-            msg = ", ".join([k.upper() for k, v in self.hutches.items() if v.get() == 0])
+            msg = ", ".join([k.upper() for k, v in list(self.hutches.items()) if v.get() == 0])
             return "{} not secure".format(msg)
 
     def handle_change(self, obj, val):
-        self.ready = all([p.get() == 1 for p in self.hutches.values()])
+        self.ready = all([p.get() == 1 for p in list(self.hutches.values())])
         if not self.ready:
             self.set_state(health=(2, 'ready', self.get_messages()))
         else:

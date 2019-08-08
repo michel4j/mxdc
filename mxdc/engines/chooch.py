@@ -98,7 +98,7 @@ class AutoChooch(GObject.GObject):
             'label': lambda x: x
         }
         choices = [
-            {key: converters[key](value) for key, value in dataset.items()}
+            {key: converters[key](value) for key, value in list(dataset.items())}
             for dataset in energies
         ]
 

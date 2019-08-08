@@ -66,7 +66,7 @@ class StatusPanel(object):
         }
         self.mode_handlers = {
             btn: btn.connect('clicked', self.on_button_activated)
-            for btn in self.button_scripts.keys()
+            for btn in list(self.button_scripts.keys())
         }
 
         self.widget.status_beamline_fbk.set_text(self.beamline.config['name'])
@@ -110,7 +110,7 @@ class StatusPanel(object):
         script.start()
 
     def on_mode_change(self, obj, mode):
-        for btn, btn_mode in self.button_modes.items():
+        for btn, btn_mode in list(self.button_modes.items()):
             btn.set_sensitive(mode != btn_mode)
         if mode.name == 'ALIGN':
             self.widget.shutter_switch.set_sensitive(True)

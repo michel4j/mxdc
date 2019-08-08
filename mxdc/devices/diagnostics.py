@@ -18,7 +18,7 @@ class Diagnostic(GObject.GObject):
     """
 
     class State(Enum):
-        GOOD, WARN, BAD, UNKNOWN, DISABLED = range(5)
+        GOOD, WARN, BAD, UNKNOWN, DISABLED = list(range(5))
 
     state = GObject.property(type=object)
     message = GObject.property(type=str, default='')

@@ -12,11 +12,11 @@ logger = get_module_logger(__name__)
 
 
 class State(Enum):
-    IDLE, PREPARING, BUSY, STANDBY, DISABLED, WARNING, FAILURE, ERROR = range(8)
+    IDLE, PREPARING, BUSY, STANDBY, DISABLED, WARNING, FAILURE, ERROR = list(range(8))
 
 
 def set_object_properties(obj, kwargs):
-    for k,v in kwargs.items():
+    for k,v in list(kwargs.items()):
         obj.set_property(k,v)
 
 @implementer(IAutomounter)

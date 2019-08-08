@@ -20,7 +20,7 @@ def _centroid(a):
     if a.sum() == 0.0:
         return -1
     else:
-        return int((numpy.array(range(len(a))) * a).sum() / a.sum())
+        return int((numpy.array(list(range(len(a)))) * a).sum() / a.sum())
 
 
 def _get_object(a):
@@ -117,8 +117,8 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
             if len(ellipse_vertices) > 10:
                 ellipse = cv2.fitEllipse(numpy.array(ellipse_vertices).astype(int))
                 info['ellipse'] = (
-                    tuple(map(lambda x: int(x / scale), ellipse[0])),
-                    tuple(map(lambda x: int(0.75 * x / scale), ellipse[1])),
+                    tuple([int(x / scale) for x in ellipse[0]]),
+                    tuple([int(0.75 * x / scale) for x in ellipse[1]]),
                     ellipse[2],
                 )
                 ellipse_x, ellipse_y = info['ellipse'][0]
