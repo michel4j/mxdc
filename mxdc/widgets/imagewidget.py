@@ -121,7 +121,6 @@ class DataLoader(GObject.GObject):
                 success = True
             except Exception as error:
                 attempts += 1
-                #logger.debug(os.path.getsize(path))
                 time.sleep(0.1)
         
         if not success:
