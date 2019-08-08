@@ -244,9 +244,13 @@ class DataCollector(GObject.GObject):
             self.beamline.sample_stage.move_xyz(x, y, z, wait=True)
 
     def save(self, params):
-        frames, count = datatools.get_disk_frameset(
-            params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
-        )
+        try:
+	    frames, count = datatools.get_disk_frameset(
+              params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
+            )
+        except:
+            return
+
         if count < 2 or params['strategy'] == datatools.StrategyType.SINGLE:
             return
 

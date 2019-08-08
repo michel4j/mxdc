@@ -101,7 +101,8 @@ class ScaleMonitor(object):
         self.minimum = minimum
         self.maximum = maximum
         self.in_progress = False
-        self.adjustment = self.scale.get_adjustment()
+        self.adjustment = Gtk.Adjustment(0.0, minimum, maximum, 1.0, .0, 0)
+        self.scale.set_adjustment(self.adjustment)
         self.adjustment.connect('value-changed', self.on_value_set)
         self.device.connect('changed', self.on_update)
 
@@ -112,9 +113,9 @@ class ScaleMonitor(object):
             elif hasattr(self.device, 'set'):
                 self.device.set(self.adjustment.props.value)
 
-    def on_update(self, obj, val):
+    def on_update(self, obj, value):
         self.in_progress = True
-        self.adjustment.props.value = val
+        self.adjustment.set_value(value)
         self.in_progress = False
 
 

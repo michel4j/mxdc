@@ -137,7 +137,6 @@ class Microscope(GObject.GObject):
             scale = getattr(self.widget, 'microscope_{}_scale'.format(key), None)
             box = getattr(self.widget, '{}_box'.format(key), None)
             if all([light, scale, box]):
-                scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
                 self.monitors.append(
                     common.ScaleMonitor(scale, light),
                 )
@@ -487,10 +486,10 @@ class Microscope(GObject.GObject):
 
         if self.mode.name == 'ALIGN':
             self.widget.microscope_colorize_tbtn.set_active(True)
-            self.camera.configure(gain_factor=5)
+            self.camera.configure(gain_factor=5, exposure=45000)
         elif self.mode.name not in ['BUSY', 'UNKNOWN']:
             self.widget.microscope_colorize_tbtn.set_active(False)
-            self.camera.configure(gain_factor=1)
+            self.camera.configure(gain_factor=1, exposure=20000)
 
     def on_scripts_started(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(False)

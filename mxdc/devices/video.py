@@ -15,7 +15,7 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 
 import numpy
 import redis
@@ -52,7 +52,7 @@ class VideoSrc(BaseDevice):
         self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0e-3
         self.gain_factor = 1.0
-        self.gain_value = 1.0
+        self.gain_value = 3.0
         self.zoom_save = False
         self.sinks = []
         self._stopped = True
@@ -279,20 +279,22 @@ class REDISCamera(VideoSrc):
         self.lock = threading.Lock()
 
     def configure(self, **kwargs):
+        set_gain = False
         if 'gain_factor' in kwargs:
             self.gain_factor = kwargs.pop('gain_factor')
-            kwargs['gain'] = self.gain_value
+            set_gain = True
+        
+        if 'gain' in kwargs:
+            self.gain_value = kwargs.pop('gain')
+            set_gain = True
+        
+        if set_gain:
+            kwargs['gain'] = max(1, min(22, self.gain_factor * self.gain_value))
 
         for k, v in kwargs.items():
             attr = self.ATTRS.get(k)
             if not attr: continue
-            if k == 'gain':
-                if int(v) == self.gain_value: continue
-                self.gain_value = int(v)
-                value = max(1, min(22, self.gain_factor * self.gain_value))
-            else:
-                value = v
-            self.store.publish('{}:CFG:{}'.format(self.key, attr), pickle.dumps(value))
+            self.store.publish('{}:CFG:{}'.format(self.key, attr), pickle.dumps(v))
 
     def get_frame(self):
         return self.get_frame_jpg()
@@ -333,13 +335,14 @@ class ZoomableCamera(object):
     def __init__(self, camera, zoom_motor, scale_device=None):
         self.camera = camera
         self._zoom = zoom_motor
-        if scale_device:
-            self._scale = scale_device
+        self._scale = scale_device
+        if self._scale:
             self._scale.connect('changed', self.update_resolution)
             self._scale.connect('active', self.update_resolution)
         else:
-            self._zoom.connect('changed', self.update_zoom)
             self._zoom.connect('active', self.update_zoom)
+            self._zoom.connect('changed', self.update_zoom)
+
 
     def zoom(self, value, wait=False):
         """
@@ -354,10 +357,13 @@ class ZoomableCamera(object):
         self.camera.resolution = self._scale.get() or 0.0028
 
     def update_zoom(self, *args, **kwar):
-        scale = 1360. / self.camera.size[0]
-        self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
+        if not self._scale:
+            scale = 1360. / self.camera.size[0]
+            self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
+        
         if self.camera.zoom_slave:
-            self.camera.configure(gain=(self._zoom.get_position()**2)/4)
+            gain = max(1, min(int(self._zoom.get_position()**2)/4, 15))
+            self.camera.configure(gain=gain)
 
     def __getattr__(self, key):
         try:
