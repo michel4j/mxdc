@@ -339,9 +339,9 @@ class ZoomableCamera(object):
         if self._scale:
             self._scale.connect('changed', self.update_resolution)
             self._scale.connect('active', self.update_resolution)
-
-        self._zoom.connect('active', self.update_zoom)
-        self._zoom.connect('target', self.update_zoom)
+        else:
+            self._zoom.connect('active', self.update_zoom)
+            self._zoom.connect('changed', self.update_zoom)
 
 
     def zoom(self, value, wait=False):
@@ -352,18 +352,16 @@ class ZoomableCamera(object):
         @param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
         self._zoom.move_to(value, wait=wait)
+        if self.camera.zoom_slave:
+            gain = 3 + int((value**2)/5)
+            self.camera.configure(gain=gain)
 
     def update_resolution(self, *args, **kwarg):
         self.camera.resolution = self._scale.get() or 0.0028
 
     def update_zoom(self, *args, **kwarg):
-        if not self._scale:
-            scale = 1360. / self.camera.size[0]
-            self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
-        
-        if self.camera.zoom_slave:
-            gain = 3 + int((self._zoom.get_position()**2)/5)
-            self.camera.configure(gain=gain)
+        scale = 1360. / self.camera.size[0]
+        self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
 
     def __getattr__(self, key):
         try:
