@@ -486,10 +486,10 @@ class Microscope(GObject.GObject):
 
         if self.mode.name == 'ALIGN':
             self.widget.microscope_colorize_tbtn.set_active(True)
-            self.camera.configure(gain_factor=5, exposure=45000)
+            self.camera.configure(gain_factor=5)
         elif self.mode.name not in ['BUSY', 'UNKNOWN']:
             self.widget.microscope_colorize_tbtn.set_active(False)
-            self.camera.configure(gain_factor=1, exposure=20000)
+            self.camera.configure(gain_factor=1)
 
     def on_scripts_started(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(False)
