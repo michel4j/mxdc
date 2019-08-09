@@ -353,8 +353,9 @@ class ZoomableCamera(object):
         """
         self._zoom.move_to(value, wait=wait)
         if self.camera.zoom_slave:
-            gain = 3 + int((value**2)/5)
+            gain = 3 + int((value**2)/4)
             self.camera.configure(gain=gain)
+            logger.info('Setting camera gain for zoom {}: {}'.format(value, gain))
 
     def update_resolution(self, *args, **kwarg):
         self.camera.resolution = self._scale.get() or 0.0028
@@ -362,6 +363,8 @@ class ZoomableCamera(object):
     def update_zoom(self, *args, **kwarg):
         scale = 1360. / self.camera.size[0]
         self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
+        
+        
 
     def __getattr__(self, key):
         try:
