@@ -487,7 +487,7 @@ class Microscope(GObject.GObject):
         if self.mode.name == 'ALIGN':
             self.widget.microscope_colorize_tbtn.set_active(True)
             self.camera.configure(gain_factor=5)
-        elif self.mode.name not in ['BUSY', 'UNKNOWN']:
+        elif self.mode.name in['CENTER']:
             self.widget.microscope_colorize_tbtn.set_active(False)
             self.camera.configure(gain_factor=1)
 

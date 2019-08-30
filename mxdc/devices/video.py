@@ -3,7 +3,7 @@ import pickle
 import re
 import threading
 import time
-from math import ceil
+
 try:
     from StringIO import StringIO
 except ImportError:
@@ -24,6 +24,7 @@ from PIL import Image
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from mxdc.devices.base import BaseDevice
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.decorators import async_call
 from scipy import misc
 from zope.interface import implementer
 
@@ -343,7 +344,6 @@ class ZoomableCamera(object):
             self._zoom.connect('active', self.update_zoom)
             self._zoom.connect('changed', self.update_zoom)
 
-
     def zoom(self, value, wait=False):
         """
         Zoom to the given value.
@@ -351,10 +351,11 @@ class ZoomableCamera(object):
         @param value: zoom value
         @param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
+
         self._zoom.move_to(value, wait=wait)
         if self.camera.zoom_slave:
-            gain = 3 + int((value**2)/5)
-            self.camera.configure(gain=gain)
+            exposure = 20000 + int(value*5000)
+            self.camera.configure(exposure=exposure)
 
     def update_resolution(self, *args, **kwarg):
         self.camera.resolution = self._scale.get() or 0.0028
