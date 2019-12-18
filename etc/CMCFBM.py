@@ -38,7 +38,8 @@ DEVICES = {
     'bragg_energy': motor.BraggEnergyMotor(
         'SMTR1608-4-B10-17:deg', encoded=True, mono_unit_cell=CONFIG['mono_unit_cell']
     ),
-    'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
+    #'beam_tuner': boss.BOSSTuner('BL08B1:PicoControl', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', control='DCM1608-4-B10-01:energy:enabled'),
+    'beam_tuner': boss.PitchTuner('SMTR1608-4-B10-15:deg', 'AH1608-05:QEM:SumAll:MeanValue_RBV', 'PCT1402-01:mA:fbk', reference='LUT1608-BM-IONC:target', tune_step=0.0001),
     
     # Goniometer/goniometer head devices
     #'manager': manager.MD2Manager('MD1608-05'),
@@ -168,4 +169,6 @@ CONSOLE = {
     'table_x2': motor.VMEMotor('SMTR1608-5-B10-13:mm', encoded=True),
 
     'i_3': counter.Counter('AH1608-04:QEM:SumAll:MeanValue_RBV'),
+    'fdi_sum': counter.Counter('FDI1608-001:sum'),
+    'fdi_avg': counter.Counter('FDI1608-001:avg'),
 }

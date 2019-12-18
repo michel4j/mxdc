@@ -242,4 +242,44 @@ class SimTuner(BaseTuner):
         return True
 
 
-__all__ = ['BOSSTuner', 'MOSTABTuner', 'SimTuner']
+class PitchTuner(BaseTuner):
+    def __init__(self, name, picoameter, current, reference=None, tune_step=0.0001):
+        BaseTuner.__init__(self)
+        self.name = name
+        self.tunable = True
+        self.tune_cmd = self.add_pv('{}:rel'.format(name))
+        self.value_fbk = self.add_pv(picoameter)
+        self.current_fbk = self.add_pv(current)
+        self.value_fbk.connect('changed', self.on_value_changed)
+        if reference:
+            self.reference_fbk = self.add_pv(reference)
+        else:
+            self.reference_fbk = self.value_fbk
+	self.step_size = tune_step
+        self.tune_step = self.step_size
+
+    def tune_up(self):
+        self.tune_cmd.put(self.tune_step)
+
+    def tune_down(self):
+        self.tune_cmd.put(-self.tune_step)
+
+    def get_value(self):
+        return self.value_fbk.get()
+
+
+    def on_state_changed(self, obj, val):
+        self.set_state(enabled=(val == 1))
+
+    def on_value_changed(self, obj, val):
+        ref = self.reference_fbk.get()
+        cur = self.current_fbk.get()
+        tgt = 0.0 if cur == 0 else val / cur
+        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
+        if cur < 10.0:
+            self.tune_step = 0  # disable tuning if no beam
+	else:
+	    self.tune_step = self.step_size
+        self.set_state(changed=val, percent=perc)
+	
+__all__ = ['BOSSTuner', 'MOSTABTuner', 'SimTuner', 'PitchTuner']

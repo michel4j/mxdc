@@ -60,7 +60,8 @@ DEVICES = {
     'beam_h': motor.VMEMotor('SMTR16083I1003:mm'),
 
     # Detector, distance & two_theta
-    'distance': motor.PseudoMotor('BL08ID1:2Theta:D:mm'),
+    'distance': motor.VMEMotor('SMTR16083I1018:mm', encoded=True),
+    #'distance': motor.PseudoMotor('BL08ID1:2Theta:D:mm'),
     'detector_z': motor.VMEMotor('SMTR16083I1018:mm', encoded=True),
     'two_theta': motor.PseudoMotor('BL08ID1:2Theta:deg'),
     'detector': detector.PilatusDetector('DEC1608-01:cam1'),

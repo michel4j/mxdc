@@ -337,9 +337,9 @@ class AuntISARA(AutoMounter):
             diagnosis += ['Controller Disconnected! Staff Needed.']
             status = State.ERROR
 
-        if not cryo_good:
-            health |= 4
-            diagnosis += ['Cryo Level Problem! Staff Needed.']
+        #if not cryo_good:
+        #    health |= 4
+        #    diagnosis += ['Cryo Level Problem! Staff Needed.']
 
         self.configure(status=status)
         self.set_state(health=(health, 'notices', ', '.join(diagnosis)))

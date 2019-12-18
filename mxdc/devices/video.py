@@ -201,13 +201,14 @@ class SimPTZCamera(SimCamera):
 class MJPGCamera(VideoSrc):
 
     def __init__(self, url, size=(768, 576), name='MJPG Camera'):
-        VideoSrc.__init__(self, name, maxfps=10.0)
+        VideoSrc.__init__(self, name, maxfps=30.0)
         self.size = size
         self._read_size = 1024
         self.url = url
         self._last_frame = time.time()
         self.stream = None
         self.set_state(active=True)
+        self.data = ""
         self.lock = threading.Lock()
 
     def get_frame(self):
@@ -263,13 +264,16 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, zoom_slave=True, name='REDIS Camera'):
+    def __init__(self, server, mac, zoom_slave=True, size=None, name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
         self.zoom_slave = zoom_slave
         self.server = server
-        self.size = pickle.loads(self.store.get('{}:SIZE'.format(mac)))
+        if size:
+            self.size = size
+        else:
+            self.size = pickle.loads(self.store.get('{}:SIZE'.format(mac)))
         self.stream = None
         self.data = ''
 
@@ -290,7 +294,7 @@ class REDISCamera(VideoSrc):
             set_gain = True
         
         if set_gain:
-            kwargs['gain'] = max(1, min(22, self.gain_factor * self.gain_value))
+            kwargs['gain'] = int(max(1, min(22, self.gain_factor * self.gain_value)))
 
         for k, v in kwargs.items():
             attr = self.ATTRS.get(k)
