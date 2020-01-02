@@ -132,6 +132,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
     def apply(self):
         target = self._get_target()
+        print(target)
         if hasattr(self.device, 'move_to'):
             self.device.move_to(target)
         elif hasattr(self.device, 'set'):

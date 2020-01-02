@@ -290,7 +290,7 @@ class SimMotor(MotorBase):
     def move_to(self, pos, wait=False, force=False, **kwargs):
         self.configure(**kwargs)
         if pos == self._position:
-            logger.debug("(%s) is already at %s" % (self.name, pos))
+            logger.warning("(%s) is already at %s" % (self.name, pos))
             return
         self._move_action(pos)
         if wait:

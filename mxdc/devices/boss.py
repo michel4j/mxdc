@@ -259,10 +259,10 @@ class PitchTuner(BaseTuner):
         self.tune_step = self.step_size
 
     def tune_up(self):
-        self.tune_cmd.put(self.tune_step)
+        self.tune_cmd.put(-self.tune_step)
 
     def tune_down(self):
-        self.tune_cmd.put(-self.tune_step)
+        self.tune_cmd.put(self.tune_step)
 
     def get_value(self):
         return self.value_fbk.get()
