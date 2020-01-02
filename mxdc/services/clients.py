@@ -155,19 +155,10 @@ class MxLIVEClient(BaseService):
         self.name = "MxLIVE Server"
         self.address = address
         self.cookies = {}
-        self.set_state(active=True)
-        keys_existed = settings.keys_exist()
-        self.keys = settings.get_keys()
-        self.signer = signing.Signer(**self.keys)
+        self.keys = None
+        self.signer = None
         self.session_active = None
-
-        if not keys_existed:
-            try:
-                self.register()
-                logger.info('MxLIVE Service configured for {}'.format(address))
-                settings.save_keys(self.keys)
-            except (IOError, ValueError, requests.HTTPError) as e:
-                logger.error('MxLIVE Service will not be available')
+        self.register(update=(not settings.keys_exist()))
 
     def is_ready(self):
         return self.active_state
@@ -214,9 +205,19 @@ class MxLIVEClient(BaseService):
             misc.save_metadata(data, filename)
         return data
 
-    def register(self):
-        response = self.post('/project/', data={'public': self.keys['public']})
-        return response
+    def register(self, update=False):
+        self.keys = settings.get_keys()
+        self.signer = signing.Signer(**self.keys)
+
+        if update:
+            try:
+                reply = self.post('/project/', data={'public': self.keys['public']})
+                logger.info('MxLIVE Service configured for {}'.format(self.address))
+                settings.save_keys(self.keys)
+            except (IOError, ValueError, requests.HTTPError) as e:
+                logger.warning('MxLIVE Service Problem')
+
+        self.set_state(active=True)
 
     def get_samples(self, beamline):
         logger.debug('Requesting Samples from MxLIVE ...')
@@ -233,9 +234,17 @@ class MxLIVEClient(BaseService):
         path = '/launch/{}/{}/'.format(beamline, session)
         try:
             reply = self.post(path)
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
-            reply = {'error': 'Unable to Open MxLIVE Session'}
+        except requests.HTTPError as e:
+            if e.response.status_code == 400:
+                self.register(update=True)
+                try:
+                    reply = self.post(path)
+                except requests.HTTPError as err:
+                    reply = {'error': 'Unable to Open MxLIVE Session'}
+                    logger.error('Unable to Open MxLIVE Session: \n {}'.format(err))
+            else:
+                reply = {'error': 'Unable to Open MxLIVE Session'}
+                logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
         else:
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
@@ -250,7 +259,6 @@ class MxLIVEClient(BaseService):
         else:
             self.session_active = None
             logger.info('Leaving session {session} after {duration}.'.format(**reply))
-
 
     def upload_data(self, beamline, filename):
         """
@@ -273,6 +281,7 @@ class MxLIVEClient(BaseService):
     def cleanup(self):
         if self.session_active:
             self.close_session(*self.session_active)
+
 
 class Referenceable(pb.Referenceable, object):
     pass
