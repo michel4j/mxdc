@@ -1,5 +1,7 @@
 import json
 import os
+from datetime import datetime
+import pytz
 import pwd
 import re
 import threading
@@ -98,6 +100,7 @@ class RasterCollector(GObject.GObject):
         with self.beamline.lock:
             GObject.idle_add(self.emit, 'started')
             try:
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.acquire()
                 self.beamline.sample_stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
@@ -112,6 +115,7 @@ class RasterCollector(GObject.GObject):
             finally:
                 self.beamline.fast_shutter.close()
 
+        self.config['end_time'] = datetime.now(tz=pytz.utc)
         if self.stopped:
             GObject.idle_add(self.emit, 'stopped')
         else:
@@ -251,9 +255,14 @@ class RasterCollector(GObject.GObject):
 
     def save_metadata(self, upload=True):
         params = self.config['params']
-        frames, count = datatools.get_disk_frameset(
-            params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
-        )
+        try:
+            frames, count, start_time, end_time = datatools.get_disk_frameset(
+                params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
+            )
+        except OSError as e:
+            logger.error('Unable to find files on disk')
+            return
+
         if count > 1:
             metadata = {
                 'name': params['name'],
@@ -264,6 +273,8 @@ class RasterCollector(GObject.GObject):
                 'container': params['container'],
                 'port': params['port'],
                 'type': 'RASTER',
+                'start_time': self.config['start_time'].isoformat(),
+                'end_time': self.config['end_time'].isoformat(),
                 'sample_id': params['sample_id'],
                 'uuid': params['uuid'],
                 'directory': params['directory'],

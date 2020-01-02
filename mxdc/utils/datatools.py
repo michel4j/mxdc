@@ -3,6 +3,8 @@ import fnmatch
 import itertools
 import os
 import re
+import pytz
+from datetime import datetime
 from collections import defaultdict
 from datetime import date
 
@@ -55,11 +57,11 @@ Strategy = {
 
 StrategyDataType = {
     StrategyType.SINGLE: '',
-    StrategyType.FULL: 'MX_DATA',
-    StrategyType.SCREEN_4: 'MX_SCREEN',
-    StrategyType.SCREEN_3: 'MX_SCREEN',
-    StrategyType.SCREEN_2: 'MX_SCREEN',
-    StrategyType.POWDER: 'XRD_DATA'
+    StrategyType.FULL: 'DATA',
+    StrategyType.SCREEN_4: 'SCREEN',
+    StrategyType.SCREEN_3: 'SCREEN',
+    StrategyType.SCREEN_2: 'SCREEN',
+    StrategyType.POWDER: 'XRD'
 }
 
 StrategyProcType = {
@@ -426,10 +428,20 @@ def get_disk_frameset(directory, file_glob):
     # Given a glob and pattern, determine the collected frame set and number of frames based on images on disk
 
     file_pattern = file_glob.replace('*', '(\d{2,6})')
-    text = ' '.join(_all_files(directory, file_glob))
+    data_files = sorted(_all_files(directory, file_glob))
+    start_time = None
+    end_time = None
+    if data_files:
+        start_time = datetime.fromtimestamp(
+            os.path.getmtime(os.path.join(directory, data_files[0])), tz=pytz.utc
+        )
+        end_time = datetime.fromtimestamp(
+            os.path.getmtime(os.path.join(directory, data_files[-1])), tz=pytz.utc
+        )
+    text = ' '.join(data_files)
     full_set = map(int, re.findall(file_pattern, text))
 
-    return summarize_list(full_set), len(full_set)
+    return summarize_list(full_set), len(full_set), start_time, end_time
 
 
 def frameset_to_list(frame_set):

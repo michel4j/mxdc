@@ -2,6 +2,9 @@
 import copy
 import os
 import time
+from datetime import datetime
+import pytz
+
 from collections import OrderedDict
 from datetime import datetime
 
@@ -72,14 +75,14 @@ class XRFScanner(BasicScan):
             saved_attenuation = self.beamline.attenuator.get()
             try:
                 GObject.idle_add(self.emit, 'started')
-                self.config['start_time'] = datetime.now()
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.prepare_for_scan()
                 self.notify_progress(1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
                 raw_data = self.beamline.mca.acquire(t=self.config['exposure'])
                 self.set_data(raw_data)
                 self.beamline.fast_shutter.close()
-                self.config['end_time'] = datetime.now()
+                self.config['end_time'] = datetime.now(tz=pytz.utc)
                 self.save(self.config['filename'])
                 self.notify_progress(3, "Interpreting spectrum ...")
                 self.analyse()
@@ -157,7 +160,9 @@ class XRFScanner(BasicScan):
             'filename': os.path.basename(params['filename']),
             'container': params['container'],
             'port': params['port'],
-            'type': 'XRF_SCAN',
+            'type': 'XRF',
+            'start_time': params['start_time'].isoformat(),
+            'end_time': params['end_time'].isoformat(),
             'sample_id': params['sample_id'],
             'uuid': params['uuid'],
             'directory': params['directory'],
@@ -230,7 +235,7 @@ class MADScanner(BasicScan):
                 self.prepare_for_scan()
                 self.beamline.fast_shutter.open()
                 reference = 0.0
-                self.config['start_time'] = datetime.now()
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 for i, x in enumerate(self.config['targets']):
                     if self.paused:
                         GObject.idle_add(self.emit, 'paused', True, '')
@@ -339,7 +344,9 @@ class MADScanner(BasicScan):
             'filename': os.path.basename(params['filename']),
             'container': params['container'],
             'port': params['port'],
-            'type': 'MAD_SCAN',
+            'start_time': params['start_time'].isoformat(),
+            'end_time': params['end_time'].isoformat(),
+            'type': 'MAD',
             'sample_id': params['sample_id'],
             'uuid': params['uuid'],
             'directory': params['directory'],
@@ -427,8 +434,8 @@ class XASScanner(BasicScan):
                 used_time = 0.0
                 scan_length = len(self.config['targets'])
                 reference = 1.0
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 for scan in range(self.config['scans']):
-                    self.config['start_time'] = datetime.now()
                     self.scan_index = scan + 1
                     for i, x, k, t in targets_times:
                         if self.paused:
@@ -542,9 +549,8 @@ class XASScanner(BasicScan):
         return xdi_data
 
     def save_metadata(self, upload=True):
-
         params = self.config
-        frames, count = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
+        frames, count, start_time, end_time = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
         if count:
             metadata = {
                 'name': params['name'],
@@ -552,7 +558,9 @@ class XASScanner(BasicScan):
                 'filename': params['frame_template'],
                 'container': params['container'],
                 'port': params['port'],
-                'type': 'XAS_SCAN',
+                'start_time': params['start_time'].isoformat(),
+                'end_time': params['end_time'].isoformat(),
+                'type': 'XAS',
                 'sample_id': params['sample_id'],
                 'uuid': params['uuid'],
                 'directory': params['directory'],
