@@ -220,7 +220,7 @@ class MxLIVEClient(BaseService):
         self.set_state(active=True)
 
     def get_samples(self, beamline):
-        logger.debug('Requesting Samples from MxLIVE ...')
+        logger.info('Requesting Samples from MxLIVE ...')
         path = '/samples/{}/'.format(beamline)
         try:
             reply = self.get(path)
