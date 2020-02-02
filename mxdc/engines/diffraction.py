@@ -304,11 +304,11 @@ class DataCollector(GObject.GObject):
             return
 
         flags = () if not self.config.get('anomalous') else ('anomalous',)
-        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_SCREEN'):
+        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'SCREEN'):
             self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_DATA'):
+        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'DATA'):
             self.analyst.process_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD_DATA'):
+        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD'):
             flags = ('calibrate',) if first else ()
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 

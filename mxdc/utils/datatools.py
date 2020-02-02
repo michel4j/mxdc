@@ -81,7 +81,7 @@ ScreeningRange = {
 
 
 class AnalysisType:
-    MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
+    NATIVE, ANOMALOUS, SCREEN, RASTER, XRD = range(5)
 
 
 def update_for_sample(info, sample=None, overwrite=True):

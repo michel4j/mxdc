@@ -170,7 +170,7 @@ class AnalysisController(GObject.GObject):
             return
         if filter.get_name() == filters[0][0]:
             data = misc.load_metadata(filename)
-            if data.get('type') in ['MX_DATA', 'MX_SCREEN', 'XRD_DATA']:
+            if data.get('type') in ['DATA', 'SCREEN', 'DATA']:
                 if data.get('sample_id'):
                     row = self.sample_store.find_by_id(data['sample_id'])
                     sample = {} if not row else row[self.sample_store.Data.DATA]
@@ -238,8 +238,8 @@ class AnalysisController(GObject.GObject):
                 uri = 'file://{}?v={}'.format(filename, numpy.random.rand())
                 GObject.idle_add(self.browser.load_uri, uri)
 
-        self.widget.proc_mx_box.set_sensitive(item['type'] in ['MX_DATA', 'MX_SCREEN'])
-        self.widget.proc_powder_box.set_sensitive(item['type'] in ['XRD_DATA'])
+        self.widget.proc_mx_box.set_sensitive(item['type'] in ['DATA', 'SCREEN'])
+        self.widget.proc_powder_box.set_sensitive(item['type'] in ['XRD'])
 
     def add_dataset(self, dataset):
         self.reports.add(dataset)
@@ -289,12 +289,12 @@ class AnalysisController(GObject.GObject):
             metas.append(item['data'])
             data_type = item['type']
             sample = item['sample']
-        if data_type in ['MX_DATA', 'MX_SCREEN']:
+        if data_type in ['DATA', 'SCREEN']:
             if len(metas) > 1:
                 self.analyst.process_multiple(*metas, flags=options, sample=sample)
             elif 'screen' in options:
                 self.analyst.screen_dataset(metas[0], flags=options, sample=sample)
             else:
                 self.analyst.process_dataset(metas[0], flags=options, sample=sample)
-        elif data_type == 'XRD_DATA':
+        elif data_type == 'XRD':
             self.analyst.process_powder(metas[0], flags=options, sample=sample)
