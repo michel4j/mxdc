@@ -35,11 +35,11 @@ class IDatasets(Interface):
 
 class ConfigDisplay(object):
     Formats = {
-        'resolution': '{:0.3g} \xc3\x85',
-        'delta': '{:0.2f}\xc2\xb0',
-        'range': '{:0.1f}\xc2\xb0',
-        'start': '{:0.1f}\xc2\xb0',
-        'wedge': '{:0.1f}\xc2\xb0',
+        'resolution': '{:0.3g} Å',
+        'delta': '{:0.2f}°',
+        'range': '{:0.1f}°',
+        'start': '{:0.1f}°',
+        'wedge': '{:0.1f}°',
         'energy': '{:0.3f} keV',
         'distance': '{:0.1f} mm',
         'exposure': '{:0.3g} s',
@@ -406,12 +406,12 @@ class DatasetsController(GObject.GObject):
         self.editor_frame.set_row(first_row)
 
         labels = {
-            'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f}\xc2\xb0'),
+            'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f}°'),
             'energy': (self.beamline.energy, self.widget.dsets_energy_fbk, '{:0.3f} keV'),
             'attenuation': (self.beamline.attenuator, self.widget.dsets_attenuation_fbk, '{:0.0f} %'),
-            'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} \xc3\x85'),
-            'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk, '{:0.0f} \xc2\xb5m'),
-            'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk, '{:0.0f}\xc2\xb0'),
+            'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} Å'),
+            'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk, '{:0.0f} µm'),
+            'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk, '{:0.0f}°'),
         }
         self.group_selectors = []
         self.monitors = {

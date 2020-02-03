@@ -80,15 +80,23 @@ class SimDetector(BaseDevice):
 
     def _select_dir(self, name='junk'):
         import hashlib
+
+        self._src_template = os.path.join(TEST_IMAGES, 'images', 'sim_{:04d}.img')
+        self._num_frames = 2
+
         # always select the same dataset for the same name and date
-        name_int  = int(hashlib.sha1(name).hexdigest(), 16) % (10 ** 8)
-        chosen = (datetime.today().day + name_int) % len(list(self._datasets.keys()))
+        name_int = int(hashlib.sha1(name.encode('utf8')).hexdigest(), 16) % (10 ** 8)
         if 'pow' in name:
-            chosen = (datetime.today().day + name_int) % len(list(self._powders.keys()))
-            self._src_template, self._num_frames = list(self._powders.items())[chosen]
+            num_datasets = len(self._powders.keys())
+            if num_datasets:
+                chosen = (datetime.today().day + name_int) % num_datasets
+                self._src_template, self._num_frames = list(self._powders.items())[chosen]
         else:
-            chosen = (datetime.today().day + name_int) % len(list(self._datasets.keys()))
-            self._src_template, self._num_frames = list(self._datasets.items())[chosen]
+            num_datasets = len(self._datasets.keys())
+            if num_datasets:
+                chosen = (datetime.today().day + name_int) % num_datasets
+                self._src_template, self._num_frames = list(self._datasets.items())[chosen]
+
         if not os.path.exists(self._src_template.format(1)):
             self._src_template = os.path.join(TEST_IMAGES, 'sim_{:04d}.img')
             self._num_frames = 2

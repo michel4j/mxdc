@@ -1,22 +1,21 @@
-import json
 import os
-import pwd
 import re
 import threading
 import time
-import functools
+from datetime import datetime
 
+import pytz
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
 from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.python.components import globalRegistry
+from zope.interface import Interface, implementer
+
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines.interfaces import IAnalyst
-from mxdc.utils import datatools,  misc
+from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
-
-from zope.interface import Interface, implementer, Attribute
 
 logger = get_module_logger(__name__)
 
@@ -88,7 +87,7 @@ class RasterCollector(GObject.GObject):
         if abs(self.beamline.distance.get_position() - params['distance']) >= 0.1:
             self.beamline.distance.move_to(params['distance'], wait=True)
 
-        #switch to collect mode
+        # switch to collect mode
         self.beamline.manager.collect(wait=True)
 
     def run(self):
@@ -98,6 +97,7 @@ class RasterCollector(GObject.GObject):
         with self.beamline.lock:
             GObject.idle_add(self.emit, 'started')
             try:
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.acquire()
                 self.beamline.sample_stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
@@ -112,6 +112,7 @@ class RasterCollector(GObject.GObject):
             finally:
                 self.beamline.fast_shutter.close()
 
+        self.config['end_time'] = datetime.now(tz=pytz.utc)
         if self.stopped:
             GObject.idle_add(self.emit, 'stopped')
         else:
@@ -251,19 +252,26 @@ class RasterCollector(GObject.GObject):
 
     def save_metadata(self, upload=True):
         params = self.config['params']
-        frames, count = datatools.get_disk_frameset(
-            params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
-        )
+        try:
+            frames, count, start_time, end_time = datatools.get_disk_frameset(
+                params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
+            )
+        except OSError as e:
+            logger.error('Unable to find files on disk')
+            return
+
         if count > 1:
             metadata = {
                 'name': params['name'],
-                'frames':  frames,
+                'frames': frames,
                 'filename': '{}.{}'.format(
                     datatools.make_file_template(params['name']), self.beamline.detector.file_extension
                 ),
                 'container': params['container'],
                 'port': params['port'],
                 'type': 'RASTER',
+                'start_time': self.config['start_time'].isoformat(),
+                'end_time': self.config['end_time'].isoformat(),
                 'sample_id': params['sample_id'],
                 'uuid': params['uuid'],
                 'directory': params['directory'],

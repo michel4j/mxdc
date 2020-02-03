@@ -25,11 +25,13 @@ class Signer(object):
         return baseconv.base62.encode(int(time.time()))
 
     def signature(self, value):
+
+        payload = '{salt}{sep}{value}'.format(salt=self.salt, value=value, sep=self.sep)
         signature = self.private_key.sign(
-            '{salt}{sep}{value}'.format(salt=self.salt, value=value, sep=self.sep),
+            payload.encode(),
             hashes.SHA256()
         )
-        return base64.urlsafe_b64encode(signature)
+        return base64.urlsafe_b64encode(signature).decode('utf8')
 
     def sign(self, value):
         assert self.private_key is not None, "Needs private key in order to sign."

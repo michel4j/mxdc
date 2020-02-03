@@ -17,43 +17,44 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
 class PlotterToolbar(NavigationToolbar):
-    toolitems = (
-        ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
-        ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
-        ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
-        (None, None, None, None),
-        ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
-        ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
-        (None, None, None, None),
-        ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
-    )
-
-    def _init_toolbar(self):
-        for text, tooltip_text, icon, callback in self.toolitems:
-            if text is None:
-                self.insert(Gtk.SeparatorToolItem(), -1)
-                continue
-
-            tbutton = Gtk.ToolButton.new(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU))
-            tbutton.set_label(text)
-            self.insert(tbutton, -1)
-            tbutton.connect('clicked', getattr(self, callback))
-            tbutton.set_tooltip_text(tooltip_text)
-
-        toolitem = Gtk.SeparatorToolItem()
-        self.insert(toolitem, -1)
-        toolitem.set_draw(False)
-        toolitem.set_expand(True)
-
-        toolitem = Gtk.ToolItem()
-        self.insert(toolitem, -1)
-
-        self.message = Gtk.Label()
-        self.message.get_style_context().add_class('plot-tool-message')
-        toolitem.add(self.message)
-        self.set_style(Gtk.ToolbarStyle.ICONS)
-        self.set_icon_size(Gtk.IconSize.BUTTON)
-        self.show_all()
+    pass
+    # toolitems = (
+    #     ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
+    #     ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
+    #     ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
+    #     (None, None, None, None),
+    #     ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
+    #     ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
+    #     (None, None, None, None),
+    #     ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
+    # )
+    #
+    # def _init_toolbar(self):
+    #     for text, tooltip_text, icon, callback in self.toolitems:
+    #         if text is None:
+    #             self.insert(Gtk.SeparatorToolItem(), -1)
+    #             continue
+    #
+    #         tbutton = Gtk.ToolButton.new(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU))
+    #         tbutton.set_label(text)
+    #         self.insert(tbutton, -1)
+    #         tbutton.connect('clicked', getattr(self, callback))
+    #         tbutton.set_tooltip_text(tooltip_text)
+    #
+    #     toolitem = Gtk.SeparatorToolItem()
+    #     self.insert(toolitem, -1)
+    #     toolitem.set_draw(False)
+    #     toolitem.set_expand(True)
+    #
+    #     toolitem = Gtk.ToolItem()
+    #     self.insert(toolitem, -1)
+    #
+    #     self.message = Gtk.Label()
+    #     self.message.get_style_context().add_class('plot-tool-message')
+    #     toolitem.add(self.message)
+    #     self.set_style(Gtk.ToolbarStyle.ICONS)
+    #     self.set_icon_size(Gtk.IconSize.BUTTON)
+    #     self.show_all()
 
 
 class Plotter(Gtk.Alignment):

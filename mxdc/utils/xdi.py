@@ -283,12 +283,13 @@ class XDIData(object):
         data_lines = [ data_format.format(*row) for row in self.data ]
         saver = gzip.open if filename.endswith('.gz') else open
         with saver(filename, 'wb') as handle:
-            handle.write('\n# '.join(header_lines) + '\n' + '\n'.join(data_lines))
+            output = '\n# '.join(header_lines) + '\n' + '\n'.join(data_lines)
+            handle.write(output.encode('utf8'))
 
     def parse(self, filename, permissive=False):
         opener = gzip.open if filename.endswith('.gz') else open
         with opener(filename, 'rb') as handle:
-            raw = XDI_PATTERN.match(handle.read()).groupdict()
+            raw = XDI_PATTERN.match(handle.read().decode('utf8')).groupdict()
         self.version = raw['version_text']
 
         self.header = collections.OrderedDict()

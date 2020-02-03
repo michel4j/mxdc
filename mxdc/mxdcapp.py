@@ -34,7 +34,7 @@ from twisted.spread import pb
 
 USE_TWISTED = True
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
-VERSION = "2017.10"
+VERSION = "2020.02"
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)
@@ -123,7 +123,7 @@ class Application(Gtk.Application):
 
     def broadcast_service(self):
         self.remote_mxdc = None
-        self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
+        self.service_type = '_mxdc._tcp.local.'
         self.service_data = {
             'user': misc.get_project_name(),
             'started': time.asctime(time.localtime()),
@@ -133,11 +133,11 @@ class Application(Gtk.Application):
         try:
             unique = 'SIM' not in self.beamline.name
             self.provider = mdns.Provider(
-                'MXDC Client ({})'.format(self.beamline.name),
+                'MXDC Client - {}'.format(self.beamline.name),
                 self.service_type, MXDC_PORT, self.service_data, unique=unique
             )
             self.provider.connect('collision', self.on_collision)
-        except mdns.mDNSError as e:
+        except:
             self.on_collision(None)
         else:
             self.start_server()

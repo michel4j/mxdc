@@ -27,7 +27,7 @@ from twisted.internet import reactor
 
 USE_TWISTED = True
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
-VERSION = "2017.10"
+VERSION = "2020.02"
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)
@@ -102,7 +102,7 @@ class Application(Gtk.Application):
 
     def find_service(self):
         self.remote_mxdc = None
-        self.service_type = '_mxdc_{}._tcp'.format(identifier_slug(self.beamline.name))
+        self.service_type = '_mxdc_{}._tcp.local.'.format(identifier_slug(self.beamline.name))
         self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
 
     def on_shutdown(self, *args):

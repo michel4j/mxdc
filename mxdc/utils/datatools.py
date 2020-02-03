@@ -3,11 +3,13 @@ import fnmatch
 import itertools
 import os
 import re
+import pytz
+from datetime import datetime
 from collections import defaultdict
 from datetime import date
 
 import numpy
-from imageio import read_header
+from mxdc.libs.imageio import read_header
 
 from mxdc.conf import settings
 from mxdc.utils import misc
@@ -17,7 +19,7 @@ OUTLIER_DEVIATION = 50
 
 
 class StrategyType(object):
-    SINGLE, FULL, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = list(range(6))
+    SINGLE, FULL, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = range(6)
 
 
 Strategy = {
@@ -33,17 +35,17 @@ Strategy = {
     },
     StrategyType.SCREEN_4: {
         'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0, 180\xc2\xb0, 270\xc2\xb0',
+        'desc': 'Screen 0°, 90°, 180°, 270°',
         'activity': 'screen'
     },
     StrategyType.SCREEN_3: {
         'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 45\xc2\xb0, 90\xc2\xb0',
+        'desc': 'Screen 0°, 45°, 90°',
         'activity': 'screen'
     },
     StrategyType.SCREEN_2: {
         'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
-        'desc': 'Screen 0\xc2\xb0, 90\xc2\xb0',
+        'desc': 'Screen 0°, 90°',
         'activity': 'screen'
     },
     StrategyType.POWDER: {
@@ -55,11 +57,11 @@ Strategy = {
 
 StrategyDataType = {
     StrategyType.SINGLE: '',
-    StrategyType.FULL: 'MX_DATA',
-    StrategyType.SCREEN_4: 'MX_SCREEN',
-    StrategyType.SCREEN_3: 'MX_SCREEN',
-    StrategyType.SCREEN_2: 'MX_SCREEN',
-    StrategyType.POWDER: 'XRD_DATA'
+    StrategyType.FULL: 'DATA',
+    StrategyType.SCREEN_4: 'SCREEN',
+    StrategyType.SCREEN_3: 'SCREEN',
+    StrategyType.SCREEN_2: 'SCREEN',
+    StrategyType.POWDER: 'XRD'
 }
 
 StrategyProcType = {
@@ -79,7 +81,7 @@ ScreeningRange = {
 
 
 class AnalysisType:
-    MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = list(range(5))
+    MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
 
 
 def update_for_sample(info, sample=None, overwrite=True):
@@ -215,7 +217,7 @@ def check_frame_list(frames, ext='img', detect_bad=False):
     intensities = defaultdict(list)
     check_frame = FrameChecker(ext, detect_bad)
     # pool = Pool(cpu_count())
-    results = list(map(check_frame, frames))
+    results = map(check_frame, frames)
     existing_frames = defaultdict(list)
     for dataset, frame_number, exists, value in results:
         if exists:
@@ -223,11 +225,11 @@ def check_frame_list(frames, ext='img', detect_bad=False):
             existing_frames[dataset].append(frame_number)
     existing = {
         k: summarize_list(v)
-        for k, v in list(existing_frames.items())
+        for k, v in existing_frames.items()
     }
     bad_frames = {}
     if detect_bad:
-        for dataset, values in list(intensities.items()):
+        for dataset, values in intensities.items():
             frame_info = numpy.array(values)
             data = frame_info[:, 1]
             devs = numpy.abs(data - numpy.median(data))
@@ -236,7 +238,7 @@ def check_frame_list(frames, ext='img', detect_bad=False):
             bad_frames['dataset'] = frame_info[s > OUTLIER_DEVIATION]
     bad = {
         k: summarize_list(v)
-        for k, v in list(bad_frames.items())
+        for k, v in bad_frames.items()
     }
     return existing, bad
 
@@ -277,7 +279,7 @@ def calc_range(run):
     @return: a floating point angle in degrees
     """
     if run.get('strategy') in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
-        size = max(1, int(float(run['range'])/run['delta']))
+        size = max(1, int(float(run['range']) / run['delta']))
         return ScreeningRange.get(run['strategy'], run.get('range', 180.)) + size * run['delta']
     else:
         return run['range']
@@ -407,12 +409,12 @@ def generate_wedges(runs):
 
 
 def _all_files(root, patterns='*'):
-    """ 
+    """
     Return a list of all the files in a directory matching the pattern
-    
+
     """
     patterns = patterns.split(';')
-    path, subdirs, files = next(os.walk(root))
+    path, subdirs, files = os.walk(root).next()
     sfiles = []
     for name in files:
         for pattern in patterns:
@@ -426,26 +428,36 @@ def get_disk_frameset(directory, file_glob):
     # Given a glob and pattern, determine the collected frame set and number of frames based on images on disk
 
     file_pattern = file_glob.replace('*', '(\d{2,6})')
-    text = ' '.join(_all_files(directory, file_glob))
-    full_set = list(map(int, re.findall(file_pattern, text)))
+    data_files = sorted(_all_files(directory, file_glob))
+    start_time = None
+    end_time = None
+    if data_files:
+        start_time = datetime.fromtimestamp(
+            os.path.getmtime(os.path.join(directory, data_files[0])), tz=pytz.utc
+        )
+        end_time = datetime.fromtimestamp(
+            os.path.getmtime(os.path.join(directory, data_files[-1])), tz=pytz.utc
+        )
+    text = ' '.join(data_files)
+    full_set = map(int, re.findall(file_pattern, text))
 
-    return summarize_list(full_set), len(full_set)
+    return summarize_list(full_set), len(full_set), start_time, end_time
 
 
 def frameset_to_list(frame_set):
     frame_numbers = []
-    ranges = [_f for _f in frame_set.split(',') if _f]
-    wlist = [list(map(int, [_f for _f in w.split('-') if _f])) for w in ranges]
+    ranges = filter(None, frame_set.split(','))
+    wlist = [map(int, filter(None, w.split('-'))) for w in ranges]
     for v in wlist:
         if len(v) == 2:
-            frame_numbers.extend(list(range(v[0], v[1] + 1)))
+            frame_numbers.extend(range(v[0], v[1] + 1))
         elif len(v) == 1:
             frame_numbers.extend(v)
     return frame_numbers
 
 
 def merge_framesets(*args):
-    frame_set = ','.join([_f for _f in args if _f])
+    frame_set = ','.join(filter(None, args))
     sequence = frameset_to_list(frame_set)
     return summarize_list(sequence)
 
