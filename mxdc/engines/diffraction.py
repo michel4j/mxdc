@@ -1,8 +1,9 @@
 import os
-import pwd
 import threading
 import time
+from datetime import datetime
 
+import pytz
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
 from zope.interface import implementer
@@ -11,10 +12,8 @@ from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
-from mxdc.utils import json, datatools, misc
+from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
-from mxdc.utils.datatools import StrategyType
-from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -66,7 +65,6 @@ class DataCollector(GObject.GObject):
         self.config['datasets'] = datasets
         self.config['existing'] = existing
 
-
         # delete existing frames
         for wedge in wedges:
             frame_list = [wedge['frame_template'].format(i + wedge['first']) for i in range(wedge['num_frames'])]
@@ -92,6 +90,7 @@ class DataCollector(GObject.GObject):
         self.total_frames = self.count + sum([wedge['num_frames'] for wedge in self.config['wedges']])
         current_attenuation = self.beamline.attenuator.get()
         self.watch_frames()
+
         self.results = []
 
         with self.beamline.lock:
@@ -99,6 +98,7 @@ class DataCollector(GObject.GObject):
             self.take_snapshots()
             self.beamline.manager.collect(wait=True)
             GObject.idle_add(self.emit, 'started')
+            self.config['start_time'] = datetime.now(tz=pytz.utc)
             try:
                 if self.beamline.detector.shutterless:
                     self.run_shutterless()
@@ -106,6 +106,7 @@ class DataCollector(GObject.GObject):
                     self.run_default()
             finally:
                 self.beamline.fast_shutter.close()
+            self.config['end_time'] = datetime.now(tz=pytz.utc)
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         time.sleep(2.0)
@@ -169,6 +170,7 @@ class DataCollector(GObject.GObject):
 
     def run_shutterless(self):
         is_first_frame = True
+
         for wedge in self.config['wedges']:
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
@@ -244,9 +246,15 @@ class DataCollector(GObject.GObject):
             self.beamline.sample_stage.move_xyz(x, y, z, wait=True)
 
     def save(self, params):
-        frames, count = datatools.get_disk_frameset(
-            params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
-        )
+
+        try:
+            frames, count, start_time, end_time = datatools.get_disk_frameset(
+              params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
+            )
+        except OSError as e:
+            logger.error('Unable to fine dataset on disk')
+            return
+
         if count < 2 or params['strategy'] == datatools.StrategyType.SINGLE:
             return
 
@@ -258,6 +266,8 @@ class DataCollector(GObject.GObject):
             ),
             'group': params['group'],
             'container': params['container'],
+            'start_time': min(start_time, self.config['start_time']).isoformat(),
+            'end_time': max(end_time, self.config['end_time']).isoformat(),
             'port': params['port'],
             'type': datatools.StrategyDataType.get(params['strategy']),
             'sample_id': params['sample_id'],

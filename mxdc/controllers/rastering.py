@@ -33,7 +33,7 @@ class RasterResultsManager(TreeManager):
     Types = [str, float, float, float, float, float, int, float, str, str]
     Columns = ColumnSpec(
         (Data.CELL, 'Label', ColumnType.TEXT, '{}', True),
-        (Data.ANGLE, 'Angle', ColumnType.NUMBER, '{:0.1f}\xc2\xb0', True),
+        (Data.ANGLE, 'Angle', ColumnType.NUMBER, '{:0.1f}°', True),
         (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Z_POS, 'Z (mm)', ColumnType.NUMBER, '{:0.4f}', True),
@@ -97,7 +97,7 @@ class RasterController(GObject.GObject):
             'energy': (self.beamline.energy, self.widget.raster_energy_fbk, {'format': '{:0.3f} keV'}),
             'attenuation': (self.beamline.attenuator, self.widget.raster_attenuation_fbk, {'format': '{:0.0f} %'}),
             'aperture': (self.beamline.aperture, self.widget.raster_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
-            'omega': (self.beamline.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f}\xc2\xb0'}),
+            'omega': (self.beamline.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f}°'}),
             'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} \xc3\x85'}),
         }
         self.monitors = {

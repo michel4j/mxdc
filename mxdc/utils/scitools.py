@@ -317,25 +317,6 @@ def generate_spectrum(info, energy, xa):
     return fitting.multi_peak(xa, coeffs, target='voigt', fraction=0.2)
 
 
-def _rebin(a, *args):
-    """rebin ndarray data into a smaller ndarray of the same rank whose dimensions
-    are factors of the original dimensions. eg. An array with 6 columns and 4 rows
-    can be reduced to have 6,3,2 or 1 columns and 4,2 or 1 rows.
-    example usages:
-    >>> a=rand(6,4); b=rebin(a,3,2)
-    >>> a=rand(6); b=rebin(a,2)
-    """
-
-    shape = a.shape
-    lenShape = len(shape)
-    factor = numpy.asarray(shape) / numpy.asarray(args)
-    evList = ['a.reshape('] + \
-             ['args[%d],factor[%d],' % (i, i) for i in range(lenShape)] + \
-             [')'] + ['.sum(%d)' % (i + 1) for i in range(lenShape)] + \
-             ['/factor[%d]' % i for i in range(lenShape)]
-    return eval(''.join(evList))
-
-
 def interprete_xrf(xo, yo, energy, speedup=4):
     def calc_template(xa, elements, template=None):
         if template is None:
@@ -372,9 +353,9 @@ def interprete_xrf(xo, yo, energy, speedup=4):
     sp = 1
     for i in range(1, 24):
         if sz % i == 0: sp = i
-    xc = _rebin(xo, sz // sp)
-    yc = _rebin(yo, sz // sp)
-    yfunc = interpolate.interp1d(xc, yc, kind='cubic', fill_value=0.0, copy=False, bounds_error=False)
+    yfunc = interpolate.interp1d(xo, yo, kind='cubic', fill_value=0.0, copy=False, bounds_error=False)
+    xc = numpy.linspace(xo.min(), xo.max(), 1+ sz//sp)
+    yc = yfunc(xc)
 
     coeffs = numpy.zeros((len(elements) + 1))
     coeffs[-1] = 1.0  # scale

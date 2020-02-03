@@ -1,17 +1,16 @@
 """This module defines classes aid interfaces for X-Ray fluorescence."""
 import copy
-import os
 import time
-from collections import OrderedDict
 from datetime import datetime
 
+import pytz
 from gi.repository import GObject
 from twisted.python.components import globalRegistry
 
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.chooch import AutoChooch
 from mxdc.engines.scanning import BasicScan
-from mxdc.utils import scitools, misc, datatools, xdi
+from mxdc.utils import scitools, misc, datatools
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import multi_count
 from mxdc.utils.scitools import *
@@ -27,9 +26,10 @@ class XRFScanner(BasicScan):
     energy is acquired for a fixed amount of time.
     """
     name = 'XRF Scan'
+
     def __init__(self):
         super(XRFScanner, self).__init__()
-        
+
     def configure(self, info):
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
@@ -41,7 +41,7 @@ class XRFScanner(BasicScan):
             os.makedirs(self.config['directory'])
 
     def notify_progress(self, pos, message):
-        fraction = float(pos)/self.total
+        fraction = float(pos) / self.total
         GObject.idle_add(self.emit, "progress", fraction, message)
         GObject.idle_add(self.emit, "message", message)
 
@@ -59,9 +59,9 @@ class XRFScanner(BasicScan):
             'names': ['energy', 'normfluor'],
             'formats': [float, float],
         }
-        extra_names = ['ifluor.{}'.format(i+1) for i in range(self.beamline.mca.elements)]
+        extra_names = ['ifluor.{}'.format(i + 1) for i in range(self.beamline.mca.elements)]
         self.data_types['names'] += extra_names
-        self.data_types['formats'] += [float]*len(extra_names)
+        self.data_types['formats'] += [float] * len(extra_names)
         self.data = numpy.core.records.fromarrays(raw_data.transpose(), dtype=self.data_types)
         return self.data
 
@@ -72,14 +72,14 @@ class XRFScanner(BasicScan):
             saved_attenuation = self.beamline.attenuator.get()
             try:
                 GObject.idle_add(self.emit, 'started')
-                self.config['start_time'] = datetime.now()
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.prepare_for_scan()
                 self.notify_progress(1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
                 raw_data = self.beamline.mca.acquire(t=self.config['exposure'])
                 self.set_data(raw_data)
                 self.beamline.fast_shutter.close()
-                self.config['end_time'] = datetime.now()
+                self.config['end_time'] = datetime.now(tz=pytz.utc)
                 self.save(self.config['filename'])
                 self.notify_progress(3, "Interpreting spectrum ...")
                 self.analyse()
@@ -153,11 +153,13 @@ class XRFScanner(BasicScan):
         params = self.config
         metadata = {
             'name': params['name'],
-            'frames':  "",
+            'frames': "",
             'filename': os.path.basename(params['filename']),
             'container': params['container'],
             'port': params['port'],
-            'type': 'XRF_SCAN',
+            'type': 'XRF',
+            'start_time': params['start_time'].isoformat(),
+            'end_time': params['end_time'].isoformat(),
             'sample_id': params['sample_id'],
             'uuid': params['uuid'],
             'directory': params['directory'],
@@ -197,7 +199,7 @@ class MADScanner(BasicScan):
         self.results = {}
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
-    
+
     def notify_progress(self, pos, message):
         fraction = float(pos) / self.total
         GObject.idle_add(self.emit, "progress", fraction, message)
@@ -230,7 +232,7 @@ class MADScanner(BasicScan):
                 self.prepare_for_scan()
                 self.beamline.fast_shutter.open()
                 reference = 0.0
-                self.config['start_time'] = datetime.now()
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 for i, x in enumerate(self.config['targets']):
                     if self.paused:
                         GObject.idle_add(self.emit, 'paused', True, '')
@@ -251,10 +253,10 @@ class MADScanner(BasicScan):
                         scale = 1.0
                         reference = i0
                     else:
-                        scale = float(reference)/i0
+                        scale = float(reference) / i0
 
-                    self.data_rows.append((x, y*scale, y, i0))
-                    GObject.idle_add(self.emit, "new-point", (x, y*scale, y, i0))
+                    self.data_rows.append((x, y * scale, y, i0))
+                    GObject.idle_add(self.emit, "new-point", (x, y * scale, y, i0))
 
                     msg = "Scanning {} of {} ...".format(i, self.total)
                     self.notify_progress(i + 1, msg)
@@ -335,11 +337,13 @@ class MADScanner(BasicScan):
         params = self.config
         metadata = {
             'name': params['name'],
-            'frames':  "",
+            'frames': "",
             'filename': os.path.basename(params['filename']),
             'container': params['container'],
             'port': params['port'],
-            'type': 'MAD_SCAN',
+            'start_time': params['start_time'].isoformat(),
+            'end_time': params['end_time'].isoformat(),
+            'type': 'MAD',
             'sample_id': params['sample_id'],
             'uuid': params['uuid'],
             'directory': params['directory'],
@@ -363,8 +367,9 @@ class XASScanner(BasicScan):
     X-Ray Absorption Spectroscopy (XAS, XANES, EXAFS). Monochromator is scanned around a specific  absorption-edge
     in a stepwise manner and the total emission for the selected absorption-edge is recorded.
     """
-    __gsignals__ = {'new-scan' : (GObject.SignalFlags.RUN_FIRST, None, (int,)) }
+    __gsignals__ = {'new-scan': (GObject.SignalFlags.RUN_FIRST, None, (int,))}
     name = 'XAS Scan'
+
     def __init__(self):
         super(XASScanner, self).__init__()
         self.emissions = get_energy_database()
@@ -376,7 +381,7 @@ class XASScanner(BasicScan):
         self.config = copy.deepcopy(info)
         self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
         self.config['frame_template'] = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '{:0>3d}')
-        self.config['frame_glob']     = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '*')
+        self.config['frame_glob'] = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '*')
         self.config['targets'] = exafs_targets(self.config['edge_energy'], kmax=info['kmax'])
         self.config['user'] = misc.get_project_name()
         self.results = {}
@@ -427,8 +432,8 @@ class XASScanner(BasicScan):
                 used_time = 0.0
                 scan_length = len(self.config['targets'])
                 reference = 1.0
+                self.config['start_time'] = datetime.now(tz=pytz.utc)
                 for scan in range(self.config['scans']):
-                    self.config['start_time'] = datetime.now()
                     self.scan_index = scan + 1
                     for i, x, k, t in targets_times:
                         if self.paused:
@@ -515,7 +520,7 @@ class XASScanner(BasicScan):
         x = self.data['energy']
         y = self.data['normfluor']
         y_peak = y.max()
-        x_peak = x[y==y_peak][0]
+        x_peak = x[y == y_peak][0]
         self.results['scans'].append({
             'scan': self.scan_index,
             'name': self.config['name'],
@@ -528,7 +533,7 @@ class XASScanner(BasicScan):
 
     def prepare_xdi(self):
         xdi_data = super(XASScanner, self).prepare_xdi()
-        xdi_data['Element.symbol'],  xdi_data['Element.edge']= self.config['edge'].split('-')
+        xdi_data['Element.symbol'], xdi_data['Element.edge'] = self.config['edge'].split('-')
         xdi_data['Scan.edge_energy'] = self.config['edge_energy'], 'keV'
         if 'sample' in self.config:
             xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
@@ -537,22 +542,24 @@ class XASScanner(BasicScan):
             xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
         xdi_data['Scan.end_time'] = self.config['end_time']
         xdi_data['Scan.start_time'] = self.config['start_time']
-        xdi_data['Mono.d_spacing'] = converter.energy_to_d(self.config['edge_energy'], self.beamline.config['mono_unit_cell'])
+        xdi_data['Mono.d_spacing'] = converter.energy_to_d(self.config['edge_energy'],
+                                                           self.beamline.config['mono_unit_cell'])
         xdi_data['Scan.series'] = '{} of {}'.format(self.scan_index, self.config['scans'])
         return xdi_data
 
     def save_metadata(self, upload=True):
-
         params = self.config
-        frames, count = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
+        frames, count, start_time, end_time = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
         if count:
             metadata = {
                 'name': params['name'],
-                'frames':  frames,
+                'frames': frames,
                 'filename': params['frame_template'],
                 'container': params['container'],
                 'port': params['port'],
-                'type': 'XAS_SCAN',
+                'start_time': params['start_time'].isoformat(),
+                'end_time': params['end_time'].isoformat(),
+                'type': 'XAS',
                 'sample_id': params['sample_id'],
                 'uuid': params['uuid'],
                 'directory': params['directory'],

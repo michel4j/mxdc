@@ -70,7 +70,7 @@ class RunItem(GObject.GObject):
                 self.props.title = '{},...'.format(self.frames[0])
             else:
                 self.props.title = '...'
-            self.props.subtitle = '{} \xc3\x97 {:0.4g}\xc2\xb0/{:0.2g}s  @ {:0.5g} keV'.format(
+            self.props.subtitle = '{}° {:0.4g}°/{:0.2g}s  @ {:0.5g} keV'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
                 self.props.info.get('energy')
             )

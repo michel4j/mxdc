@@ -6,14 +6,17 @@
 from mxdc.utils.log import get_module_logger
 from gi.repository import GObject
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo
+import ipaddress
 import socket
+import atexit
 import random
 from typing import cast
 
 # get logging object
 log = get_module_logger(__name__)
 
-BUS = Zeroconf()
+ZCONF = Zeroconf()
+
 
 class Provider(GObject.GObject):
     """
@@ -21,118 +24,62 @@ class Provider(GObject.GObject):
     port with additional information in the data record.
     """
     __gsignals__ = {
-        'running' : (GObject.SignalFlags.RUN_FIRST, None, []),
-        'collision' : (GObject.SignalFlags.RUN_FIRST, None, []),
+        'running': (GObject.SignalFlags.RUN_FIRST, None, []),
+        'collision': (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 
-
-    def __init__(self, name, service_type, port, data={}, unique=False, hostname=""):
+    def __init__(self, name, service_type, port, data=None, unique=False):
         GObject.GObject.__init__(self)
+        properties = {} if not data else data
         self.info = ServiceInfo(
             service_type,
-            name,
-            addresses = [socket.inet_aton(hostname,)],
-            port = port,
-            properties = data,
-            server = "ash-2.local.",
+            "{}.{}".format(name, service_type),
+            addresses=[ipaddress.ip_address("127.0.0.1").packed],
+            port=port,
+            properties={} if not data else data
         )
-        self._avahi = dbus.Interface(
-            self._bus.get_object( avahi.DBUS_NAME, avahi.DBUS_PATH_SERVER ),
-            avahi.DBUS_INTERFACE_SERVER )
-        self._entrygroup = dbus.Interface(
-            self._bus.get_object( avahi.DBUS_NAME, self._avahi.EntryGroupNew()),
-            avahi.DBUS_INTERFACE_ENTRY_GROUP)
-        self._entrygroup.connect_to_signal('StateChanged', self._state_changed)
-        self._services = {}
-        data_list = []
-        for k,v in list(data.items()):
-            data_list.append("%s=%s" % (k, v))
-        self._params = [
-            avahi.IF_UNSPEC,            # interface
-            avahi.PROTO_UNSPEC,         # protocol
-            dbus.UInt32(0),                          # flags
-            name,                       # name
-            service_type,               # services type
-            "",                         # domain
-            hostname,                   # host
-            dbus.UInt16(port),          # port
-            avahi.string_array_to_txt_array(data_list), # data
-        ]
-        self._add_service(unique)
+        self.add_service(unique)
 
-    def _state_changed(self, bus, service_type, name, state):
-        
-        if cur == avahi.SERVER_COLLISION:
-            GObject.idle_add(self.emit, 'collision')
-            log.error("Service name collision")
-        elif cur == avahi.SERVER_RUNNING:
-            GObject.idle_add(self.emit, 'running')
-            log.info("Service published")
-            
-    def _add_service(self, unique=False):
+    def add_service(self, unique=False):
         """
         Add a services with the given parameters.
         """
-        retries = 0
-        if unique:
-            max_retries = 1
+        try:
+            ZCONF.register_service(self.info, allow_name_change=not unique)
+        except:
+            GObject.idle_add(self.emit, 'collision')
         else:
-            max_retries = 12
-        retry = True
-        base_name = self._params[3]
-
-        while retries < max_retries and retry:
-            retries += 1
-            try:
-                self._entrygroup.AddService(*self._params)
-                self._entrygroup.Commit()
-            except dbus.exceptions.DBusException:
-                if unique:
-                    log.error('Service Name Collision')
-                    retry = False
-                    raise mDNSError('Service Name Collision')
-                else:
-                    self._params[3] = '%s #%d' % (base_name, retries)
-                    log.warning('Service Name Collision. Renaming to %s' % (self._params[3]))
-                    retry = True
+            GObject.idle_add(self.emit, 'running')
 
     def __del__(self):
-        self._entrygroup.Reset(reply_handler=self._on_complete, error_handler=self._on_complete)
-        self._entrygroup.Commit()
+        ZCONF.unregister_service(self.info)
 
-    def _on_complete(self, error=None):
-        """
-        Handle event when dbus command is finished.
-        """
-        if error:
-            log.error(error)
-            
 
 class Browser(GObject.GObject):
     __gsignals__ = {
-        'added' : (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'removed' : (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'added': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        'removed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
     }
 
     def __init__(self, service_type):
         GObject.GObject.__init__(self)
         self.service_type = service_type
         self.services = {}
-        self.browser = ServiceBrowser(BUS, self.service_type + '._tcp.local.', handlers=[self.on_service_state_change])
+        self.browser = ServiceBrowser(ZCONF, self.service_type, handlers=[self.on_service_state_change])
 
     def get_services(self):
         return list(self.services.values())
 
-    def on_service_state_change(self, zeroconf, service_type, name, state_change):
+    def on_service_state_change(self, bus, service_type, name, state_change):
         if state_change is ServiceStateChange.Added:
-            self.add_service(zeroconf, name)
-        elif  state_change is ServiceStateChange.Removed:
-            self.remove_service(zeroconf, name)
+            self.add_service(bus, name)
+        elif state_change is ServiceStateChange.Removed:
+            self.remove_service(bus, name)
         elif state_change is ServiceStateChange.Updated:
-            self.update_service(zeroconf, name)
+            self.update_service(bus, name)
 
-    def add_service(self, zeroconf, name):
-        info = zeroconf.get_service_info(self.service_type, name)
+    def add_service(self, bus, name):
+        info = bus.get_service_info(self.service_type, name)
         addresses = [socket.inet_ntoa(addr) for addr in info.addresses]
         address = random.choice(addresses)
         hostname = socket.gethostbyaddr(address)[0].lower()
@@ -150,14 +97,19 @@ class Browser(GObject.GObject):
         self.services[(info.name, self.service_type)] = parameters
         GObject.idle_add(self.emit, 'added', parameters)
 
-    def remove_service(self, zeroconf, name):
-        key = (name, zeroconf)
+    def remove_service(self, bus, name):
+        key = (name, bus)
         if key in self.services:
             GObject.idle_add(self.emit, 'removed', self.services.pop(key))
 
-    def update_service(self, zeroconf, name):
-        self.remove_service(zeroconf, name)
-        self.add_service(zeroconf, name)
+    def update_service(self, bus, name):
+        self.remove_service(bus, name)
+        self.add_service(bus, name)
 
+
+def cleanup_zeroconf():
+    ZCONF.close()
+
+atexit.register(cleanup_zeroconf)
 
 __all__ = ['Browser', 'Provider']

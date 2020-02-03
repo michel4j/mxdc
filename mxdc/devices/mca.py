@@ -247,7 +247,7 @@ class BasicMCA(BaseDevice):
 
     def _wait_stop(self, poll=0.05):
         logger.debug('Waiting for MCA to finish acquiring.')
-        timeout = 5 * self._count_time.get()  # use 5x count time for timeout
+        timeout = 10
         while self.ACQG.get() == 1 and timeout > 0:
             timeout -= poll
             time.sleep(poll)
