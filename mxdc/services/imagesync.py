@@ -22,7 +22,7 @@ logger = log.get_module_logger(__name__)
 
 
 DSS_PORT = 8882
-DSS_CODE = '_imgsync_rpc._tcp'
+DSS_CODE = '_imgsync_rpc._tcp.local.'
 
 
 class TwistedLogger(logging.StreamHandler):

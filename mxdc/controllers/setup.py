@@ -64,7 +64,7 @@ class SetupController(object):
         self.diagnostics = DiagnosticsController(self.widget, self.widget.diagnostics_box)
 
         # logging
-        self.log_viewer = common.LogMonitor(self.widget.setup_log_box, font='Candara 7')
+        self.log_viewer = common.LogMonitor(self.widget.setup_log_box)
         log_handler = GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')

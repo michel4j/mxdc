@@ -70,13 +70,13 @@ class Browser(GObject.GObject):
     def get_services(self):
         return list(self.services.values())
 
-    def on_service_state_change(self, bus, service_type, name, state_change):
+    def on_service_state_change(self, zeroconf, service_type, name, state_change):
         if state_change is ServiceStateChange.Added:
-            self.add_service(bus, name)
+            self.add_service(zeroconf, name)
         elif state_change is ServiceStateChange.Removed:
-            self.remove_service(bus, name)
+            self.remove_service(zeroconf, name)
         elif state_change is ServiceStateChange.Updated:
-            self.update_service(bus, name)
+            self.update_service(zeroconf, name)
 
     def add_service(self, bus, name):
         info = bus.get_service_info(self.service_type, name)
