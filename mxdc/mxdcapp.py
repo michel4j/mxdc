@@ -75,7 +75,7 @@ class Application(Gtk.Application):
             name='MxDC',
             emails=self.beamline.config['bug_report'], exit_function=self.quit
         )
-        self.hook.install()
+        #self.hook.install()
         self.broadcast_service()
 
     def do_activate(self):

@@ -117,7 +117,7 @@ class PBClient(BaseService):
 
 class DPSClient(PBClient):
     NAME = 'Data Analysis Server'
-    CODE = '_dpm_rpc._tcp'
+    CODE = '_dpm_rpc._tcp.local.'
 
     def process_mx(self, *args, **kwargs):
         return self.service.callRemote('process_mx', *args, **kwargs)
@@ -134,7 +134,7 @@ class DPSClient(PBClient):
 
 class DSSClient(PBClient):
     NAME = 'Data Synchronization Server'
-    CODE = '_imgsync_rpc._tcp'
+    CODE = '_imgsync_rpc._tcp.local.'
 
     def configure(self, *args, **kwargs):
         return self.service.callRemote('configure', *args, **kwargs)
