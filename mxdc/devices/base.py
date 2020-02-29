@@ -6,36 +6,15 @@
 
 import re
 
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.types import SignalObject, Signal
 
 logger = get_module_logger(__name__)
 
 
-def get_signal_ids(itype):
-    """
-    Get a list of all signal names supported by the object
-    @param itype: type (GObject.GType) - Instance or interface type.
-    @return: [str]
-    """
-    try:
-        ptype = GObject.type_parent(itype)
-        psigs = get_signal_ids(ptype)
-    except:
-        psigs = []
-    return GObject.signal_list_ids(itype) + psigs
-
-
-def get_signal_properties(itype):
-    queries = (GObject.signal_query(sig_id) for sig_id in get_signal_ids(itype))
-    return {
-        query.signal_name.replace('-', '_') : query
-        for query in queries
-    }
-
-
-class BaseDevice(GObject.GObject):
+class BaseDevice(SignalObject):
     """A generic devices object class.  All devices should be derived from this
     class. Objects of this class are instances of `GObject.GObject`. 
     
@@ -83,25 +62,23 @@ class BaseDevice(GObject.GObject):
           >>> obj.is_active()
           >>> True
     """
-    # signals
-    __gsignals__ = {
-        "active": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-        "busy": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-        "enabled": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-        "health": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        "message": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-    }
+
+    class Signals:
+        active = Signal("active", bool, first=True)
+        busy = Signal("busy", bool)
+        enabled = Signal("enabled", bool)
+        health = Signal("health", object)
+        message = Signal("message", str)
 
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super().__init__()
         self.pending = []  # inactive child devices or process variables
         self.health_manager = HealthManager()  # manages the health states
         self.state_info = {'active': False, 'enabled': True, 'busy': False, 'health': (99, ''), 'message': ''}
         self.name = self.__class__.__name__
         self.state_pattern = re.compile('^(\w+)_state$')
         self.bool_pattern = re.compile('^is_(\w+)$')
-        self.signals = get_signal_properties(self)
-        GObject.timeout_add(10000, self._show_inactive)
+        GLib.timeout_add(10000, self._show_inactive)
 
     def __repr__(self):
         state_txts = []
@@ -173,17 +150,15 @@ class BaseDevice(GObject.GObject):
         """
 
         for signal in args:
-            assert signal in self.signals, 'Invalid signal for {}: {}'.format(self.__class__.__name__, signal)
-            GObject.idle_add(self.emit, signal)
+            GLib.idle_add(self.emit, signal)
 
         for signal, value in list(kwargs.items()):
-            assert signal in self.signals, 'Invalid signal for {}: {}'.format(self.__class__.__name__, signal)
             if signal != 'health':
                 # only signal a state change if it actually changes for non
                 # health signals
                 if self.state_info.get(signal, None) != value:
                     self.state_info.update({signal: value})
-                    GObject.idle_add(self.emit, signal, value)
+                    GLib.idle_add(self.emit, signal, value)
             elif signal == 'health':
                 sev, cntx = value[:2]
                 if sev != 0:
@@ -195,7 +170,7 @@ class BaseDevice(GObject.GObject):
                     health = (0, value[2])
                 if health != self.health_state:
                     self.state_info.update({signal: health})
-                    GObject.idle_add(self.emit, signal, health)
+                    GLib.idle_add(self.emit, signal, health)
 
     def add_pv(self, *args, **kwargs):
         # type: (str, object) -> mxdc.com.ca.PV

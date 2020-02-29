@@ -4,7 +4,7 @@ from enum import Enum
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice
+from mxdc.devices.base import BaseDevice, Signal
 from mxdc.utils.log import get_module_logger
 from .interfaces import IModeManager
 
@@ -16,9 +16,8 @@ logger = get_module_logger(__name__)
 class BaseManager(BaseDevice):
     """Base class for goniometer."""
 
-    __gsignals__ = {
-        "mode": (GObject.SIGNAL_RUN_FIRST, None, (object,)),
-    }
+    class Signals :
+        mode = Signal("mode", object)
 
     class ModeType(Enum):
         MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = list(range(6))
@@ -26,7 +25,7 @@ class BaseManager(BaseDevice):
     mode = GObject.property(type=object)
 
     def __init__(self, name='Beamline Modes'):
-        BaseDevice.__init__(self)
+        super().__init__()
         self.name = name
         self.mode = self.ModeType.UNKNOWN
 
@@ -46,7 +45,7 @@ class BaseManager(BaseDevice):
             return True
 
         poll = 0.05
-        time_left = timeout
+        time_left = 2
         if start:
             logger.debug('Waiting for mode manager to start')
             while not self.is_busy() and time_left > 0:

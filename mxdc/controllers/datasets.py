@@ -10,7 +10,7 @@ from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
 from mxdc.engines.diffraction import DataCollector
-from mxdc.utils import converter, datatools, misc
+from mxdc.utils import converter, datatools, misc, types
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
@@ -36,7 +36,7 @@ class IDatasets(Interface):
 class ConfigDisplay(object):
     Formats = {
         'resolution': '{:0.3g} Å',
-        'delta': '{:0.2f}°',
+        'delta': '{:0.3g}°',
         'range': '{:0.1f}°',
         'start': '{:0.1f}°',
         'wedge': '{:0.1f}°',
@@ -66,7 +66,7 @@ class ConfigDisplay(object):
                 field.set_text(format.format(self.item.props.info[name]))
 
 
-class AutomationController(GObject.GObject):
+class AutomationController(types.SignalObject):
     class StateType:
         STOPPED, PAUSED, ACTIVE, PENDING = list(range(4))
 
@@ -328,15 +328,14 @@ class AutomationController(GObject.GObject):
                 self.image_viewer.set_collect_mode(True)
 
 
-class DatasetsController(GObject.GObject):
-    __gsignals__ = {
-        'samples-changed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'active-sample': (GObject.SignalFlags.RUN_FIRST, None, [object, ]),
-        'sample-selected': (GObject.SignalFlags.RUN_FIRST, None, [object, ]),
-    }
+class DatasetsController(types.SignalObject):
+    class Signals:
+        changed = types.Signal('samples-changed', object)
+        active = types.Signal('active-sample', object)
+        selected = types.Signal('sample-selected', object)
 
     def __init__(self, widget):
-        super(DatasetsController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.collector = DataCollector()

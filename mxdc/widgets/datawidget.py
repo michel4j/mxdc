@@ -70,7 +70,7 @@ class RunItem(GObject.GObject):
                 self.props.title = '{},...'.format(self.frames[0])
             else:
                 self.props.title = '...'
-            self.props.subtitle = '{}° {:0.4g}°/{:0.2g}s  @ {:0.5g} keV'.format(
+            self.props.subtitle = '{}f {:0.4g}°/{:0.2g}s  @ {:0.5g} keV'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
                 self.props.info.get('energy')
             )
@@ -153,13 +153,13 @@ class DataEditor(gui.BuilderMixin):
     Specs = {
         # field: ['field_type', format, type, range, default]
         'resolution':   ['entry', '{:0.3g}', Validator.Clip(float, 0.5, 50), 2.0],
-        'delta':        ['entry', '{:0.3g}', Validator.Clip(float, 0.05, 720), None],
+        'delta':        ['entry', '{:0.3g}', Validator.Clip(float, 0.001, 720), None],
         'range':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 10000), 1.],
         'start':        ['entry', '{:0.4g}', Validator.Clip(float, -360., 360.), 0.],
         'wedge':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 720.), 360.],
         'energy':       ['entry', '{:0.3f}', Validator.Clip(float, 1.0, 25.0), 12.658],
         'distance':     ['entry', '{:0.1f}', float, 200],
-        'exposure':     ['entry', '{:0.3g}', Validator.Clip(float, 0.05, 360.), None],
+        'exposure':     ['entry', '{:0.3g}', Validator.Clip(float, 0.001, 720.), None],
         'attenuation':  ['entry', '{:0.3g}', Validator.Clip(float, 0, 100), 0.0],
         'first':        ['entry', '{}', Validator.Clip(int, 1, 10000), 1],
         'frames':       ['entry', '{}', int, ''],

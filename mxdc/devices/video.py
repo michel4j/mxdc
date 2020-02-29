@@ -256,13 +256,13 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, zoom_slave=True, name='REDIS Camera'):
+    def __init__(self, server, mac, zoom_slave=True, size=(1280,1024), name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
         self.zoom_slave = zoom_slave
         self.server = server
-        self.size = pickle.loads(self.store.get('{}:SIZE'.format(mac)))
+        self.size = size
         self.stream = None
         self.data = ''
 

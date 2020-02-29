@@ -2,13 +2,12 @@ import os
 import time
 
 import numpy
-from gi.repository import GObject
+from gi.repository import GLib
 from zope.interface import implementer
 
 from mxdc import registry
-from mxdc.com import ca
 from mxdc.com.ca import PV
-from mxdc.devices.base import BaseDevice
+from mxdc.devices.base import BaseDevice, Signal
 from mxdc.devices.motor import MotorBase
 from mxdc.utils import converter, misc
 from mxdc.utils.decorators import async_call
@@ -26,14 +25,12 @@ class PositionerBase(BaseDevice):
     Signals:
         - `changed` : Data is the new value of the devices.
     """
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST,
-                    None,
-                    (object,)),
-    }
+
+    class Signals:
+        changed = Signal("changed", object)
 
     def __init__(self):
-        super(PositionerBase, self).__init__()
+        super().__init__()
         self.units = ''
 
     def _signal_change(self, obj, value):
@@ -62,7 +59,7 @@ class PositionerBase(BaseDevice):
 
 class SimPositioner(PositionerBase):
     def __init__(self, name, pos=0.0, units="", active=True, delay=True, noise=0):
-        super(SimPositioner, self).__init__()
+        super().__init__()
         self.name = name
         self._pos = pos
         self._fbk = self._pos
@@ -78,7 +75,7 @@ class SimPositioner(PositionerBase):
             self.set_state(changed=self._pos, active=active, health=(16, 'disabled'))
 
         if not isinstance(pos, (list, tuple)) and (self._noise > 0 or self._delay):
-            GObject.timeout_add(1000, self._drive)
+            GLib.timeout_add(1000, self._drive)
 
     def set(self, pos, wait=False):
         self._pos = pos
@@ -113,7 +110,7 @@ class Positioner(PositionerBase):
             - `scale` (float): A percentage to scale the set and get values by.
             - `units` (str): The units of the value.
         """
-        super(Positioner, self).__init__()
+        super().__init__()
         self.set_pv = self.add_pv(name)
         self.scale = scale
         if fbk_name is None:
@@ -156,8 +153,8 @@ class Positioner(PositionerBase):
 
 
 class ChoicePositioner(PositionerBase):
-    def __init__(self, pv, choices=[], units=""):
-        super(ChoicePositioner, self).__init__()
+    def __init__(self, pv, choices=(), units=""):
+        super().__init__()
         self.units = units
         self.dev = self.add_pv(pv)
         self.choices = choices
@@ -180,9 +177,9 @@ class ChoicePositioner(PositionerBase):
 
 
 class SimChoicePositioner(PositionerBase):
-    def __init__(self, name, value, choices=[], units="", active=True):
+    def __init__(self, name, value, choices=(), units="", active=True):
         self.name = name
-        super(SimChoicePositioner, self).__init__()
+        super().__init__()
         self.units = units
         self.choices = choices
         self._pos = value
@@ -204,7 +201,7 @@ class SimChoicePositioner(PositionerBase):
 class SampleLight(Positioner):
 
     def __init__(self, set_name, fbk_name, onoff_name, scale=100, units=""):
-        super(SampleLight, self).__init__(set_name, fbk_name, scale, units)
+        super().__init__(set_name, fbk_name, scale, units)
         self.onoff_cmd = self.add_pv(onoff_name)
 
     def set_on(self):
@@ -223,12 +220,11 @@ class SampleLight(Positioner):
 
 @implementer(IOnOff)
 class OnOffToggle(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
+    class Signals:
+        changed = Signal("changed", bool)
 
     def __init__(self, pv_name, values=(1, 0)):
-        super(OnOffToggle, self).__init__()
+        super().__init__()
         self.on_value, self.off_value = values
         self.onoff_cmd = self.add_pv(pv_name)
         self.onoff_cmd.connect('changed', self.on_changed)
@@ -254,7 +250,7 @@ class OnOffToggle(BaseDevice):
 class SimLight(SimPositioner):
 
     def __init__(self, name, pos=0, units="", active=True):
-        super(SimLight, self).__init__(name, pos, units, active)
+        super().__init__(name, pos, units, active)
         self._on = 0
 
     def set_on(self):
@@ -279,7 +275,7 @@ class PositionerMotor(MotorBase):
         Args:
             - `positioner` (:class:`PositionerBase`)
         """
-        super(PositionerMotor, self).__init__('Positioner Motor')
+        super().__init__('Positioner Motor')
         self.positioner = positioner
         self.name = positioner.name
         self.units = positioner.units
@@ -300,7 +296,7 @@ class PositionerMotor(MotorBase):
     def get_position(self):
         return self.positioner.get()
 
-    def wait(self):
+    def wait(self, **kwargs):
         time.sleep(0.02)
 
 
@@ -309,7 +305,7 @@ registry.register([IPositioner], IMotor, '', PositionerMotor)
 
 class Attenuator(PositionerBase):
     def __init__(self, bitname, energy):
-        super(Attenuator, self).__init__()
+        super().__init__()
         fname = bitname[:-1]
         self._filters = [
             PV('%s4:bit' % fname),
@@ -386,7 +382,7 @@ class Attenuator(PositionerBase):
 
 class Attenuator2(Attenuator):
     def __init__(self, bitname, energy):
-        super(Attenuator2, self).__init__(bitname=bitname, energy=energy)
+        super().__init__(bitname=bitname, energy=energy)
         fname = bitname[:-1]
         self._filters = [
             PV('%s4:ctl' % fname),
@@ -426,14 +422,11 @@ class Attenuator2(Attenuator):
 
 @implementer(IShutter)
 class BasicShutter(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST,
-                    None,
-                    (bool,)),
-    }
+    class Signals:
+        changed = Signal("changed", bool)
 
     def __init__(self, open_name, close_name, state_name):
-        super(BasicShutter, self).__init__()
+        super().__init__()
         # initialize variables
         self._open_cmd = self.add_pv(open_name)
         self._close_cmd = self.add_pv(close_name)
@@ -465,6 +458,7 @@ class BasicShutter(BaseDevice):
             self.wait(state=False)
 
     def wait(self, state=True, timeout=5.0):
+        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
         while self.changed_state != state and timeout > 0:
             time.sleep(0.1)
             timeout -= 0.1
@@ -480,12 +474,11 @@ class BasicShutter(BaseDevice):
 
 @implementer(IShutter)
 class StateLessShutter(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-    }
+    class Signals:
+        changed = Signal("changed", object)
 
     def __init__(self, open_name, close_name):
-        super(StateLessShutter, self).__init__()
+        super().__init__()
         # initialize variables
         self._open_cmd = self.add_pv(open_name)
         self._close_cmd = self.add_pv(close_name)
@@ -501,17 +494,16 @@ class StateLessShutter(BaseDevice):
         self._close_cmd.toggle(1, 0)
 
     def wait(self, state=True, timeout=5.0):
-        logger.warning('Stateless Shutter wont wait (%s).' % (self.name))
+        logger.debug('Stateless Shutter wont wait (%s).' % (self.name))
 
 
 @implementer(IShutter)
 class ToggleShutter(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-    }
+    class Signals:
+        changed = Signal("changed", bool)
 
     def __init__(self, name, reversed=False):
-        super(ToggleShutter, self).__init__()
+        super().__init__()
         self.cmd = self.add_pv(name)
         self.reversed = reversed
         self.cmd.connect('changed', self._signal_change)
@@ -535,6 +527,7 @@ class ToggleShutter(BaseDevice):
             self.wait(state=False)
 
     def wait(self, state=True, timeout=5.0):
+        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
         while self.changed_state != state and timeout > 0:
             time.sleep(0.1)
             timeout -= 0.1
@@ -550,14 +543,11 @@ class ToggleShutter(BaseDevice):
 
 @implementer(IShutter)
 class ShutterGroup(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST,
-                    None,
-                    (bool,)),
-    }
+    class Signals:
+        changed = Signal("changed", bool)
 
     def __init__(self, *args, **kwargs):
-        super(ShutterGroup, self).__init__()
+        super().__init__()
         self._dev_list = list(args)
         self.add_devices(*self._dev_list)
         self.name = 'Beamline Shutters'
@@ -588,6 +578,7 @@ class ShutterGroup(BaseDevice):
             dev.close(wait=True)
 
     def wait(self, state=True, timeout=5.0):
+        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
         while self.changed_state != state and timeout > 0:
             time.sleep(0.1)
             timeout -= 0.1
@@ -597,12 +588,11 @@ class ShutterGroup(BaseDevice):
 
 @implementer(IShutter)
 class SimShutter(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
+    class Signals:
+        changed = Signal("changed", bool)
 
     def __init__(self, name):
-        super(SimShutter, self).__init__()
+        super().__init__()
         self.name = name
         self._state = False
         self.set_state(active=True, changed=self._state)
@@ -628,7 +618,7 @@ class Shutter(BasicShutter):
         open_name = "{}:opr:open".format(name)
         close_name = "{}:opr:close".format(name)
         state_name = "{}:state".format(name)
-        super(Shutter, self).__init__(open_name, close_name, state_name)
+        super().__init__(open_name, close_name, state_name)
 
 
 class DiskSpaceMonitor(BaseDevice):
@@ -647,7 +637,7 @@ class DiskSpaceMonitor(BaseDevice):
               goes above this value.              
             -`freq` (float): Frequency in minutes to check disk usage. Default (5)
         """
-        super(DiskSpaceMonitor, self).__init__()
+        super().__init__()
         self.name = descr
         self.path = path
         self.warn_threshold = warn
@@ -655,7 +645,7 @@ class DiskSpaceMonitor(BaseDevice):
         self.frequency = int(freq * 60 * 1000)
         self.set_state(active=True)
         self._check_space()
-        GObject.timeout_add(self.frequency, self._check_space)
+        GLib.timeout_add(self.frequency, self._check_space)
 
     def _humanize(self, sz):
         symbols = ('', 'K', 'M', 'G', 'T', 'P')
@@ -688,7 +678,7 @@ class DiskSpaceMonitor(BaseDevice):
 
 class Enclosures(BaseDevice):
     def __init__(self, **kwargs):
-        super(Enclosures, self).__init__()
+        super().__init__()
         self.name = "Beamline Enclosures"
         self.hutches = {}
         self.ready = False

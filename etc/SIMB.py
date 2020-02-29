@@ -8,7 +8,7 @@ from mxdc.services import clients
 
 
 CONFIG = {
-    'name': 'SIM-1',
+    'name': 'SIM-2',
     'facility': 'CLS',
     'mono': 'Si 111',
     'mono_unit_cell': 5.4297575,
@@ -72,6 +72,7 @@ DEVICES = {
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     # 'sample_camera': SimCamera(),
     'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82', zoom_slave=True),
+
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),

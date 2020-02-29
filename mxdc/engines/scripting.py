@@ -2,12 +2,12 @@ import threading
 import time
 import importlib
 
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.beamlines.interfaces import IBeamline
-from mxdc.devices.base import BaseDevice
+from mxdc.devices.base import BaseDevice, Signal
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 
@@ -40,16 +40,15 @@ class ScriptError(Exception):
 
 @implementer(IScript)
 class Script(BaseDevice):
-    __gsignals__ = {
-        'done': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'error': (GObject.SignalFlags.RUN_FIRST, None, []),
-    }
+    class Signals:
+        done = Signal("done", object)
+        error = Signal("error", ())
 
     description = 'A Script'
     progress = None
 
     def __init__(self):
-        super(Script, self).__init__()
+        super().__init__()
         self.name = self.__class__.__name__
         self.beamline = globalRegistry.lookup([], IBeamline)
         self.enable()
