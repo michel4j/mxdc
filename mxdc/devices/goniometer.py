@@ -21,7 +21,7 @@ class Goniometer(BaseDevice):
     """Base class for goniometer."""
 
     def __init__(self, name='Diffractometer'):
-        BaseDevice.__init__(self)
+        super().__init__()
         self.name = name
         self.stopped = True
         self.default_timeout = 180
@@ -77,7 +77,7 @@ class ParkerGonio(Goniometer):
         @param root: (str): PV name of goniometer EPICS record.
 
         """
-        super(ParkerGonio, self).__init__()
+        super().__init__()
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root))
@@ -132,7 +132,7 @@ class MD2Gonio(Goniometer):
 
         @param root: Server PV name
         """
-        super(MD2Gonio, self).__init__('MD2 Diffractometer')
+        super().__init__('MD2 Diffractometer')
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:startScan".format(root))
@@ -151,6 +151,7 @@ class MD2Gonio(Goniometer):
             'delta': self.add_pv("{}:ScanRange".format(root)),
             'angle': self.add_pv("{}:ScanStartAngle".format(root)),
             'passes': self.add_pv("{}:ScanNumberOfPasses".format(root)),
+            'num_frames': self.add_pv('{}:ScanNumberOfFrames'.format(root))
         }
 
         # signal handlers
@@ -199,7 +200,7 @@ class MD2Gonio(Goniometer):
 
 class SimGonio(Goniometer):
     def __init__(self):
-        super(SimGonio, self).__init__('SIM Diffractometer')
+        super().__init__('SIM Diffractometer')
         self._scanning = False
         self._lock = Lock()
         self.set_state(active=True, health=(0, ''))
@@ -252,7 +253,7 @@ class GalilGonio(Goniometer):
 
         @param root: (str): PV name of goniometer EPICS record.
         """
-        super(GalilGonio, self).__init__()
+        super().__init__()
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:OSCEXEC_SP".format(root))
@@ -300,7 +301,7 @@ class OldMD2Gonio(Goniometer):
 
         @param root: Server PV name
         """
-        super(OldMD2Gonio, self).__init__('MD2 Diffractometer')
+        super().__init__('MD2 Diffractometer')
 
         # initialize process variables
         self.scan_cmd = self.add_pv("{}:S:StartScan".format(root), monitor=False)

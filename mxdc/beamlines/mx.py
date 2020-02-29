@@ -29,7 +29,7 @@ class MXBeamline(object):
               CONFIG       = A dictionary containing any other key value pairs
                              will be available as beamline.config
               DEVICES      = A dictionary mapping devices names to devices objects.
-                                    See CLSSIM.py for a standard set of names.
+                                    See SIMB.py for a standard set of names.
               CONSOLE      = Same as above but only available in the console
                                 in addition to the above
               SERVICES = A dictionary mapping services names to services client objects

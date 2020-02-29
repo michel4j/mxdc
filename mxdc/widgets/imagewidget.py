@@ -34,7 +34,7 @@ ZSCALE_MULTIPLIER = 3
 MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
 COLORMAPS = ('binary', 'inferno')
-
+MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for tile to be done writing to disk
 
 def cmap(name):
     c_map = cm.get_cmap(name, 256)
@@ -101,31 +101,26 @@ class DataLoader(GObject.GObject):
     def open(self, path):
         self.inbox.put(path)
 
+    def loadable(self, path):
+        return os.path.exists(path) and time.time() - os.path.getmtime(path) > MAX_SAVE_JITTER
+
     def load(self, path):
         self.loading = True
-        directory, filename = os.path.split(path)
 
-        # # if file belongs to current set, skip to it
-        # if self.dataset and self.header and 'dataset' in self.header:
-        #     m = re.match(self.header['dataset']['regex'], filename)
-        #     if m and directory == self.dataset.header['directory']:
-        #         index = int(m.group(1))
-        #         self.needs_refresh = self.dataset.get_frame(index)
-        #         return
         attempts = 0
         success = False
-        while not success and attempts < 5:         
-            try:
-                self.dataset = read_image(path)
-                success = True
-            except Exception as error:
-                logger.error(error)
-                attempts += 1
-                time.sleep(0.1)
-                raise
+        while not success and attempts < 10:
+            if self.loadable(path):
+                try:
+                    self.dataset = read_image(path)
+                    success = True
+                except Exception as error:
+                    success = False
+            attempts += 1
+            time.sleep(0.1)
         
         if not success:
-            logger.warning('Error loading frame "{}".'.format(path))
+            #logger.warning('Error loading frame "{}".'.format(path))
             self.loading = False
             return False
 
@@ -294,7 +289,8 @@ class ImageWidget(Gtk.DrawingArea):
         self.raw_img = obj.image
         self.frame_number = obj.header['frame_number']
         self.filename = obj.header['filename']
-        self.name = '{} [{:6d}]'.format(obj.header['name'], self.frame_number)
+        num_frames = int(obj.header['total_angle']/obj.header['delta_angle'])
+        self.name = '{} [ {} / {} ]'.format(obj.header['name'], self.frame_number, num_frames)
         self.image_size = obj.header['detector_size']
         self.create_surface()
         self.emit('image-loaded')
@@ -444,9 +440,8 @@ class ImageWidget(Gtk.DrawingArea):
         font_desc = pcontext.get_font_description()
         cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(11)
-        # cr.set_line_width(0.85)
         cr.move_to(6, alloc.height - 6)
-        cr.show_text(os.path.basename(self.name))
+        cr.show_text(self.name)
         cr.stroke()
 
     def draw_spots(self, cr):

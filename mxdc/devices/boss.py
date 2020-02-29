@@ -1,11 +1,11 @@
 import math
 import random
 
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 from zope.interface import Interface, Attribute
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice
+from mxdc.devices.base import BaseDevice, Signal
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -44,13 +44,12 @@ class IBeamTuner(Interface):
 
 @implementer(IBeamTuner)
 class BaseTuner(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
-        "percent": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
-    }
+    class Signals:
+        changed = Signal("changed", float)
+        percent = Signal("percent", float)
 
     def __init__(self):
-        super(BaseTuner, self).__init__()
+        super().__init__()
         self.tunable = False
 
     def is_tunable(self):
@@ -83,7 +82,7 @@ class BaseTuner(BaseDevice):
 
 class BOSSTuner(BaseTuner):
     def __init__(self, name, picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e8):
-        BaseTuner.__init__(self)
+        super().__init__()
         self.name = name
         self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
         self.enabled_fbk = self.add_pv('{}:EnableDacIN'.format(name))
@@ -150,7 +149,7 @@ class BOSSTuner(BaseTuner):
 
 class MOSTABTuner(BaseTuner):
     def __init__(self, name, picoameter, current, reference=None, tune_step=50):
-        BaseTuner.__init__(self)
+        super().__init__()
         self.name = name
         self.tunable = True
         self.tune_cmd = self.add_pv('{}:outPut'.format(name))
@@ -212,14 +211,14 @@ class MOSTABTuner(BaseTuner):
 
 class SimTuner(BaseTuner):
     def __init__(self, name):
-        BaseTuner.__init__(self)
+        super().__init__()
         self.set_state(active=True)
         self.name = name
         self.pos = -1.0
         self.reference = 10000
         self.value = self._calc_int()
         self.tunable = True
-        GObject.timeout_add(50, self._change_value)
+        GLib.timeout_add(50, self._change_value)
 
     def tune_up(self):
         self.pos += 0.01

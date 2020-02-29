@@ -13,6 +13,7 @@ from mxdc.com import ca
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc
+from mxdc.utils.types import Signal, SignalObject
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 
@@ -21,23 +22,24 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IDataCollector)
-class DataCollector(GObject.GObject):
+class DataCollector(SignalObject):
 
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'progress': (GObject.SIGNAL_RUN_LAST, None, (float,)),
-        'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
-        'started': (GObject.SIGNAL_RUN_LAST, None, []),
-        'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'message': (GObject.SIGNAL_RUN_LAST, None, (str,))
-    }
+    class Signals:
+        new_image = Signal('new-image', str)
+        progress = Signal('progress', float)
+        done = Signal('done')
+        paused = Signal('paused', (bool, str))
+        started = Signal('started')
+        stopped = Signal('stopped')
+        error = Signal('error', str)
+        message = Signal('message', str)
+
+    # Properties
     complete = GObject.Property(type=bool, default=False)
     name = 'Data Collector'
 
     def __init__(self):
-        super(DataCollector, self).__init__()
+        super().__init__()
         self.paused = False
         self.stopped = True
         self.collecting = False
@@ -156,10 +158,12 @@ class DataCollector(GObject.GObject):
 
                 # prepare goniometer for scan
                 self.beamline.goniometer.configure(
-                    time=frame['exposure'], delta=frame['delta'], angle=frame['start']
+                    time=frame['exposure'], delta=frame['delta'], angle=frame['start'],
+                    num_frames=frame['num_frames']
                 )
 
                 if self.stopped or self.paused: break
+
                 self.beamline.detector.set_parameters(detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
                 self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 20)
@@ -194,18 +198,22 @@ class DataCollector(GObject.GObject):
             logger.info("Collecting {} images starting at: {}".format(
                 wedge['num_frames'], wedge['frame_template'].format(wedge['first']))
             )
+            logger.debug('Configuring diffractometer for scan ...')
             self.beamline.goniometer.configure(
-                time=wedge['exposure'] * wedge['num_frames'],
-                delta=wedge['delta'] * wedge['num_frames'],
-                angle=wedge['start']
+                time=wedge['exposure']*wedge['num_frames'], delta=wedge['delta']*wedge['num_frames'],
+                angle=wedge['start'], num_frames=wedge['num_frames']
             )
 
             if self.stopped or self.paused: break
+
             # Perform scan
+            logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.set_parameters(detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure'] * wedge['num_frames'] * 2)
 
+            logger.debug('Starting scan ...')
+            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure'] * wedge['num_frames'] * 1.2)
+            self.beamline.detector.save()
             is_first_frame = False
             time.sleep(0)
 
@@ -225,6 +233,7 @@ class DataCollector(GObject.GObject):
                 )
 
     def prepare_for_wedge(self, wedge):
+        logger.debug('Preparing for new dataset wedge ...')
         # setup folder for wedge
         self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
 
@@ -244,9 +253,9 @@ class DataCollector(GObject.GObject):
         if wedge.get('point') is not None:
             x, y, z  = wedge['point']
             self.beamline.sample_stage.move_xyz(x, y, z, wait=True)
+        logger.debug('Ready for acquisition.')
 
     def save(self, params):
-
         try:
             frames, count, start_time, end_time = datatools.get_disk_frameset(
               params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)

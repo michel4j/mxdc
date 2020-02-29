@@ -2,20 +2,21 @@
 
 from datetime import datetime
 
-from gi.repository import Gdk, GObject, Gtk
+from gi.repository import Gdk, GObject, Gtk, GLib
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
+
+from mxdc.utils.types import SignalObject, Signal
 from twisted.python.components import globalRegistry
 logger = get_module_logger(__name__)
 
 
-class DewarController(GObject.GObject):
+class DewarController(SignalObject):
 
-    __gsignals__ = {
-        'selected': (GObject.SignalFlags.RUN_FIRST, None, (str,)),
-    }
+    class Signals:
+        selected = Signal("selected", str)
 
     layout = GObject.Property(type=object)
     ports = GObject.Property(type=object)

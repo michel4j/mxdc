@@ -3,7 +3,7 @@ from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
 
-from gi.repository import Gio, Gtk, Gdk, Pango, GObject
+from gi.repository import Gio, Gtk, Gdk, Pango, GObject, GLib
 from twisted.python.components import globalRegistry
 from zope.interface import Interface, implementer
 
@@ -12,6 +12,7 @@ from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
 from mxdc.utils.automounter import Port, PortColors
 from mxdc.utils.decorators import async_call
+from mxdc.utils.types import SignalObject, Signal
 from .automounter import DewarController
 
 
@@ -72,7 +73,7 @@ class GroupItem(GObject.GObject):
 
 
 @implementer(ISampleStore)
-class SampleStore(GObject.GObject):
+class SampleStore(SignalObject):
     class Data(object):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
@@ -96,10 +97,10 @@ class SampleStore(GObject.GObject):
         (Data.PRIORITY, 'Priority'),
     ])
 
-    __gsignals__ = {
-        'updated': (GObject.SignalFlags.RUN_FIRST, None, []),
-    }
+    class Signals:
+        updated = Signal("updated")
 
+    # properties
     cache = GObject.Property(type=object)
     current_sample = GObject.Property(type=object)
     next_sample = GObject.Property(type=object)
@@ -107,7 +108,7 @@ class SampleStore(GObject.GObject):
     containers = GObject.Property(type=object)
 
     def __init__(self, view, widget):
-        super(SampleStore, self).__init__()
+        super().__init__()
         self.model = Gtk.ListStore(*self.Data.TYPES)
         self.search_model = self.model.filter_new()
         self.search_model.set_visible_func(self.search_data)
@@ -214,7 +215,7 @@ class SampleStore(GObject.GObject):
             group_item.connect('notify::changed', self.on_group_changed)
             self.group_model.append(group_item)
             self.group_registry[name] = group_item
-        GObject.idle_add(self.emit, 'updated')
+        GLib.idle_add(self.emit, 'updated')
         self.props.containers = self.containers
 
     def add_item(self, item):
@@ -318,7 +319,7 @@ class SampleStore(GObject.GObject):
         port = self.current_sample.get('port', '...') or '<manual>'
         self.widget.samples_cur_port.set_text(port)
         self.widget.samples_dismount_btn.set_sensitive(bool(self.current_sample))
-        GObject.idle_add(self.emit, 'updated')
+        GLib.idle_add(self.emit, 'updated')
 
     def search_data(self, model, itr, dat):
         """Test if the row is visible"""
@@ -440,7 +441,7 @@ class SampleStore(GObject.GObject):
         self.model.clear()
         self.group_model.remove_all()
         self.group_registry = {}
-        GObject.idle_add(self.emit, 'updated')
+        GLib.idle_add(self.emit, 'updated')
 
     def toggle_row(self, path):
         path = self.filter_model.convert_path_to_child_path(path)

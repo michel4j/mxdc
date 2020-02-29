@@ -7,12 +7,12 @@ import time
 from datetime import datetime
 
 
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 from zope.interface import implementer
 
 from mxdc.com import ca
 from mxdc.utils import decorators
-from mxdc.devices.base import BaseDevice
+from mxdc.devices.base import BaseDevice, Signal
 from mxdc.utils.log import get_module_logger
 
 from .interfaces import IImagingDetector
@@ -25,12 +25,11 @@ TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 
 @implementer(IImagingDetector)
 class SimDetector(BaseDevice):
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
+    class Signals:
+        new_image = Signal("new-image", str)
 
     def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
-        BaseDevice.__init__(self)
+        super().__init__()
         self.size = int(size), int(size)
         self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
@@ -109,7 +108,7 @@ class SimDetector(BaseDevice):
         file_path = os.path.join(file_parms['directory'], file_name)
         shutil.copyfile(src_img, file_path)
         logger.debug('Frame saved: %s' % datetime.now().isoformat())
-        GObject.idle_add(self.emit, 'new-image', file_path)
+        GLib.idle_add(self.emit, 'new-image', file_path)
 
     def save(self, wait=False):
         self._copy_frame()
@@ -133,18 +132,19 @@ class SimDetector(BaseDevice):
     def cleanup(self):
         self._stopped = True
 
+
 @implementer(IImagingDetector)
 class PilatusDetector(BaseDevice):
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
+    class Signals:
+        new_image = Signal("new-image", str)
+
     STATES = {
         'acquiring': [1],
         'idle': [0]
     }
 
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
-        super(PilatusDetector, self).__init__()
+        super().__init__()
         self.size = size
         self.resolution = 0.172
         self.mm_size = self.resolution * min(self.size)
@@ -237,7 +237,7 @@ class PilatusDetector(BaseDevice):
             self.settings['file_prefix'].get(),
             frame_number
         )
-        GObject.idle_add(self.emit, 'new-image', file_path)
+        GLib.idle_add(self.emit, 'new-image', file_path)
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
@@ -298,9 +298,9 @@ class PilatusDetector(BaseDevice):
 @implementer(IImagingDetector)
 class RayonixDetector(BaseDevice):
 
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
+    class Signals:
+        new_image = Signal("new-image", str)
+
     STATES = {
         'init': [8],
         'acquiring': [1],
@@ -314,7 +314,7 @@ class RayonixDetector(BaseDevice):
     }
 
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
-        super(RayonixDetector, self).__init__()
+        super().__init__()
         self.size = size, size
         self.resolution = 0.073242
         self.mm_size = self.resolution * min(self.size)
@@ -408,7 +408,7 @@ class RayonixDetector(BaseDevice):
     def on_new_frame(self, obj, state):
         if state == 2:
             file_path = self.saved_filename.get()
-            GObject.idle_add(self.emit, 'new-image', file_path)
+            GLib.idle_add(self.emit, 'new-image', file_path)
 
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
@@ -460,9 +460,9 @@ class RayonixDetector(BaseDevice):
 
 @implementer(IImagingDetector)
 class ADSCDetector(BaseDevice):
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
+    class Signals:
+        new_image = Signal("new-image", str)
+
     STATES = {
         'init': [8],
         'acquiring': [1],
@@ -473,7 +473,7 @@ class ADSCDetector(BaseDevice):
     }
 
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
-        super(ADSCDetector, self).__init__()
+        super().__init__()
         self.size = size, size
         self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
@@ -570,7 +570,7 @@ class ADSCDetector(BaseDevice):
 
     def on_new_frame(self, obj, path):
         file_path = self.saved_filename.get()
-        GObject.idle_add(self.emit, 'new-image', file_path)
+        GLib.idle_add(self.emit, 'new-image', file_path)
 
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
@@ -623,4 +623,175 @@ class ADSCDetector(BaseDevice):
         return any(checks)
 
 
-__all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector']
+@implementer(IImagingDetector)
+class EigerDetector(BaseDevice):
+
+    class Signals:
+        new_image = Signal("new-image", str)
+
+    STATES = {
+        'acquiring': [1],
+        'idle': [0]
+    }
+
+    def __init__(self, name, size=(3110, 3269), detector_type='Eiger', description='Eiger'):
+        super().__init__()
+        self.size = size
+        self.resolution = 0.075
+        self.mm_size = self.resolution * min(self.size)
+        self.name = description
+        self.detector_type = detector_type
+        self.shutterless = True
+        self.file_extension = 'h5'
+        self.initialized = False
+
+        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
+        self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
+
+        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
+        self.armed_status = self.add_pv("{}:Armed".format(name))
+        self.acquire_status = self.add_pv("{}:Acquire".format(name))
+        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name), monitor=False)
+        self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
+        self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
+        self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
+        self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
+        self.file_format = self.add_pv("{}:FileTemplate".format(name))
+
+        self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
+        self.num_images = self.add_pv('{}:NumImages'.format(name))
+        self.saved_frame_num.connect('changed', self.on_new_frame)
+
+        # Data Parameters
+        self.settings = {
+            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
+            'num_frames': self.add_pv('{}:NumTriggers'.format(name)),
+            'file_prefix': self.add_pv("{}:FWNamePattern".format(name)),
+            'batch_size': self.add_pv("{}:FWNImagesPerFile".format(name)),
+            'directory': self.add_pv("{}:FilePath".format(name)),
+
+            'start_angle': self.add_pv("{}:OmegaStart".format(name), monitor=False),
+            'delta_angle': self.add_pv("{}:OmegaIncr".format(name), monitor=False),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
+            'acquire_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
+
+            'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
+            'beam_x': self.add_pv("{}:BeamX".format(name), monitor=False),
+            'beam_y': self.add_pv("{}:BeamY".format(name), monitor=False),
+            'distance': self.add_pv("{}:DetDist".format(name), monitor=False),
+            'two_theta': self.add_pv("{}:TwoThetaStart".format(name), monitor=False),
+            'kappa': self.add_pv("{}:KappaStart".format(name), monitor=False),
+            'phi': self.add_pv("{}:PhiStart".format(name), monitor=False),
+            'chi': self.add_pv("{}:ChiStart".format(name), monitor=False),
+            #'energy': self.add_pv('{}:PhotonEnergy'.format(name), monitor=False),
+            #'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
+        }
+
+        self.connected_status.connect('changed', self.on_connection_changed)
+        self.acquire_status.connect('changed', self.on_acquire_status)
+
+    def initialize(self, wait=True):
+        logger.debug('({}) Initializing Detector ...'.format(self.name))
+
+    def start(self, first=False):
+        logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        self.acquire_cmd.put(1)
+        self.wait_for_busy()
+
+    def stop(self):
+        logger.debug('({}) Stopping Detector ...'.format(self.name))
+        self.acquire_cmd.put(0)
+        self.wait_for_idle()
+
+    def get_origin(self):
+        return self.size[0] // 2, self.size[1] // 2
+
+    def save(self, wait=False):
+        time.sleep(3)
+        self.acquire_cmd.put(0)
+        return
+
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            if os.path.exists(frame_path):
+                try:
+                    os.remove(frame_path)
+                except OSError:
+                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
+
+    def on_new_frame(self, obj, frame_number):
+        template = self.file_format.get()
+        directory = self.settings['directory'].get()
+        directory += os.sep if not directory.endswith(os.sep) else ''
+        # file_path = template % (
+        #     directory,
+        #     self.settings['file_prefix'].get(),
+        #     frame_number
+        # )
+        GLib.idle_add(self.emit, 'new-image', directory)
+
+    def wait(self, state='idle'):
+        if state == 'idle':
+            return self.wait_for_idle()
+        else:
+            return self.wait_for_busy()
+
+    def set_parameters(self, data):
+        params = {}
+        params.update(data)
+
+        if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
+            params['threshold_energy'] = round(0.5 * params['energy'], 2)
+
+        params['beam_x'] = self.settings['beam_x'].get()
+        params['beam_y'] = self.settings['beam_y'].get()
+        params['acquire_period'] = params['exposure_time']
+
+        self.mode_cmd.put(3)  # External Trigger Mode
+        self.num_images.put(1)
+
+        for k, v in list(params.items()):
+            if k in self.settings:
+                time.sleep(0.05)
+                self.settings[k].put(v, wait=True)
+
+    def on_connection_changed(self, obj, state):
+        if state == 0:
+            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
+        else:
+            self.set_state(health=(0, 'socket'))
+
+    def on_acquire_status(self, obj, state):
+        self.set_state(busy=(state == 1))
+
+    def wait_for_busy(self, timeout=5):
+        logger.debug('Waiting for {} to start ..'.format(self.name))
+        elapsed = 0
+        while not self.is_busy() and elapsed <= timeout:
+            elapsed += 0.05
+            time.sleep(0.05)
+
+        if elapsed > timeout:
+            logger.debug('{} busy after: {:0.1f} seconds'.format(self.name, elapsed))
+            return True
+        else:
+            logger.warning('{} timed out! Not busy after {} seconds'.format(self.name, elapsed))
+            return False
+
+    def wait_for_idle(self, timeout=5):
+        logger.debug('Waiting for {} to stop ..'.format(self.name))
+        elapsed = 0
+        while self.is_busy() and elapsed <= timeout:
+            elapsed += 0.05
+            time.sleep(0.05)
+
+        if elapsed > timeout:
+            logger.debug('{} idle after: {:0.1f} seconds'.format(self.name, elapsed))
+            return True
+        else:
+            logger.warning('{} timed out! Not idle after {} seconds'.format(self.name, elapsed))
+            return False
+
+
+__all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector', 'EigerDetector']

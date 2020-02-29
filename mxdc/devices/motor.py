@@ -5,7 +5,7 @@ import numpy
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice
+from mxdc.devices.base import BaseDevice, Signal
 from mxdc.utils import converter
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
@@ -35,16 +35,15 @@ class MotorBase(BaseDevice):
     """
 
     # Motor signals
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        "starting": (GObject.SignalFlags.RUN_FIRST, None, []),
-        "done": (GObject.SignalFlags.RUN_FIRST, None, []),
-        "target": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        "time": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
+    class Signals:
+        changed = Signal("changed", object)
+        starting = Signal("starting", ())
+        done = Signal("done", ())
+        target = Signal("target", object)
+        time = Signal("time", object)
 
     def __init__(self, name, precision=2, units=''):
-        super(MotorBase, self).__init__()
+        super().__init__()
         self.name = name
         self.description = name
         self.moving = False
@@ -234,7 +233,7 @@ class MotorBase(BaseDevice):
 class SimMotor(MotorBase):
 
     def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3, health=(0, '')):
-        super(SimMotor, self).__init__(name, precision=precision, units=units)
+        super().__init__(name, precision=precision, units=units)
         self.default_speed = speed
 
         self._status = 0
@@ -312,7 +311,7 @@ class Motor(MotorBase):
         name_parts = name.split(':')
         units = name_parts[-1]
         self.name_root = ':'.join(name_parts[:-1])
-        super(Motor, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
         self.connect_monitors()
 
     def connect_monitors(self):
@@ -402,7 +401,7 @@ class VMEMotor(Motor):
 
     def __init__(self, name, encoded=False, *args, **kwargs):
         self.use_encoder = encoded
-        super(VMEMotor, self).__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs)
 
     def setup(self):
         self.moving_value = 1
@@ -478,7 +477,7 @@ class PseudoMotor(VMEMotor):
 
     def __init__(self, name, version=2, *args, **kwargs):
         self.version = version
-        super(PseudoMotor, self).__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs)
 
     def setup(self):
         self.VAL = self.add_pv(self.name)
@@ -516,7 +515,7 @@ class JunkEnergyMotor(Motor):
         self.encoder = encoder
         self.mono_unit_cell = mono_unit_cell
         kwargs['units'] = 'keV'
-        super(JunkEnergyMotor, self).__init__(self.name1, **kwargs)
+        super().__init__(self.name1, **kwargs)
         self.description = 'Energy'
 
     def setup(self):
@@ -560,7 +559,7 @@ class BraggEnergyMotor(VMEMotor):
         self.fixed_lo, self.fixed_hi = fixed_lo, fixed_hi
         self.fixed_value = fixed_value
         kwargs['units'] = 'keV'
-        super(BraggEnergyMotor, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
         self.description = 'Bragg Energy'
 
     def convert(self, value):
@@ -611,7 +610,7 @@ class BraggEnergyMotor(VMEMotor):
 
 class ResolutionMotor(MotorBase):
     def __init__(self, energy, distance, detector_size):
-        MotorBase.__init__(self, 'Resolution')
+        super().__init__(self, 'Resolution')
         self.description = 'Max Detector Resolution'
         self.energy = energy
         self.detector_size = detector_size
