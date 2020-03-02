@@ -62,7 +62,7 @@ class Application(Gtk.Application):
     def do_activate(self, *args):
         self.builder = AppBuilder()
         self.window = self.builder.scan_window
-        self.window.connect('destroy', self.on_quit)
+        self.window.set_deletable(False)
         self.plot = scanplot.ScanPlotter(self.builder)
         self.log_viewer = common.LogMonitor(self.builder.scan_log, font='Candara 7')
         log_handler = textviewer.GUIHandler(self.log_viewer)
