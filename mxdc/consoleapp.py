@@ -1,16 +1,18 @@
-
-import sys
-import threading
-import gi
-import os
-import signal
 import logging
+import os
+import sys
+import signal
+import gi
 
-from twisted.internet import gtk3reactor
+from datetime import datetime
+from IPython.terminal.embed import InteractiveShellEmbed
+from traitlets.config import Config
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio, GLib, GObject
-
+from twisted.internet import gtk3reactor
 gtk3reactor.install()
+
 
 from mxdc import conf
 from mxdc.utils.log import get_module_logger
@@ -19,6 +21,11 @@ from mxdc.widgets import dialogs, textviewer
 from mxdc.controllers import scanplot, common
 from mxdc.beamlines.mx import MXBeamline
 from twisted.internet import reactor
+
+USE_TWISTED = True
+MXDC_PORT = misc.get_free_tcp_port()  # 9898
+VERSION = "2020.02"
+COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)
 
@@ -29,59 +36,89 @@ class AppBuilder(gui.Builder):
     }
 
 
-class ConsoleApp(object):
-    def __init__(self):
-        self.stopped = False
-        self.start()
 
-    def shell(self):
-        from IPython import embed
-        from mxdc.engines.scripting import get_scripts
-        from mxdc.engines.scanning import AbsScan, AbsScan2, RelScan, RelScan2, GridScan, CntScan
-        from mxdc.utils import fitting
-        import numpy
-        bl = MXBeamline(console=True)
-        plot = self.plot
-        fit = self.plot.fit
-        GObject.idle_add(self.builder.scan_beamline_lbl.set_text, bl.name)
-        embed()
-        self.quit()
+class Application(Gtk.Application):
+    def __init__(self, **kwargs):
+        super(Application, self).__init__(application_id="org.mxdc.console", **kwargs)
+        self.builder = None
+        self.window = None
+        self.terminal = None
+        self.ipshell = None
+        self.shell_config = Config()
+        # initialize beamline
+        self.beamline = MXBeamline()
 
-    def start(self):
-        worker_thread = threading.Thread(target=self.run)
-        worker_thread.setName(self.__class__.__name__)
-        worker_thread.setDaemon(True)
-        worker_thread.start()
-        GObject.idle_add(self.setup)
-        self.shell()
-
-    def setup(self):
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
+        self.connect('shutdown', self.on_shutdown)
 
+    def do_startup(self, *args):
+        Gtk.Application.do_startup(self, *args)
+        action = Gio.SimpleAction.new("quit", None)
+        action.connect("activate", self.on_quit)
+        self.add_action(action)
+
+    def do_activate(self, *args):
         self.builder = AppBuilder()
         self.window = self.builder.scan_window
-        self.window.set_deletable(False)
-
+        self.window.connect('destroy', self.on_quit)
+        self.plot = scanplot.ScanPlotter(self.builder)
         self.log_viewer = common.LogMonitor(self.builder.scan_log, font='Candara 7')
         log_handler = textviewer.GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
         log_handler.setFormatter(formatter)
         logging.getLogger('').addHandler(log_handler)
-
         dialogs.MAIN_WINDOW = self.window
-        self.plot = scanplot.ScanPlotter(self.builder)
-        self.window.show_all()
+        self.window.present()
+        if self.beamline.is_ready():
+            self.shell()
+        else:
+            self.beamline.connect('ready', self.shell)
+
+    def shell(self, *args, **kwargs):
+        import numpy
+        from mxdc.engines.scripting import get_scripts
+        from mxdc.engines.scanning import AbsScan, AbsScan2, RelScan, RelScan2, GridScan, CntScan
+        from mxdc.utils import fitting
+        from mxdc.com.ca import PV
+
+        self.shell_config.InteractiveShellEmbed.colors = 'Neutral'
+        self.shell_config.InteractiveShellEmbed.color_info = True
+        self.shell_config.InteractiveShellEmbed.true_color = True
+        self.shell_config.InteractiveShellEmbed.banner2 = '{} Beamline Console\n'.format(self.beamline.name)
+        bl = self.beamline
+
+        plot = self.plot
+        fit = self.plot.fit
+        self.builder.scan_beamline_lbl.set_text(bl.name)
+        self.ipshell = InteractiveShellEmbed.instance(config=self.shell_config)
+        self.ipshell.magic('%gui gtk3')
+        self.ipshell()
+        print('Stopping ...')
+
+    def on_quit(self, *args, **kwargs):
+        self.quit()
+
+    def on_shutdown(self, *args):
+        logger.info('Stopping ...')
+        self.ipshell.dummy_mode = True
+        self.beamline.cleanup()
+
+        _log = logging.getLogger('')
+        for h in _log.handlers:
+            _log.removeHandler(h)
+
+
+class ConsoleApp(object):
+    def __init__(self):
+        self.application = Application()
 
     def run(self):
-        Gtk.main()
-
-    def quit(self):
-        print("Stopping ...")
-        self.window.destroy()
-        Gtk.main_quit()
+        self.application = Application()
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.application.quit)
+        self.application.run(sys.argv)
 
 
 
