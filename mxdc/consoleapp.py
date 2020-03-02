@@ -97,6 +97,8 @@ class Application(Gtk.Application):
         self.ipshell.magic('%gui gtk3')
         self.ipshell()
         print('Stopping ...')
+        self.window.destroy()
+        reactor.stop()
 
     def on_quit(self, *args, **kwargs):
         self.quit()
@@ -116,9 +118,12 @@ class ConsoleApp(object):
         self.application = Application()
 
     def run(self):
-        self.application = Application()
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.application.quit)
-        self.application.run(sys.argv)
+        if USE_TWISTED:
+            reactor.registerGApplication(self.application)
+            reactor.run()
+        else:
+            self.application.run(sys.argv)
 
 
 
