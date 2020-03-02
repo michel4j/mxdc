@@ -4,7 +4,7 @@ from enum import Enum
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice, Signal
+from mxdc import Signal, BaseDevice
 from mxdc.utils.log import get_module_logger
 from .interfaces import IModeManager
 
@@ -16,12 +16,13 @@ logger = get_module_logger(__name__)
 class BaseManager(BaseDevice):
     """Base class for goniometer."""
 
-    class Signals :
-        mode = Signal("mode", object)
-
     class ModeType(Enum):
         MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = list(range(6))
 
+    # Signals :
+    dev_mode = Signal("mode", arg_types=(object,))
+
+    # Properties
     mode = GObject.property(type=object)
 
     def __init__(self, name='Beamline Modes'):
@@ -115,14 +116,14 @@ class SimModeManager(BaseManager):
     """
 
     def __init__(self):
-        super(SimModeManager, self).__init__(name='Beamline Modes')
+        super().__init__(name='Beamline Modes')
         self.mode_delay = {
             self.ModeType.MOUNT: 8,
             self.ModeType.CENTER: 5,
             self.ModeType.COLLECT: 7,
             self.ModeType.ALIGN: 10,
         }
-        self.set_state(active=True, busy=False, health=(0, 'faults'), mode=self.ModeType.MOUNT)
+        self.set_state(active=True, busy=False, health=(0, 'faults', ''), mode=self.ModeType.MOUNT)
 
     def _switch_mode(self, mode):
         self.set_state(busy=True, mode=self.ModeType.BUSY, message='Switching mode ...')
@@ -174,7 +175,7 @@ class MD2Manager(BaseManager):
     """
 
     def __init__(self, root):
-        super(MD2Manager, self).__init__(name='Beamline Modes')
+        super().__init__(name='Beamline Modes')
 
         self.mode_cmd = self.add_pv('{}:CurrentPhase'.format(root))
         self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
@@ -216,7 +217,7 @@ class MD2Manager(BaseManager):
             current_mode = self.ModeType.UNKNOWN
         else:
             current_mode = self.int_to_mode.get(mode_val, self.ModeType.UNKNOWN)
-            health = (0, 'faults')
+            health = (0, 'faults', '')
             busy = False
 
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)
@@ -266,7 +267,7 @@ class ModeManager(BaseManager):
     """
 
     def __init__(self, root):
-        super(ModeManager, self).__init__(name='Beamline Modes')
+        super().__init__(name='Beamline Modes')
 
         self.mode_commands = {
             self.ModeType.MOUNT: self.add_pv('{}:Mount:cmd'.format(root)),
@@ -310,7 +311,7 @@ class ModeManager(BaseManager):
             message = 'Switching mode ...'
         else:
             current_mode = self.int_to_mode.get(state, self.ModeType.UNKNOWN)
-            health = (0, 'faults')
+            health = (0, 'faults','')
             busy = False
 
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)

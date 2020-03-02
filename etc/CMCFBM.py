@@ -1,4 +1,5 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
+import mxdc.devices.shutter
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
 from mxdc.devices.automounter import sam
@@ -79,12 +80,12 @@ DEVICES = {
     
     # Facility, storage-ring, shutters, etc
     'synchrotron':  synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
-    'psh1': misc.Shutter('PSH1408-B10-01'),
-    'psh2': misc.Shutter('PSH1408-B10-02'),
-    'ssh1': misc.Shutter('SSH1408-B10-01'),
-    'ssh3': misc.Shutter('SSH1608-4-B10-01'),
+    'psh1': mxdc.devices.shutter.Shutter('PSH1408-B10-01'),
+    'psh2': mxdc.devices.shutter.Shutter('PSH1408-B10-02'),
+    'ssh1': mxdc.devices.shutter.Shutter('SSH1408-B10-01'),
+    'ssh3': mxdc.devices.shutter.Shutter('SSH1608-4-B10-01'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
-    'fast_shutter': misc.ToggleShutter('MD1608-05:FastShutterIsOpen'),
+    'fast_shutter': mxdc.devices.shutter.ToggleShutter('MD1608-05:FastShutterIsOpen'),
     
     # Intensity monitors,
     'i_0': counter.Counter('AH1608-05:QEM:SumAll:MeanValue_RBV'),

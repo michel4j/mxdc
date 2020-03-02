@@ -269,7 +269,7 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
 
 
 def get_line_info(element_info, factor):
-    """Get information about emission lines for each element according to
+    """Get information about _emission lines for each element according to
     the coefficients from fitting"""
     el = element_info[0]
 

@@ -1,6 +1,6 @@
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice
+from mxdc import BaseDevice
 from mxdc.devices.misc import Positioner, SimPositioner
 from mxdc.utils.log import get_module_logger
 from .interfaces import IHumidifier
@@ -27,26 +27,26 @@ class Humidifier(BaseDevice):
         self.add_devices(self.humidity, self.temperature)
         self.modbus_state.connect('changed', self.on_modbus_changed)
         self.status.connect('changed', self.on_status_changed)
-        self.set_state(health=(4, 'status', 'Disconnected'))
+        self.set_state(health=(4, 'status','Disconnected'))
 
     def on_status_changed(self, obj, state):
         if state == 'Initializing':
             self.set_state(health=(1, 'status', state))
         elif state == 'Closing':
-            self.set_state(health=(4, 'status', 'Disconnected'))
-            self.set_state(health=(0, 'modbus'))
+            self.set_state(health=(4, 'status','Disconnected'))
+            self.set_state(health=(0, 'modbus',''))
         elif state == 'Ready':
-            self.set_state(health=(0, 'status'))
+            self.set_state(health=(0, 'status',''))
 
     def on_modbus_changed(self, obj, state):
         if state == 'Disable':
-            self.set_state(health=(0, 'modbus'))
-            self.set_state(health=(4, 'modbus', 'Communication disconnected'))
+            self.set_state(health=(0, 'modbus',''))
+            self.set_state(health=(4, 'modbus','Communication disconnected'))
         elif state == 'Unknown':
-            self.set_state(health=(0, 'modbus'))
-            self.set_state(health=(4, 'modbus', 'Communication state unknown'))
+            self.set_state(health=(0, 'modbus',''))
+            self.set_state(health=(4, 'modbus','Communication state unknown'))
         elif state == 'Enable':
-            self.set_state(health=(0, 'modbus'))
+            self.set_state(health=(0, 'modbus',''))
 
 
 @implementer(IHumidifier)
@@ -60,7 +60,7 @@ class SimHumidifier(BaseDevice):
         self.dew_point = SimPositioner('Dew Point', pos=287.68, units='K')
 
         self.drop_size = SimPositioner('Drop Size', pos=150, units='px')
-        self.drop_coords = SimPositioner('Drop Coords', pos=(671, 333, 671657))
+        self.drop_coords = SimPositioner('Drop Coords', pos=((671, 333, 671657),))
 
         self.add_devices(self.humidity, self.temperature, self.dew_point, self.drop_size)
 

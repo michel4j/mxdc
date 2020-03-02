@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy
 from gi.repository import Gtk
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
@@ -40,8 +40,8 @@ class HumidityController(gui.Builder):
     def __init__(self, widget):
         super(HumidityController, self).__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.beamline = Registry.get_utility(IBeamline)
+        self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = SingleCollector()
 
         self.humidifier = self.beamline.humidifier

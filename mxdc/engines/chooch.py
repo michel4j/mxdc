@@ -1,29 +1,23 @@
-import os, re
-from gi.repository import GObject
-import threading
+import os
+import re
 import subprocess
-import numpy
+import threading
 
 import numpy
+
 from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
+from mxdc import BaseEngine
 
 logger = get_module_logger(__name__)
 
 
-class AutoChooch(GObject.GObject):
+class AutoChooch(BaseEngine):
     """An event driven engines for performing analysis of MAD Scans with CHOOCH.
-    
-    Signals:
-        - `done`: Emitted when the analysis is complete.
-        - `error`: Emitted if an error occurs.
     """
-    __gsignals__ = {}
-    __gsignals__['error'] = (GObject.SignalFlags.RUN_FIRST, None, (str,))
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_FIRST, None, [])
-    
+
     def __init__(self):
-        GObject.GObject.__init__(self)
+        super().__init__()
         self.results = {}
 
     def configure(self, config, data, uname=None):
@@ -63,7 +57,7 @@ class AutoChooch(GObject.GObject):
             self.read_results(output)
         finally:
             os.remove(self.inp_file)
-            GObject.idle_add(self.emit, 'done')
+            self.emit('done', None)
         return self.results
 
     def prepare_input(self):
@@ -80,7 +74,7 @@ class AutoChooch(GObject.GObject):
             self.results['esf'] = data
         except IOError as e:
             logger.error(e)
-            GObject.idle_add(self.emit, 'error', 'CHOOH Failed.')
+            self.emit('error', 'CHOOH Failed.')
             return
 
         # extract MAD wavelengths from output

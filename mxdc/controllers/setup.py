@@ -1,7 +1,7 @@
 import logging
 
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.controllers.diagnostics import DiagnosticsController
@@ -26,7 +26,7 @@ class SetupController(object):
 
     def __init__(self, widget):
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.scripts = get_scripts()
         self.hutch_viewer = None
         self.setup()

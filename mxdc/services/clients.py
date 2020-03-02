@@ -9,7 +9,7 @@ import atexit
 
 from gi.repository import GObject
 from mxdc.conf import settings
-from mxdc.devices.base import BaseDevice
+from mxdc import BaseDevice
 from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
 from twisted.internet import reactor
@@ -161,7 +161,7 @@ class MxLIVEClient(BaseService):
         self.register(update=(not settings.keys_exist()))
 
     def is_ready(self):
-        return self.active_state
+        return self.get_state("active")
 
     def url(self, path):
         url_path = path[1:] if path[0] == '/' else path
@@ -293,7 +293,7 @@ class Messenger(GObject.GObject):
     }
 
     def __init__(self, host, realm=None):
-        super(Messenger, self).__init__()
+        super().__init__()
         self.realm = realm or 'SIM-1'
         self.channel = '{}:MESSAGES:{{}}'.format(self.realm)
         self.key = self.channel.format(misc.get_project_name())
@@ -312,7 +312,7 @@ class Messenger(GObject.GObject):
     def get_message(self, message):
         user = (message['channel']).decode().split(':')[-1]
         text = (message['data']).decode()
-        GObject.idle_add(self.emit, 'message', user, text)
+        self.emit('message', user, text)
 
     def send(self, message):
         self.sender.publish(self.key, message)

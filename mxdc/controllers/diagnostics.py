@@ -3,7 +3,7 @@ from gi.repository import Gtk, Gdk
 from mxdc.devices.diagnostics import Diagnostic
 from mxdc.devices.interfaces import IDiagnostic
 from mxdc.utils import gui
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -83,7 +83,7 @@ class DiagnosticsController(object):
         # fetch and add diagnostics
         self.diagnostics = [
             DiagnosticDisplay(diagnostic, self.app.notifier)
-            for diagnostic in globalRegistry.subscriptions([], IDiagnostic)
+            for diagnostic in Registry.get_subscribers(IDiagnostic)
         ]
         for diagnostic in self.diagnostics:
             self.box.add(diagnostic)

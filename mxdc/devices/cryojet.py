@@ -1,9 +1,9 @@
 from gi.repository import GObject
 from zope.interface import implementer
 
-
+import mxdc.devices.shutter
 from mxdc.devices import misc
-from mxdc.devices.base import BaseDevice
+from mxdc import BaseDevice
 from mxdc.utils.log import get_module_logger
 
 from .interfaces import ICryojet
@@ -11,7 +11,7 @@ from .interfaces import ICryojet
 logger = get_module_logger(__name__)
 
 
-class CryoJetNozzle(misc.BasicShutter):
+class CryoJetNozzle(mxdc.devices.shutter.BasicShutter):
     """
     A specialized in-out actuator for pneumatic Cryojet nozzles.
     """
@@ -23,7 +23,7 @@ class CryoJetNozzle(misc.BasicShutter):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:out" % name
-        misc.BasicShutter.__init__(self, open_name, close_name, state_name)
+        mxdc.devices.shutter.BasicShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Restoring', 'Retracting']
         self._name = 'Cryojet Nozzle'
 
@@ -64,7 +64,7 @@ class CryoJetBase(BaseDevice):
 
     def on_temp(self, obj, val):
         if val < 110:
-            self.set_state(health=(0, 'temp'))
+            self.set_state(health=(0, 'temp', ''))
         elif val < 115:
             self.set_state(health=(2, 'temp', 'Temp. high!'))
         else:
@@ -73,29 +73,30 @@ class CryoJetBase(BaseDevice):
 
     def on_sample(self, obj, val):
         if val > 5:
-            self.set_state(health=(0, 'sample'))
+            self.set_state(health=(0, 'sample', ''))
         elif val > 4:
             self.set_state(health=(2, 'sample', 'Sample Flow Low!'))
         else:
-            self.set_state(health=(4, 'sample', 'Sample Flow Too Low!'))
+            self.set_state(health=(4, 'sample','Sample Flow Too Low!'))
         self.set_property('sample', val)
 
     def on_shield(self, obj, val):
         if val > 5:
-            self.set_state(health=(0, 'shield'))
+            self.set_state(health=(0, 'shield', ''))
         elif val > 4:
-            self.set_state(health=(2, 'shield', 'Shield Flow Low!'))
+            self.set_state(health=(2, 'shield','Shield Flow Low!'))
         else:
-            self.set_state(health=(4, 'shield', 'Shield Flow Too Low!'))
+            self.set_state(health=(4, 'shield','Shield Flow Too Low!'))
         self.set_property('shield', val)
 
     def on_level(self, obj, val):
         if val < 15:
-            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
+            self.set_state(health=(4, 'cryo','Cryogen too low!'))
         elif val < 20:
-            self.set_state(health=(2, 'cryo', 'Cryogen low!'))
+            self.set_state(health=(2, 'cryo','Cryogen low!'))
         else:
-            self.set_state(health=(0, 'cryo'))
+            self.set_state(health=(0, 'cryo', ''))
+
         self.set_property('level', val)
 
     def on_nozzle(self, obj, val):
@@ -124,11 +125,11 @@ class CryoJet(CryoJetBase):
 
     def on_level(self, obj, val):
         if val < 150:
-            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
+            self.set_state(health=(4, 'cryo','Cryogen too low!'))
         elif val < 200:
-            self.set_state(health=(2, 'cryo', 'Cryogen low!'))
+            self.set_state(health=(2, 'cryo','Cryogen low!'))
         else:
-            self.set_state(health=(0, 'cryo'))
+            self.set_state(health=(0, 'cryo', ''))
         self.set_property('level', val/10.)
 
 
@@ -152,7 +153,7 @@ class CryoJet5(CryoJetBase):
 
 class SimCryoJet(CryoJetBase):
     def setup(self, *args, **kwargs):
-        self.nozzle = misc.SimShutter('Sim Cryo Nozzle')
+        self.nozzle = mxdc.devices.shutter.SimShutter('Sim Cryo Nozzle')
 
         self.temp_fbk = misc.SimPositioner('Cryo Temperature', pos=102.5, noise=3)
         self.sample_fbk = misc.SimPositioner('Cryo Sample flow', pos=6.5, noise=0.2)

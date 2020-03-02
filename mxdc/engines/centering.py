@@ -1,6 +1,3 @@
-
-
-import threading
 import time
 import traceback
 import uuid
@@ -8,12 +5,11 @@ from datetime import datetime
 
 import cv2
 import numpy
-from gi.repository import GObject
-from mxdc.beamlines.interfaces import IBeamline
-from mxdc.com import ca
+from gi.repository import GLib
+
+from mxdc import Registry, BaseEngine
 from mxdc.utils import imgproc, datatools, misc
 from mxdc.utils.log import get_module_logger
-from twisted.python.components import globalRegistry
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -25,19 +21,11 @@ _CENTERING_FLIGHT = 0
 _MAX_TRIES = 5
 
 
-class Centering(GObject.GObject):
-    __gsignals__ = {
-        'started': (GObject.SIGNAL_RUN_LAST, None, []),
-        'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'message': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
-    complete = GObject.Property(type=bool, default=False)
+class Centering(BaseEngine):
 
     def __init__(self):
-        super(Centering, self).__init__()
+        super().__init__()
         self.name = 'Auto Centering'
-        self.beamline = globalRegistry.lookup([], IBeamline)
         self.method = None
         self.score = 0.0
         self.methods = {
@@ -52,17 +40,10 @@ class Centering(GObject.GObject):
         from mxdc.controllers.samplestore import ISampleStore
         from mxdc.engines.rastering import IRasterCollector
 
-        self.microscope = globalRegistry.lookup([], IMicroscope)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
-        self.collector = globalRegistry.lookup([], IRasterCollector)
-
+        self.microscope = Registry.get_utility(IMicroscope)
+        self.sample_store = Registry.get_utility(ISampleStore)
+        self.collector = Registry.get_utility(IRasterCollector)
         self.method = self.methods[method]
-
-    def start(self):
-        worker = threading.Thread(target=self.run)
-        worker.setDaemon(True)
-        worker.setName('Centering')
-        worker.start()
 
     def screen_to_mm(self, x, y):
         mm_scale = self.beamline.sample_video.resolution
@@ -100,18 +81,17 @@ class Centering(GObject.GObject):
         return angle, info
 
     def run(self):
-        ca.threads_init()
         self.score = 0.0
         start_time = time.time()
         with self.beamline.lock:
-            GObject.idle_add(self.emit, 'started')
+            self.emit('started', None)
             try:
                 self.method()
             except Exception as e:
                 traceback.print_exc()
-                GObject.idle_add(self.emit, 'error', str(e))
+                self.emit('error', str(e))
             else:
-                GObject.idle_add(self.emit, 'done')
+                self.emit('done', None)
         logger.info('Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(time.time() - start_time,
                                                                                       100 * self.score))
 
@@ -174,7 +154,7 @@ class Centering(GObject.GObject):
         self.center_loop()
 
     def center_diffraction(self):
-        self.center_loop(3,1)
+        self.center_loop(3, 1)
         scores = []
         if self.score < 0.5:
             logger.error('Loop-centering failed, aborting!')
@@ -205,9 +185,9 @@ class Centering(GObject.GObject):
             if not len(points):
                 logger.error('Unable to find loop edges')
                 return
-                
+
             grid_info = self.microscope.calc_polygon_grid(points, grow=0.5, scaled=False)
-            GObject.idle_add(self.microscope.configure_grid, grid_info)
+            GLib.idle_add(self.microscope.configure_grid, grid_info)
             raster_params.update(grid_info['grid_params'])
             raster_params.update({
                 "exposure": 0.5,
@@ -270,39 +250,3 @@ class Centering(GObject.GObject):
         # if not self.beamline.sample_stage.is_busy():
         #     self.beamline.sample_stage.move_screen_by(xmm, 0.0, 0.0)
         self.score = numpy.mean(scores)
-
-def get_current_bkg():
-    """Move Sample back and capture background image
-    to be used for auto centering
-
-    """
-    try:
-        beamline = globalRegistry.lookup([], IBeamline)
-    except:
-        logger.warning('No registered beamline found')
-        return
-
-    # set lighting and zoom
-    _t = time.time()
-    dev = 100
-
-    # Save current position to return to
-    start_x, start_y, start_z = beamline.sample_stage.get_xyz()
-    number_left = 10
-
-    if beamline.config['orientation'] == 2:
-        offset = 0.5
-    elif beamline.config['orientation'] == 3:
-        offset = -0.5
-    else:
-        offset = 0.0
-
-    while dev > 1.0 and number_left > 0:
-        img1 = beamline.sample_video.get_frame()
-        beamline.sample_stage.move_xyz_by(offset, 0.0, 0.0)
-        img2 = beamline.sample_video.get_frame()
-        dev = imgproc.image_deviation(img1, img2)
-        number_left = number_left - 1
-    bkg = beamline.sample_video.get_frame()
-    beamline.sample_stage.move_xyz(start_x, start_y, start_z)
-    return bkg

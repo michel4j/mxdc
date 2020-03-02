@@ -8,7 +8,7 @@ from mxdc.engines.interfaces import IScanPlotter
 from mxdc.utils import fitting
 from mxdc.utils import xdi
 from mxdc.widgets import plotter
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 from zope.interface import implementer
 
 
@@ -28,7 +28,7 @@ class ScanPlotter(object):
         self.axis = self.plotter.axis[0]
         self.grid_scan = False
         self.start_time = 0
-        globalRegistry.register([], IScanPlotter, '', self)
+        Registry.add_utility(IScanPlotter, self)
 
     def link_scan(self, scan):
         # connect signals.

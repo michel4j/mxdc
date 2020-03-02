@@ -4,7 +4,7 @@ from collections import defaultdict
 from copy import copy
 
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject, GLib
-from twisted.python.components import globalRegistry
+from mxdc import Registry, Signal, SignalObject
 from zope.interface import Interface, implementer
 
 from mxdc.beamlines.mx import IBeamline
@@ -12,7 +12,6 @@ from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
 from mxdc.utils.automounter import Port, PortColors
 from mxdc.utils.decorators import async_call
-from mxdc.utils.types import SignalObject, Signal
 from .automounter import DewarController
 
 
@@ -97,8 +96,8 @@ class SampleStore(SignalObject):
         (Data.PRIORITY, 'Priority'),
     ])
 
-    class Signals:
-        updated = Signal("updated")
+    # Signals:
+    updated = Signal("updated", arg_types=())
 
     # properties
     cache = GObject.Property(type=object)
@@ -135,7 +134,7 @@ class SampleStore(SignalObject):
         self.widget = widget
         self.view.set_model(self.filter_model)
 
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
 
         self.setup()
         self.model.connect('row-changed', self.on_sample_row_changed)
@@ -154,7 +153,7 @@ class SampleStore(SignalObject):
         self.connect('notify::current-sample', self.on_cur_changed)
         self.connect('notify::next-sample', self.on_next_changed)
 
-        globalRegistry.register([], ISampleStore, '', self)
+        Registry.add_utility(ISampleStore, self)
 
     def get_current(self):
         return self.current_sample
@@ -215,7 +214,7 @@ class SampleStore(SignalObject):
             group_item.connect('notify::changed', self.on_group_changed)
             self.group_model.append(group_item)
             self.group_registry[name] = group_item
-        GLib.idle_add(self.emit, 'updated')
+        self.emit('updated')
         self.props.containers = self.containers
 
     def add_item(self, item):
@@ -319,7 +318,7 @@ class SampleStore(SignalObject):
         port = self.current_sample.get('port', '...') or '<manual>'
         self.widget.samples_cur_port.set_text(port)
         self.widget.samples_dismount_btn.set_sensitive(bool(self.current_sample))
-        GLib.idle_add(self.emit, 'updated')
+        self.emit('updated')
 
     def search_data(self, model, itr, dat):
         """Test if the row is visible"""
@@ -441,7 +440,7 @@ class SampleStore(SignalObject):
         self.model.clear()
         self.group_model.remove_all()
         self.group_registry = {}
-        GLib.idle_add(self.emit, 'updated')
+        self.emit('updated')
 
     def toggle_row(self, path):
         path = self.filter_model.convert_path_to_child_path(path)
@@ -564,8 +563,8 @@ class SampleQueue(GObject.GObject):
     def __init__(self, view):
         super(SampleQueue, self).__init__()
         self.view = view
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.beamline = Registry.get_utility(IBeamline)
+        self.sample_store = Registry.get_utility(ISampleStore)
         self.model = self.sample_store.model
         self.auto_queue = self.model.filter_new()
         self.auto_queue.set_visible_func(self.queued_data)

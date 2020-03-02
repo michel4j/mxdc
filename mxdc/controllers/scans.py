@@ -6,8 +6,7 @@ from datetime import datetime
 
 from enum import Enum
 from gi.repository import Gtk, GObject
-from twisted.python.components import globalRegistry
-
+from mxdc import Registry
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
@@ -75,7 +74,7 @@ class ScanController(GObject.GObject):
         self.plotter = plotter
         self.scanner = scanner
         self.edge_selector = edge_selector
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.sample_store = Registry.get_utility(ISampleStore)
         self.start_time = 0
         self.axis = 0
         self.pause_dialog = None
@@ -258,7 +257,7 @@ class ScanController(GObject.GObject):
                 self.pause_dialog.destroy()
                 self.pause_dialog = None
 
-    def on_started(self, scanner):
+    def on_started(self, scanner, data):
         self.axis = 0
         self.start_time = time.time()
         self.plotter.clear()
@@ -266,7 +265,7 @@ class ScanController(GObject.GObject):
         logger.info("{} Started.".format(self.desc))
         self.update_directory(scanner.config['directory'])
 
-    def on_stopped(self, scanner):
+    def on_stopped(self, scanner, data):
         self.props.state = self.StateType.READY
         self.progress_lbl.set_text("{} Stopped.".format(self.desc))
         self.eta.set_text('--:--')
@@ -279,7 +278,7 @@ class ScanController(GObject.GObject):
         error_dialog.run()
         error_dialog.destroy()
 
-    def on_done(self, scanner):
+    def on_done(self, scanner, data):
         self.props.state = self.StateType.READY
         self.progress_lbl.set_text("{} Completed.".format(self.desc))
         self.eta.set_text('--:--')
@@ -390,7 +389,7 @@ class MADScanController(ScanController):
 
     def setup(self):
         super(MADScanController, self).setup()
-        self.datasets = globalRegistry.lookup([], IDatasets)
+        self.datasets = Registry.get_utility(IDatasets)
         self.widget.mad_runs_btn.connect('clicked', self.add_mad_runs)
         self.results.connect('notify::run-info', self.on_run_info)
 
@@ -497,8 +496,8 @@ class XRFScanController(ScanController):
         self.results.model.connect('row-changed', self.on_annotation)
         self.results.connect('notify::directory', self.on_scan_selected)
 
-    def on_started(self, scanner):
-        super(XRFScanController, self).on_started(scanner)
+    def on_started(self, scanner, data):
+        super().on_started(scanner, data)
         self.results.clear()
 
     def on_scan_selected(self, *args, **kwargs):
@@ -619,8 +618,8 @@ class ScanManager(GObject.GObject):
     def __init__(self, widget):
         super(ScanManager, self).__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.beamline = Registry.get_utility(IBeamline)
+        self.sample_store = Registry.get_utility(ISampleStore)
         self.plotter = plotter.Plotter(xformat='%g')
         min_energy, max_energy = self.beamline.config['energy_range']
         self.edge_selector = periodictable.EdgeSelector(

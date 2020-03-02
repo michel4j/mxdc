@@ -18,7 +18,7 @@ class IScanPlotter(Interface):
     def on_start(scan, data):
         """Clear Scan and setup based on contents of info dictionary."""       
     
-    def on_progress(scan, data):
+    def on_progress(scan, data, message):
         """Progress handler."""
 
     def on_new_point(scan, data):

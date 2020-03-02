@@ -9,7 +9,7 @@ from ctypes import *
 from mxdc.utils import log
 import numpy
 from enum import Enum
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 
 # _setup module logger with a default do-nothing handler
 logger = log.get_module_logger(__name__)
@@ -205,15 +205,13 @@ class BasePV(GObject.GObject):
     Process Variable Base Class
     """
 
-    __gsignals__ = {
-        'changed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'time': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'active': (GObject.SignalFlags.RUN_FIRST, None, (bool,)),
-        'alarm': (GObject.SignalFlags.RUN_FIRST, None, (object,))
-    }
+    changed = GObject.Signal("changed", arg_types=(object,))
+    timed = GObject.Signal('time', arg_types=(object,))
+    active = GObject.Signal('active', arg_types=(bool,))
+    alarm = GObject.Signal('alarm', arg_types=(object,))
 
     def __init__(self, name, monitor=True):
-        GObject.GObject.__init__(self)
+        super().__init__()
         self._state = {'active': False, 'changed': 0, 'time': 0, 'alarm': (0, 0)}
 
     def set_state(self, **kwargs):
@@ -224,7 +222,7 @@ class BasePV(GObject.GObject):
         """
         for state, value in list(kwargs.items()):
             self._state[state] = value
-            GObject.idle_add(self.emit, state, value)
+            GLib.idle_add(self.emit, state, value)
 
     def get_state(self, item):
         return self._state.get(item)
@@ -289,7 +287,7 @@ class PV(BasePV):
         :param connect:  boolean, connect immediately. No deferred connection
         :param ignore_first: Do not emit signals for the very first value, since it doesn't actually represent a change
         """
-        super(PV, self).__init__(name, monitor=monitor)
+        super().__init__(name, monitor=monitor)
 
         self.state_info = {'active': False, 'changed': 0, 'time': 0, 'alarm': (0, 0)}
         self._dev_state_patt = re.compile('^(\w+)_state$')

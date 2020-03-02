@@ -1,5 +1,5 @@
 # BCM GLOBAL Settings for SIM Beamline
-
+import mxdc.devices.shutter
 from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
@@ -82,10 +82,10 @@ DEVICES = {
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
     #'synchrotron':  synchrotron.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
-    'psh1': misc.SimShutter('PSH1'),
-    'ssh1': misc.SimShutter('SSH2'),
-    'psh2': misc.SimShutter('PSH2'),
-    'fast_shutter': misc.SimShutter('Fast Shutter'),
+    'psh1': mxdc.devices.shutter.SimShutter('PSH1'),
+    'ssh1': mxdc.devices.shutter.SimShutter('SSH2'),
+    'psh2': mxdc.devices.shutter.SimShutter('PSH2'),
+    'fast_shutter': mxdc.devices.shutter.SimShutter('Fast Shutter'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
 
     # Intensity monitors, shutter, attenuation, mca etc

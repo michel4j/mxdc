@@ -6,7 +6,7 @@ from datetime import datetime
 
 from enum import Enum
 from gi.repository import Gtk, GObject
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
@@ -65,9 +65,9 @@ class RasterController(GObject.GObject):
         self.pause_dialog = None
         self.results = {}
 
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.microscope = globalRegistry.lookup([], IMicroscope)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.beamline = Registry.get_utility(IBeamline)
+        self.microscope = Registry.get_utility(IMicroscope)
+        self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = RasterCollector()
 
         self.manager = RasterResultsManager(self.view, colormap=self.microscope.props.grid_cmap)
@@ -226,7 +226,7 @@ class RasterController(GObject.GObject):
             self.widget.raster_stop_btn.set_sensitive(False)
             self.view.set_sensitive(True)
 
-    def on_started(self, collector):
+    def on_started(self, collector, data):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
         logger.info("Rastering Started.")
@@ -242,7 +242,7 @@ class RasterController(GObject.GObject):
         current_dir = directory.replace(home_dir, '~')
         self.widget.raster_dir_fbk.set_text(current_dir)
 
-    def on_done(self, obj=None):
+    def on_done(self, obj, data):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering Completed.")
         self.widget.raster_eta.set_text('--:--')
@@ -274,7 +274,7 @@ class RasterController(GObject.GObject):
         error_dialog.run()
         error_dialog.destroy()
 
-    def on_stopped(self, obj=None):
+    def on_stopped(self, obj, data):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering Stopped.")
         self.widget.raster_eta.set_text('--:--')
@@ -287,8 +287,8 @@ class RasterController(GObject.GObject):
         self.widget.raster_pbar.set_fraction(fraction)
         self.widget.raster_progress_lbl.set_text(message)
 
-    def on_new_image(self, widget, file_path):
-        image_viewer = globalRegistry.lookup([], IImageViewer)
+    def on_new_image(self, obj, file_path):
+        image_viewer = Registry.get_utility(IImageViewer)
         frame = os.path.splitext(os.path.basename(file_path))[0]
         image_viewer.open_frame(file_path)
         logger.info('Frame acquired: {}'.format(frame))
@@ -329,7 +329,7 @@ class RasterController(GObject.GObject):
             )
             self.widget.raster_dir_fbk.set_text(grid['config']['directory'])
         else:
-            image_viewer = globalRegistry.lookup([], IImageViewer)
+            image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.sample_stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
             image_viewer.open_image(item['filename'])
 

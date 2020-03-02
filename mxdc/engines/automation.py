@@ -1,12 +1,8 @@
-import threading
 import time
 import uuid
 
-from gi.repository import GObject
-from twisted.python.components import globalRegistry
 
-from mxdc.beamlines.interfaces import IBeamline
-from mxdc.com import ca
+from mxdc import Registry, Signal, BaseEngine
 from mxdc.engines import centering, auto
 from mxdc.engines.interfaces import IDataCollector
 from mxdc.utils import datatools
@@ -14,31 +10,23 @@ from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 
-class Automator(GObject.GObject):
+
+class Automator(BaseEngine):
+    TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
+
     class Task:
         (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = list(range(6))
 
-    TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
-
-    __gsignals__ = {
-        'progress': (GObject.SIGNAL_RUN_LAST, None, (float, str)),
-        'sample-done': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'sample-started': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
-        'started': (GObject.SIGNAL_RUN_LAST, None, []),
-        'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-    }
+    # Signals:
+    sample_done = Signal('sample-done', arg_types=(str,))
+    sample_started = Signal('sample-started', arg_types=(str,))
 
     def __init__(self):
-        super(Automator, self).__init__()
-        self.paused = False
+        super().__init__()
         self.pause_message = ''
-        self.stopped = True
         self.total = 1
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.collector = globalRegistry.lookup([], IDataCollector)
+
+        self.collector = Registry.get_utility(IDataCollector)
         self.centering = centering.Centering()
 
     def configure(self, samples, tasks):
@@ -46,38 +34,28 @@ class Automator(GObject.GObject):
         self.tasks = tasks
         self.total = len(tasks) * len(samples)
 
-    def start(self):
-        worker_thread = threading.Thread(target=self.run)
-        worker_thread.setDaemon(True)
-        worker_thread.setName('Automation')
-        self.paused = False
-        self.stopped = False
-        worker_thread.start()
-
-    def notify_progress(self, pos, task, sample):
+    def get_progress(self, pos, task, sample):
         fraction = float(pos) / self.total
         msg = '{}: {}/{}'.format(self.TaskNames[task['type']], sample['group'], sample['name'])
-        GObject.idle_add(self.emit, 'progress', fraction, msg)
+        return fraction, msg
 
     def run(self):
-        ca.threads_init()
-        GObject.idle_add(self.emit, 'started')
+        self.emit('started', None)
         pos = 0
         self.pause_message = ''
         first = True
         for sample in self.samples:
             if self.stopped: break
-            GObject.idle_add(self.emit, 'sample-started', sample['uuid'])
+            self.emit('sample-started', sample['uuid'])
             for task in self.tasks:
                 if self.paused:
                     self.intervene()
                 if self.stopped: break
                 pos += 1
-                self.notify_progress(pos, task, sample)
+                self.emit('progress', *self.get_progress(pos, task, sample), '')
                 logger.info(
                     'Sample: {}/{}, Task: {}'.format(sample['group'], sample['name'], self.TaskNames[task['type']])
                 )
-                time.sleep(5)
 
                 if task['type'] == self.Task.PAUSE:
                     self.intervene(
@@ -95,7 +73,8 @@ class Automator(GObject.GObject):
                                 'Please resume after manual centering. '
                             )
                     else:
-                        self.stop(error='Sample not mounted. Aborting!')
+                        self.emit('error', 'Sample not mounted. Aborting!')
+                        self.stop()
 
                 elif task['type'] == self.Task.MOUNT:
                     success = auto.auto_mount_manual(self.beamline, sample['port'])
@@ -107,7 +86,8 @@ class Automator(GObject.GObject):
                         logger.debug('Success: {}, Mounted: {}'.format(
                             success, self.beamline.automounter.is_mounted(sample['port'])
                         ))
-                        self.stop(error='Mouting Failed. Unable to continue automation!')
+                        self.emit('error', 'Mouting Failed. Unable to continue automation!')
+                        self.stop()
                 elif task['type'] == self.Task.ACQUIRE:
                     if self.beamline.automounter.is_mounted(sample['port']):
                         params = {}
@@ -118,48 +98,38 @@ class Automator(GObject.GObject):
                             sample['name'], params['directory']
                         ))
 
-                        self.collector.configure(params, take_snapshots=True, analysis=params.get('analysis'), anomalous=params.get('anomalous', False), first=first)
+                        self.collector.configure(
+                            params, take_snapshots=True, analysis=params.get('analysis'),
+                            anomalous=params.get('anomalous', False), first=first
+                        )
                         sample['results'] = self.collector.run()
-                        while not self.collector.complete:
-                            time.sleep(1)  # wait until collector is stopped
-                    else:
-                        self.stop(error='Sample not mounted. Unable to continue automation!')
 
-            GObject.idle_add(self.emit, 'sample-done', sample['uuid'])
+                    else:
+                        self.emit('error', 'Sample not mounted. Unable to continue automation!')
+                        self.stop()
+
+            self.emit('sample-done', sample['uuid'])
             first = False
 
         if self.stopped:
-            GObject.idle_add(self.emit, 'stopped')
+            self.emit('stopped', None)
             logger.info('Automation stopped')
 
         if not self.stopped:
             auto.auto_dismount_manual(self.beamline)
-            GObject.idle_add(self.emit, 'done')
+            self.emit('done', None)
             logger.info('Automation complete')
-
-    def pause(self, message=''):
-        if message:
-            logger.warn(message)
-        self.pause_message = message
-        self.paused = True
 
     def intervene(self, message=''):
         self.pause(message)
-        GObject.idle_add(self.emit, 'paused', True, self.pause_message)
         while self.paused and not self.stopped:
             time.sleep(0.1)
-        GObject.idle_add(self.emit, 'paused', False, '')
-        self.paused = False
+        self.resume()
 
     def resume(self):
-        self.paused = False
-        self.pause_message = ''
+        super().resume()
         self.collector.resume()
 
     def stop(self, error=''):
         self.collector.stop()
-        self.stopped = True
-        self.paused = False
-        if error:
-            logger.error(error)
-            GObject.idle_add(self.emit, 'error', error)
+        super().stop()

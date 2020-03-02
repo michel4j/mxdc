@@ -2,7 +2,7 @@ import time
 import uuid
 
 from gi.repository import Gtk, Gdk, GObject, Gio
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import gui, converter, datatools, glibref, misc
@@ -174,7 +174,7 @@ class DataEditor(gui.BuilderMixin):
 
     def __init__(self):
         self.setup_gui()
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.points = Gtk.ListStore(str, object, int)
         self.new_run = True
         self.run_index = 0

@@ -4,8 +4,7 @@ import time
 
 import numpy
 from gi.repository import GObject
-from mxdc import conf
-from mxdc.devices.base import BaseDevice
+from mxdc import conf, Signal, BaseDevice
 from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
 from zope.interface import implementer
@@ -20,9 +19,8 @@ class BasicMCA(BaseDevice):
     """Base class for single and multi-element fluorescence MCA detector objects."""
 
 
-    __gsignals__ = {
-        "deadtime": (GObject.SignalFlags.RUN_FIRST, None, (float,)),
-    }
+    # Signals:
+    deadtime = Signal("deadtime", arg_types=(float,))
 
     def __init__(self, *args, **kwargs):
         """All arguments and key-worded arguments are passed to :func:`custom_setup`
@@ -428,7 +426,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._energy_pos = 12.658
         self._roi_count = 0.0
         self.energy.connect('changed', self.on_energy_value)
-        self.set_state(active=True, health=(0, ''))
+        self.set_state(active=True, health=(0, '',''))
 
     def update_spectrum(self, edge):
         fwhm = 0.01

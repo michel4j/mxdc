@@ -1,5 +1,5 @@
 # BCM GLOBAL Settings for 08B1-1 Beamline
-
+import mxdc.devices.shutter
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import video, misc, mca, counter, manager
 from mxdc.devices.automounter import isara
@@ -65,7 +65,7 @@ DEVICES = {
     'two_theta': motor.PseudoMotor('BL08ID1:2Theta:deg'),
     'detector': detector.PilatusDetector('DEC1608-01:cam1'),
     #'detector': detector.SimCCDImager('Simulated CCD Detector', 4096, 0.07243),
-    'detector_cover': misc.Shutter('MSHD1608-3-I10-01'),
+    'detector_cover': mxdc.devices.shutter.Shutter('MSHD1608-3-I10-01'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z': motor.VMEMotor('SMTR16083I1016:mm'),
@@ -81,14 +81,14 @@ DEVICES = {
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.StorageRing('PCT1402-01:mA:fbk', 'SYSTEM:mode:fbk', 'SRStatus'),
-    'psh1': misc.Shutter('PSH1408-I00-01'),
-    'psh2': misc.Shutter('PSH1408-I00-02'),
-    'ssh1': misc.Shutter('SSH1408-I00-01'),
-    'ssh2': misc.Shutter('SSH1608-2-I10-01'),
+    'psh1': mxdc.devices.shutter.Shutter('PSH1408-I00-01'),
+    'psh2': mxdc.devices.shutter.Shutter('PSH1408-I00-02'),
+    'ssh1': mxdc.devices.shutter.Shutter('SSH1408-I00-01'),
+    'ssh2': mxdc.devices.shutter.Shutter('SSH1608-2-I10-01'),
     'enclosures': misc.Enclosures(
         poe1='ACIS1608-3-I10-01:poe1:secure', poe2='ACIS1608-3-I10-01:poe2:secure', soe='ACIS1608-3-I10-01:soe1:secure'
     ),
-    'fast_shutter': misc.Shutter('PSH16083I1001'),
+    'fast_shutter': mxdc.devices.shutter.Shutter('PSH16083I1001'),
 
     # Intensity monitors,
     'i_0': counter.Counter('AH501-03:QEM:SumAll:MeanValue_RBV'),

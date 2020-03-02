@@ -47,9 +47,9 @@ class Provider(GObject.GObject):
         try:
             ZCONF.register_service(self.info, allow_name_change=not unique)
         except:
-            GObject.idle_add(self.emit, 'collision')
+            self.emit('collision')
         else:
-            GObject.idle_add(self.emit, 'running')
+            self.emit('running')
 
     def __del__(self):
         ZCONF.unregister_service(self.info)
@@ -95,12 +95,12 @@ class Browser(GObject.GObject):
         }
 
         self.services[(info.name, self.service_type)] = parameters
-        GObject.idle_add(self.emit, 'added', parameters)
+        self.emit('added', parameters)
 
     def remove_service(self, bus, name):
         key = (name, bus)
         if key in self.services:
-            GObject.idle_add(self.emit, 'removed', self.services.pop(key))
+            self.emit('removed', self.services.pop(key))
 
     def update_service(self, bus, name):
         self.remove_service(bus, name)

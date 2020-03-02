@@ -5,7 +5,7 @@ import numpy
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice, Signal
+from mxdc import Signal, BaseDevice
 from mxdc.utils import converter
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
@@ -35,12 +35,11 @@ class MotorBase(BaseDevice):
     """
 
     # Motor signals
-    class Signals:
-        changed = Signal("changed", object)
-        starting = Signal("starting", ())
-        done = Signal("done", ())
-        target = Signal("target", object)
-        time = Signal("time", object)
+    changed = Signal("changed", arg_types=(float,))
+    starting = Signal("starting", arg_types=())
+    done = Signal("done", arg_types=())
+    target = Signal("target", arg_types=(object, float))
+    time = Signal("time", arg_types=(float,))
 
     def __init__(self, name, precision=2, units=''):
         super().__init__()
@@ -107,7 +106,7 @@ class MotorBase(BaseDevice):
         if state == self.moving_value:
             self.moving = True
             if self.command_active:
-                self.set_state(starting=None)
+                self.emit("starting")
                 self.command_active = False
         else:
             self.moving = False
@@ -124,9 +123,9 @@ class MotorBase(BaseDevice):
         @param value: value of process variable
         """
         if state == self.calibrated_value:
-            self.set_state(health=(0, 'calib'))
+            self.set_state(health=(0, 'calib', ''))
         else:
-            self.set_state(health=(4, 'calib', 'Device Not Calibrated!'))
+            self.set_state(health=(4, 'calib' ,'Not Calibrated!'))
 
     def notify_enable(self, obj, val):
         """
@@ -159,27 +158,28 @@ class MotorBase(BaseDevice):
             current = current % 360.0
         return abs(round(current - value, precision)) <= 10 ** -precision
 
-    def wait_start(self, timeout=10, poll=0.01):
+    def wait_start(self, timeout=2, poll=0.05):
         """
         Wait for motor to start moving
         @param timeout: Maximum time to wait before failing
         @param poll: Time step between checking motor state
         @return: (boolean), True if motor started successfully
         """
-        if self.command_active and not self.busy_state:
+        if self.command_active and not self.is_busy():
             logger.debug('Waiting for {} to start '.format(self.name))
-            while self.command_active and not self.busy_state and timeout > 0:
-                timeout -= poll
+            elapsed = 0
+            while self.command_active and not self.is_busy() and elapsed < timeout:
+                elapsed += poll
                 time.sleep(poll)
                 if self.has_reached(self.target_position):
                     self.command_active = False
                     logger.debug('{} already at {:g}'.format(self.name, self.target_position))
-            if timeout <= 0:
-                logger.warning('({}) Timed out. Did not move after {:g} sec.'.format(self.name, timeout))
+            if elapsed >= timeout:
+                logger.warning('"{}" Timed out. Did not move after {:g} sec.'.format(self.name, elapsed))
                 return False
         return True
 
-    def wait_stop(self, target=None, timeout=120, poll=0.01):
+    def wait_stop(self, target=None, timeout=120, poll=0.05):
         """
         Wait for motor to stop moving.
 
@@ -188,26 +188,27 @@ class MotorBase(BaseDevice):
         @param poll: Time step between checking motor state
         @return: (boolean), True if motor stopped successfully or if it is not moving.
         """
+        elapsed = 0
         if target is not None:
             logger.debug('Waiting for {} to reach {:g}.'.format(self.name, target))
-            while (self.busy_state or not self.has_reached(target)) and timeout > 0:
-                timeout -= poll
+            while (self.is_busy() or not self.has_reached(target)) and elapsed < timeout:
+                elapsed += poll
                 time.sleep(poll)
 
-            if timeout <= 0:
+            if elapsed >= timeout:
                 logger.warning(
-                    '({}) Timed-out. Did not reach {:g} after {:g} sec.'.format(
-                        self.name, self.target_position, timeout)
+                    '"{}" Timed-out. Did not reach {:g} after {:g} sec.'.format(
+                        self.name, self.target_position, elapsed)
                 )
                 return False
         else:
             logger.debug('Waiting for {} to stop '.format(self.name))
-            while self.busy_state and timeout > 0:
-                timeout -= poll
+            while self.is_busy() and elapsed < timeout:
+                elapsed += poll
                 time.sleep(poll)
-            if timeout <= 0:
+            if elapsed >= timeout:
                 logger.warning(
-                    '({}) Timed-out. Did not stop moving after {:d} sec.'.format(self.name, timeout)
+                    '({}) Timed-out. Did not stop moving after {:d} sec.'.format(self.name, elapsed)
                 )
                 return False
         return True
@@ -232,19 +233,18 @@ class MotorBase(BaseDevice):
 @implementer(IMotor)
 class SimMotor(MotorBase):
 
-    def __init__(self, name, pos=0, units='mm', speed=10.0, active=True, precision=3, health=(0, '')):
+    def __init__(self, name, pos=0, units='mm', speed=5.0, active=True, precision=3, health=(0, '', '')):
         super().__init__(name, precision=precision, units=units)
         self.default_speed = speed
 
         self._status = 0
-        self._step_time = .001  # 1000 steps per second
+        self._step_time = .01  # 100 steps per second
         self._stopped = False
-        self._enabled = True
         self._lock = Lock()
         self._active = active
         self._health = health
         self._position = pos
-        self._target = None
+        self._target = pos
 
         self.configure(speed=speed)
         self.initialize()
@@ -253,7 +253,7 @@ class SimMotor(MotorBase):
         pass
 
     def initialize(self):
-        self.set_state(health=self._health, active=self._active)
+        self.set_state(health=self._health, active=self._active, enabled=True)
         self.notify_target(self, self._position)
         self.notify_change(self, self._position)
 
@@ -620,8 +620,8 @@ class ResolutionMotor(MotorBase):
         self.distance.connect('changed', self.notify_change)
 
         self.distance.connect('busy', self.notify_motion)
-        self.distance.connect('starting', lambda obj, val: self.set_state(starting=val))
-        self.distance.connect('done', lambda obj: self.set_state(done=None))
+        self.distance.connect('starting', lambda x: self.emit("starting"))
+        self.distance.connect('done', lambda x: self.emit("done"))
 
     def setup(self):
         pass  # no process variables needed

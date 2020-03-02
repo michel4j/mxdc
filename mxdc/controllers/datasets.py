@@ -3,14 +3,16 @@ import os
 import time
 
 from gi.repository import GObject, Gio, Gtk
-from twisted.python.components import globalRegistry
+
+import mxdc
+from mxdc import Registry
 from zope.interface import Interface
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
 from mxdc.engines.diffraction import DataCollector
-from mxdc.utils import converter, datatools, misc, types
+from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
@@ -66,17 +68,17 @@ class ConfigDisplay(object):
                 field.set_text(format.format(self.item.props.info[name]))
 
 
-class AutomationController(types.SignalObject):
+class AutomationController(mxdc.SignalObject):
     class StateType:
         STOPPED, PAUSED, ACTIVE, PENDING = list(range(4))
 
     state = GObject.Property(type=int, default=0)
 
     def __init__(self, widget):
-        super(AutomationController, self).__init__()
+        super().__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.image_viewer = globalRegistry.lookup([], IImageViewer)
+        self.beamline = Registry.get_utility(IBeamline)
+        self.image_viewer = Registry.get_utility(IImageViewer)
         self.run_dialog = datawidget.DataDialog()
         self.widget.auto_edit_acq_btn.set_popover(self.run_dialog.popover)
         self.automation_queue = SampleQueue(self.widget.auto_queue)
@@ -255,13 +257,13 @@ class AutomationController(types.SignalObject):
     def on_sample_started(self, obj, uuid):
         self.automation_queue.mark_progress(uuid, SampleStore.Progress.ACTIVE)
 
-    def on_done(self, obj=None):
+    def on_done(self, obj, data):
         self.props.state = self.StateType.STOPPED
         self.widget.auto_progress_lbl.set_text("Automation Completed.")
         self.widget.auto_eta.set_text('--:--')
         self.widget.auto_pbar.set_fraction(1.0)
 
-    def on_stopped(self, obj=None):
+    def on_stopped(self, obj, data):
         self.props.state = self.StateType.STOPPED
         self.widget.auto_progress_lbl.set_text("Automation Stopped.")
         self.widget.auto_eta.set_text('--:--')
@@ -294,7 +296,7 @@ class AutomationController(types.SignalObject):
         error_dialog.run()
         error_dialog.destroy()
 
-    def on_started(self, obj):
+    def on_started(self, obj, data):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
         logger.info("Automation Started.")
@@ -328,16 +330,16 @@ class AutomationController(types.SignalObject):
                 self.image_viewer.set_collect_mode(True)
 
 
-class DatasetsController(types.SignalObject):
-    class Signals:
-        changed = types.Signal('samples-changed', object)
-        active = types.Signal('active-sample', object)
-        selected = types.Signal('sample-selected', object)
+class DatasetsController(mxdc.SignalObject):
+    # Signals:
+    changed = mxdc.Signal('samples-changed', arg_types=(object,))
+    active = mxdc.Signal('active-sample', arg_types=(object,))
+    selected = mxdc.Signal('sample-selected', arg_types=(object,))
 
     def __init__(self, widget):
         super().__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.collector = DataCollector()
         self.collecting = False
         self.stopping = False
@@ -346,7 +348,7 @@ class DatasetsController(types.SignalObject):
         self.monitors = {}
         self.frame_manager = {}
         self.image_viewer = ImageViewer()
-        self.microscope = globalRegistry.lookup([], IMicroscope)
+        self.microscope = Registry.get_utility(IMicroscope)
         self.run_editor = datawidget.RunEditor()
         self.editor_frame = arrowframe.ArrowFrame()
         self.editor_frame.add(self.run_editor.data_form)
@@ -361,7 +363,7 @@ class DatasetsController(types.SignalObject):
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
-        globalRegistry.register([], IDatasets, '', self)
+        Registry.add_utility(IDatasets, self)
         self.setup()
 
     def import_from_cache(self):
@@ -392,7 +394,7 @@ class DatasetsController(types.SignalObject):
         self.run_editor.data_delete_btn.connect('clicked', self.on_delete_run)
         self.run_editor.data_copy_btn.connect('clicked', self.on_copy_run)
         self.run_editor.data_save_btn.connect('clicked', self.on_save_run)
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.sample_store = Registry.get_utility(ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
 
         self.run_editor.set_points(self.microscope.props.points)
@@ -638,20 +640,20 @@ class DatasetsController(types.SignalObject):
         self.run_editor.set_item(new_item)
         self.editor_frame.set_row(next_row)
 
-    def on_progress(self, obj, fraction):
+    def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
         remaining_time = (1 - fraction) * used_time / fraction
         eta_time = remaining_time
         self.widget.collect_eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
         self.widget.collect_pbar.set_fraction(fraction)
 
-    def on_done(self, obj=None):
+    def on_done(self, obj, data):
         self.on_complete(obj)
         self.widget.collect_eta.set_text('--:--')
         self.widget.collect_pbar.set_fraction(1.0)
         self.widget.collect_progress_lbl.set_text('Data acquisition completed.')
 
-    def on_stopped(self, obj=None):
+    def on_stopped(self, obj, data):
         self.widget.collect_eta.set_text('--:--')
         self.on_complete(obj)
 
@@ -674,7 +676,7 @@ class DatasetsController(types.SignalObject):
         if self.pause_info:
             self.widget.notifier.close()
 
-    def on_started(self, obj):
+    def on_started(self, obj, data):
         self.start_time = time.time()
         self.widget.datasets_collect_btn.set_sensitive(True)
         self.widget.datasets_clean_btn.set_sensitive(False)

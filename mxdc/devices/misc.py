@@ -5,12 +5,10 @@ import numpy
 from gi.repository import GLib
 from zope.interface import implementer
 
-from mxdc import registry
+from mxdc import Registry, Signal, BaseDevice
 from mxdc.com.ca import PV
-from mxdc.devices.base import BaseDevice, Signal
 from mxdc.devices.motor import MotorBase
-from mxdc.utils import converter, misc
-from mxdc.utils.decorators import async_call
+from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
 from .interfaces import *
 
@@ -26,8 +24,8 @@ class PositionerBase(BaseDevice):
         - `changed` : Data is the new value of the devices.
     """
 
-    class Signals:
-        changed = Signal("changed", object)
+    # Signals:
+    changed = Signal("changed", arg_types=(object,))
 
     def __init__(self):
         super().__init__()
@@ -70,9 +68,9 @@ class SimPositioner(PositionerBase):
 
         self.units = units
         if active:
-            self.set_state(changed=self._pos, active=active, health=(0, ''))
+            self.set_state(changed=self._pos, active=active, health=(0, '',''))
         else:
-            self.set_state(changed=self._pos, active=active, health=(16, 'disabled'))
+            self.set_state(changed=self._pos, active=active, health=(16, 'disabled',''))
 
         if not isinstance(pos, (list, tuple)) and (self._noise > 0 or self._delay):
             GLib.timeout_add(1000, self._drive)
@@ -184,9 +182,9 @@ class SimChoicePositioner(PositionerBase):
         self.choices = choices
         self._pos = value
         if active:
-            self.set_state(changed=self._pos, active=active, health=(0, ''))
+            self.set_state(changed=self._pos, active=active, health=(0, '', ''))
         else:
-            self.set_state(changed=self._pos, active=active, health=(16, 'disabled'))
+            self.set_state(changed=self._pos, active=active, health=(16, 'disabled', ''))
 
     def get(self):
         return self._pos
@@ -220,8 +218,9 @@ class SampleLight(Positioner):
 
 @implementer(IOnOff)
 class OnOffToggle(BaseDevice):
-    class Signals:
-        changed = Signal("changed", bool)
+
+    # Signals:
+    changed = Signal("changed", arg_types=(bool,))
 
     def __init__(self, pv_name, values=(1, 0)):
         super().__init__()
@@ -240,7 +239,7 @@ class OnOffToggle(BaseDevice):
     off = set_off
 
     def is_on(self):
-        return self.changed_state
+        return self.is_changed()
 
     def on_changed(self, obj, val):
         self.set_state(changed=(val == self.on_value))
@@ -300,7 +299,7 @@ class PositionerMotor(MotorBase):
         time.sleep(0.02)
 
 
-registry.register([IPositioner], IMotor, '', PositionerMotor)
+Registry.add_adapter([IPositioner], IMotor, '', PositionerMotor)
 
 
 class Attenuator(PositionerBase):
@@ -420,222 +419,16 @@ class Attenuator2(Attenuator):
                 self._open[i].put(1)
 
 
-@implementer(IShutter)
-class BasicShutter(BaseDevice):
-    class Signals:
-        changed = Signal("changed", bool)
-
-    def __init__(self, open_name, close_name, state_name):
-        super().__init__()
-        # initialize variables
-        self._open_cmd = self.add_pv(open_name)
-        self._close_cmd = self.add_pv(close_name)
-        self._state = self.add_pv(state_name)
-        self._state.connect('changed', self._signal_change)
-        self._messages = ['Opening', 'Closing']
-        self.name = open_name.split(':')[0]
-
-    def is_open(self):
-        """Convenience function for open state"""
-        return self.changed_state
-
-    def open(self, wait=False):
-        if self.changed_state:
-            return
-        logger.debug(' '.join([self._messages[0], self.name]))
-        self._open_cmd.put(1, wait=True)
-        self._open_cmd.put(0)
-        if wait:
-            self.wait(state=True)
-
-    def close(self, wait=False):
-        if not self.changed_state:
-            return
-        logger.debug(' '.join([self._messages[1], self.name]))
-        self._close_cmd.put(1, wait=True)
-        self._close_cmd.put(0)
-        if wait:
-            self.wait(state=False)
-
-    def wait(self, state=True, timeout=5.0):
-        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
-        while self.changed_state != state and timeout > 0:
-            time.sleep(0.1)
-            timeout -= 0.1
-        if timeout <= 0:
-            logger.warning('Timed-out waiting for %s.' % (self.name))
-
-    def _signal_change(self, obj, value):
-        if value == 1:
-            self.set_state(changed=True)
-        else:
-            self.set_state(changed=False)
-
-
-@implementer(IShutter)
-class StateLessShutter(BaseDevice):
-    class Signals:
-        changed = Signal("changed", object)
-
-    def __init__(self, open_name, close_name):
-        super().__init__()
-        # initialize variables
-        self._open_cmd = self.add_pv(open_name)
-        self._close_cmd = self.add_pv(close_name)
-        self._messages = ['Opening', 'Closing']
-        self.name = open_name.split(':')[0]
-
-    def open(self, wait=False):
-        logger.debug(' '.join([self._messages[0], self.name]))
-        self._open_cmd.toggle(1, 0)
-
-    def close(self, wait=False):
-        logger.debug(' '.join([self._messages[1], self.name]))
-        self._close_cmd.toggle(1, 0)
-
-    def wait(self, state=True, timeout=5.0):
-        logger.debug('Stateless Shutter wont wait (%s).' % (self.name))
-
-
-@implementer(IShutter)
-class ToggleShutter(BaseDevice):
-    class Signals:
-        changed = Signal("changed", bool)
-
-    def __init__(self, name, reversed=False):
-        super().__init__()
-        self.cmd = self.add_pv(name)
-        self.reversed = reversed
-        self.cmd.connect('changed', self._signal_change)
-        self._messages = ['Opening', 'Closing']
-        self.name = name
-
-    def is_open(self):
-        """Convenience function for open state"""
-        return self.changed_state
-
-    def open(self, wait=False):
-        logger.debug(' '.join([self._messages[0], self.name]))
-        self.cmd.put(1 if not self.reversed else 0)
-        if wait:
-            self.wait(state=True)
-
-    def close(self, wait=False):
-        logger.debug(' '.join([self._messages[1], self.name]))
-        self.cmd.put(0 if not self.reversed else 1)
-        if wait:
-            self.wait(state=False)
-
-    def wait(self, state=True, timeout=5.0):
-        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
-        while self.changed_state != state and timeout > 0:
-            time.sleep(0.1)
-            timeout -= 0.1
-        if timeout <= 0:
-            logger.warning('Timed-out waiting for %s.' % (self.name))
-
-    def _signal_change(self, obj, value):
-        if value == 1:
-            self.set_state(changed=(not self.reversed))
-        else:
-            self.set_state(changed=self.reversed)
-
-
-@implementer(IShutter)
-class ShutterGroup(BaseDevice):
-    class Signals:
-        changed = Signal("changed", bool)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self._dev_list = list(args)
-        self.add_devices(*self._dev_list)
-        self.name = 'Beamline Shutters'
-        for dev in self._dev_list:
-            dev.connect('changed', self.handle_change)
-
-    def is_open(self):
-        """Convenience function for open state"""
-        return self.changed_state
-
-    def handle_change(self, obj, val):
-        if val:
-            if misc.every([dev.changed_state for dev in self._dev_list]):
-                self.set_state(changed=True, health=(0, 'state'))
-        else:
-            self.set_state(changed=False, health=(2, 'state', 'Not Open!'))
-
-    @async_call
-    def open(self, wait=False):
-        for dev in self._dev_list:
-            dev.open(wait=True)
-
-    @async_call
-    def close(self, wait=False):
-        newlist = self._dev_list[:]
-        newlist.reverse()
-        for i, dev in enumerate(newlist):
-            dev.close(wait=True)
-
-    def wait(self, state=True, timeout=5.0):
-        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
-        while self.changed_state != state and timeout > 0:
-            time.sleep(0.1)
-            timeout -= 0.1
-        if timeout <= 0:
-            logger.warning('Timed-out waiting for %s.' % (self.name))
-
-
-@implementer(IShutter)
-class SimShutter(BaseDevice):
-    class Signals:
-        changed = Signal("changed", bool)
-
-    def __init__(self, name):
-        super().__init__()
-        self.name = name
-        self._state = False
-        self.set_state(active=True, changed=self._state)
-
-    def is_open(self):
-        """Convenience function for open state"""
-        return self.changed_state
-
-    def open(self, wait=False):
-        self._state = True
-        self.set_state(changed=True)
-
-    def close(self, wait=False):
-        self._state = False
-        self.set_state(changed=False)
-
-    def wait(self, state=True, timeout=5.0):
-        pass
-
-
-class Shutter(BasicShutter):
-    def __init__(self, name):
-        open_name = "{}:opr:open".format(name)
-        close_name = "{}:opr:close".format(name)
-        state_name = "{}:state".format(name)
-        super().__init__(open_name, close_name, state_name)
-
-
 class DiskSpaceMonitor(BaseDevice):
     """An object which periodically monitors a given path for available space."""
 
     def __init__(self, descr, path, warn=0.05, critical=0.025, freq=5.0):
         """
-        Args:
-            - `descr` (str): A description.
-            - `path` (str): Path to monitor.
-            
-        Kwargs:
-            - `warn` (float): Warn if fraction of used space goes above this
-              value.
-            - `critical` (float): Raise and error i if fraction of used space 
-              goes above this value.              
-            -`freq` (float): Frequency in minutes to check disk usage. Default (5)
+        :param descr: Description
+        :param path: Path to monitor
+        :param warn: Warn if Fraction of available space goes below
+        :param critical: Raise alarm if Fraction of available space goes below
+        :param freq: Frequency in minutes to check space
         """
         super().__init__()
         self.name = descr
@@ -644,18 +437,27 @@ class DiskSpaceMonitor(BaseDevice):
         self.error_threshold = critical
         self.frequency = int(freq * 60 * 1000)
         self.set_state(active=True)
-        self._check_space()
-        GLib.timeout_add(self.frequency, self._check_space)
+        self.check_space()
+        GLib.timeout_add(self.frequency, self.check_space)
 
-    def _humanize(self, sz):
+    def humanize(self, size):
+        """
+        Convert disk space to human friendly units
+        :param size: disk size
+        :return: human friendly size string
+        """
         symbols = ('', 'K', 'M', 'G', 'T', 'P')
         base_sz = numpy.ones(len(symbols))
         base_sz[1:] = 1 << (numpy.arange(len(symbols) - 1) + 1) * 10
-        idx = numpy.where(base_sz <= sz)[0][-1]
-        value = float(sz) / base_sz[idx]
+        idx = numpy.where(base_sz <= size)[0][-1]
+        value = float(size) / base_sz[idx]
         return "{:0.2f} {}B".format(value, symbols[idx])
 
-    def _check_space(self):
+    def check_space(self):
+        """
+        Check disk space and emit health signals accordingly
+        :return:
+        """
         try:
             fs_stat = os.statvfs(self.path)
         except OSError:
@@ -664,15 +466,15 @@ class DiskSpaceMonitor(BaseDevice):
             total = float(fs_stat.f_frsize * fs_stat.f_blocks)
             avail = float(fs_stat.f_frsize * fs_stat.f_bavail)
             fraction = avail / total
-            msg = '{} ({:0.1f} %) available.'.format(self._humanize(avail), fraction * 100)
+            msg = '{} ({:0.1f} %) available.'.format(self.humanize(avail), fraction * 100)
             if fraction < self.error_threshold:
                 self.set_state(health=(4, 'usage', msg))
                 logger.error(msg)
             elif fraction < self.warn_threshold:
-                self.set_state(health=(2, 'usage', msg))
+                self.set_state(health=(2, 'usage',msg))
                 logger.warn(msg)
             else:
-                self.set_state(health=(0, 'usage', msg))
+                self.set_state(health=(0, 'usage',msg))
         return True
 
 
@@ -697,6 +499,6 @@ class Enclosures(BaseDevice):
     def handle_change(self, obj, val):
         self.ready = all([p.get() == 1 for p in list(self.hutches.values())])
         if not self.ready:
-            self.set_state(health=(2, 'ready', self.get_messages()))
+            self.set_state(health=(2, 'ready',self.get_messages()))
         else:
-            self.set_state(health=(0, 'ready', self.get_messages()))
+            self.set_state(health=(0, 'ready',self.get_messages()))

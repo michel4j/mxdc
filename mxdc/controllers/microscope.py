@@ -4,7 +4,7 @@ import os
 import numpy
 from gi.repository import Gtk, Gdk, GObject
 from matplotlib.path import Path
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.beamlines.mx import IBeamline
@@ -85,12 +85,12 @@ class Microscope(GObject.GObject):
         self.measurement = numpy.array([[0, 0], [0, 0]])
 
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.camera = self.beamline.sample_video
         self.centering = centering.Centering()
         self.setup()
 
-        globalRegistry.register([], IMicroscope, '', self)
+        Registry.add_utility(IMicroscope, self)
         self.load_from_cache()
 
     def setup(self):

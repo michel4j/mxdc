@@ -8,25 +8,25 @@ from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 
-from mxdc.utils.types import SignalObject, Signal
-from twisted.python.components import globalRegistry
+from mxdc import Registry, SignalObject
+
 logger = get_module_logger(__name__)
 
 
 class DewarController(SignalObject):
 
-    class Signals:
-        selected = Signal("selected", str)
+    # Signals
+    selected = GObject.Signal("selected", arg_types=(str,))
 
     layout = GObject.Property(type=object)
     ports = GObject.Property(type=object)
     containers = GObject.Property(type=object)
 
     def __init__(self, widget, store):
-        super(DewarController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.store = store
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.setup()
         self.failure_dialog = None
         self.messages = [(None, "")]
@@ -145,15 +145,12 @@ class DewarController(SignalObject):
         if self.allow_port(loc, port):
             self.emit('selected', port)
 
-    def on_state_changed(self, obj, val):
-        code, h_msg = self.beamline.automounter.health_state
+    def on_state_changed(self, obj, *args):
+        health = self.beamline.automounter.get_state('health')
         status = self.beamline.automounter.status
 
         if status.name in ['IDLE', ]:
             self.widget.automounter_command_box.set_sensitive(True)
-        else:
-            #self.widget.automounter_command_box.set_sensitive(False)
-            pass
 
         self.widget.automounter_status_fbk.set_text(status.name)
 

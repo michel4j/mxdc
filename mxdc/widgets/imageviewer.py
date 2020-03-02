@@ -11,7 +11,7 @@ from gi.repository import Gtk
 from mxdc.utils import gui
 from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 from zope.interface import Interface
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.reflections = []
 
         self.build_gui()
-        globalRegistry.register([], IImageViewer, '', self)
+        Registry.add_utility(IImageViewer, self)
 
     def build_gui(self):
         self.info_dialog.set_transient_for(dialogs.MAIN_WINDOW)

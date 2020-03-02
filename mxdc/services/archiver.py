@@ -87,7 +87,7 @@ class RsyncApp(object):
         src_sz = self._humanize(get_directory_size(self.src))
         dst_avl, dst_pct = self._check_space(self.dest)[1:]
         tgt_sz = self._humanize(get_directory_size(self.tgt))
-        # dst_sz = self._humanize(get_directory_size(self.dest))
+        # dst_sz = self.humanize(get_directory_size(self.dest))
         return src_sz, tgt_sz, dst_avl, dst_pct
 
     def run(self):

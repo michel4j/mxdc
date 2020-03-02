@@ -1,5 +1,5 @@
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
@@ -14,7 +14,7 @@ class SamplesController(GObject.GObject):
     def __init__(self, widget):
         super(SamplesController, self).__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.microscope = microscope.Microscope(self.widget)
         self.cryo_tool = cryo.CryoController(self.widget)
         self.sample_store = samplestore.SampleStore(self.widget.samples_list, self.widget)
@@ -47,7 +47,7 @@ class HutchSamplesController(GObject.GObject):
         self.props.ports = {}
         self.props.containers = {}
 
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.microscope = microscope.Microscope(self.widget)
         self.cryo_tool = cryo.CryoController(self.widget)
         self.sample_dewar = automounter.DewarController(self.widget, self)

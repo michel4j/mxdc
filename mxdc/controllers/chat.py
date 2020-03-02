@@ -1,5 +1,5 @@
 from mxdc.beamlines.mx import IBeamline
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 from datetime import datetime
 from gi.repository  import GObject, Gtk, Gio, Gdk
 
@@ -66,7 +66,7 @@ class ChatMessageRTL(ChatMessageLTR):
 class ChatController(object):
     def __init__(self, widget):
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.messages = Gio.ListStore(item_type=Message)
         self.widget.chat_messages.bind_model(self.messages, self.create_message)
         self.widget.chat_user_fbk.set_text(misc.get_project_name())

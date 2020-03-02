@@ -414,13 +414,13 @@ def _all_files(root, patterns='*'):
 
     """
     patterns = patterns.split(';')
-    path, subdirs, files = os.walk(root).next()
     sfiles = []
-    for name in files:
-        for pattern in patterns:
-            if fnmatch.fnmatch(name, pattern):
-                sfiles.append(name)
-    sfiles.sort()
+    for path, subdirs, files in os.walk(root):
+        for name in files:
+            for pattern in patterns:
+                if fnmatch.fnmatch(name, pattern):
+                    sfiles.append(name)
+        break
     return sfiles
 
 
@@ -439,7 +439,7 @@ def get_disk_frameset(directory, file_glob):
             os.path.getmtime(os.path.join(directory, data_files[-1])), tz=pytz.utc
         )
     text = ' '.join(data_files)
-    full_set = map(int, re.findall(file_pattern, text))
+    full_set = list(map(int, re.findall(file_pattern, text)))
 
     return summarize_list(full_set), len(full_set), start_time, end_time
 
@@ -447,7 +447,7 @@ def get_disk_frameset(directory, file_glob):
 def frameset_to_list(frame_set):
     frame_numbers = []
     ranges = filter(None, frame_set.split(','))
-    wlist = [map(int, filter(None, w.split('-'))) for w in ranges]
+    wlist = [list(map(int, filter(None, w.split('-')))) for w in ranges]
     for v in wlist:
         if len(v) == 2:
             frame_numbers.extend(range(v[0], v[1] + 1))

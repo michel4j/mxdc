@@ -12,7 +12,7 @@ from zope.interface import implementer
 
 from mxdc.com import ca
 from mxdc.utils import decorators
-from mxdc.devices.base import BaseDevice, Signal
+from mxdc import Signal, BaseDevice
 from mxdc.utils.log import get_module_logger
 
 from .interfaces import IImagingDetector
@@ -24,10 +24,12 @@ TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 
 
 @implementer(IImagingDetector)
-class SimDetector(BaseDevice):
-    class Signals:
-        new_image = Signal("new-image", str)
+class BaseDetector(BaseDevice):
+    # Signals:
+    new_image = Signal("new-image", arg_types=(str,))
 
+
+class SimDetector(BaseDetector):
     def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
         super().__init__()
         self.size = int(size), int(size)
@@ -37,7 +39,7 @@ class SimDetector(BaseDevice):
         self.detector_type = detector_type
         self.shutterless = False
         self.file_extension = 'img'
-        self.set_state(active=True, health=(0, ''))
+        self.set_state(active=True, health=(0, '', ''))
         self.sim_images_src = images
         self._datasets = {}
         self._powders = {}
@@ -108,7 +110,7 @@ class SimDetector(BaseDevice):
         file_path = os.path.join(file_parms['directory'], file_name)
         shutil.copyfile(src_img, file_path)
         logger.debug('Frame saved: %s' % datetime.now().isoformat())
-        GLib.idle_add(self.emit, 'new-image', file_path)
+        self.emit('new-image', file_path)
 
     def save(self, wait=False):
         self._copy_frame()
@@ -134,9 +136,7 @@ class SimDetector(BaseDevice):
 
 
 @implementer(IImagingDetector)
-class PilatusDetector(BaseDevice):
-    class Signals:
-        new_image = Signal("new-image", str)
+class PilatusDetector(BaseDetector):
 
     STATES = {
         'acquiring': [1],
@@ -237,7 +237,7 @@ class PilatusDetector(BaseDevice):
             self.settings['file_prefix'].get(),
             frame_number
         )
-        GLib.idle_add(self.emit, 'new-image', file_path)
+        self.emit('new-image', file_path)
 
     def wait(self, state='idle'):
         return self.wait_for_state(state)
@@ -277,7 +277,7 @@ class PilatusDetector(BaseDevice):
         if state == 0:
             self.set_state(health=(4, 'socket', 'Detector disconnected!'))
         else:
-            self.set_state(health=(0, 'socket'))
+            self.set_state(health=(0, 'socket', ''))
 
     def wait_in_state(self, state, timeout=60):
         logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state, ))
@@ -295,11 +295,8 @@ class PilatusDetector(BaseDevice):
         return self.acquire_status.get() in self.STATES.get(state, [])
 
 
-@implementer(IImagingDetector)
-class RayonixDetector(BaseDevice):
 
-    class Signals:
-        new_image = Signal("new-image", str)
+class RayonixDetector(BaseDetector):
 
     STATES = {
         'init': [8],
@@ -403,12 +400,12 @@ class RayonixDetector(BaseDevice):
             self.initialized = False
             self.set_state(health=(4, 'socket', 'Detector disconnected!'))
         else:
-            self.set_state(health=(0, 'socket'))
+            self.set_state(health=(0, 'socket', ''))
 
     def on_new_frame(self, obj, state):
         if state == 2:
             file_path = self.saved_filename.get()
-            GLib.idle_add(self.emit, 'new-image', file_path)
+            self.emit('new-image', file_path)
 
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
@@ -458,10 +455,7 @@ class RayonixDetector(BaseDevice):
         return any(self.state_value.get() in self.STATES.get(state, []) for state in states)
 
 
-@implementer(IImagingDetector)
-class ADSCDetector(BaseDevice):
-    class Signals:
-        new_image = Signal("new-image", str)
+class ADSCDetector(BaseDetector):
 
     STATES = {
         'init': [8],
@@ -525,7 +519,6 @@ class ADSCDetector(BaseDevice):
         }
         self.connected_status.connect('changed', self.on_connection_changed)
 
-
     def initialize(self, wait=True):
         logger.debug('({}) Initializing Detector ...'.format(self.name))
         self.initialized = True
@@ -566,11 +559,11 @@ class ADSCDetector(BaseDevice):
             self.initialized = False
             self.set_state(health=(4, 'socket', 'Detector disconnected!'))
         else:
-            self.set_state(health=(0, 'socket'))
+            self.set_state(health=(0, 'socket', ''))
 
     def on_new_frame(self, obj, path):
         file_path = self.saved_filename.get()
-        GLib.idle_add(self.emit, 'new-image', file_path)
+        self.emit('new-image', file_path)
 
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
@@ -623,11 +616,7 @@ class ADSCDetector(BaseDevice):
         return any(checks)
 
 
-@implementer(IImagingDetector)
-class EigerDetector(BaseDevice):
-
-    class Signals:
-        new_image = Signal("new-image", str)
+class EigerDetector(BaseDetector):
 
     STATES = {
         'acquiring': [1],
@@ -729,7 +718,7 @@ class EigerDetector(BaseDevice):
         #     self.settings['file_prefix'].get(),
         #     frame_number
         # )
-        GLib.idle_add(self.emit, 'new-image', directory)
+        self.emit('new-image', directory)
 
     def wait(self, state='idle'):
         if state == 'idle':
@@ -758,9 +747,9 @@ class EigerDetector(BaseDevice):
 
     def on_connection_changed(self, obj, state):
         if state == 0:
-            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
+            self.set_state(health=(4, 'socket','Detector disconnected!'))
         else:
-            self.set_state(health=(0, 'socket'))
+            self.set_state(health=(0, 'socket', ''))
 
     def on_acquire_status(self, obj, state):
         self.set_state(busy=(state == 1))
@@ -792,6 +781,5 @@ class EigerDetector(BaseDevice):
         else:
             logger.warning('{} timed out! Not idle after {} seconds'.format(self.name, elapsed))
             return False
-
 
 __all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector', 'EigerDetector']

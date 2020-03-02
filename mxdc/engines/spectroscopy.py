@@ -5,8 +5,7 @@ from datetime import datetime
 
 import pytz
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
-
+from mxdc import Registry, Signal
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.chooch import AutoChooch
 from mxdc.engines.scanning import BasicScan
@@ -22,16 +21,12 @@ logger = get_module_logger(__name__)
 class XRFScanner(BasicScan):
     """
     X-Ray Fluorescence Spectroscopy (XRF) Scan. Sample is exposed at a fixed energy and the
-    spectrum of all emission peaks for elements absorbing at or below the beam
+    spectrum of all _emission peaks for elements absorbing at or below the beam
     energy is acquired for a fixed amount of time.
     """
     name = 'XRF Scan'
 
-    def __init__(self):
-        super(XRFScanner, self).__init__()
-
     def configure(self, info):
-        self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
         self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name'], info['energy']))
         self.config['user'] = misc.get_project_name()
@@ -40,13 +35,8 @@ class XRFScanner(BasicScan):
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
-    def notify_progress(self, pos, message):
-        fraction = float(pos) / self.total
-        GObject.idle_add(self.emit, "progress", fraction, message)
-        GObject.idle_add(self.emit, "message", message)
-
     def prepare_for_scan(self):
-        self.notify_progress(0.01, "Preparing devices ...")
+        self.emit("progress", 0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['energy'])
         self.beamline.manager.collect(wait=True)
         self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
@@ -65,26 +55,26 @@ class XRFScanner(BasicScan):
         self.data = numpy.core.records.fromarrays(raw_data.transpose(), dtype=self.data_types)
         return self.data
 
-    def run(self):
+    def scan(self):
         logger.debug('Excitation Scan waiting for beamline to become available.')
         self.total = 4
         with self.beamline.lock:
             saved_attenuation = self.beamline.attenuator.get()
             try:
-                GObject.idle_add(self.emit, 'started')
+                self.emit('started', None)
                 self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.prepare_for_scan()
-                self.notify_progress(1, "Acquiring spectrum ...")
+                self.emit("progress", 1 / self.total, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
                 raw_data = self.beamline.mca.acquire(t=self.config['exposure'])
                 self.set_data(raw_data)
                 self.beamline.fast_shutter.close()
                 self.config['end_time'] = datetime.now(tz=pytz.utc)
                 self.save(self.config['filename'])
-                self.notify_progress(3, "Interpreting spectrum ...")
+                self.emit("progress", 3 / self.total, "Interpreting spectrum ...")
                 self.analyse()
                 self.save_metadata()
-                GObject.idle_add(self.emit, "done")
+                self.emit("done", None)
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
@@ -179,17 +169,16 @@ class XRFScanner(BasicScan):
 class MADScanner(BasicScan):
     """
     Multi-Wavelength Anomalous Dispersion (MAD) Scan. Monochromator is scanned around a specific  absorption-edge
-    in a stepwise manner and the total emission for the selected absorption-edge is recorded for a fixed amount of time.
+    in a stepwise manner and the total _emission for the selected absorption-edge is recorded for a fixed amount of time.
     """
     name = 'MAD Scan'
 
     def __init__(self):
-        super(MADScanner, self).__init__()
+        super().__init__()
         self.emissions = get_energy_database()
         self.autochooch = AutoChooch()
 
     def configure(self, info):
-        self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
 
         self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
@@ -200,13 +189,9 @@ class MADScanner(BasicScan):
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
-    def notify_progress(self, pos, message):
-        fraction = float(pos) / self.total
-        GObject.idle_add(self.emit, "progress", fraction, message)
-        GObject.idle_add(self.emit, "message", message)
 
     def prepare_for_scan(self):
-        self.notify_progress(0.01, "Preparing devices ...")
+        self.emit("progress", 0.01, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
         self.beamline.manager.collect(wait=True)
         self.beamline.mca.configure(
@@ -216,10 +201,10 @@ class MADScanner(BasicScan):
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
         self.beamline.goniometer.wait(start=False)
-        self.notify_progress(0.02, "Waiting for beam to stabilize ...")
+        self.emit("progress", 0.02, "Waiting for beam to stabilize ...")
         time.sleep(3)
 
-    def run(self):
+    def scan(self):
         logger.info('Edge Scan waiting for beamline to become available.')
 
         with self.beamline.lock:
@@ -228,20 +213,20 @@ class MADScanner(BasicScan):
             self.data_rows = []
             self.results = {}
             try:
-                GObject.idle_add(self.emit, 'started')
+                self.emit('started', None)
                 self.prepare_for_scan()
                 self.beamline.fast_shutter.open()
                 reference = 0.0
                 self.config['start_time'] = datetime.now(tz=pytz.utc)
                 for i, x in enumerate(self.config['targets']):
                     if self.paused:
-                        GObject.idle_add(self.emit, 'paused', True, '')
+                        self.emit('paused', True, '')
                         logger.warning("Edge Scan paused at point %s." % str(x))
                         while self.paused and not self.stopped:
                             time.sleep(0.05)
                         self.beamline.manager.collect(wait=True)
                         self.beamline.mca.configure(cooling=True, nozzle=True)
-                        GObject.idle_add(self.emit, 'paused', False, '')
+                        self.emit('paused', False, '')
                         logger.info("Scan resumed.")
                     if self.stopped:
                         logger.info("Scan stopped!")
@@ -256,10 +241,8 @@ class MADScanner(BasicScan):
                         scale = float(reference) / i0
 
                     self.data_rows.append((x, y * scale, y, i0))
-                    GObject.idle_add(self.emit, "new-point", (x, y * scale, y, i0))
-
-                    msg = "Scanning {} of {} ...".format(i, self.total)
-                    self.notify_progress(i + 1, msg)
+                    self.emit("new-point", (x, y * scale, y, i0))
+                    self.emit("progress", (i + 1) / self.total, "Scanning {} of {} ...".format(i, self.total))
                     time.sleep(0)
 
                 self.set_data(self.data_rows)
@@ -268,17 +251,17 @@ class MADScanner(BasicScan):
                 if self.stopped:
                     logger.warning("Scan stopped.")
                     self.save_metadata()
-                    GObject.idle_add(self.emit, "stopped")
+                    self.emit("stopped", None)
                 else:
                     logger.info("Scan complete. Performing Analyses")
                     success = self.analyse()
                     if success:
                         self.save_metadata()
-                        GObject.idle_add(self.emit, "done")
+                        self.emit("done", None)
                     else:
-                        GObject.idle_add(self.emit, "stopped")
+                        self.emit("stopped", None)
             except ValueError:
-                GObject.idle_add(self.emit, "stopped")
+                self.emit("error", "Scan Error!")
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.fast_shutter.close()
@@ -303,7 +286,7 @@ class MADScanner(BasicScan):
                 logger.info("MAD Analysis Saved: {}".format(filename))
                 return True
         else:
-            GObject.idle_add(self.emit, 'error', 'Analysis Failed')
+            self.emit('error', 'MAD Analysis Failed')
             return False
 
     def set_data(self, raw_data):
@@ -365,19 +348,20 @@ class MADScanner(BasicScan):
 class XASScanner(BasicScan):
     """
     X-Ray Absorption Spectroscopy (XAS, XANES, EXAFS). Monochromator is scanned around a specific  absorption-edge
-    in a stepwise manner and the total emission for the selected absorption-edge is recorded.
+    in a stepwise manner and the total _emission for the selected absorption-edge is recorded.
     """
-    __gsignals__ = {'new-scan': (GObject.SignalFlags.RUN_FIRST, None, (int,))}
+    # Signals:
+    new_scan = Signal('new-scan', arg_types=(int,))
+
     name = 'XAS Scan'
 
     def __init__(self):
-        super(XASScanner, self).__init__()
+        super().__init__()
         self.emissions = get_energy_database()
         self.total_time = 0
         self.scan_index = 0
 
     def configure(self, info):
-        self.beamline = globalRegistry.lookup([], IBeamline)
         self.config = copy.deepcopy(info)
         self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
         self.config['frame_template'] = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '{:0>3d}')
@@ -388,13 +372,8 @@ class XASScanner(BasicScan):
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
-    def notify_progress(self, used_time, message):
-        fraction = float(used_time) / max(abs(self.total_time), 1)
-        GObject.idle_add(self.emit, "progress", fraction, message)
-        GObject.idle_add(self.emit, "message", message)
-
     def prepare_for_scan(self):
-        self.notify_progress(0.001, "Preparing devices ...")
+        self.emit("progress", 0.001, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
         self.beamline.manager.collect(wait=True)
         self.beamline.multi_mca.configure(
@@ -404,10 +383,10 @@ class XASScanner(BasicScan):
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
         self.beamline.goniometer.wait(start=False)
-        self.notify_progress(0.002, "Waiting for beam to stabilize ...")
+        self.emit("progress", 0.002, "Waiting for beam to stabilize ...")
         time.sleep(3)
 
-    def run(self):
+    def scan(self):
         logger.info('Scan waiting for beamline to become available.')
 
         with self.beamline.lock:
@@ -415,13 +394,13 @@ class XASScanner(BasicScan):
             self.data_rows = []
             self.results = {'data': [], 'scans': []}
             try:
-                GObject.idle_add(self.emit, 'started')
+                self.emit('started', None)
                 self.prepare_for_scan()
                 self.beamline.fast_shutter.open()
                 self.beamline.fast_shutter.open()
 
                 # calculate k and time for each target point
-                self.total_time = 0.0
+                self.total_time = 1.0
                 targets_times = []
                 for i, v in enumerate(self.config['targets']):
                     k = converter.energy_to_kspace(v - self.config['edge_energy'])
@@ -429,6 +408,7 @@ class XASScanner(BasicScan):
                     targets_times.append((i, v, k, t))
                     self.total_time += t
                 self.total_time *= self.config['scans']
+
                 used_time = 0.0
                 scan_length = len(self.config['targets'])
                 reference = 1.0
@@ -437,14 +417,14 @@ class XASScanner(BasicScan):
                     self.scan_index = scan + 1
                     for i, x, k, t in targets_times:
                         if self.paused:
-                            GObject.idle_add(self.emit, 'paused', True, '')
+                            self.emit('paused', True, '')
                             logger.warning("Edge Scan paused at point %s." % str(x))
                             while self.paused and not self.stopped:
                                 time.sleep(0.05)
 
                             self.beamline.manager.collect(wait=True)
                             self.beamline.multi_mca.configure(nozzle=True, cooling=True)
-                            GObject.idle_add(self.emit, 'paused', False, '')
+                            self.emit('paused', False, '')
                             logger.info("Scan resumed.")
                         if self.stopped:
                             logger.info("Scan stopped!")
@@ -468,9 +448,9 @@ class XASScanner(BasicScan):
                         data_point[1] = corrected_sum
                         self.data_rows.append(tuple(data_point))
                         used_time += t
-                        GObject.idle_add(self.emit, "new-point", (x, y * scale, y, i0))
+                        self.emit("new-point", (x, y * scale, y, i0))
                         msg = "Scan {}/{}:  Point {}/{}...".format(scan + 1, self.config['scans'], i, scan_length)
-                        self.notify_progress(used_time, msg)
+                        self.emit("progress", used_time / self.total_time, msg)
                         time.sleep(0)
                     data = self.set_data(self.data_rows)
                     self.results['data'].append(data)
@@ -478,16 +458,16 @@ class XASScanner(BasicScan):
                     filename = os.path.join(self.config['directory'], self.config['frame_template'].format(scan + 1))
                     self.save(filename)
                     self.analyse()
-                    GObject.idle_add(self.emit, 'new-scan', scan + 1)
+                    self.emit('new-scan', scan + 1)
                     self.data_rows = []
 
                 if self.stopped:
                     logger.warning("Scan stopped.")
-                    GObject.idle_add(self.emit, "stopped")
+                    self.emit("stopped", None)
 
                 else:
                     logger.info("Scan complete.")
-                    GObject.idle_add(self.emit, "done")
+                    self.emit("done", None)
                 self.save_metadata()
 
             finally:

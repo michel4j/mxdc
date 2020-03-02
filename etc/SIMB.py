@@ -1,5 +1,5 @@
 # BCM GLOBAL Settings for SIM Beamline
-
+import mxdc.devices.shutter
 from mxdc.com import ca
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
@@ -14,7 +14,7 @@ CONFIG = {
     'mono_unit_cell': 5.4297575,
     'source': 'CLS Sim SGU',
     'type': 'mx',
-    'subnet': '0.0.0.0/32',
+    'subnet': '192.0.0.0/32',
 
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 
@@ -49,7 +49,7 @@ DEVICES = {
     # Goniometer/goniometer head devices
     'manager': manager.SimModeManager(),
     'goniometer': goniometer.SimGonio(),
-    'omega': motor.SimMotor('Omega', 0.0, 'deg', speed=120.0, precision=3),
+    'omega': motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3),
     'sample_x': motor.SimMotor('Sample X', 0.0, units='mm', speed=0.2),
     'sample_y1': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
     'sample_y2': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
@@ -84,10 +84,10 @@ DEVICES = {
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
     #'synchrotron':  synchrotron.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
-    'psh1': misc.SimShutter('PSH1'),
-    'ssh1': misc.SimShutter('SSH2'),
-    'psh2': misc.SimShutter('PSH2'),
-    'fast_shutter': misc.SimShutter('Fast Shutter'),
+    'psh1': mxdc.devices.shutter.SimShutter('PSH1'),
+    'ssh1': mxdc.devices.shutter.SimShutter('SSH2'),
+    'psh2': mxdc.devices.shutter.SimShutter('PSH2'),
+    'fast_shutter': mxdc.devices.shutter.SimShutter('Fast Shutter'),
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
 
     # Intensity monitors, shutter, attenuation, mca etc
@@ -110,7 +110,7 @@ DEVICES = {
 
 # lims, dpm, imagesync and other services
 SERVICES = {
-    'dss': clients.DSSClient(),
+    'dss': clients.LocalDSSClient(),
     #'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
     'lims': clients.MxLIVEClient('http://localhost:8000'),
     'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),

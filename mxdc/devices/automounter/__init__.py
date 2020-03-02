@@ -4,7 +4,7 @@ from enum import Enum
 from zope.interface import implementer
 from gi.repository import GObject
 
-from mxdc.devices.base import BaseDevice
+from mxdc import BaseDevice
 from mxdc.devices.interfaces import IAutomounter
 from mxdc.utils.log import get_module_logger
 

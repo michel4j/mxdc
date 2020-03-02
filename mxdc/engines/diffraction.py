@@ -1,19 +1,16 @@
 import os
-import threading
 import time
 from datetime import datetime
 
 import pytz
-from gi.repository import GObject
-from twisted.python.components import globalRegistry
+from gi.repository import GObject, GLib
 from zope.interface import implementer
 
-from mxdc.beamlines.interfaces import IBeamline
+from mxdc import Registry, Signal, SignalObject, BaseEngine
 from mxdc.com import ca
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc
-from mxdc.utils.types import Signal, SignalObject
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 
@@ -22,26 +19,18 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IDataCollector)
-class DataCollector(SignalObject):
+class DataCollector(BaseEngine):
 
-    class Signals:
-        new_image = Signal('new-image', str)
-        progress = Signal('progress', float)
-        done = Signal('done')
-        paused = Signal('paused', (bool, str))
-        started = Signal('started')
-        stopped = Signal('stopped')
-        error = Signal('error', str)
-        message = Signal('message', str)
+    # Signals:
+    new_image = Signal('new-image', arg_types=(str,))
+    message = Signal('message', arg_types=(str,))
 
-    # Properties
-    complete = GObject.Property(type=bool, default=False)
+    # Properties:
     name = 'Data Collector'
 
     def __init__(self):
         super().__init__()
-        self.paused = False
-        self.stopped = True
+
         self.collecting = False
         self.run_list = []
         self.runs = []
@@ -49,12 +38,11 @@ class DataCollector(SignalObject):
         self.config = {}
         self.total_frames = 0
         self.count = 0
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.analyst = globalRegistry.lookup([], IAnalyst)
+        self.analyst = Registry.get_utility(IAnalyst)
         self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
         self.unwatch_frames()
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
-        globalRegistry.register([], IDataCollector, '', self)
+        Registry.add_utility(IDataCollector, self)
 
     def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False, first=False):
         self.config['analysis'] = analysis
@@ -72,20 +60,7 @@ class DataCollector(SignalObject):
             frame_list = [wedge['frame_template'].format(i + wedge['first']) for i in range(wedge['num_frames'])]
             self.beamline.detector.delete(wedge['directory'], *frame_list)
 
-    def start(self):
-        worker = threading.Thread(target=self.run)
-        worker.setDaemon(True)
-        worker.setName('Data Collector')
-        worker.start()
-
-    def is_busy(self):
-        return self.collecting
-
     def run(self):
-        self.props.complete = False
-        self.paused = False
-        self.stopped = False
-        ca.threads_init()
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
         self.count = self.config['existing']
@@ -99,7 +74,7 @@ class DataCollector(SignalObject):
             # Take snapshots and prepare endstation mode
             self.take_snapshots()
             self.beamline.manager.collect(wait=True)
-            GObject.idle_add(self.emit, 'started')
+            self.emit('started', None)
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             try:
                 if self.beamline.detector.shutterless:
@@ -120,16 +95,16 @@ class DataCollector(SignalObject):
                 self.analyse(metadata, dataset['sample'], first=self.config.get('first', False))
 
         if not (self.stopped or self.paused):
-            GObject.idle_add(self.emit, 'done')
-
-        if self.stopped or not self.paused:
-            self.props.complete = True
-            GObject.idle_add(self.emit, 'done')
+            self.emit('done', None)
+        elif self.stopped or not self.paused:
+            self.emit('done', self.results)
+        elif self.stopped:
+            self.emit('stopped', None)
 
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
         self.beamline.detector_cover.close()
-        GObject.timeout_add(5000, self.unwatch_frames)
+        GLib.timeout_add(5000, self.unwatch_frames)
         return self.results
 
     def run_default(self):
@@ -159,7 +134,7 @@ class DataCollector(SignalObject):
                 # prepare goniometer for scan
                 self.beamline.goniometer.configure(
                     time=frame['exposure'], delta=frame['delta'], angle=frame['start'],
-                    num_frames=frame['num_frames']
+                    num_frames=1
                 )
 
                 if self.stopped or self.paused: break
@@ -320,11 +295,11 @@ class DataCollector(SignalObject):
     def on_new_image(self, obj, file_path):
         self.count += 1
         fraction = float(self.count) / max(1, self.total_frames)
-        GObject.idle_add(self.emit, 'new-image', file_path)
+        self.emit('new-image', file_path)
         if not (self.paused or self.stopped):
-            GObject.idle_add(self.emit, 'progress', fraction)
+            self.emit('progress', fraction, '')
 
-        GObject.idle_add(self.emit, "message", "Acquired frame {}/{}".format(self.count, self.total_frames))
+        self.emit("message", "Acquired frame {}/{}".format(self.count, self.total_frames))
 
     def on_beam_change(self, obj, available):
         if not (self.stopped or self.paused) and self.collecting and not available:
@@ -360,28 +335,18 @@ class DataCollector(SignalObject):
         if self.paused:
             # wait for 1 minute then open all shutters before resuming
             message = "Beam available! Resuming data acquisition in 30 seconds!"
-            GObject.idle_add(self.emit, 'paused', False, message)
-            GObject.timeout_add(30000, self.resume_sequence)
+            self.emit('paused', False, message)
+            GLib.timeout_add(30000, self.resume_sequence)
 
-    def pause(self, message):
-        logger.info("Pausing Collection ...")
-        self.paused = True
+    def pause(self, reason=''):
+        super().pause(reason)
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
-        GObject.idle_add(self.emit, 'paused', True, message)
 
     def stop(self):
-        logger.info("Stopping Collection ...")
-        self.stopped = True
-        self.paused = False
+        super().stop()
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
-        while self.collecting:
-            time.sleep(0.1)
-        GObject.idle_add(self.emit, 'stopped')
-
-    def message(self, text):
-        GObject.idle_add(self.emit, 'message', text)
 
     def watch_frames(self):
         self.beamline.detector.handler_unblock(self.frame_link)

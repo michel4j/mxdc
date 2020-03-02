@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 from gi.repository import GObject
 from twisted.internet.defer import returnValue, inlineCallbacks
-from twisted.python.components import globalRegistry
+from mxdc import Registry, Signal, BaseEngine
 from zope.interface import Interface, implementer
 
 from mxdc.beamlines.interfaces import IBeamline
@@ -31,22 +31,13 @@ class IRasterCollector(Interface):
 
 
 @implementer(IRasterCollector)
-class RasterCollector(GObject.GObject):
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'result': (GObject.SIGNAL_RUN_LAST, None, (int, object)),
-        'progress': (GObject.SIGNAL_RUN_LAST, None, (float, str)),
-        'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'paused': (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
-        'started': (GObject.SIGNAL_RUN_LAST, None, []),
-        'stopped': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
-    }
+class RasterCollector(BaseEngine):
+    # Signals:
+    image = Signal('new-image', arg_types=(str,))
+    result = Signal('result', arg_types=(int, object))
 
     def __init__(self):
-        GObject.GObject.__init__(self)
-        self.paused = False
-        self.stopped = True
+        super().__init__()
         self.collecting = False
         self.pending_results = set()
         self.runs = []
@@ -55,22 +46,15 @@ class RasterCollector(GObject.GObject):
         self.total_frames = 0
         self.count = 0
 
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.analyst = globalRegistry.lookup([], IAnalyst)
+        self.analyst = Registry.get_utility(IAnalyst)
         self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
         self.unwatch_frames()
-        globalRegistry.register([], IRasterCollector, '', self)
+        Registry.add_utility(IRasterCollector, self)
 
     def configure(self, grid, parameters):
         self.config['grid'] = grid
         self.config['params'] = parameters
         self.config['frames'] = datatools.generate_grid_frames(grid, parameters)
-
-    def start(self):
-        worker_thread = threading.Thread(target=self.run)
-        worker_thread.setDaemon(True)
-        worker_thread.setName('Raster Collector')
-        worker_thread.start()
 
     def prepare(self, params):
         self.beamline.detector_cover.open(wait=True)
@@ -91,11 +75,10 @@ class RasterCollector(GObject.GObject):
         self.beamline.manager.collect(wait=True)
 
     def run(self):
-        ca.threads_init()
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
-            GObject.idle_add(self.emit, 'started')
+            self.emit('started', None)
             try:
                 self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.acquire()
@@ -114,11 +97,10 @@ class RasterCollector(GObject.GObject):
 
         self.config['end_time'] = datetime.now(tz=pytz.utc)
         if self.stopped:
-            GObject.idle_add(self.emit, 'stopped')
+            self.emit('stopped', None)
         else:
-            GObject.idle_add(self.emit, 'done')
+            self.emit('done', None)
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
-
         self.beamline.detector_cover.close()
 
     def acquire(self):
@@ -134,10 +116,10 @@ class RasterCollector(GObject.GObject):
         logger.debug('Acquiring {} rastering frames ... '.format(len(self.config['frames'])))
         for frame in self.config['frames']:
             if self.paused:
-                GObject.idle_add(self.emit, 'paused', True, '')
+                self.emit('paused', True, '')
                 while self.paused and not self.stopped:
                     time.sleep(0.1)
-                GObject.idle_add(self.emit, 'paused', False, '')
+                self.emit('paused', False, '')
 
             if self.stopped: break
 
@@ -171,7 +153,8 @@ class RasterCollector(GObject.GObject):
             self.beamline.detector.save()
 
             self.count += 1
-            self.notify_progress(self.count)
+            msg = '{}: {} of {}'.format(self.config['params']['name'], self.count, self.total_frames)
+            self.emit('progress', self.count / self.total_frames, msg)
 
             is_first_frame = False
             time.sleep(0)
@@ -189,29 +172,9 @@ class RasterCollector(GObject.GObject):
     def unwatch_frames(self):
         self.beamline.detector.handler_block(self.frame_link)
 
-    def pause(self, message=''):
-        if message:
-            logger.warn(message)
-        self.pause_message = message
-        self.paused = True
-
-    def resume(self):
-        self.paused = False
-
-    def stop(self, error=''):
-        self.stopped = True
-        self.paused = False
-        if error:
-            logger.error(error)
-            GObject.idle_add(self.emit, 'error', error)
-
-    def notify_progress(self, pos):
-        fraction = float(pos) / self.total_frames
-        msg = '{}: {} of {}'.format(self.config['params']['name'], pos, self.total_frames)
-        GObject.idle_add(self.emit, 'progress', fraction, msg)
 
     def on_new_image(self, obj, file_path):
-        GObject.idle_add(self.emit, 'new-image', file_path)
+        self.emit('new-image', file_path)
         self.analyse_frame(file_path)
 
     @inlineCallbacks
@@ -242,7 +205,7 @@ class RasterCollector(GObject.GObject):
         info = result
         info['filename'] = path
         self.results[index] = info
-        GObject.idle_add(self.emit, 'result', index, info)
+        self.emit('result', index, info)
         self.pending_results.remove(path)
 
     def result_fail(self, error, cell, file_path):
