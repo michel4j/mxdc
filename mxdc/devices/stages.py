@@ -3,8 +3,7 @@ import time
 import numpy
 from gi.repository import GObject
 from zope.interface import implementer
-
-from mxdc.devices.base import BaseDevice
+from mxdc import Signal, BaseDevice
 from mxdc.utils.log import get_module_logger
 from .interfaces import IDevice
 
@@ -50,9 +49,8 @@ class ISampleStage(IDevice):
 
 @implementer(ISampleStage)
 class SampleStageBase(BaseDevice):
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
+    # Signals:
+    changed = Signal("changed", arg_types=(object,))
 
     def xyz_to_xvw(self, x, y, z):
         return x, numpy.hypot(y, z), numpy.arctan2(z, y)
@@ -124,7 +122,7 @@ class SampleStage(SampleStageBase):
 
     def emit_change(self, *args, **kwargs):
         pos = (self.get_omega(), self.x.get_position(), self.y1.get_position(), self.y2.get_position())
-        self.set_state(changed=pos)
+        self.set_state(changed=(pos,))
 
     def get_xvw(self):
         """x = horizontal, v = vertical, w= angle in radians"""

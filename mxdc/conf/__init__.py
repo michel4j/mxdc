@@ -116,7 +116,7 @@ def load_cache(realm):
     if os.path.exists(cache_file):
         try:
             with open(cache_file, 'rb') as handle:
-                data = msgpack.load(handle, encoding="utf-8")
+                data = msgpack.load(handle)
         except (IOError, msgpack.UnpackValueError):
             os.remove(cache_file)
     return data

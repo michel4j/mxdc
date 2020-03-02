@@ -1,15 +1,13 @@
-import threading
+import inspect
 import time
 from datetime import datetime
-import inspect
+
 import numpy
-from gi.repository import GObject
 from scipy import interpolate
-from twisted.python.components import globalRegistry
 from zope.interface import implementer
 
+from mxdc import Registry, Signal, BaseEngine
 from mxdc.beamlines.mx import IBeamline
-from mxdc.com import ca
 from mxdc.devices.interfaces import IMotor, ICounter
 from mxdc.engines.interfaces import IScan, IScanPlotter
 from mxdc.utils import misc, xdi
@@ -19,29 +17,16 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-class ScanError(Exception):
-    """Scan Error."""
-
-
 @implementer(IScan)
-class BasicScan(GObject.GObject):
+class BasicScan(BaseEngine):
     name = 'Basic Scan'
-    __gsignals__ = {}
-    __gsignals__['new-point'] = (GObject.SignalFlags.RUN_FIRST, None, (object,))
-    __gsignals__['progress'] = (GObject.SignalFlags.RUN_FIRST, None, (float, str,))
-    __gsignals__['done'] = (GObject.SignalFlags.RUN_FIRST, None, [])
-    __gsignals__['started'] = (GObject.SignalFlags.RUN_FIRST, None, [])
-    __gsignals__['message'] = (GObject.SignalFlags.RUN_FIRST, None, (str,))
-    __gsignals__['busy'] = (GObject.SignalFlags.RUN_FIRST, None, (bool,))
-    __gsignals__['error'] = (GObject.SignalFlags.RUN_FIRST, None, (str,))
-    __gsignals__['stopped'] = (GObject.SignalFlags.RUN_FIRST, None, [])
-    __gsignals__['paused'] = (GObject.SignalFlags.RUN_FIRST, None, [object, bool])
+
+    # Signals
+    new_point = Signal('new-point', arg_types=(object,))
+    message = Signal('message', arg_types=(str,))
 
     def __init__(self):
-        super(BasicScan, self).__init__()
-        self.stopped = False
-        self.paused = False
-        self.busy = False
+        super().__init__()
         self.send_notification = False
         self.append = False
         self.config = misc.DotDict({})
@@ -51,16 +36,12 @@ class BasicScan(GObject.GObject):
         self.data_rows = []
         self.total = 0
         self.plotter = None
-        self.beamline = None
+
         self.start_time = None
         self.end_time = None
 
-    def is_busy(self):
-        return self.busy
-
     def configure(self, *args, **kwargs):
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.plotter = globalRegistry.lookup([], IScanPlotter)
+        self.plotter = Registry.get_utility(IScanPlotter)
         if self.plotter:
             self.plotter.link_scan(self)
         self.data = []
@@ -78,31 +59,16 @@ class BasicScan(GObject.GObject):
             self.append = True
         if not self.append:
             self.data_rows = []
-        worker_thread = threading.Thread(target=self._thread_run)
-        worker_thread.setName(self.__class__.__name__)
-        worker_thread.setDaemon(True)
         self.start_time = datetime.now()
-        worker_thread.start()
-
-    def _thread_run(self):
-        self.busy = True
-        GObject.idle_add(self.emit, 'message', 'Scan in progress')
-        GObject.idle_add(self.emit, 'busy', True)
-        ca.threads_init()
-        self.run()
-        self.busy = False
-        GObject.idle_add(self.emit, 'busy', False)
-
-    def pause(self, state=True):
-        self.paused = state
-
-    def resume(self):
-        self.paused = False
-
-    def stop(self):
-        self.stopped = True
+        super().start()
 
     def run(self):
+
+        self.set_state(busy=True, message='Scan in progress')
+        self.scan()
+        self.set_state(busy=False)
+
+    def scan(self):
         pass  # derived classes should implement this
 
     def on_beam_change(self, obj, beam_available):
@@ -142,7 +108,7 @@ class AbsScan(BasicScan):
     """An absolute scan of a single motor."""
 
     def __init__(self, m1, p1, p2, steps, counter, t, i0=None):
-        super(AbsScan, self).__init__()
+        super().__init__()
         self.configure(m1=IMotor(m1), p1=p1, p2=p2, steps=steps, counter=ICounter(counter), t=t, i0=i0)
 
     def configure(self, *args, **kwargs):
@@ -167,9 +133,9 @@ class AbsScan(BasicScan):
         self.config.steps += steps
         self.config.positions = numpy.linspace(self.config.p1, self.config.p2, self.config.steps)
 
-    def run(self):
+    def scan(self):
         if not self.append:
-            GObject.idle_add(self.emit, "started")
+            self.emit("started", None)
             self.data_rows = []
 
         for i, x in enumerate(self.config.positions):
@@ -186,11 +152,11 @@ class AbsScan(BasicScan):
                 i0 = 1.0
             #x = self.config.m1.get_position()
             self.data_rows.append((x, y / i0, y, i0))
-            GObject.idle_add(self.emit, "new-point", [x, y / i0, y, i0])
-            GObject.idle_add(self.emit, "progress", (i + 1.0) / (self.config.steps), "")
+            self.emit("new-point", [x, y / i0, y, i0])
+            self.emit("progress", (i + 1.0) / (self.config.steps), "")
         self.set_data(self.data_rows)
         self.append = False
-        GObject.idle_add(self.emit, "done")
+        self.emit("done", None)
 
 
 class RelScan(AbsScan):
@@ -198,7 +164,7 @@ class RelScan(AbsScan):
 
     def __init__(self, m1, p1, p2, steps, counter, t, i0=None):
         cur = IMotor(m1).get_position()
-        super(RelScan, self).__init__(m1, cur+p1, cur+p2, steps, counter, t, i0)
+        super().__init__(m1, cur+p1, cur+p2, steps, counter, t, i0)
 
 
 class CntScan(AbsScan):
@@ -207,9 +173,9 @@ class CntScan(AbsScan):
     def __init__(self, m1, p1, p2, counter, t, i0=None):
         super(CntScan, self).__init__(m1, p1, p2, 1, counter, t, i0)
 
-    def run(self):
+    def scan(self):
         if not self.append:
-            GObject.idle_add(self.emit, "started")
+            self.emit("started", None)
             self.data_rows = []
         x_ot = []
         y_ot = []
@@ -243,8 +209,8 @@ class CntScan(AbsScan):
             yi = y / i0
             if len(x_ot) > 0:
                 x = x_ot[-1][0]  # x should be the last value, only rough estimate for now
-                GObject.idle_add(self.emit, "new-point", (x, yi, i0, y))
-                GObject.idle_add(self.emit, "progress", (x - self.config.p1) / (self.config.p2 - self.config.p1), "")
+                self.emit("new-point", (x, yi, i0, y))
+                self.emit("progress", (x - self.config.p1) / (self.config.p2 - self.config.p1), "")
             time.sleep(0.01)
 
         self.config.m1.disconnect(src_id)
@@ -270,14 +236,14 @@ class CntScan(AbsScan):
         yinew = ynew / inew
         self.data_rows = list(zip(xi, yinew, ynew, inew))
         self.set_data(self.data_rows)
-        GObject.idle_add(self.emit, "done")
+        self.emit("done", None)
 
 
 class AbsScan2(BasicScan):
     """An Absolute scan of two motors."""
 
     def __init__(self, m1, p11, p12, m2, p21, p22, steps, counter, t, i0=None):
-        super(AbsScan2, self).__init__()
+        super().__init__()
         self.configure(
             m1=IMotor(m1), p11=p11, p12=p12, m2=IMotor(m2), p21=p21, p22=p22, steps=steps,
             counter=ICounter(counter), t=t, i0=i0
@@ -308,9 +274,9 @@ class AbsScan2(BasicScan):
         self.config.positions1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
         self.config.positions2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
 
-    def run(self):
+    def scan(self):
         if not self.append:
-            GObject.idle_add(self.emit, "started")
+            self.emit("started", None)
             self.data_rows = []
 
         for i in range(self.config.steps):
@@ -332,10 +298,10 @@ class AbsScan2(BasicScan):
             x1 = self.config.m1.get_position()
             x2 = self.config.m2.get_position()
             self.data_rows.append((x1, x2, y / i0, y, i0))
-            GObject.idle_add(self.emit, "new-point", [x1, x2, y / i0, y, i0])
-            GObject.idle_add(self.emit, "progress", (i + 1.0) / (self.config.steps), "")
+            self.emit("new-point", [x1, x2, y / i0, y, i0])
+            self.emit("progress", (i + 1.0) / (self.config.steps), "")
         self.set_data(self.data_rows)
-        GObject.idle_add(self.emit, "done")
+        self.emit("done", None)
 
 
 class RelScan2(AbsScan2):
@@ -359,8 +325,8 @@ class GridScan(AbsScan2):
     def extend(self, steps):
         logger.error('Grid Scan can not be extended')
 
-    def run(self):
-        GObject.idle_add(self.emit, "started")
+    def scan(self):
+        self.emit("started", None)
         total_points = len(self.config.points1) * len(self.config.points2)
         pos = 0
         for x2 in self.config.points2:
@@ -381,8 +347,8 @@ class GridScan(AbsScan2):
                     i0 = 1.0
                 self.data.append([x1, x2, y / i0, i0, y])
                 logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y / i0, i0, y))
-                GObject.idle_add(self.emit, "new-point", (x1, x2, y / i0, i0, y))
-                GObject.idle_add(self.emit, "progress", (pos + 1.0) / (total_points), "")
+                self.emit("new-point", (x1, x2, y / i0, i0, y))
+                self.emit("progress", (pos + 1.0) / (total_points), "")
                 pos += 1
 
-        GObject.idle_add(self.emit, "done")
+        self.emit("done", None)

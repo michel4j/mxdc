@@ -6,7 +6,7 @@ from enum import Enum
 
 gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gdk
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.conf import settings
 from mxdc.beamlines.mx import IBeamline
@@ -114,7 +114,7 @@ class AnalysisController(GObject.GObject):
     def __init__(self, widget):
         super(AnalysisController, self).__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = None
         self.reports = ReportManager(self.widget.proc_reports_view)
         self.analyst = Analyst(self.reports)
@@ -165,7 +165,7 @@ class AnalysisController(GObject.GObject):
             'Select Meta-File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
             default_folder=directory
         )
-        self.sample_store = globalRegistry.lookup([], ISampleStore)
+        self.sample_store = Registry.get_utility(ISampleStore)
         if not filename:
             return
         if filter.get_name() == filters[0][0]:
@@ -253,7 +253,7 @@ class AnalysisController(GObject.GObject):
 
     def use_strategy(self, *args, **kwargs):
         strategy = self.reports.strategy
-        dataset_controller = globalRegistry.lookup([], IDatasets)
+        dataset_controller = Registry.get_utility(IDatasets)
         if strategy:
             default_rate = self.beamline.config['default_delta'] / self.beamline.config['default_exposure']
             exposure_rate = strategy.get('exposure_rate', default_rate)

@@ -16,7 +16,7 @@ import redis
 import requests
 from PIL import Image
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
-from mxdc.devices.base import BaseDevice
+from mxdc import Signal, BaseDevice
 from mxdc.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implementer
@@ -28,9 +28,8 @@ session = requests.Session()
 
 
 class VideoSrc(BaseDevice):
-    __gsignals__ = {
-        "resize": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
+    # Signals:
+    resize = Signal("resize", arg_types=(object,))
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
         """
@@ -144,7 +143,7 @@ class SimCamera(VideoSrc):
             self.frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
                 self.size[1],
                 self.size[0]))
-        self.set_state(active=True, health=(0, ''))
+        self.set_state(active=True, health=(0, '', ''))
 
     def get_frame(self):
         return self.frame

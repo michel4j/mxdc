@@ -1,22 +1,489 @@
-from zope.interface.adapter import AdapterRegistry
+import atexit
+import re
+import threading
+
+from gi.repository import GObject, GLib
 from zope.interface import providedBy
+from zope.interface.adapter import AdapterRegistry
 from zope.interface.interface import adapter_hooks
 
-registry = AdapterRegistry()
+from mxdc.beamlines.interfaces import IBeamline
+from mxdc.com import ca
+from mxdc.utils.log import get_module_logger
+
+
+class Registry(object):
+    """
+    Proxy class for managing Utility and Adapter registries
+    """
+    utilities = AdapterRegistry()
+    adapters = AdapterRegistry()
+
+    @classmethod
+    def add_adapter(cls, *args, **kwargs):
+        """
+        Wrapper for zope.interface.AdapterRegistry.register
+        """
+        cls.adapters.register(*args, **kwargs)
+
+    @classmethod
+    def subscribe(cls, interface, obj):
+        """
+        Register a subscription of an object for a given interface
+        :param interface: Target interface
+        :param obj: object
+        """
+        cls.utilities.subscribe([], interface, obj)
+
+    @classmethod
+    def add_utility(cls, interface, obj, name=''):
+        """
+        Register an object as a utility for a given interface
+        :param interface:
+        :param obj: utility
+        :param name: optional name for utility
+        """
+        cls.utilities.register([], interface, name, obj)
+
+    @classmethod
+    def get_utility(cls, interface, name=''):
+        """
+        Fetch the utility which provides a given interface
+        :param interface:
+        :param name: optional name for utility
+        :return: utility
+        """
+        return cls.utilities.lookup([], interface, name)
+
+    @classmethod
+    def get_subscribers(cls, interface):
+        """
+        Fetch all subscribers for a given interface
+        :param interface:
+        :return: list of subscribers
+        """
+        return cls.utilities.subscriptions([], interface)
+
 
 def _hook(provided, obj):
-    if provided.__name__ in ['IPathImportMapper', 'IPlugin']:
-        return None
-    adapter = registry.lookup1(providedBy(obj), provided, '')
-    if adapter is not None:
-        return adapter(obj)
-    else:
-        return None
+    """
+    Support syntatic sugar for easy creation of adaptors
+    :param provided: interface
+    :param obj: object to adapt
+    :return:
+    """
+    adapter = Registry.adapters.lookup1(providedBy(object), provided, '')
+    return adapter(object)
 
-adapter_hooks.append(_hook)
 
 def _del_hook():
     adapter_hooks.remove(_hook)
 
-import atexit
+
+# manage hooks
+adapter_hooks.append(_hook)
 atexit.register(_del_hook)
+
+
+def _make_tuple(value_type):
+    """
+    Convert a value_type into a typle of value_types
+    @param value_type: value type
+    @return: tuple of value types
+    """
+    if isinstance(value_type, (tuple, list)):
+        return value_type
+    elif value_type in (bool, object, str, int, float):
+        return value_type,
+
+
+def _make_signal_name(name):
+    """
+    Format a signal name from an attribute name
+    @param name: attribute name
+    @return: signal name
+    """
+    return name.replace('_', '-')
+
+
+def _get_signal_ids(itype):
+    """
+    Get a list of all signal names supported by the object
+    @param itype: type (GObject.GType) - Instance or interface type.
+    @return: [str]
+    """
+    try:
+        ptype = GObject.type_parent(itype)
+        psigs = _get_signal_ids(ptype)
+    except:
+        psigs = []
+    return GObject.signal_list_ids(itype) + psigs
+
+
+def _get_signal_properties(itype):
+    queries = (GObject.signal_query(sig_id) for sig_id in _get_signal_ids(itype))
+    return {
+        query.signal_name: len(query.param_types)
+        for query in queries
+    }
+
+
+Signal = GObject.Signal
+
+
+class SignalObject(GObject.GObject):
+    """
+    Base Class for all objects that emit signals
+    """
+    name = 'Signal Object'
+
+    def __init__(self):
+        super().__init__()
+        self.__state__ = {}
+        self.__signal_types__ = _get_signal_properties(self)
+
+    def _emission(self, signal, *args):
+        try:
+            super().emit(signal, *args)
+        except TypeError as e:
+            logger.error("'{}': Invalid parameters for signal '{}': {}".format(self, signal, args))
+
+    def emit(self, signal, *args):
+        """
+        Emit the signal in a thread save manner
+        :param signal: Signal name
+        :param args: list of signal parameters
+        """
+
+        num_args = len(args)
+        current = self.__state__.get(signal)
+        if num_args == 0:
+            value = None
+        elif num_args == 1:
+            value = args[0]
+        else:
+            value = args
+
+        # Only emit signal if non-blank existing value is not the same as new value
+        if (signal not in self.__state__) or (current != value) or (value is None):
+            self.__state__[signal] = value
+            if GLib.main_context_get_thread_default():
+                self._emission(signal, *args)
+            else:
+                GLib.idle_add(self._emission, signal, *args)
+
+
+    def get_state(self, item):
+        """
+        Get a specific state by key
+        @param item: state key
+        """
+        return self.__state__.get(item)
+
+    def get_states(self):
+        """
+        Obtain a copy of the internal state dictionary
+        """
+        return self.__state__.copy()
+
+    def set_state(self, *args, **kwargs):
+        """
+        Set the state of the object and emit the corresponding signal.
+        :param args: List of strings to emit with no values or default values
+        :param kwargs: Keyworded arguments represent signal, value pairs. signal names are processed
+        to convert underscores to hyphens
+        :return:
+        """
+        for signal in args:
+            self.emit(signal)
+
+        for signal, value in kwargs.items():
+            if isinstance(value, (tuple, list)):
+                self.emit(signal, *value)
+            else:
+                self.emit(signal, value)
+
+logger = get_module_logger(__name__)
+
+
+class BaseDevice(SignalObject):
+    """A generic devices object class.  All devices should be derived from this
+    class. Objects of this class are instances of `GObject.GObject`.
+
+    **Attributes:**
+
+        - `pending_devs`: a list of inactive child devices.
+        - `health_manager`: A :class:`HealthManager` object.
+        - `_state`: A dict containing state information.
+        - `name`:  the name of the devices
+
+    **Signals:**
+        - `active`: emitted when the state of the devices changes from inactive
+          to active and vice-versa. Passes a single boolean value.
+        - `busy`: emitted to notify listeners of a change in the busy state. A
+          single boolean parameter is passed along with the signal. `True` means
+          busy, `False` means not busy.
+        - `health`: signals an devices sanity/error condition. Passes two
+          parameters, an integer error code and a string description. The
+          integer error codes are:
+
+              - 0 : No error
+              - 1 : MINOR, no impact to devices functionality.
+              - 2 : MARGINAL, no immediate impact. Attention may soon be needed.
+              - 4 : SERIOUS, functionality impacted but recovery is possible.
+              - 8 : CRITICAL, functionality broken, recovery is not possible.
+              - 16 : DISABLED, devices has been manually disabled.
+
+        - `message`: signal for sending messages from the devices to any
+          listeners. Messages are passed as a single string parameter.
+    """
+    # Signals:
+    active = Signal("active", arg_types=(bool,))
+    busy = Signal("busy", arg_types=(bool,))
+    enabled = Signal("enabled", arg_types=(bool,))
+    health = Signal("health", arg_types=(int, str, str))
+    message = Signal("message", arg_types=(str,))
+
+    def __init__(self):
+        super().__init__()
+        self.name = self.__class__.__name__
+        self.pending = []  # inactive child devices or process variables
+        self.health_manager = HealthManager()  # manages the health states
+        GLib.timeout_add(10000, self.check_inactive)
+
+    def __str__(self):
+        return "<{}|{}>".format(self.__class__.__name__, id(self))
+
+    def do_active(self, state):
+        desc = {True: 'active', False: 'inactive'}
+        logger.info("'{}' is now {}.".format(self.name, desc[state]))
+        if not state and len(self.pending) > 0:
+            inactive_devs = [dev.name for dev in self.pending]
+            msg = '[{:d}] inactive variables.'.format(len(inactive_devs))
+            logger.debug("'{}' {}".format(self.name, msg))
+
+    def is_healthy(self):
+        try:
+            severity, context, message = self.get_state('health')
+        except ValueError:
+            return False
+        else:
+            return severity <= 1
+
+    def is_active(self):
+        return self.get_state("active")
+
+    def is_busy(self):
+        return self.get_state("busy")
+
+    def is_enabled(self):
+        return self.get_state("enabled")
+
+    def check_inactive(self):
+        if self.pending:
+            inactive = [dev.name for dev in self.pending]
+            self.set_state(health=(16, 'inactive', '{} Inactive'.format(len(inactive))))
+            logger.error("'{}' inactive components: {}".format(self.name, ', '.join(inactive)))
+
+    def set_state(self, *args, **kwargs):
+        # health needs special pre-processing
+        if 'health' in kwargs:
+            value = kwargs.pop('health')
+
+            sev, ctx, msg = value
+            if sev != 0:
+                self.health_manager.add(*value)
+            else:
+                self.health_manager.remove(ctx)
+            health = self.health_manager.get_health()
+            if health != self.get_state('health'):
+                self.emit('health', *health)
+
+        super().set_state(*args, **kwargs)
+
+    def add_pv(self, *args, **kwargs):
+        """Add a process variable (PV) to the devices.
+
+        Create a new process variable, add it to the devices.
+        Keyworded arguments should be the same as those expected for instantiating the process variable
+        class. The Process Variable protocol may be requested by passing in the module through the
+        'protocol' key-word argument. The  default protocol will be mxdc.com.ca
+
+        :class:`mxdc.com.ca.PV` object.
+
+        Returns:
+            A reference to the created object.
+            @rtype: mxdc.com.ca.PV
+        """
+
+        dev = ca.PV(*args, **kwargs)
+        self.pending.append(dev)
+        dev.connect('active', self.on_device_active)
+        return dev
+
+    def add_devices(self, *devices):
+        """ Add one or more devices as children of this devices. """
+
+        for dev in devices:
+            if not dev.is_active():
+                self.pending.append(dev)
+            dev.connect('active', self.on_device_active)
+
+    def on_device_active(self, dev, state):
+        """I am called every time a devices becomes active or inactive.
+        I expect to receive a reference to the devices and a boolean
+        state flag which is True on connect and False on disconnect. If it is
+        a connection, I add the devices to the pending devices list
+        otherwise I remove the devices from the list. When ever the list goes to
+        zero, I set the group state to active and inactive otherwise.
+        """
+
+        if state and dev in self.pending:
+            self.pending.remove(dev)
+        elif not state and dev not in self.pending:
+            self.pending.append(dev)
+        if len(self.pending) == 0:
+            self.set_state(active=True, health=(0, 'active', ''))
+        else:
+            self.set_state(active=False, health=(4, 'active', 'inactive components.'))
+
+    def cleanup(self):
+        """Clean up before shutdown """
+
+
+class HealthManager(object):
+    """
+    Manages the health states. The object enables registration and removal of
+    error states and consistent reporting of health based on all currently
+    active health issues.
+    """
+
+    def __init__(self, **kwargs):
+        """
+        @param kwargs: The keyword name is the context, and
+        the value is an error string to be returned instead of the context name
+        with all health information for the given context.
+        """
+        self.messages = kwargs
+        self.health_states = set()
+
+    def register_messages(self, **kwargs):
+        """
+        Update or add entries to the context message register
+        @param kwargs: The keyword name is the context, and
+        the value is an error string
+        @return:
+        """
+        self.messages.update(kwargs)
+
+    def add(self, severity, context, msg=None):
+        """
+        Adds an error state to the health registry
+        @param severity: Integer representing the severity
+        @param context: the context name (str)
+        @param msg: If a message is given, it will be
+        stored and used instead of the context name. Only one message per context
+        type is allowed. Use a different context if you want different messages.
+        @return:
+        """
+        if msg is not None:
+            self.messages.update({context: msg})
+        self.health_states.add((severity, context))
+
+    def remove(self, context):
+        """
+        Remove all errors from the given context
+        @param context: The context name (str)
+        @return:
+        """
+
+        err_list = [error for error in self.health_states if error[1] == context]
+        for error in err_list:
+            self.health_states.remove(error)
+
+    def get_health(self):
+        """
+        Generate an error code and string based on all the currently registered
+        errors within the health registry.
+        """
+        severity = 0
+        msg_list = set()
+        for sev, context in self.health_states:
+            severity = severity | sev
+            msg_list.add(self.messages.get(context, context))
+        msg = ' '.join(msg_list)
+        return severity, '', msg
+
+
+class BaseEngine(SignalObject):
+    """
+    Base class for all Engines.
+
+    An Engine provides utilities for running stoppable/pausable activities
+    in a thread, reporting progress and notifying watchers of the start, end and progress
+    of the activity
+    """
+    # Signals:
+    started = GObject.Signal('started', arg_types=(object,))
+    stopped = GObject.Signal('stopped', arg_types=(object,))
+    busy = GObject.Signal('busy', arg_types=(bool,))
+    done = GObject.Signal('done', arg_types=(object,))
+    error = GObject.Signal('error', arg_types=(str,))
+    paused = GObject.Signal('paused', arg_types=(bool, str))
+    progress = GObject.Signal('progress', arg_types=(float, str))
+
+    def __init__(self):
+        super().__init__()
+        self.stopped = True
+        self.paused = False
+        self.beamline = Registry.get_utility(IBeamline)
+
+    def start(self):
+        """
+        Start the engine as a daemon thread
+        """
+        worker_thread = threading.Thread(target=self.__engine__)
+        worker_thread.setDaemon(True)
+        worker_thread.setName(self.__class__.__name__)
+        self.paused = False
+        self.stopped = False
+        worker_thread.start()
+
+    def stop(self):
+        """
+        Stop the engine
+        """
+        self.stopped = True
+        self.paused = False
+
+    def is_busy(self):
+        return self.get_state("busy")
+
+    def pause(self, reason=''):
+        """
+        Pause the engine
+        :param reason: Optional string describing the reason for the pause
+        """
+        self.paused = True
+        self.emit('paused', self.paused, reason)
+
+    def resume(self):
+        """
+        Resume from the paused state
+        """
+        self.paused = False
+        self.emit('paused', self.paused, '')
+
+    def __engine__(self):
+        """
+        Proxy for calling run method inside a thread
+        """
+        ca.threads_init()
+        self.run()
+
+    def run(self):
+        """
+        This method should contain the implementation details of the engine operation.
+        It should appropriately monitor the stopped and paused variables and act accordingly.
+        """
+        raise NotImplemented('Must be implemented by subclasses')

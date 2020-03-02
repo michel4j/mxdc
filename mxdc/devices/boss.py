@@ -5,7 +5,7 @@ from gi.repository import GObject, GLib
 from zope.interface import Interface, Attribute
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice, Signal
+from mxdc import Signal, BaseDevice
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -44,9 +44,9 @@ class IBeamTuner(Interface):
 
 @implementer(IBeamTuner)
 class BaseTuner(BaseDevice):
-    class Signals:
-        changed = Signal("changed", float)
-        percent = Signal("percent", float)
+    # Signals:
+    changed = Signal("changed", arg_types=(float,))
+    percent = Signal("percent", arg_types=(float,))
 
     def __init__(self):
         super().__init__()
@@ -111,23 +111,23 @@ class BOSSTuner(BaseTuner):
 
     def pause(self):
         logger.debug('Pausing BOSS')
-        if self.active_state and self.enabled_state and self.beam_threshold.get() != self._pause_value:
+        if self.is_active() and self.is_enabled() and self.beam_threshold.get() != self._pause_value:
             self._off_value = self.beam_threshold.get()
             self.beam_threshold.put(self._pause_value)
 
     def resume(self):
         logger.debug('Resuming BOSS')
-        if self.active_state:
+        if self.is_active():
             self.beam_threshold.put(self._off_value)
 
     def start(self):
         logger.debug('Enabling BOSS')
-        if self.active_state:
+        if self.is_active():
             self.enable_cmd.put(1)
 
     def stop(self):
         logger.debug('Disabling Beam Stabilization')
-        if self.active_state:
+        if self.is_active():
             self.enable_cmd.put(0)
 
     def check_enable(self, obj, val):
@@ -186,11 +186,11 @@ class MOSTABTuner(BaseTuner):
         self.acquire_cmd.put(1)
 
     def start(self):
-        if self.active_state:
+        if self.is_active():
             self.reset()
 
     def stop(self):
-        if self.active_state:
+        if self.is_active():
             self.acquire_cmd.put(0)
 
     def on_state_changed(self, obj, val):

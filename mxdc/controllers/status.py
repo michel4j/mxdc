@@ -5,8 +5,7 @@ from mxdc.devices.manager import BaseManager
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
-from twisted.python.components import globalRegistry
-
+from mxdc import Registry
 logger = get_module_logger(__name__)
 
 MODE_MAP = {
@@ -31,7 +30,7 @@ COLOR_MAP = {
 class StatusPanel(object):
     def __init__(self, widget):
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.scripts = get_scripts()
         self.monitors = []
         self.setup()

@@ -5,11 +5,10 @@ from threading import Lock
 warnings.simplefilter("ignore")
 from datetime import datetime
 from zope.interface import implementer
-from twisted.python.components import globalRegistry
+from mxdc import Registry, BaseDevice
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call
-from mxdc.devices.base import BaseDevice
 from .interfaces import IGoniometer
 
 # setup module logger with a default handler
@@ -165,12 +164,12 @@ class MD2Gonio(Goniometer):
         state = self.state_fbk.get()
         phase = self.phase_fbk.get()
         if state in [5, 6, 7, 8]:
-            self.set_state(health=(0, 'faults'), busy=True)
+            self.set_state(health=(0, 'faults', ''), busy=True)
         elif state in [11, 12, 13, 14]:
             msg = self.log_fbk.get()
             self.set_state(health=(2, 'faults', msg), busy=False)
         else:
-            self.set_state(busy=False, health=(0, 'faults'))
+            self.set_state(busy=False, health=(0, 'faults', ''))
 
         if phase == 0 and self.prev_state == 6 and state == 4:
             self.save_pos_cmd.put(self.NULL_VALUE)
@@ -203,7 +202,7 @@ class SimGonio(Goniometer):
         super().__init__('SIM Diffractometer')
         self._scanning = False
         self._lock = Lock()
-        self.set_state(active=True, health=(0, ''))
+        self.set_state(active=True, health=(0, '', ''))
 
     def configure(self, **kwargs):
         self.settings = kwargs
@@ -216,7 +215,7 @@ class SimGonio(Goniometer):
         self.set_state(message='Scanning ...', busy=True)
         with self._lock:
             self._scanning = True
-            bl = globalRegistry.lookup([], IBeamline)
+            bl = Registry.get_utility(IBeamline)
             st = time.time()
             logger.debug('Starting scan at: %s' % datetime.now().isoformat())
             logger.debug('Moving to scan starting position')
@@ -241,7 +240,7 @@ class SimGonio(Goniometer):
     def stop(self):
         self.stopped = True
         self._scanning = False
-        bl = globalRegistry.lookup([], IBeamline)
+        bl = Registry.get_utility(IBeamline)
         bl.omega.stop()
 
 
@@ -330,12 +329,12 @@ class OldMD2Gonio(Goniometer):
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
         if state in [5, 6, 7, 8]:
-            self.set_state(health=(0, 'faults'), busy=True)
+            self.set_state(health=(0, 'faults', ''), busy=True)
         elif state in [11, 12, 13, 14]:
             msg = self.log_fbk.get()
             self.set_state(health=(2, 'faults', msg), busy=False)
         else:
-            self.set_state(busy=False, health=(0, 'faults'))
+            self.set_state(busy=False, health=(0, 'faults', ''))
 
     def scan(self, wait=True, timeout=None):
         """

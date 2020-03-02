@@ -1,9 +1,8 @@
 from enum import Enum
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 from zope.interface import implementer
 
-from mxdc.devices.base import HealthManager
 from mxdc.utils.log import get_module_logger
 from .interfaces import IDiagnostic
 
@@ -26,9 +25,8 @@ class Diagnostic(GObject.GObject):
     def __init__(self, descr):
         super(Diagnostic, self).__init__()
         self.description = descr
-        self._manager = HealthManager()
         self.props.state = self.State.UNKNOWN
-        globalRegistry.subscribe([], IDiagnostic, self)
+        Registry.subscribe(IDiagnostic, self)
 
     def __repr__(self):
         return "<{}:'{}', status:{}>".format(
@@ -62,18 +60,18 @@ class DeviceDiag(Diagnostic):
         self.device = device
         self.device.connect('health', self.on_health_change)
 
-    def on_health_change(self, obj, hlth):
-        state, descr = hlth
-        if state < 2:
-            descr = 'OK!' if not descr else descr
-            params = (self.State.GOOD, descr)
-        elif state < 4:
-            params = (self.State.WARN, descr)
-        elif state < 16:
-            params = (self.State.BAD, descr)
+    def on_health_change(self, obj, severity, context, message):
+        if severity < 2:
+            state = self.State.GOOD
+            message = 'OK!' if not message else message
+        elif severity < 4:
+            state = self.State.WARN
+        elif severity < 16:
+            state = self.State.BAD
         else:
-            params = (self.State.DISABLED, descr)
-        self.update_status(*params)
+            state = self.State.DISABLED
+        self.props.state = state
+        self.props.message = message
 
 
 class ServiceDiag(Diagnostic):

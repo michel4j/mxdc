@@ -196,7 +196,7 @@ class SAM(AutoMounter):
             status = State.ERROR
 
         self.configure(status=status)
-        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
+        self.set_state(health=(health, 'notices', 'Staff Needed'), message=', '.join(diagnosis))
 
     def on_sample_changed(self, obj, val):
         port_str = val.strip().split()
@@ -439,7 +439,7 @@ class UncleSAM(AutoMounter):
             status = State.ERROR
 
         self.configure(status=status)
-        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
+        self.set_state(health=(health, 'notices', 'Staff Needed'), message=', '.join(diagnosis))
 
     def on_sample_changed(self, obj, val):
         port_str = val.strip()

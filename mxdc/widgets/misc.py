@@ -63,7 +63,7 @@ class ActiveMenu(Gtk.Box, gui.BuilderMixin):
             self.entry.set_active(self.values[val])
         return True
 
-    def on_status(self, obj, state):
+    def on_status(self, obj, *args):
         enabled = self.device.is_enabled()
         active = self.device.is_active()
         healthy = self.device.is_healthy()
@@ -147,7 +147,11 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
         return target
 
     def on_status(self, *args, **kwargs):
-        health, msg = self.device.health_state
+        health_status = self.device.get_state('health')
+        if health_status:
+            health = health_status[0]
+        else:
+            health = 0
 
         style = self.fbk_label.get_style_context()
         if self.device.is_healthy():
@@ -215,8 +219,6 @@ class MotorEntry(ActiveEntry):
 
     def on_busy(self, obj, motion):
         self.set_feedback(self.device.get_position())
-        return True
 
-    def on_target(self, obj, targets):
-        self.set_target(targets[-1])
-        return True
+    def on_target(self, obj, previous, current):
+        self.set_target(current)

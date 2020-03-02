@@ -161,7 +161,7 @@ class DataLoader(GObject.GObject):
         img = cv2.convertScaleAbs(self.data, None, 255/self.scale, 0)
         img1 = cv2.applyColorMap(img, self.colormap)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
-        GObject.idle_add(self.emit, 'new-image')
+        self.emit('new-image')
 
     def next_frame(self):
         self.load_next = True
@@ -289,7 +289,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.raw_img = obj.image
         self.frame_number = obj.header['frame_number']
         self.filename = obj.header['filename']
-        num_frames = int(obj.header['total_angle']/obj.header['delta_angle'])
+        num_frames = int(obj.header.get('total_angle', 1)/obj.header['delta_angle'])
         self.name = '{} [ {} / {} ]'.format(obj.header['name'], self.frame_number, num_frames)
         self.image_size = obj.header['detector_size']
         self.create_surface()

@@ -3,10 +3,11 @@ import random
 import time
 
 import numpy
+
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc.devices.base import BaseDevice
+from mxdc import Signal, BaseDevice
 from mxdc.utils import decorators
 from mxdc.utils.log import get_module_logger
 
@@ -17,14 +18,14 @@ logger = get_module_logger(__name__)
 
 
 @implementer(ICounter)
-class Counter(BaseDevice):
+class BaseCounter(BaseDevice):
+    changed = GObject.Signal("changed", arg_types=(object,))
+
+
+class Counter(BaseCounter):
     """EPICS based Counter Device objects. Enables counting and averaging of 
     process variables over given time periods.
     """
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
-
 
     def __init__(self, pv_name, zero=0.0):
         """        
@@ -37,7 +38,7 @@ class Counter(BaseDevice):
         Returns
             float. The average process variable value during the count time.            
         """
-        BaseDevice.__init__(self)
+        super().__init__()
         self.name = pv_name
         self.zero = float(zero)
         self.value = self.add_pv(pv_name)
@@ -84,13 +85,10 @@ class Counter(BaseDevice):
         self.avg_value = self.count(t)
                         
 
-@implementer(ICounter)
-class SimCounter(BaseDevice):
+
+class SimCounter(BaseCounter):
     """Simulated Counter Device objects. Optionally reads from external file.
     """
-    __gsignals__ = {
-        "changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
 
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     
@@ -108,12 +106,12 @@ class SimCounter(BaseDevice):
             cycles back at the end. Otherwise it alwas returns the zero value.            
         """
         
-        BaseDevice.__init__(self)
+        super().__init__()
         from mxdc.devices.misc import SimPositioner
         self.zero = float(zero)
         self.name = name
         self.value = SimPositioner('PV', self.zero, '', noise=50)
-        self.set_state(active=True, health=(0,''))
+        self.set_state(active=True, health=(0,'', ''))
         self.value.connect('changed', self.on_change)
         self._counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0]**2)
         

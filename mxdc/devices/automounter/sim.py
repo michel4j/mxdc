@@ -49,7 +49,7 @@ class SimSAM(AutoMounter):
         self.on_ports_changed(None, self.TEST_STATE3)
         self.props.sample = {'port': 'MA14'}
         self.props.status = State.IDLE
-        self.set_state(active=True, health=(0, ''), message='Ready')
+        self.set_state(active=True, health=(0, '', 'Ready'))
 
     def is_valid(self, port):
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):

@@ -2,13 +2,14 @@ import imp
 import os
 import threading
 
+import mxdc.devices.shutter
 from .interfaces import IBeamline
+from mxdc import Registry
 from mxdc.com import ca
 from mxdc.conf import settings
 from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_project_id
-from twisted.python.components import globalRegistry
 from zope.interface import implementer
 
 logger = get_module_logger(__name__)
@@ -48,7 +49,7 @@ class MXBeamline(object):
         self.config = {}
         self.lock = threading.RLock()
         self.setup()
-        globalRegistry.register([], IBeamline, '', self)
+        Registry.add_utility(IBeamline, self)
 
     def __getitem__(self, key):
         try:
@@ -153,7 +154,7 @@ class MXBeamline(object):
         _shutter_list = []
         for nm in self.config['shutter_sequence']:
             _shutter_list.append(self.registry[nm])
-        self.registry['all_shutters'] = misc.ShutterGroup(*tuple(_shutter_list))
+        self.registry['all_shutters'] = mxdc.devices.shutter.ShutterGroup(*tuple(_shutter_list))
 
         # Setup coordination between Beam tuner and energy changes
         if 'beam_tuner' in self.registry:
@@ -162,7 +163,7 @@ class MXBeamline(object):
 
         # default detector cover
         if not 'detector_cover' in self.registry:
-            self.registry['detector_cover'] = misc.SimShutter('Dummy Detector Cover')
+            self.registry['detector_cover'] = mxdc.devices.shutter.SimShutter('Dummy Detector Cover')
 
         # detector max resolution
         self.registry['maxres'] = motor.ResolutionMotor(self.energy, self.distance, self.detector.mm_size)

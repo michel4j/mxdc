@@ -26,9 +26,9 @@ class SetCenterMode(Script):
             # needed by 08ID
             if self.beamline.beamstop_z.get_position() < default_beamstop:
                 self.beamline.beamstop_z.move_to(default_beamstop)
-
-            if self.beamline.distance.target_state:
-                restore_distance = self.beamline.distance.target_state[1]
+            target = self.beamline.distance.get_state("target")
+            if target:
+                restore_distance = target[1]
                 if restore_distance and restore_distance < self.beamline.detector_z.get_position():
                     self.beamline.detector_z.move_to(restore_distance, wait=False)
             self.beamline.manager.center(wait=True)

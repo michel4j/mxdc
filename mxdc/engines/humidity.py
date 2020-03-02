@@ -4,7 +4,7 @@ import threading
 
 from gi.repository import GObject
 from twisted.internet.defer import returnValue, inlineCallbacks
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
@@ -37,8 +37,8 @@ class SingleCollector(GObject.GObject):
         self.total_frames = 0
         self.count = 0
 
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        self.analyst = globalRegistry.lookup([], IAnalyst)
+        self.beamline = Registry.get_utility(IBeamline)
+        self.analyst = Registry.get_utility(IAnalyst)
         self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
         self.unwatch_frames()
 
@@ -94,13 +94,13 @@ class SingleCollector(GObject.GObject):
         current_attenuation = self.beamline.attenuator.get()
 
         with self.beamline.lock:
-            GObject.idle_add(self.emit, 'started')
+            self.emit('started')
             try:
                 self.acquire()
             finally:
                 self.beamline.fast_shutter.close()
 
-        GObject.idle_add(self.emit, 'done')
+        self.emit('done')
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.collecting = False
         self.beamline.detector_cover.close()
@@ -142,7 +142,7 @@ class SingleCollector(GObject.GObject):
         self.beamline.detector.handler_block(self.frame_link)
 
     def on_new_image(self, obj, file_path):
-        GObject.idle_add(self.emit, 'new-image', file_path)
+        self.emit('new-image', file_path)
         self.analyse_frame(file_path)
 
     @inlineCallbacks
@@ -162,7 +162,7 @@ class SingleCollector(GObject.GObject):
         info = result
         self.pending_results.remove(file_path)
         info['filename'] = file_path
-        GObject.idle_add(self.emit, 'result', info)
+        self.emit('result', info)
 
     def result_fail(self, error, file_path):
         self.pending_results.remove(file_path)

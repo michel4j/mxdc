@@ -3,7 +3,7 @@ import uuid
 import json
 
 from gi.repository import GObject
-from twisted.python.components import globalRegistry
+from mxdc import Registry, Signal, BaseEngine
 from twisted.internet.defer import  inlineCallbacks, returnValue
 from zope.interface import implementer
 from mxdc.beamlines.interfaces import IBeamline
@@ -17,21 +17,19 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IAnalyst)
-class Analyst(GObject.GObject):
+class Analyst(BaseEngine):
 
-    __gsignals__ = {
-        'new-report': (GObject.SIGNAL_RUN_LAST, None, (str, object)),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str, object))
-    }
+    # Signals:
+    report = Signal('new-report', arg_types=(str, object))
 
     class ResultType(object):
         MX, XRD, RASTER = list(range(3))
 
     def __init__(self, manager):
-        GObject.GObject.__init__(self)
+        super().__init__()
         self.manager = manager
-        self.beamline = globalRegistry.lookup([], IBeamline)
-        globalRegistry.register([], IAnalyst, '', self)
+        self.beamline = Registry.get_utility(IBeamline)
+        Registry.add_utility(IAnalyst, self)
 
     @inlineCallbacks
     def process_dataset(self, metadata, flags=(), sample=None):

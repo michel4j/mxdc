@@ -1,7 +1,7 @@
 
 import os
 
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.utils.decorators import ca_thread_enable
@@ -17,7 +17,7 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
      each with (angle, filename) pairs or None in case of failure"""
 
     try:
-        beamline = globalRegistry.lookup([], IBeamline)
+        beamline = Registry.get_utility(IBeamline)
     except:
         beamline = None
         logger.warning('No registered beamline found.')

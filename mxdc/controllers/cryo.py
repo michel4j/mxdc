@@ -1,5 +1,5 @@
 from gi.repository import GObject, GdkPixbuf, Gtk
-from twisted.python.components import globalRegistry
+from mxdc import Registry
 
 from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.log import get_module_logger
@@ -16,7 +16,7 @@ class CryoController(GObject.GObject):
     def __init__(self, widget):
         super(CryoController, self).__init__()
         self.widget = widget
-        self.beamline = globalRegistry.lookup([], IBeamline)
+        self.beamline = Registry.get_utility(IBeamline)
         self.cryojet = self.beamline.cryojet
         self.stopped = True
         self.labels = {}

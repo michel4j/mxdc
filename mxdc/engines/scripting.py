@@ -3,11 +3,10 @@ import time
 import importlib
 
 from gi.repository import GObject, GLib
-from twisted.python.components import globalRegistry
+from mxdc import Registry, Signal, BaseEngine
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.beamlines.interfaces import IBeamline
-from mxdc.devices.base import BaseDevice, Signal
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 
@@ -16,6 +15,7 @@ logger = get_module_logger(__name__)
 
 
 class IScript(Interface):
+
     description = Attribute("""Short description of the script.""")
     progress = Attribute("""Progress Level of Script.""")
 
@@ -26,10 +26,6 @@ class IScript(Interface):
         """Start the script in synchronous mode. It blocks.
         This is where the functionality of the script is defined.
         """
-
-    def is_active(self):
-        """Returns true if the script is currently running."""
-
     def wait(self):
         """Wait for script to finish running."""
 
@@ -39,10 +35,10 @@ class ScriptError(Exception):
 
 
 @implementer(IScript)
-class Script(BaseDevice):
-    class Signals:
-        done = Signal("done", object)
-        error = Signal("error", ())
+class Script(BaseEngine):
+
+    # Signals:
+    enabled = Signal('enabled', arg_types=(bool,))
 
     description = 'A Script'
     progress = None
@@ -50,12 +46,14 @@ class Script(BaseDevice):
     def __init__(self):
         super().__init__()
         self.name = self.__class__.__name__
-        self.beamline = globalRegistry.lookup([], IBeamline)
         self.enable()
         self._output = None
 
     def __repr__(self):
         return '<Script:%s>' % self.name
+
+    def is_enabled(self):
+        return self.get_state("enabled")
 
     def start(self, *args, **kwargs):
         if self.is_enabled() and not self.is_busy():
@@ -77,7 +75,7 @@ class Script(BaseDevice):
             self.on_complete(*args, **kwargs)
 
     def run(self, *args, **kwargs):
-        raise ScriptError('`run()` not implemented!')
+        raise ScriptError('`script()` not implemented!')
 
     def enable(self):
         self.set_state(enabled=True)

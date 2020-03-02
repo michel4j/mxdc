@@ -45,7 +45,7 @@ class ConsoleApp(object):
         fit = self.plot.fit
         GObject.idle_add(self.builder.scan_beamline_lbl.set_text, bl.name)
         embed()
-        GObject.timeout_add(1000, self.quit)
+        self.quit()
 
     def start(self):
         worker_thread = threading.Thread(target=self.run)
@@ -54,7 +54,6 @@ class ConsoleApp(object):
         worker_thread.start()
         GObject.idle_add(self.setup)
         self.shell()
-        sys.exit()
 
     def setup(self):
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))

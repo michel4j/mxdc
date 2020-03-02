@@ -245,7 +245,7 @@ class AuntISARA(AutoMounter):
             self.props.containers = pucks
             self.set_state(health=(0, 'pucks', ''))
         else:
-            self.set_state(health=(16, 'pucks', 'Puck detection problem!'), message='Could not read puck positions!')
+            self.set_state(health=(16, 'pucks', 'Puck detection!'), message='Could not read puck positions!')
             self.props.ports = {}
             self.props.containers = set()
 
@@ -342,7 +342,7 @@ class AuntISARA(AutoMounter):
             diagnosis += ['Cryo Level Problem! Staff Needed.']
 
         self.configure(status=status)
-        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
+        self.set_state(health=(health, 'notices', 'Staff Needed'), message=', '.join(diagnosis))
 
     def on_message(self, obj, value, transform):
         message = transform(value)
@@ -359,7 +359,7 @@ class AuntISARA(AutoMounter):
         ])
         self.set_state(message=messages)
         if messages:
-            self.set_state(health=(4, 'error', 'Staff attention needed'))
+            self.set_state(health=(4, 'error','Staff needed'))
         else:
             self.set_state(health=(0, 'error', ''))
 
@@ -567,7 +567,7 @@ class ISARA(AutoMounter):
             self.props.containers = pucks
             self.set_state(health=(0, 'pucks', ''))
         else:
-            self.set_state(health=(16, 'pucks', 'Puck detection problem!'), message='Could not read puck positions!')
+            self.set_state(health=(16, 'pucks', 'Puck detection'), message='Could not read puck positions!')
             self.props.ports = {}
             self.props.containers = set()
 
@@ -654,7 +654,7 @@ class ISARA(AutoMounter):
             status = State.ERROR
 
         self.configure(status=status)
-        self.set_state(health=(health, 'notices', ', '.join(diagnosis)))
+        self.set_state(health=(health, 'notices', 'Staff Needed'), message=', '.join(diagnosis))
 
     def on_message(self, obj, value, transform):
         message = transform(value)
@@ -673,7 +673,7 @@ class ISARA(AutoMounter):
         ])
         self.set_state(message=messages)
         if messages:
-            self.set_state(health=(4, 'error', 'Staff attention needed'))
+            self.set_state(health=(4, 'error', 'Staff Needed'))
         else:
             self.set_state(health=(0, 'error', ''))
 
