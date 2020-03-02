@@ -4,7 +4,7 @@ import threading
 
 import mxdc.devices.shutter
 from .interfaces import IBeamline
-from mxdc import Registry
+from mxdc import Registry, SignalObject, Signal
 from mxdc.com import ca
 from mxdc.conf import settings
 from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IBeamline)
-class MXBeamline(object):
+class MXBeamline(SignalObject):
     """MX Beamline(Macromolecular Crystallography Beamline) objects
 
     Initializes a MXBeamline object from a python configuration file. The 
@@ -35,6 +35,7 @@ class MXBeamline(object):
                                 in addition to the above
               SERVICES = A dictionary mapping services names to services client objects
     """
+    read = Signal("ready", arg_types=(bool,))
 
     def __init__(self, console=False):
         """Kwargs:
@@ -42,6 +43,7 @@ class MXBeamline(object):
             not. Used internally to register CONSOLE if True. Default is
             False.
         """
+        super().__init__()
         self.console = console
         self.config_modules = settings.get_configs()
 
@@ -181,6 +183,10 @@ class MXBeamline(object):
             self.diagnostics.append(diagnostics.ServiceDiag(self.registry[name]))
 
         self.diagnostics.append(diagnostics.DeviceDiag(self.registry['disk_space']))
+        self.emit('ready', True)
+
+    def is_ready(self):
+        return self.get_state('ready')
 
     def cleanup(self):
         for name, device in list(self.registry.items()):

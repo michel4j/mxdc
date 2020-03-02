@@ -15,3 +15,4 @@ twisted
 zeroconf
 python-magic
 pytz
+ipython

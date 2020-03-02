@@ -414,8 +414,8 @@ class MADScanController(ScanController):
             self.widget.mad_runs_btn.set_sensitive(False)
             self.widget.mad_selected_lbl.set_text('')
 
-    def on_done(self, scanner):
-        super(MADScanController, self).on_done(scanner)
+    def on_done(self, scanner, data):
+        super().on_done(scanner, data)
         choices = scanner.results.get('choices')
         if choices is None:
             dialogs.warning('Error Analysing Scan', 'Analysis of MAD Scan failed')
@@ -490,7 +490,7 @@ class XRFScanController(ScanController):
     result_class = XRFResultsManager
 
     def setup(self):
-        super(XRFScanController, self).setup()
+        super().setup()
         # fix adjustments
         self.annotations = {}
         self.results.model.connect('row-changed', self.on_annotation)
@@ -504,8 +504,8 @@ class XRFScanController(ScanController):
         if self.results.props.directory:
             self.widget.scans_dir_fbk.set_text(self.results.props.directory)
 
-    def on_done(self, scanner):
-        super(XRFScanController, self).on_done(scanner)
+    def on_done(self, scanner, data):
+        super().on_done(scanner, data)
         self.annotations = {}
         data = scanner.data
         analysis = scanner.results

@@ -22,7 +22,7 @@ from mxdc.services import server
 from mxdc.beamlines.mx import MXBeamline
 from mxdc.utils import mdns
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import identifier_slug
+
 from mxdc.widgets.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.controllers.settings import SettingsDialog
@@ -50,8 +50,8 @@ class Application(Gtk.Application):
         Gio.resources_register(self.resources)
         self.connect('shutdown', self.on_shutdown)
 
-    def do_startup(self):
-        Gtk.Application.do_startup(self)
+    def do_startup(self, *args):
+        Gtk.Application.do_startup(self, *args)
         action = Gio.SimpleAction.new("about", None)
         action.connect("activate", self.on_about)
         self.add_action(action)
@@ -78,7 +78,7 @@ class Application(Gtk.Application):
         #self.hook.install()
         self.broadcast_service()
 
-    def do_activate(self):
+    def do_activate(self, *args):
         # We only allow a single window and raise any existing ones
         if not self.window:
             # Windows are associated with the application
@@ -89,6 +89,7 @@ class Application(Gtk.Application):
         self.window.present()
         if settings.show_release_notes():
             Browser(self.window)
+
 
     def on_about(self, action, param):
         authors = [
