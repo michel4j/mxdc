@@ -24,7 +24,7 @@ class Humidifier(Device):
         self.drop_coords = self.add_pv('%s:DropCoordinates' % root_name)
         self.status = self.add_pv('%s:State' % root_name)
 
-        self.add_devices(self.humidity, self.temperature)
+        self.add_components(self.humidity, self.temperature)
         self.modbus_state.connect('changed', self.on_modbus_changed)
         self.status.connect('changed', self.on_status_changed)
         self.set_state(health=(4, 'status','Disconnected'))
@@ -62,7 +62,7 @@ class SimHumidifier(Device):
         self.drop_size = SimPositioner('Drop Size', pos=150, units='px')
         self.drop_coords = SimPositioner('Drop Coords', pos=((671, 333, 671657),))
 
-        self.add_devices(self.humidity, self.temperature, self.dew_point, self.drop_size)
+        self.add_components(self.humidity, self.temperature, self.dew_point, self.drop_size)
 
         self.set_state(active=True)
         self.humidity.connect('changed', self._update)

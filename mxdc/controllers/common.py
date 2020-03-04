@@ -176,12 +176,12 @@ class AppNotifier(object):
     def notify(self, message, level=Gtk.MessageType.INFO, important=False, duration=3, show_timer=False):
         """
         Display an in-app notification.
-        @param message: Text to display
-        @param level: Gtk.MessageType
-        @param duration: Duration too display message in seconds. Ignored if 'important' is True
-        @param important: Boolean, if True, the message stays on until closed manually
-        @param show_timer: Boolean, if True, a timer will be shown
-        @return:
+        :param message: Text to display
+        :param level: Gtk.MessageType
+        :param duration: Duration too display message in seconds. Ignored if 'important' is True
+        :param important: Boolean, if True, the message stays on until closed manually
+        :param show_timer: Boolean, if True, a timer will be shown
+        :return:
         """
         if self.revealer.get_reveal_child():
             self.revealer.set_reveal_child(False)

@@ -188,11 +188,11 @@ class MxLIVEClient(BaseService):
     def upload(self, path, filename):
         """
         Upload the Metadata to the Server
-        @param path: url path to post data to
-        @param filename: json-formatted file containing metadata, file will be updated with object id of
+        :param path: url path to post data to
+        :param filename: json-formatted file containing metadata, file will be updated with object id of
         newly created object in the database. To update the contents on the server, this file must contain
         the object id of the existing database entry.
-        @return:
+        :return:
         """
         try:
             data = misc.load_metadata(filename)
@@ -263,8 +263,8 @@ class MxLIVEClient(BaseService):
     def upload_data(self, beamline, filename):
         """
         Upload the Dataset metadata to the Server
-        @param beamline: beamline acronym (str)
-        @param filename: json-formatted file containing metadata
+        :param beamline: beamline acronym (str)
+        :param filename: json-formatted file containing metadata
         """
         logger.debug('Uploading meta-data to MxLIVE ...')
         return self.upload('/data/{}/'.format(beamline), filename)
@@ -272,8 +272,8 @@ class MxLIVEClient(BaseService):
     def upload_report(self, beamline, filename):
         """
         Upload the Report metadata to the Server
-        @param beamline: beamline acronym (str)
-        @param filename: json-formatted file containing metadata
+        :param beamline: beamline acronym (str)
+        :param filename: json-formatted file containing metadata
         """
         logger.debug('Uploading analysis report to MxLIVE ...')
         return self.upload('/report/{}/'.format(beamline), filename)

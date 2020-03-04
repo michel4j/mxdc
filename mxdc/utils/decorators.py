@@ -26,7 +26,7 @@ def memoize(f):
 def async_call(f):
     """
     Run the specified function asynchronously in a thread. Return values will not be available
-    @param f: function or method
+    :param f: function or method
     """
     from mxdc.com.ca import threads_init
 
@@ -47,7 +47,7 @@ def async_call(f):
 def ca_thread_enable(f):
     """
     Make sure an active EPICS CA context is available or join one before running
-    @param f: function or method
+    :param f: function or method
     """
     from mxdc.com.ca import threads_init
 

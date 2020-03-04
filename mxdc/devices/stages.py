@@ -116,7 +116,7 @@ class SampleStage(SampleStageBase):
         self.offset = offset
         self.linked = linked
         self.omega = omega
-        self.add_devices(x, y1, y2, omega)
+        self.add_components(x, y1, y2, omega)
         for dev in (self.x, self.y1, self.y2, self.omega):
             dev.connect('changed', self.emit_change)
 

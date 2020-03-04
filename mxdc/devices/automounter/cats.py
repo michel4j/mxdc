@@ -195,8 +195,8 @@ class CATS(AutoMounter):
         """
         Callback when the puck detection state changes
 
-        @param obj: Process Variable which triggered the callback
-        @param states: New states, an integer representing the bits of the puck states, only 9 bits are read
+        :param obj: Process Variable which triggered the callback
+        :param states: New states, an integer representing the bits of the puck states, only 9 bits are read
         """
 
         puck_states = bin(states)[2:].ljust(9, '0') # convert int to binary, and zero fill to at least 9 bits

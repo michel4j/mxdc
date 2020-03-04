@@ -366,9 +366,9 @@ class AuntISARA(AutoMounter):
     def wait_for_position(self, position, timeout=120):
         """
         Wait for the given position to be reached
-        @param position: requested position to wait for
-        @param timeout: maximum time to wait
-        @return: bool, True if state was attained or False if timeout was exhausted
+        :param position: requested position to wait for
+        :param timeout: maximum time to wait
+        :return: bool, True if state was attained or False if timeout was exhausted
         """
 
         time_remaining = timeout

@@ -23,10 +23,10 @@ class AutoChooch(Engine):
     def configure(self, config, data, uname=None):
         """
         Prepare the run chooch
-        @param config: a dictionary containing the MAD-Scan configuration
-        @param data: a numpy array containing the raw data
-        @param uname: optional username
-        @return:
+        :param config: a dictionary containing the MAD-Scan configuration
+        :param data: a numpy array containing the raw data
+        :param uname: optional username
+        :return:
         """
         self.config = config
         self.data = numpy.dstack([data['energy'] * 1000, data['normfluor']])[0]

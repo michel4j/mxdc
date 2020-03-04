@@ -14,12 +14,11 @@ logger = get_module_logger(__name__)
 class CryoJetNozzle(mxdc.devices.shutter.BasicShutter):
     """
     A specialized in-out actuator for pneumatic Cryojet nozzles.
+
+    :param name: The process variable name of the devices
     """
 
     def __init__(self, name):
-        """
-        @param name: The process variable name of the devices
-        """
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:out" % name
