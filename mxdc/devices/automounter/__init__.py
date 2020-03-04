@@ -72,24 +72,24 @@ class AutoMounter(Device):
         """
         Recover from a specific failure type
 
-        @param failure:
-        @return:
+        :param failure:
+        :return:
         """
         logger.error('Recovery procedure {} not implemented'.format(failure))
 
     def prefetch(self, port, wait=False):
         """
         For automounters which support pre-fetching. Prefetch the next sample for mounting
-        @param port: next port to mount
-        @param wait: boolean, wait for prefetch to complete
-        @return:
+        :param port: next port to mount
+        :param wait: boolean, wait for prefetch to complete
+        :return:
         """
         pass
 
     def prepare(self):
         """
         Get ready to start
-        @return:
+        :return:
         """
         if self.is_ready() or self.is_preparing():
             self.configure(status=State.PREPARING)
@@ -100,7 +100,7 @@ class AutoMounter(Device):
     def cancel(self):
         """
         Cancel Standby state
-        @return:
+        :return:
         """
         if self.is_preparing():
             self.configure(status=State.IDLE)
@@ -112,9 +112,9 @@ class AutoMounter(Device):
         """
         Mount the sample at the given port. Must take care of preparing the end station
         and dismounting any mounted samples before mounting
-        @param port: str, the port to mount
-        @param wait: bool, whether to block until operation is completed
-        @return: bool, True if successful
+        :param port: str, the port to mount
+        :param wait: bool, whether to block until operation is completed
+        :return: bool, True if successful
         """
         raise NotImplementedError('Sub-classes must implement mount method')
 
@@ -123,23 +123,23 @@ class AutoMounter(Device):
         Dismount the currently mounted sample.
         Must take care of preparing the end station
         and dismounting any mounted samples before mounting
-        @return: bool, True if successful
+        :return: bool, True if successful
         """
         raise NotImplementedError('Sub-classes must implement dismount method')
 
     def abort(self):
         """
         Abort current operation
-        @return:
+        :return:
         """
         raise NotImplementedError('Sub-classes must implement dismount method')
 
     def wait(self, states=(State.IDLE,), timeout=60):
         """
         Wait for the given state to be attained
-        @param states: requested state to wait for or a list of states
-        @param timeout: maximum time to wait
-        @return: bool, True if state was attained or False if timeout was exhausted
+        :param states: requested state to wait for or a list of states
+        :param timeout: maximum time to wait
+        :return: bool, True if state was attained or False if timeout was exhausted
         """
 
         if self.status not in states:
@@ -163,24 +163,24 @@ class AutoMounter(Device):
     def is_mountable(self, port):
         """
         Check if the specified port can be mounted successfully
-        @param port: str representation of the port
-        @return: bool, True if it is mounted
+        :param port: str representation of the port
+        :return: bool, True if it is mounted
         """
         raise NotImplementedError('Sub-classes must implement is_mountable method')
 
     def is_valid(self, port):
         """
         Check if the specified port is a valid port designation for this automounter
-        @param port: str representation of the port
-        @return: bool, True if it is valid
+        :param port: str representation of the port
+        :return: bool, True if it is valid
         """
         raise NotImplementedError('Sub-classes must implement is_valid method')
 
     def is_mounted(self, port=None):
         """
         Check if the specified port is mounted
-        @param port: str representation of the port or None if checking for any
-        @return: bool, True if it is mounted
+        :param port: str representation of the port or None if checking for any
+        :return: bool, True if it is mounted
         """
         return bool(
                 (port is None and bool(self.sample)) or
@@ -190,13 +190,13 @@ class AutoMounter(Device):
     def is_ready(self):
         """
         Check if the automounter is ready for an operation
-        @return:
+        :return:
         """
         return (self.status in [State.IDLE] and self.is_active() and not self.is_busy())
 
     def is_preparing(self):
         """
         Check if the automounter is preparing to start
-        @return:
+        :return:
         """
         return (self.status == State.PREPARING)

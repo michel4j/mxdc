@@ -33,11 +33,11 @@ class BaseManager(Device):
     def wait(self, start=True, stop=True, timeout=30, *modes):
         """
         Wait for the one of specified modes.
-        @param modes: a list of Mode ENUMS or strings to wait for
-        @param start: (bool), Wait for the manager to become busy.
-        @param stop: (bool), Wait for the manager to become idle.
-        @param timeout: maximum time in seconds to wait before failing.
-        @return: (bool), False if wait timed-out
+        :param modes: a list of Mode ENUMS or strings to wait for
+        :param start: (bool), Wait for the manager to become busy.
+        :param stop: (bool), Wait for the manager to become idle.
+        :param timeout: maximum time in seconds to wait before failing.
+        :return: (bool), False if wait timed-out
         """
 
         mode_set = {m if isinstance(m, self.ModeType) else self.ModeType[m] for m in modes}
@@ -78,28 +78,28 @@ class BaseManager(Device):
     def mount(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "mount"')
 
     def center(self, wait=False):
         """
         Switch to Center mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "center"')
 
     def collect(self, wait=False):
         """
         Switch to Collect mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "collect"')
 
     def align(self, wait=False):
         """
         Switch to Align mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "align"')
 
@@ -135,7 +135,7 @@ class SimModeManager(BaseManager):
     def mount(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.MOUNT)
         if wait:
@@ -144,7 +144,7 @@ class SimModeManager(BaseManager):
     def center(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.CENTER)
         if wait:
@@ -153,7 +153,7 @@ class SimModeManager(BaseManager):
     def collect(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.COLLECT)
         if wait:
@@ -162,7 +162,7 @@ class SimModeManager(BaseManager):
     def align(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.ALIGN)
         if wait:
@@ -226,7 +226,7 @@ class MD2Manager(BaseManager):
     def mount(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_cmd.put(self.mode_to_int[self.ModeType.MOUNT])
         if wait:
@@ -235,7 +235,7 @@ class MD2Manager(BaseManager):
     def center(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_cmd.put(self.mode_to_int[self.ModeType.CENTER])
         if wait:
@@ -244,7 +244,7 @@ class MD2Manager(BaseManager):
     def collect(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         # self.fluor_cmd.put(1)
         self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
@@ -254,7 +254,7 @@ class MD2Manager(BaseManager):
     def align(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_cmd.put(self.mode_to_int[self.ModeType.ALIGN])
         if wait:
@@ -320,7 +320,7 @@ class ModeManager(BaseManager):
     def mount(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.MOUNT].put(1)
         if wait:
@@ -329,7 +329,7 @@ class ModeManager(BaseManager):
     def center(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.CENTER].put(1)
         if wait:
@@ -338,7 +338,7 @@ class ModeManager(BaseManager):
     def collect(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.COLLECT].put(1)
         if wait:
@@ -347,7 +347,7 @@ class ModeManager(BaseManager):
     def align(self, wait=False):
         """
         Switch to Mount mode
-        @param wait: wait for switch to complete
+        :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.ALIGN].put(1)
         if wait:

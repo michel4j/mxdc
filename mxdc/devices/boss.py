@@ -1,7 +1,7 @@
 import math
 import random
 
-from gi.repository import GObject, GLib
+from gi.repository import GLib
 from zope.interface import Interface, Attribute
 from zope.interface import implementer
 
@@ -53,6 +53,11 @@ class BaseTuner(Device):
         self.tunable = False
 
     def is_tunable(self):
+        """
+        Check if Tuner is actually tunable, or just a dummy tuner.
+
+        :return: True if tunable
+        """
         return self.tunable
 
     def tune_up(self):

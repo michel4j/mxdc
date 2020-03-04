@@ -115,7 +115,7 @@ logger = get_module_logger(__name__)
 def log_call(f):
     """
     Log all calls to the function or method
-    @param f: function or method
+    :param f: function or method
     """
 
     def new_f(*args, **kwargs):

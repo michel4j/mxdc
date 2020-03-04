@@ -8,8 +8,21 @@ from mxdc.devices.misc import logger
 from mxdc import Signal, Device
 from zope.interface import implementer
 
+
 @implementer(IStorageRing)
 class BaseStorageRing(Device):
+    """
+    Base class for storage ring devices
+
+    Signals:
+        ready: arg_types=(bool,), beam available state
+
+    Properties:
+        current: float, stored current
+        mode:  int, operational mode
+        state: int, storage ring state
+        message: str, storage ring message
+    """
 
     class Signals:
         ready = Signal("ready", arg_types=(bool,))
@@ -46,7 +59,7 @@ class StorageRing(BaseStorageRing):
         self.current_pv = self.add_pv(current_pv)
         self.state_pv = self.add_pv('{}:shutters'.format(state_pv))
         self.messages = [
-            self.add_pv('{}:msg:L{}'.format(state_pv, i+1))
+            self.add_pv('{}:msg:L{}'.format(state_pv, i + 1))
             for i in range(3)
         ]
 

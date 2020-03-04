@@ -115,20 +115,20 @@ class IAnalyst(Interface):
     def process_dataset(info):
         """
         Process a Native dataset
-        @param info: Dictionary of dataset parameters
-        @return: A deferred to which callbacks can be attached
+        :param info: Dictionary of dataset parameters
+        :return: A deferred to which callbacks can be attached
         """
 
     def process_raster(info):
         """
         Process a Raster image
-        @param info: Dictionary of dataset parameters
-        @return: a deferred to which callbacks can be attached
+        :param info: Dictionary of dataset parameters
+        :return: a deferred to which callbacks can be attached
         """
 
     def process_powder(info):
         """
         Process a Powder dataset
-        @param info: Dictionary of dataset parameters
-        @return: a deferred to which callbacks can be attached
+        :param info: Dictionary of dataset parameters
+        :return: a deferred to which callbacks can be attached
         """

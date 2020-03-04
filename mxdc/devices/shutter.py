@@ -132,7 +132,7 @@ class ShutterGroup(ShutterBase):
     def __init__(self, *args, **kwargs):
         super().__init__()
         self._dev_list = list(args)
-        self.add_devices(*self._dev_list)
+        self.add_components(*self._dev_list)
         self.name = 'Beamline Shutters'
         for dev in self._dev_list:
             dev.connect('changed', self.handle_change)

@@ -6,7 +6,6 @@ import shutil
 import time
 from datetime import datetime
 
-
 from gi.repository import GObject, GLib
 from zope.interface import implementer
 
@@ -137,7 +136,6 @@ class SimDetector(BaseDetector):
 
 @implementer(IImagingDetector)
 class PilatusDetector(BaseDetector):
-
     STATES = {
         'acquiring': [1],
         'idle': [0]
@@ -295,9 +293,7 @@ class PilatusDetector(BaseDetector):
         return self.acquire_status.get() in self.STATES.get(state, [])
 
 
-
 class RayonixDetector(BaseDetector):
-
     STATES = {
         'init': [8],
         'acquiring': [1],
@@ -456,7 +452,6 @@ class RayonixDetector(BaseDetector):
 
 
 class ADSCDetector(BaseDetector):
-
     STATES = {
         'init': [8],
         'acquiring': [1],
@@ -523,8 +518,8 @@ class ADSCDetector(BaseDetector):
         logger.debug('({}) Initializing Detector ...'.format(self.name))
         self.initialized = True
         self.trigger_mode.put(1)  # External
-        self.reuse_dark.put(1)    # Reuse dark frames for dezingering
-        self.dezinger_mode.put(1) # Dezinger images
+        self.reuse_dark.put(1)  # Reuse dark frames for dezingering
+        self.dezinger_mode.put(1)  # Dezinger images
 
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
@@ -617,7 +612,6 @@ class ADSCDetector(BaseDetector):
 
 
 class EigerDetector(BaseDetector):
-
     STATES = {
         'acquiring': [1],
         'idle': [0]
@@ -672,8 +666,8 @@ class EigerDetector(BaseDetector):
             'kappa': self.add_pv("{}:KappaStart".format(name), monitor=False),
             'phi': self.add_pv("{}:PhiStart".format(name), monitor=False),
             'chi': self.add_pv("{}:ChiStart".format(name), monitor=False),
-            #'energy': self.add_pv('{}:PhotonEnergy'.format(name), monitor=False),
-            #'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
+            # 'energy': self.add_pv('{}:PhotonEnergy'.format(name), monitor=False),
+            # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
         }
 
         self.connected_status.connect('changed', self.on_connection_changed)
@@ -747,7 +741,7 @@ class EigerDetector(BaseDetector):
 
     def on_connection_changed(self, obj, state):
         if state == 0:
-            self.set_state(health=(4, 'socket','Detector disconnected!'))
+            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
         else:
             self.set_state(health=(0, 'socket', ''))
 
@@ -781,5 +775,6 @@ class EigerDetector(BaseDetector):
         else:
             logger.warning('{} timed out! Not idle after {} seconds'.format(self.name, elapsed))
             return False
+
 
 __all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector', 'EigerDetector']

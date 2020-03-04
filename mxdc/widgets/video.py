@@ -97,10 +97,10 @@ class VideoWidget(Gtk.DrawingArea):
     def configure_video(self, dwidth, dheight, vwidth, vheight):
         """
         Configure the display
-        @param dwidth: display widget width in pixels
-        @param dheight: display widget height in pixels
-        @param vwidth: video width in pixels
-        @param vheight: video height in pixels
+        :param dwidth: display widget width in pixels
+        :param dheight: display widget height in pixels
+        :param vwidth: video width in pixels
+        :param vheight: video height in pixels
         """
 
         if self.mode == VideoBox.CROP:

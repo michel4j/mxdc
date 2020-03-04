@@ -39,10 +39,10 @@ REQUIRED_FIELDS = [
 def defaulted_namedtuple(typename, fields, defaults=None):
     """
     Create a namedtuple class with default values
-    @param typename: Type name
-    @param field_names: field names
-    @param default_values: a dictionary of values to use as defaults otherwise None will be the default
-    @return:
+    :param typename: Type name
+    :param field_names: field names
+    :param default_values: a dictionary of values to use as defaults otherwise None will be the default
+    :return:
     """
     Type = collections.namedtuple(typename, fields)
     Type.__new__.__defaults__ = (None,) * len(Type._fields)
@@ -62,8 +62,8 @@ class OffsetTZ(tzinfo):
     def __init__(self, name, **kwargs):
         """
         Create a Fixed offset timezone object
-        @param name: Name of timezone
-        @param kwargs: accepts the same keyworded arguments as datetime.timedelta
+        :param name: Name of timezone
+        :param kwargs: accepts the same keyworded arguments as datetime.timedelta
         """
         self.__offset = timedelta(**kwargs)
         self.__name = name
@@ -182,9 +182,9 @@ def memoize(f):
 def find_spec(namespace, tag):
     """
     Find the specifications for a given field
-    @param namespace: The namespace to search
-    @param tag: The tag to search within the namespace
-    @return: [field name (str) or <int type>, field value format type, units (a list of strings) or None)]
+    :param namespace: The namespace to search
+    :param tag: The tag to search within the namespace
+    :return: [field name (str) or <int type>, field value format type, units (a list of strings) or None)]
     """
     specs = TAGS.get(namespace.lower(), [])
     spec = None

@@ -80,8 +80,8 @@ class MotorBase(Device):
         """
         Callback to Emit "changed" signals when the motor position changes
 
-        @param obj: process variable object
-        @param value: value of process variable
+        :param obj: process variable object
+        :param value: value of process variable
         """
         self.position = self.get_position()
         self.set_state(changed=self.position)
@@ -90,8 +90,8 @@ class MotorBase(Device):
         """
         Callback to emit "target" signal when the motor target is changed.
 
-        @param obj: process variable object
-        @param value: value of process variable
+        :param obj: process variable object
+        :param value: value of process variable
         """
         self.targets = (self.targets + (value,))[-2:]
         self.set_state(target=(self.previous_position, value))
@@ -101,8 +101,8 @@ class MotorBase(Device):
         """
         Callback to emit "starting" and "busy" signal when the motor starts moving.
 
-        @param obj: process variable object
-        @param value: value of process variable
+        :param obj: process variable object
+        :param value: value of process variable
         """
         if state == self.moving_value:
             self.moving = True
@@ -120,8 +120,8 @@ class MotorBase(Device):
         """
         Callback to emit "health" signal changes when the motor calibration changes.
 
-        @param obj: process variable object
-        @param value: value of process variable
+        :param obj: process variable object
+        :param value: value of process variable
         """
         if state == self.calibrated_value:
             self.set_state(health=(0, 'calib', ''))
@@ -132,8 +132,8 @@ class MotorBase(Device):
         """
         Callback to emit "enabled" signal when the motor-enabled state is changed.
 
-        @param obj: process variable object
-        @param value: value of process variable
+        :param obj: process variable object
+        :param value: value of process variable
         """
         self.set_state(enabled=(val != self.disabled_value))
 
@@ -142,8 +142,8 @@ class MotorBase(Device):
         """
         Check if the motor has reached a given position.
 
-        @param value: query position
-        @return: (boolean)
+        :param value: query position
+        :return: (boolean)
         """
         current = self.get_position()
         if self.units == 'deg':
@@ -154,9 +154,9 @@ class MotorBase(Device):
     def wait_start(self, timeout=2, poll=0.05):
         """
         Wait for motor to start moving
-        @param timeout: Maximum time to wait before failing
-        @param poll: Time step between checking motor state
-        @return: (boolean), True if motor started successfully
+        :param timeout: Maximum time to wait before failing
+        :param poll: Time step between checking motor state
+        :return: (boolean), True if motor started successfully
         """
         if self.command_active and not self.is_busy():
             logger.debug('Waiting for {} to start '.format(self.name))
@@ -176,10 +176,10 @@ class MotorBase(Device):
         """
         Wait for motor to stop moving.
 
-        @param target: Optional target to check
-        @param timeout: Maximum time to wait before failing
-        @param poll: Time step between checking motor state
-        @return: (boolean), True if motor stopped successfully or if it is not moving.
+        :param target: Optional target to check
+        :param timeout: Maximum time to wait before failing
+        :param poll: Time step between checking motor state
+        :return: (boolean), True if motor stopped successfully or if it is not moving.
         """
         elapsed = 0
         if target is not None:
@@ -210,9 +210,9 @@ class MotorBase(Device):
         """
         Wait for the motor busy state to change.
 
-        @param start: (bool) Wait for the motor to start moving.
-        @param stop: (bool): Wait for the motor to stop moving.
-        @return: (bool), True if successful
+        :param start: (bool) Wait for the motor to start moving.
+        :param stop: (bool): Wait for the motor to stop moving.
+        :return: (bool), True if successful
         """
         success = True
         target = self.target_position if self.command_active else None
@@ -340,10 +340,10 @@ class Motor(MotorBase):
     def move_to(self, pos, wait=False, force=False, **kwargs):
         """
         Move to an absolute position.
-        @param pos: Target position
-        @param wait: Block until move is done, default is non-blocking
-        @param force: Force move even if already at current position
-        @param kwargs: Additional options for the move
+        :param pos: Target position
+        :param wait: Block until move is done, default is non-blocking
+        :param force: Force move even if already at current position
+        :param kwargs: Additional options for the move
         """
 
         severity, context, message = self.get_state("health")
@@ -547,9 +547,9 @@ class BraggEnergyMotor(VMEMotor):
     def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, fixed_lo=2.0, fixed_hi=2.1, fixed_value=8.157, **kwargs):
         """
         VME Motor for Bragg based Energy
-        @param name: PV name
-        @param encoder: external encoder if not using internal encoder
-        @param mono_unit_cell: Si-111 unit cell parameter
+        :param name: PV name
+        :param encoder: external encoder if not using internal encoder
+        :param mono_unit_cell: Si-111 unit cell parameter
         """
         self.encoder = encoder
         self.mono_unit_cell = mono_unit_cell

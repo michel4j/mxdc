@@ -275,8 +275,8 @@ def calc_range(run):
     screening runs, the defined range is used just for a given slice of data, the full range for the dataset
     is calculated from this by adding the slice in degrees to the total range spanning the frames, defined
     in the the ScreeningRange dictionary.
-    @param run: Run parameters (dict)
-    @return: a floating point angle in degrees
+    :param run: Run parameters (dict)
+    :return: a floating point angle in degrees
     """
     if run.get('strategy') in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
         size = max(1, int(float(run['range']) / run['delta']))
@@ -288,8 +288,8 @@ def calc_range(run):
 def get_frame_numbers(run):
     """
     Generate the set of frame numbers for a given run.
-    @param run: Run parameters (dict)
-    @return: a set of integers
+    :param run: Run parameters (dict)
+    :return: a set of integers
     """
     total_range = calc_range(run)
     num_frames = max(1, int(total_range / run.get('delta', 1.0)))

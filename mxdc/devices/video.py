@@ -35,8 +35,8 @@ class VideoSrc(Device):
         """
         Base class for all Video Sources. Maintains a list of listenners (sinks)
         and updates each one when the video frame changes.
-        @param name: Camera Name (str)
-        @param maxfps: Max frames per second (float)
+        :param name: Camera Name (str)
+        :param maxfps: Max frames per second (float)
         """
         Device.__init__(self)
         self.frame = None
@@ -65,7 +65,8 @@ class VideoSrc(Device):
     def add_sink(self, sink):
         """
         Add a sink to the Camera
-        @param sink: :class:`mxdc.interface.IVideoSink` provider
+
+        :param sink: :class:`mxdc.interface.IVideoSink` provider
         """
         self.sinks.append(sink)
         sink.set_src(self)
@@ -74,7 +75,7 @@ class VideoSrc(Device):
         """
         Remove a video sink.
 
-        @param sink: :class:`mxdc.interface.IVideoSink` provider
+        :param sink: :class:`mxdc.interface.IVideoSink` provider
         """
         if sink in self.sinks:
             self.sinks.remove(sink)
@@ -103,8 +104,11 @@ class VideoSrc(Device):
             if self.is_active() and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     img = self.get_frame()
-                    self.notify_size(img)
-                    if not img: continue
+                    if img and img.size != self.size:
+                        self.size = img.size
+                        self.set_state(resize=self.size)
+                    if not img:
+                        continue
                     for sink in self.sinks:
                         if not sink.stopped:
                             sink.display(img)
@@ -116,7 +120,8 @@ class VideoSrc(Device):
     def get_frame(self):
         """
         Obtain the most recent video frame.
-        @return: A :class:`Image.Image` (Python Imaging Library) image object.
+
+        :return: A PIL Image object.
         """
         pass
 
@@ -161,7 +166,7 @@ class SimZoomableCamera(SimCamera):
         """
         Zoom to the given value.
 
-        @param value: zoom value
+        :param value: zoom value
         """
         self._zoom.move_to(value, wait=True)
 
@@ -338,8 +343,8 @@ class ZoomableCamera(object):
         """
         Zoom to the given value.
 
-        @param value: zoom value
-        @param wait: (boolean) default False, whether to wait until camera has zoomed in.
+        :param value: zoom value
+        :param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
         self._zoom.move_to(value, wait=wait)
 
@@ -376,15 +381,15 @@ class AxisPTZCamera(AxisCamera):
     def center(self, x, y):
         """
         Center the Pan-Tilt-Zoom Camera at the given point.
-        @param x: (int), x point
-        @param y: (int), y point
+        :param x: (int), x point
+        :param y: (int), y point
         """
         requests.get(self.url_root, params={'center': '{},{}'.format(x, y)})
 
     def goto(self, position):
         """
         Go to the given named position
-        @param position: named position
+        :param position: named position
         """
         requests.get(self.url_root, params={'gotoserverpresetname': position})
         self._rzoom = 0
@@ -395,7 +400,7 @@ class AxisPTZCamera(AxisCamera):
     def fetch_presets(self):
         """
         Obtain a list of named positions from the PTZ Camera
-        @return: list of strings
+        :return: list of strings
         """
         presets = []
         r = requests.get(self.url_root, params={'query': 'presetposall'})

@@ -169,8 +169,8 @@ class TreeManager(GObject.GObject):
     def add_item(self, item, add_parent=True):
         """
         Add an item to the tree
-        @param item: a dict
-        @return: a tuple of Gtk.TreePath objects for (parent, child), parent path is None for flat trees
+        :param item: a dict
+        :return: a tuple of Gtk.TreePath objects for (parent, child), parent path is None for flat trees
         """
         if not self.flat:
             parent_path = None
@@ -190,8 +190,8 @@ class TreeManager(GObject.GObject):
     def find_parent_iter(self, item):
         """
         Find the parent row for a given item.
-        @param item: a dict of values for the item about to be added
-        @return: a Gtk.TreeItr or None pointing to the parent row
+        :param item: a dict of values for the item about to be added
+        :return: a Gtk.TreeItr or None pointing to the parent row
         """
         parent_key = self.keys[self.parent.value]
         parent = self.model.get_iter_first()
@@ -204,8 +204,8 @@ class TreeManager(GObject.GObject):
     def add_items(self, items):
         """
         Add a list of items to the data store
-        @param items: a list of dicts corresponding to the items
-        @return: number of groups added
+        :param items: a list of dicts corresponding to the items
+        :return: number of groups added
         """
         groups = set()
         for item in items:
@@ -216,16 +216,16 @@ class TreeManager(GObject.GObject):
     def row_to_dict(self, row):
         """
         Convert a model row into a dictionary
-        @param row: TreeModelRow
-        @return: dict representing the item
+        :param row: TreeModelRow
+        :return: dict representing the item
         """
         return dict(list(zip(self.keys, row)))
 
     def get_item(self, itr):
         """
         Retrieve the item pointed to by itr
-        @param itr: Gtk.TreeItr
-        @return:  dict representing the item
+        :param itr: Gtk.TreeItr
+        :return:  dict representing the item
         """
         return self.row_to_dict(self.model[itr])
 
@@ -233,8 +233,8 @@ class TreeManager(GObject.GObject):
         """
         Retrieve all items under the given parent, if itr is a child, retrieve all siblings. For flat
         Trees, the list will contain a single item.
-        @param itr: Gtk.TreeItr
-        @return:  a list of dicts representing the children or siblings
+        :param itr: Gtk.TreeItr
+        :return:  a list of dicts representing the children or siblings
         """
         runs = []
 
@@ -271,8 +271,8 @@ class TreeManager(GObject.GObject):
     def make_parent(self, row):
         """
         Make a parent item for a given item
-        @param row: a dict for an item
-        @return: a dict suitable for adding to the model as a parent
+        :param row: a dict for an item
+        :return: a dict suitable for adding to the model as a parent
         """
         parent_row = ['']*len(self.keys)
         parent_row[list(self.Columns.keys())[0].value] = row[self.parent.value]
@@ -323,12 +323,12 @@ class TreeManager(GObject.GObject):
     def format_colorscale(self, column, renderer, model, itr,spec):
         """
         Format a colorscale color based on a percentage value
-        @param column: Gtk.TreeViewColumn
-        @param renderer: Gtk.CellRenderer
-        @param model: Gtk.TreeModel
-        @param itr: Gtk.TreeIter
-        @param spec:    RowSpec
-        @return:
+        :param column: Gtk.TreeViewColumn
+        :param renderer: Gtk.CellRenderer
+        :param model: Gtk.TreeModel
+        :param itr: Gtk.TreeIter
+        :param spec:    RowSpec
+        :return:
         """
         if model.iter_has_child(itr):
             renderer.set_property('text', '')
@@ -341,12 +341,12 @@ class TreeManager(GObject.GObject):
     def format_icon(self, column, renderer, model, itr, spec):
         """
         Format an icon based on a field value
-        @param column: Gtk.TreeViewColumn
-        @param renderer: Gtk.CellRenderer
-        @param model: Gtk.TreeModel
-        @param itr: Gtk.TreeIter
-        @param spec:    RowSpec
-        @return:
+        :param column: Gtk.TreeViewColumn
+        :param renderer: Gtk.CellRenderer
+        :param model: Gtk.TreeModel
+        :param itr: Gtk.TreeIter
+        :param spec:    RowSpec
+        :return:
         """
         if model.iter_has_child(itr):
             renderer.set_property('icon-name', None)
@@ -363,12 +363,12 @@ class TreeManager(GObject.GObject):
     def format_cell(self, column, renderer, model, itr, spec):
         """
         Method to format cell when values change
-        @param column: Gtk.TreeViewColumn
-        @param renderer: Gtk.CellRenderer
-        @param model: Gtk.TreeModel
-        @param itr: Gtk.TreeIter
-        @param spec:    RowSpec
-        @return:
+        :param column: Gtk.TreeViewColumn
+        :param renderer: Gtk.CellRenderer
+        :param model: Gtk.TreeModel
+        :param itr: Gtk.TreeIter
+        :param spec:    RowSpec
+        :return:
         """
         if model.iter_has_child(itr):
             parent_row = self.make_parent(model[itr])
@@ -379,10 +379,10 @@ class TreeManager(GObject.GObject):
     def row_toggled(self, cell, path, spec):
         """
         Method to handle toggling of cells
-        @param cell: Gtk.CellRendererToggle
-        @param path: Gtk.TreePath
-        @param spec: RowSpec
-        @return:
+        :param cell: Gtk.CellRendererToggle
+        :param path: Gtk.TreePath
+        :param spec: RowSpec
+        :return:
         """
         model = self.view.get_model()
         model[path][spec.data.value] = not self.model[path][spec.data.value]
@@ -390,8 +390,8 @@ class TreeManager(GObject.GObject):
     def do_selection_changed(self, selection):
         """
         Handle changes to the selection
-        @param selection: Gtk.TreeSelection
-        @return:
+        :param selection: Gtk.TreeSelection
+        :return:
         """
         if selection.get_mode() != Gtk.SelectionMode.MULTIPLE:
             model, itr = selection.get_selected()
@@ -400,35 +400,35 @@ class TreeManager(GObject.GObject):
     def selection_changed(self, model, itr):
         """
         Handle changes to the selection
-        @param selection: Gtk.TreeModel
-        @param itr: Gtk.TreeIter
-        @return:
+        :param selection: Gtk.TreeModel
+        :param itr: Gtk.TreeIter
+        :return:
         """
         pass
 
     def row_activated(self, view, path, column):
         """
         Handle activation of rows
-        @param view: Gtk.TreeView
-        @param path: Gtk.TreePath
-        @param column: Gtk.TreeViewColumn
-        @return:
+        :param view: Gtk.TreeView
+        :param path: Gtk.TreePath
+        :param column: Gtk.TreeViewColumn
+        :return:
         """
 
     def row_changed(self, model, path, itr):
         """
-        @param model: Gtk.TreeModel
-        @param path: Gtk.TreePath
-        @param itr: Gtk.TreeIter
-        @return:
+        :param model: Gtk.TreeModel
+        :param path: Gtk.TreePath
+        :param itr: Gtk.TreeIter
+        :return:
         """
 
     def row_inserted(self, model, path, itr):
         """
-        @param model: Gtk.TreeModel
-        @param path: Gtk.TreePath
-        @param itr: Gtk.TreeIter
-        @return:
+        :param model: Gtk.TreeModel
+        :param path: Gtk.TreePath
+        :param itr: Gtk.TreeIter
+        :return:
         """
         parent_itr = model.iter_parent(itr)
         if parent_itr:
@@ -439,9 +439,9 @@ class TreeManager(GObject.GObject):
 
     def row_deleted(self, model, path):
         """
-        @param model: Gtk.TreeModel
-        @param path: Gtk.TreePath
-        @return:
+        :param model: Gtk.TreeModel
+        :param path: Gtk.TreePath
+        :return:
         """
 
 

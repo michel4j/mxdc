@@ -29,10 +29,10 @@ class Goniometer(Device):
         """
         Wait for the goniometer busy state to change.
 
-        @param start: (bool), Wait for the goniometer to become busy.
-        @param stop: (bool), Wait for the goniometer to become idle.
-        @param timeout: maximum time in seconds to wait before failing.
-        @return: (bool), False if wait timed-out
+        :param start: (bool), Wait for the goniometer to become busy.
+        :param stop: (bool), Wait for the goniometer to become idle.
+        :param timeout: maximum time in seconds to wait before failing.
+        :return: (bool), False if wait timed-out
         """
         timeout = timeout or self.default_timeout
         poll = 0.05
@@ -68,14 +68,13 @@ class Goniometer(Device):
 
 
 class ParkerGonio(Goniometer):
+    """
+    EPICS based Parker-type Goniometer at the CLS 08ID-1.
+
+    :param root: (str): PV name of goniometer EPICS record.
+    """
 
     def __init__(self, root):
-        """
-        EPICS based Parker-type Goniometer at the CLS 08ID-1.
-
-        @param root: (str): PV name of goniometer EPICS record.
-
-        """
         super().__init__()
 
         # initialize process variables
@@ -123,14 +122,14 @@ class ParkerGonio(Goniometer):
 
 
 class MD2Gonio(Goniometer):
+    """
+    MD2-type Goniometer. New Arinax Java Interface
+
+    :param root: Server PV name
+    """
     NULL_VALUE = '__EMPTY__'
 
     def __init__(self, root):
-        """
-        MD2-type Goniometer. New Arinax Java Interface
-
-        @param root: Server PV name
-        """
         super().__init__('MD2 Diffractometer')
 
         # initialize process variables
@@ -179,8 +178,8 @@ class MD2Gonio(Goniometer):
         """
         Perform a data collection scan
 
-        @param wait: Whether to wait for scan to complete
-        @param timeout: maximum time to wait
+        :param wait: Whether to wait for scan to complete
+        :param timeout: maximum time to wait
         """
         self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)
@@ -245,13 +244,13 @@ class SimGonio(Goniometer):
 
 
 class GalilGonio(Goniometer):
+    """
+    EPICS based Parker-type Goniometer at the CLS 08ID-1.
+
+    :param root: (str): PV name of goniometer EPICS record.
+    """
 
     def __init__(self, root):
-        """
-        EPICS based Parker-type Goniometer at the CLS 08ID-1.
-
-        @param root: (str): PV name of goniometer EPICS record.
-        """
         super().__init__()
 
         # initialize process variables
@@ -292,14 +291,14 @@ class GalilGonio(Goniometer):
 
 
 class OldMD2Gonio(Goniometer):
+    """
+    MD2-type Goniometer. Old Maatel Socket Interface
+
+    :param root: Server PV name
+    """
     NULL_VALUE = '__EMPTY__'
 
     def __init__(self, root):
-        """
-        MD2-type Goniometer. Old Maatel Socket Interface
-
-        @param root: Server PV name
-        """
         super().__init__('MD2 Diffractometer')
 
         # initialize process variables
@@ -340,8 +339,8 @@ class OldMD2Gonio(Goniometer):
         """
         Perform a data collection scan
 
-        @param wait: Whether to wait for scan to complete
-        @param timeout: maximum time to wait
+        :param wait: Whether to wait for scan to complete
+        :param timeout: maximum time to wait
         """
         self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)

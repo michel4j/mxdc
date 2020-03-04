@@ -9,27 +9,28 @@ from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
 from zope.interface import implementer
 
-from . interfaces import IMultiChannelAnalyzer
+from .interfaces import IMultiChannelAnalyzer
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
+
 @implementer(IMultiChannelAnalyzer)
 class BasicMCA(Device):
-    """Base class for single and multi-element fluorescence MCA detector objects."""
+    """
+    Base class for single and multi-element fluorescence MCA detector objects.
 
+    :param args: All arguments and key-worded arguments are passed to :func:`custom_setup`
+        but before that, the following key-worded arguments are used if available.
+    :param kwargs:
+        elements: (int) number of detector elements, default 1
+        channels: (int) number of channels per element, default 4096
+    """
 
     class Signals:
         deadtime = Signal("deadtime", arg_types=(float,))
 
     def __init__(self, *args, **kwargs):
-        """All arguments and key-worded arguments are passed to :func:`custom_setup`
-        but before that, the following key-worded arguments are used if available.
-        
-        Kwargs:
-            - `elements` (int): Number of detector elements. (default 1)
-            - `channels` (int): Number of channels per element. (default 4096)           
-        """
         Device.__init__(self)
         self.name = 'Multi-Channel Analyzer'
         self.channels = kwargs.get('channels', 4096)
@@ -54,7 +55,7 @@ class BasicMCA(Device):
         named ordered arguments. 
         """
 
-        # Overwrite this method to setup PVs. follow are examples only
+        # Overwrite this method to setup PVs. following  are examples only
         # self.spectra = [self.add_pv("%s:mca%d" % (name, d+1), monitor=False) for d in range(elements)]
         # self.READ = self.add_pv("%s:mca1.READ" % name_root, monitor=False)
         # self.RDNG = self.add_pv("%s:mca1.RDNG" % name_root)
@@ -71,12 +72,14 @@ class BasicMCA(Device):
 
         # Signal handlers, RDNG and ACQG must be PVs defined in custom_setup
         # self.ACQG.connect('changed', self._monitor_state)
+
         raise NotImplementedError("Derived class does not implement a`custom_setup` method!")
 
     def configure(self, **kwargs):
-        """Configure the detector for data acquisition.
+        """
+        Configure the detector for data acquisition.
         
-        Kwargs:
+        :param Kwargs:
             - `roi` (tuple(int, int)): bounding channels enclosing region of interest.
             - `energy` (float): an energy value in keV around which to construct
               a region of interest. The ROI is calculated as a 150 eV window around
@@ -105,7 +108,6 @@ class BasicMCA(Device):
                 else:
                     self.nozzle.off()
 
-
     def get_roi(self, energy):
         return [energy - self.half_roi_width, energy + self.half_roi_width]
 
@@ -115,41 +117,37 @@ class BasicMCA(Device):
         else:
             self.set_state(busy=False)
 
-    def channel_to_energy(self, chn):
-        """Convert a channel number to an energy value using the detectors
+    def channel_to_energy(self, channel):
+        """
+        Convert a channel number to an energy value using the detectors
         calibration tables.
         
-        Args:
-            - `chn` (int): channel number.
-            
-        Returns:
-            float. Energy in keV
+        :param channel:  (int), channel number.
+        :return: float. Energy in keV
         """
 
         self.slope = self._slope.get()
         self.offset = self._offset.get()
-        return self.slope * chn + self.offset
+        return self.slope * channel + self.offset
 
     def energy_to_channel(self, e):
-        """Convert a an energy to a channel number using the detectors
+        """
+        Convert a an energy to a channel number using the detectors
         calibration tables.
-        
-        Args:
-            - `e` (float): Energy in keV.
-            
-        Returns:
-            int. Channel number
+
+        :param e: (float), Energy in keV.
+        :return:  (int), channel number
         """
         self.slope = self._slope.get()
         self.offset = self._offset.get()
         return int((e - self.offset) / self.slope)
 
     def get_roi_counts(self):
-        """Obtain the counts for the region of interest for each element of the 
+        """
+        Obtain the counts for the region of interest for each element of the
         detector for the last performed data acquisition.
         
-        Returns:
-            Array(float). The array contains as many elements as the number of 
+        :returns: Array(float). The array contains as many elements as the number of
             elements plus one. The last entry is an average of all elements combined.
         """
         # get counts for each spectrum within region of interest
@@ -157,26 +155,23 @@ class BasicMCA(Device):
         return values
 
     def get_count_rates(self):
-        """Obtain the input and output count rates for last performed data 
+        """
+        Obtain the input and output count rates for last performed data
         acquisition.
         
-        Returns:
-            [(int, int)]. A list of tuples, one for each element. the first entry
+        :returns: [(int, int)]. A list of tuples, one for each element. the first entry
             is the input count rate and the second is the output count rate. If 
             the values are not available (-1, -1) is substituted
         """
-        # get IRC and OCR tuple
         return [(-1, -1)]
 
     def count(self, t):
-        """Integrate the detector for the specified amount of time. This method 
+        """
+        Integrate the detector for the specified amount of time. This method
         blocks.
         
-        Args:
-            t (float): integrating time in seconds.
-        
-        Returns
-            float. The average integrated count from the region of interest of
+        :param t: (float), integrating time in seconds.
+        :returns: float. The average integrated count from the region of interest of
             all detector elements. If individual counts for each element are
             desired, they can be obtained using :func:`get_roi_counts`.            
         """
@@ -187,15 +182,13 @@ class BasicMCA(Device):
         return values[-1]
 
     def acquire(self, t=1.0):
-        """Integrate the detector for the specified amount of time and return
+        """
+        Integrate the detector for the specified amount of time and return
         the raw data from all elements without any ROI manipulation. This method 
         blocks.
         
-        Args:
-            t (float): integrating time in seconds.
-        
-        Returns
-            Array(float). An MxN array of counts from each channel of each 
+        :param t: (float), integrating time in seconds.
+        :returns: Array(float). An MxN array of counts from each channel of each
             element. Where M is the number of elements and N is the number of
             channels in the detector.            
         """
@@ -203,11 +196,15 @@ class BasicMCA(Device):
         return self.data
 
     def stop(self):
-        """Stop data acquisition."""
+        """
+        Stop data acquisition.
+        """
         self.STOP.put(1)
 
     def wait(self):
-        """Wait for the detector to start and then stop data acquisition."""
+        """
+        Wait for the detector to start and then stop data acquisition.
+        """
         self._wait_start()
         self._wait_stop()
 
@@ -256,23 +253,20 @@ class BasicMCA(Device):
 
 
 class XFlashMCA(BasicMCA):
-    """mcaRecord based single element fluorescence detector object."""
+    """
+    mcaRecord based single element fluorescence detector object.
+
+    :param name: (str), Root PV name of the mcaRecord.
+    :param nozzle: (device), An OnOff toggle device for controlling the nozzle
+    :param channels: (int), Number of channels.
+    """
 
     def __init__(self, name, channels=4096, nozzle=None):
-        """
-        Args:
-            - `name` (str): Root PV name of the mcaRecord.
-            - `nozzle` (device): An OnOff toggle device for controlling the nozzle
-        
-        Kwargs:
-            - `channels` (int):  Number of channels.
-        """
         BasicMCA.__init__(self, name, elements=1, channels=channels)
         self.name = 'XFlash MCA'
         self.nozzle = nozzle
 
     def custom_setup(self, pv_root, **kwargs):
-
         self.spectra = [self.add_pv("%s:mca%d" % (pv_root, d + 1), monitor=False) for d in range(self.elements)]
         self.READ = self.add_pv("%s:mca1.READ" % pv_root, monitor=False)
         self.RDNG = self.add_pv("%s:mca1.RDNG" % pv_root)
@@ -349,13 +343,6 @@ class VortexMCA(BasicMCA):
     """EPICS based 4-element Vortex ME4 detector object."""
 
     def __init__(self, name, channels=2048, nozzle=None):
-        """
-        Args:
-            `name` (str): Root PV name of EPICS record.
-            
-        Kwargs:
-            `channels` (int): Number of channels.
-        """
         BasicMCA.__init__(self, name, elements=4, channels=channels)
         self.name = 'Vortex MCA'
         self.nozzle = nozzle
@@ -404,13 +391,6 @@ class SimMultiChannelAnalyzer(BasicMCA):
     """Simulated single channel MCA detector."""
 
     def __init__(self, name, energy=None, channels=4096, nozzle=None):
-        """
-        Args:
-            `name` (str): Name of devices.
-            
-        Kwargs:
-            `channels` (int): Number of channels.
-        """
         self.energy = energy
         self.acquiring = False
         self.half_life = 60 * 30  # 1 hr
@@ -426,7 +406,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self._energy_pos = 12.658
         self._roi_count = 0.0
         self.energy.connect('changed', self.on_energy_value)
-        self.set_state(active=True, health=(0, '',''))
+        self.set_state(active=True, health=(0, '', ''))
 
     def update_spectrum(self, edge):
         fwhm = 0.01

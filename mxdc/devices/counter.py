@@ -4,7 +4,6 @@ import time
 
 import numpy
 
-from gi.repository import GObject
 from zope.interface import implementer
 
 from mxdc import Signal, Device
@@ -19,52 +18,66 @@ logger = get_module_logger(__name__)
 
 @implementer(ICounter)
 class BaseCounter(Device):
-    changed = GObject.Signal("changed", arg_types=(object,))
+    """
+    Base class for all counter devices
+
+    Signals:
+        changed: arg_types=(object,), value has changed
+        count: arg_types=(float,), result of asynchronous
+    """
+
+    class Signals:
+        changed = Signal("changed", arg_types=(object,))
+        count = Signal("count", arg_types=(float,))
+
+    def count(self, t):
+        """
+        Averaging of the value for the specified amount of time. Blocks while counting
+
+        :param t: total time to count
+        :return: average accumulated value
+        """
+        raise NotImplementedError('Subclasses must implement this method')
+
+    @decorators.async_call
+    def count_async(self, t):
+        """
+        Non-blocking averaging of the value for the specified amount of time. The result of the count
+        will be available in the "average_count" attribute
+
+        :param t: total time to count
+        """
+        self.set_state(count=self.count(t))
 
 
 class Counter(BaseCounter):
-    """EPICS based Counter Device objects. Enables counting and averaging of 
+    """
+    EPICS based Counter Device objects. Enables counting and averaging of
     process variables over given time periods.
+
+    :param pv_name: process variable name
+    :param zero:   zero offset value.
     """
 
     def __init__(self, pv_name, zero=0.0):
-        """        
-        Args:
-            pv_name (str): Process Variable name.
-        
-        Kwargs:
-            zero (float):  Zero offset value. Defaults to 0.0;
-        
-        Returns
-            float. The average process variable value during the count time.            
-        """
         super().__init__()
         self.name = pv_name
         self.zero = float(zero)
+
         self.value = self.add_pv(pv_name)
-        self.value.connect('changed', self._on_value_change)
-        self.DESC = self.add_pv('%s.DESC' % pv_name)
-        self.DESC.connect('changed', self._on_name_change)
+        self.descr = self.add_pv('%s.DESC' % pv_name)
+
+        self.value.connect('changed', self.on_value)
+        self.descr.connect('changed', self.on_description)
     
-    def _on_name_change(self, pv, val):
+    def on_description(self, pv, val):
         if val != '':
             self.name = val
 
-    def _on_value_change(self, pv, val):
+    def on_value(self, pv, val):
         self.set_state(changed=val)
     
     def count(self, t):
-        """Count for the specified amount of time and return the numeric value
-        corresponding to the average count. This method blocks for the specified 
-        time.
-        
-        Args:
-            t (float): averaging time in seconds.
-        
-        Returns
-            float. The average process variable value during the count time.            
-        """
-        
         if t <= 0.0:
             return self.value.get() - self.zero
             
@@ -78,69 +91,34 @@ class Counter(BaseCounter):
             time_left -= interval
         total = (sum(values, 0.0)/len(values)) - self.zero
         logger.debug('(%s) Returning average of %d values for %0.2f sec.' % (self.name, len(values), t) )
-        return total #* (t/interval)
-    
-    @decorators.async_call
-    def async_count(self, t):
-        self.avg_value = self.count(t)
+        return total
                         
 
-
 class SimCounter(BaseCounter):
-    """Simulated Counter Device objects. Optionally reads from external file.
+    """
+    Simulated Counter Device objects. Optionally reads from external file.
     """
 
     SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
     
     def __init__(self, name, zero=12345):
-        """        
-        Args:
-            name (str): Device Name.
-        
-        Kwargs:
-            zero (float):  Zero offset value. Defaults to 1.0;
-            real (bool): Whether to read from a file for more realistic values.
-        
-        Returns
-            float. If reading from a file (default), the value loops through and
-            cycles back at the end. Otherwise it alwas returns the zero value.            
-        """
-        
         super().__init__()
         from mxdc.devices.misc import SimPositioner
         self.zero = float(zero)
         self.name = name
         self.value = SimPositioner('PV', self.zero, '', noise=50)
-        self.set_state(active=True, health=(0,'', ''))
-        self.value.connect('changed', self.on_change)
-        self._counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0]**2)
-        
-    def __repr__(self):
-        s = "<%s:'%s'>" % (self.__class__.__name__, self.name)
-        return s
+        self.set_state(active=True, health=(0, '', ''))
+        self.value.connect('changed', self.on_value)
+        self.counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0] ** 2)
     
     def count(self, t):
-        """Count for the specified amount of time and return the numeric value
-        corresponding to the average count. This method blocks for the specified 
-        time.
-        
-        Args:
-            t (float): averaging time in seconds.
-        
-        Returns
-            float. The average process variable value during the count time.            
-        """
-        
         time.sleep(t)
-        i,j = divmod(self._counter_position, self.SIM_COUNTER_DATA.shape[0])
-        self._counter_position += 1
+        i, j = divmod(self.counter_position, self.SIM_COUNTER_DATA.shape[0])
+        self.counter_position += 1
         return self.SIM_COUNTER_DATA[i,j]
 
-    def on_change(self, obj, val):
+    def on_value(self, obj, val):
         self.set_state(changed=val)
 
-    @decorators.async_call
-    def async_count(self, t):
-        self.avg_value = self.count(t)
 
-__all__ = ['Counter', 'SimCounter']
+__all__ = ['BaseCounter', 'Counter', 'SimCounter']

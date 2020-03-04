@@ -42,19 +42,15 @@ class Diagnostic(GObject.GObject):
 
 
 class DeviceDiag(Diagnostic):
-    """A diagnostic object for generic devices which emits a warning when the
+    """
+    A diagnostic object for generic devices which emits a warning when the
     devices health is not good and an error when it is disconnected or disabled.
+
+    :param device: the device to  monitor
+    :param descr:  Short description of the diagnostic.
     """
 
     def __init__(self, device, descr=None):
-        """
-        Args:
-            `devices` (a class::`devices.base.Device` object) the devices to
-            monitor.
-            
-        Kwargs:
-            `descr` (str): Short description of the diagnostic.
-        """
         descr = descr if descr else device.name
         super(DeviceDiag, self).__init__(descr)
         self.device = device
@@ -75,17 +71,14 @@ class DeviceDiag(Diagnostic):
 
 
 class ServiceDiag(Diagnostic):
-    """A diagnostic object for generic services which emits an error when it is
+    """
+    A diagnostic object for generic services which emits an error when it is
     disconnected or disabled.
+
+    :param device: the device to  monitor
     """
 
     def __init__(self, service):
-        """
-        Args:
-            `services` (a class::`services.base.BaseService` object) the services to
-            monitor.
-
-        """
         super(ServiceDiag, self).__init__(service.name)
         self.service = service
         self.service.connect('active', self.on_active)

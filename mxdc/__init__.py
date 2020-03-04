@@ -32,6 +32,7 @@ class Registry(object):
     def subscribe(cls, interface, obj):
         """
         Register a subscription of an object for a given interface
+
         :param interface: Target interface
         :param obj: object
         """
@@ -41,6 +42,7 @@ class Registry(object):
     def add_utility(cls, interface, obj, name=''):
         """
         Register an object as a utility for a given interface
+
         :param interface:
         :param obj: utility
         :param name: optional name for utility
@@ -51,6 +53,7 @@ class Registry(object):
     def get_utility(cls, interface, name=''):
         """
         Fetch the utility which provides a given interface
+
         :param interface:
         :param name: optional name for utility
         :return: utility
@@ -61,6 +64,7 @@ class Registry(object):
     def get_subscribers(cls, interface):
         """
         Fetch all subscribers for a given interface
+
         :param interface:
         :return: list of subscribers
         """
@@ -69,10 +73,11 @@ class Registry(object):
 
 def _hook(provided, obj):
     """
-    Support syntatic sugar for easy creation of adaptors
+    Support syntactic sugar for easy creation of adaptors
+
     :param provided: interface
     :param obj: object to adapt
-    :return:
+    :return: adapted object
     """
     adapter = Registry.adapters.lookup1(providedBy(obj), provided, '')
     return adapter(obj)
@@ -90,8 +95,9 @@ atexit.register(_del_hook)
 def _get_signal_ids(itype):
     """
     Get a list of all signal names supported by the object
-    @param itype: type (GObject.GType) - Instance or interface type.
-    @return: [str]
+
+    :param itype: type (GObject.GType) - Instance or interface type.
+    :returns: list of strings
     """
     try:
         parent_type = GObject.type_parent(itype)
@@ -160,8 +166,9 @@ class Object(GObject.GObject, metaclass=ObjectType):
     def emit(self, signal: str, *args):
         """
         Emit the signal in a thread save manner
-        @param signal: Signal name
-        @param args: list of signal parameters
+
+        :param signal: Signal name
+        :param args: list of signal parameters
         """
 
         signal = signal.replace('_', '-')
@@ -186,7 +193,8 @@ class Object(GObject.GObject, metaclass=ObjectType):
     def get_state(self, item: str):
         """
         Get a specific state by key. The key is transformed so that underscores are replaced with hyphens
-        @param item: state key
+
+        :param item: state key
         """
         return self.__state__.get(item.replace('_', '-'))
 
@@ -194,14 +202,17 @@ class Object(GObject.GObject, metaclass=ObjectType):
         """
         Obtain a copy of the internal state dictionary. The return dictionary is not neccessarily usable as kwargs
         for set_state due to the '_' to '-' transformation of the keys.
+
+        :return: a dictionary copy of the internal signal state
         """
         return self.__state__.copy()
 
     def set_state(self, *args, **kwargs):
         """
         Set the state of the object and emit the corresponding signal.
-        @param args: list of strings corresponding to non-value signal names
-        @param kwargs: name, value pairs corresponding to signal name and signal arguments. signal names are processed
+
+        :param args: list of strings corresponding to non-value signal names
+        :param kwargs: name, value pairs corresponding to signal name and signal arguments. signal names are processed
         to convert underscores to hyphens
         """
 
@@ -263,6 +274,11 @@ class Device(Object):
             logger.debug("'{}' {}".format(self.name, msg))
 
     def is_healthy(self):
+        """
+        Check if all health flags are clear
+
+        :return: True if healthy, False otherwise
+        """
         try:
             severity, context, message = self.get_state('health')
         except ValueError:
@@ -271,12 +287,27 @@ class Device(Object):
             return severity <= 1
 
     def is_active(self):
+        """
+        Check if the device is active and ready for commands
+
+        :return: True if active, False otherwise
+        """
         return self.get_state("active")
 
     def is_busy(self):
+        """
+        Check if the device is busy/moving
+
+        :return: True if busy, False otherwise
+        """
         return self.get_state("busy")
 
     def is_enabled(self):
+        """
+        Check if the device is enabled/disabled
+
+        :return: True if enabled, False if disabled
+        """
         return self.get_state("enabled")
 
     def check_inactive(self):
@@ -303,50 +334,59 @@ class Device(Object):
 
     def add_pv(self, *args, **kwargs):
         """
-        Add a process variable (PV) to the devices.
+        Create a new process variable (PV) and add it as a component to the device.
 
-        Create a new process variable, add it to the devices.
-        arguments and Keyworded arguments should be the same as those expected for instantiating the process variable
+        Arguments and Keyworded arguments should be the same as those expected for instantiating the process variable
         class.
         """
         dev = ca.PV(*args, **kwargs)
         self.__pending.append(dev)
-        dev.connect('active', self.on_device_active)
+        dev.connect('active', self.on_component_active)
         return dev
 
-    def add_devices(self, *devices):
-        """ Add one or more devices as children of this devices. """
+    def add_components(self, *components):
+        """
+        Add one or more components as children of this device. Components can be other devices.
 
-        for dev in devices:
+        :param components: components to add to this device
+        """
+
+        for dev in components:
             if not dev.is_active():
                 self.__pending.append(dev)
-            dev.connect('active', self.on_device_active)
+            dev.connect('active', self.on_component_active)
 
     def get_pending(self):
-        """ Get the list of inactive device names"""
+        """
+        Get pending components
+
+        :return: list of pending inactive components
+        """
 
         return self.__pending
 
-    def on_device_active(self, dev, state):
-        """I am called every time a devices becomes active or inactive.
-        I expect to receive a reference to the devices and a boolean
-        state flag which is True on connect and False on disconnect. If it is
-        a connection, I add the devices to the pending devices list
-        otherwise I remove the devices from the list. When ever the list goes to
-        zero, I set the group state to active and inactive otherwise.
+    def on_component_active(self, component, state):
+        """
+        Callback which is processed every time a component becomes active or inactive, and manages the list
+        of pending components.
+
+        :param component: sub-component
+        :param state: state of component, True if active, False if inactive
         """
 
-        if state and dev in self.__pending:
-            self.__pending.remove(dev)
-        elif not state and dev not in self.__pending:
-            self.__pending.append(dev)
+        if state and component in self.__pending:
+            self.__pending.remove(component)
+        elif not state and component not in self.__pending:
+            self.__pending.append(component)
         if len(self.__pending) == 0:
             self.set_state(active=True, health=(0, 'active', ''))
         else:
             self.set_state(active=False, health=(4, 'active', 'inactive components.'))
 
     def cleanup(self):
-        """Clean up before shutdown """
+        """
+        Clean up before shutdown
+        """
 
 
 class HealthManager(object):
@@ -354,35 +394,35 @@ class HealthManager(object):
     Manages the health states. The object enables registration and removal of
     error states and consistent reporting of health based on all currently
     active health issues.
+
+    :param kwargs: The keyword name is the context, and
+        the value is an error string to be returned instead of the context name
+        with all health information for the given context.
     """
 
     def __init__(self, **kwargs):
-        """
-        @param kwargs: The keyword name is the context, and
-        the value is an error string to be returned instead of the context name
-        with all health information for the given context.
-        """
         self.messages = kwargs
         self.health_states = set()
 
     def register_messages(self, **kwargs):
         """
-        Update or add entries to the context message register
-        @param kwargs: The keyword name is the context, and
-        the value is an error string
-        @return:
+        Update or add entries to the context message register.
+
+        :param kwargs: The keyword name is the context, and
+            the value is an error string
+        :returns:
         """
         self.messages.update(kwargs)
 
     def add(self, severity, context, msg=None):
         """
-        Adds an error state to the health registry
-        @param severity: Integer representing the severity
-        @param context: the context name (str)
-        @param msg: If a message is given, it will be
-        stored and used instead of the context name. Only one message per context
-        type is allowed. Use a different context if you want different messages.
-        @return:
+        Adds an error state to the health registry.
+
+        :param severity: Integer representing the severity
+        :param context: the context name (str)
+        :param msg: If a message is given, it will be
+            stored and used instead of the context name. Only one message per context
+            type is allowed. Use a different context if you want different messages.
         """
         if msg is not None:
             self.messages.update({context: msg})
@@ -391,8 +431,8 @@ class HealthManager(object):
     def remove(self, context):
         """
         Remove all errors from the given context
-        @param context: The context name (str)
-        @return:
+
+        :param context: The context name (str)
         """
 
         err_list = [error for error in self.health_states if error[1] == context]
@@ -403,6 +443,8 @@ class HealthManager(object):
         """
         Generate an error code and string based on all the currently registered
         errors within the health registry.
+
+        :return: The health state tuple, (severity: int,  context: str, message: str)
         """
         severity = 0
         msg_list = set()
@@ -466,13 +508,16 @@ class Engine(Object):
 
     def is_busy(self):
         """
-        @return: True if the in the busy state
+        Check if the engine is busy
+
+        :Returns: True if busy, False otherwise
         """
         return self.get_state("busy")
 
     def pause(self, reason=''):
         """
         Pause the engine
+
         :param reason: Optional string describing the reason for the pause
         """
         self.paused = True
