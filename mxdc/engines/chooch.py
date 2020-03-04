@@ -7,12 +7,12 @@ import numpy
 
 from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
-from mxdc import BaseEngine
+from mxdc import Engine
 
 logger = get_module_logger(__name__)
 
 
-class AutoChooch(BaseEngine):
+class AutoChooch(Engine):
     """An event driven engines for performing analysis of MAD Scans with CHOOCH.
     """
 

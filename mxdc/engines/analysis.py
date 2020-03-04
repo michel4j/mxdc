@@ -3,7 +3,7 @@ import uuid
 import json
 
 from gi.repository import GObject
-from mxdc import Registry, Signal, BaseEngine
+from mxdc import Registry, Signal, Engine
 from twisted.internet.defer import  inlineCallbacks, returnValue
 from zope.interface import implementer
 from mxdc.beamlines.interfaces import IBeamline
@@ -17,10 +17,10 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IAnalyst)
-class Analyst(BaseEngine):
+class Analyst(Engine):
 
-    # Signals:
-    report = Signal('new-report', arg_types=(str, object))
+    class Signals:
+        report = Signal('new-report', arg_types=(str, object))
 
     class ResultType(object):
         MX, XRD, RASTER = list(range(3))

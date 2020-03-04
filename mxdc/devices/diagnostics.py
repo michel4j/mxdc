@@ -49,7 +49,7 @@ class DeviceDiag(Diagnostic):
     def __init__(self, device, descr=None):
         """
         Args:
-            `devices` (a class::`devices.base.BaseDevice` object) the devices to
+            `devices` (a class::`devices.base.Device` object) the devices to
             monitor.
             
         Kwargs:

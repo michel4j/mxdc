@@ -4,7 +4,7 @@ import time
 
 import numpy
 from gi.repository import GObject
-from mxdc import conf, Signal, BaseDevice
+from mxdc import conf, Signal, Device
 from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
 from zope.interface import implementer
@@ -15,12 +15,12 @@ from . interfaces import IMultiChannelAnalyzer
 logger = get_module_logger(__name__)
 
 @implementer(IMultiChannelAnalyzer)
-class BasicMCA(BaseDevice):
+class BasicMCA(Device):
     """Base class for single and multi-element fluorescence MCA detector objects."""
 
 
-    # Signals:
-    deadtime = Signal("deadtime", arg_types=(float,))
+    class Signals:
+        deadtime = Signal("deadtime", arg_types=(float,))
 
     def __init__(self, *args, **kwargs):
         """All arguments and key-worded arguments are passed to :func:`custom_setup`
@@ -30,7 +30,7 @@ class BasicMCA(BaseDevice):
             - `elements` (int): Number of detector elements. (default 1)
             - `channels` (int): Number of channels per element. (default 4096)           
         """
-        BaseDevice.__init__(self)
+        Device.__init__(self)
         self.name = 'Multi-Channel Analyzer'
         self.channels = kwargs.get('channels', 4096)
         self.elements = kwargs.get('elements', 1)

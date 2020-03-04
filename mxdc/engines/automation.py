@@ -2,7 +2,7 @@ import time
 import uuid
 
 
-from mxdc import Registry, Signal, BaseEngine
+from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering, auto
 from mxdc.engines.interfaces import IDataCollector
 from mxdc.utils import datatools
@@ -11,15 +11,15 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-class Automator(BaseEngine):
+class Automator(Engine):
     TaskNames = ('Mount', 'Center', 'Pause', 'Acquire', 'Analyse', 'Dismount')
 
     class Task:
         (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = list(range(6))
 
-    # Signals:
-    sample_done = Signal('sample-done', arg_types=(str,))
-    sample_started = Signal('sample-started', arg_types=(str,))
+    class Signals:
+        sample_done = Signal('sample-done', arg_types=(str,))
+        sample_started = Signal('sample-started', arg_types=(str,))
 
     def __init__(self):
         super().__init__()

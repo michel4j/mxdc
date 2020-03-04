@@ -4,7 +4,7 @@ from enum import Enum
 from zope.interface import implementer
 from gi.repository import GObject
 
-from mxdc import BaseDevice
+from mxdc import Device
 from mxdc.devices.interfaces import IAutomounter
 from mxdc.utils.log import get_module_logger
 
@@ -20,7 +20,7 @@ def set_object_properties(obj, kwargs):
         obj.set_property(k,v)
 
 @implementer(IAutomounter)
-class AutoMounter(BaseDevice):
+class AutoMounter(Device):
 
 
     layout = GObject.Property(type=object)

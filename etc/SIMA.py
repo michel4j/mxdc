@@ -14,7 +14,7 @@ CONFIG = {
     'mono_unit_cell': 5.4297575,
     'source': 'CLS Sim SGU',
     'type': 'mx',
-    'subnet': '10.52.4.22/32',
+    'subnet': '0.0.0.0/32',
 
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 

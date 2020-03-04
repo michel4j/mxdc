@@ -3,7 +3,7 @@ import time
 import numpy
 from gi.repository import GObject
 from zope.interface import implementer
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
 from .interfaces import IDevice
 
@@ -48,9 +48,9 @@ class ISampleStage(IDevice):
 
 
 @implementer(ISampleStage)
-class SampleStageBase(BaseDevice):
-    # Signals:
-    changed = Signal("changed", arg_types=(object,))
+class SampleStageBase(Device):
+    class Signals:
+        changed = Signal("changed", arg_types=(object,))
 
     def xyz_to_xvw(self, x, y, z):
         return x, numpy.hypot(y, z), numpy.arctan2(z, y)

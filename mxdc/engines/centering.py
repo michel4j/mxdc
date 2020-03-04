@@ -7,7 +7,7 @@ import cv2
 import numpy
 from gi.repository import GLib
 
-from mxdc import Registry, BaseEngine
+from mxdc import Registry, Engine
 from mxdc.utils import imgproc, datatools, misc
 from mxdc.utils.log import get_module_logger
 
@@ -21,7 +21,7 @@ _CENTERING_FLIGHT = 0
 _MAX_TRIES = 5
 
 
-class Centering(BaseEngine):
+class Centering(Engine):
 
     def __init__(self):
         super().__init__()

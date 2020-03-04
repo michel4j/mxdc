@@ -5,7 +5,7 @@ from threading import Lock
 warnings.simplefilter("ignore")
 from datetime import datetime
 from zope.interface import implementer
-from mxdc import Registry, BaseDevice
+from mxdc import Registry, Device
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call
@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IGoniometer)
-class Goniometer(BaseDevice):
+class Goniometer(Device):
     """Base class for goniometer."""
 
     def __init__(self, name='Diffractometer'):

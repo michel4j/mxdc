@@ -6,7 +6,7 @@ import numpy
 from scipy import interpolate
 from zope.interface import implementer
 
-from mxdc import Registry, Signal, BaseEngine
+from mxdc import Registry, Signal, Engine
 from mxdc.beamlines.mx import IBeamline
 from mxdc.devices.interfaces import IMotor, ICounter
 from mxdc.engines.interfaces import IScan, IScanPlotter
@@ -18,12 +18,12 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IScan)
-class BasicScan(BaseEngine):
+class BasicScan(Engine):
     name = 'Basic Scan'
 
-    # Signals
-    new_point = Signal('new-point', arg_types=(object,))
-    message = Signal('message', arg_types=(str,))
+    class Signals:
+        new_point = Signal('new-point', arg_types=(object,))
+        message = Signal('message', arg_types=(str,))
 
     def __init__(self):
         super().__init__()

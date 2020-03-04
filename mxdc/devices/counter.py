@@ -7,7 +7,7 @@ import numpy
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils import decorators
 from mxdc.utils.log import get_module_logger
 
@@ -18,7 +18,7 @@ logger = get_module_logger(__name__)
 
 
 @implementer(ICounter)
-class BaseCounter(BaseDevice):
+class BaseCounter(Device):
     changed = GObject.Signal("changed", arg_types=(object,))
 
 

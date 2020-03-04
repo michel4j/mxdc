@@ -17,9 +17,6 @@ logger = get_module_logger(__name__)
 
 
 class SetupController(object):
-    __gsignals__ = {
-        'beam-change': (GObject.SignalFlags.RUN_FIRST, None, [bool, ]),
-    }
     gui_roots = {
         'data/hutch_manager': ['hutch_widget'],
     }

@@ -5,7 +5,7 @@ import numpy
 from gi.repository import GLib
 from zope.interface import implementer
 
-from mxdc import Registry, Signal, BaseDevice
+from mxdc import Registry, Signal, Device
 from mxdc.com.ca import PV
 from mxdc.devices.motor import MotorBase
 from mxdc.utils import converter
@@ -17,15 +17,15 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IPositioner)
-class PositionerBase(BaseDevice):
+class PositionerBase(Device):
     """Base class for a simple positioning devices.
     
     Signals:
         - `changed` : Data is the new value of the devices.
     """
 
-    # Signals:
-    changed = Signal("changed", arg_types=(object,))
+    class Signals:
+        changed = Signal("changed", arg_types=(object,))
 
     def __init__(self):
         super().__init__()
@@ -217,10 +217,10 @@ class SampleLight(Positioner):
 
 
 @implementer(IOnOff)
-class OnOffToggle(BaseDevice):
+class OnOffToggle(Device):
 
-    # Signals:
-    changed = Signal("changed", arg_types=(bool,))
+    class Signals:
+        changed = Signal("changed", arg_types=(bool,))
 
     def __init__(self, pv_name, values=(1, 0)):
         super().__init__()
@@ -278,7 +278,7 @@ class PositionerMotor(MotorBase):
         self.positioner = positioner
         self.name = positioner.name
         self.units = positioner.units
-        self.positioner.connect('changed', self.notify_change)
+        self.positioner.connect('changed', self.on_change)
 
     def configure(self, props):
         pass
@@ -419,7 +419,7 @@ class Attenuator2(Attenuator):
                 self._open[i].put(1)
 
 
-class DiskSpaceMonitor(BaseDevice):
+class DiskSpaceMonitor(Device):
     """An object which periodically monitors a given path for available space."""
 
     def __init__(self, descr, path, warn=0.05, critical=0.025, freq=5.0):
@@ -478,7 +478,7 @@ class DiskSpaceMonitor(BaseDevice):
         return True
 
 
-class Enclosures(BaseDevice):
+class Enclosures(Device):
     def __init__(self, **kwargs):
         super().__init__()
         self.name = "Beamline Enclosures"

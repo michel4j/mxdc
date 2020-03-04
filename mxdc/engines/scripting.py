@@ -3,7 +3,7 @@ import time
 import importlib
 
 from gi.repository import GObject, GLib
-from mxdc import Registry, Signal, BaseEngine
+from mxdc import Registry, Signal, Engine
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.beamlines.interfaces import IBeamline
@@ -35,10 +35,10 @@ class ScriptError(Exception):
 
 
 @implementer(IScript)
-class Script(BaseEngine):
+class Script(Engine):
 
-    # Signals:
-    enabled = Signal('enabled', arg_types=(bool,))
+    class Signals:
+        enabled = Signal('enabled', arg_types=(bool,))
 
     description = 'A Script'
     progress = None

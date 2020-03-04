@@ -350,8 +350,8 @@ class XASScanner(BasicScan):
     X-Ray Absorption Spectroscopy (XAS, XANES, EXAFS). Monochromator is scanned around a specific  absorption-edge
     in a stepwise manner and the total _emission for the selected absorption-edge is recorded.
     """
-    # Signals:
-    new_scan = Signal('new-scan', arg_types=(int,))
+    class Signals:
+        new_scan = Signal('new-scan', arg_types=(int,))
 
     name = 'XAS Scan'
 

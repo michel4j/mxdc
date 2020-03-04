@@ -4,7 +4,7 @@ from collections import defaultdict
 from copy import copy
 
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject, GLib
-from mxdc import Registry, Signal, SignalObject
+from mxdc import Registry, Signal, Object
 from zope.interface import Interface, implementer
 
 from mxdc.beamlines.mx import IBeamline
@@ -72,7 +72,7 @@ class GroupItem(GObject.GObject):
 
 
 @implementer(ISampleStore)
-class SampleStore(SignalObject):
+class SampleStore(Object):
     class Data(object):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
@@ -96,8 +96,8 @@ class SampleStore(SignalObject):
         (Data.PRIORITY, 'Priority'),
     ])
 
-    # Signals:
-    updated = Signal("updated", arg_types=())
+    class Signals:
+        updated = Signal("updated", arg_types=())
 
     # properties
     cache = GObject.Property(type=object)
