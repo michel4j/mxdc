@@ -5,12 +5,6 @@ import threading
 import time
 from io import BytesIO, StringIO
 
-import gi
-
-gi.require_version('Gtk', '3.0')
-
-from gi.repository import GObject
-
 import numpy
 import redis
 import requests
@@ -260,18 +254,13 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, zoom_slave=True, size=(1280,1024), name='REDIS Camera'):
+    def __init__(self, server, mac, zoom_slave=False, size=(1280,1024), name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
         self.zoom_slave = zoom_slave
         self.server = server
         self.size = size
-        self.stream = None
-        self.data = ''
-
-        self._last_frame = time.time()
-        self._read_size = 48 * 1024
 
         self.set_state(active=True)
         self.lock = threading.Lock()
@@ -317,10 +306,8 @@ class AxisCamera(JPGCamera):
 
     def __init__(self, hostname, idx=None, name='Axis Camera'):
         if idx is None:
-            # url = 'http://%s/mjpg/video.mjpg' % hostname
             url = 'http://%s/jpg/image.jpg' % hostname
         else:
-            # url = 'http://%s/mjpg/%s/video.mjpg' % (hostname, idx)
             url = 'http://%s/jpg/%s/image.jpg' % (hostname, idx)
         super(AxisCamera, self).__init__(url, name=name)
 
