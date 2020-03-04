@@ -5,14 +5,14 @@ import random
 from gi.repository import GObject
 from mxdc.devices.interfaces import IStorageRing
 from mxdc.devices.misc import logger
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from zope.interface import implementer
 
 @implementer(IStorageRing)
-class BaseStorageRing(BaseDevice):
+class BaseStorageRing(Device):
 
-    # Signals:
-    ready = Signal("ready", arg_types=(bool,))
+    class Signals:
+        ready = Signal("ready", arg_types=(bool,))
 
     # Properties
     current = GObject.property(type=float, default=0.0)

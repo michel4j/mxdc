@@ -16,7 +16,7 @@ import redis
 import requests
 from PIL import Image
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
 from scipy import misc
 from zope.interface import implementer
@@ -27,9 +27,9 @@ logger = get_module_logger(__name__)
 session = requests.Session()
 
 
-class VideoSrc(BaseDevice):
-    # Signals:
-    resize = Signal("resize", arg_types=(object,))
+class VideoSrc(Device):
+    class Signals:
+        resize = Signal("resize", arg_types=(object,))
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
         """
@@ -38,7 +38,7 @@ class VideoSrc(BaseDevice):
         @param name: Camera Name (str)
         @param maxfps: Max frames per second (float)
         """
-        BaseDevice.__init__(self)
+        Device.__init__(self)
         self.frame = None
         self.name = name
         self.size = (768, 576)
@@ -100,7 +100,7 @@ class VideoSrc(BaseDevice):
         dur = 1.0 / self.maxfps
         while not self._stopped:
             t = time.time()
-            if self.is_active() and self.is_enabled() and any(not (sink.stopped) for sink in self.sinks):
+            if self.is_active() and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     img = self.get_frame()
                     self.notify_size(img)

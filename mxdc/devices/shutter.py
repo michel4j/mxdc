@@ -2,7 +2,7 @@ import time
 
 from zope.interface import implementer
 
-from mxdc import BaseDevice, Signal
+from mxdc import Device, Signal
 from mxdc.devices.interfaces import IShutter
 from mxdc.devices.misc import logger
 from mxdc.utils import misc
@@ -10,9 +10,9 @@ from mxdc.utils.decorators import async_call
 
 
 @implementer(IShutter)
-class ShutterBase(BaseDevice):
-    # Signals:
-    changed = Signal("changed", arg_types=(bool,))
+class ShutterBase(Device):
+    class Signals:
+        changed = Signal("changed", arg_types=(bool,))
 
 
 class BasicShutter(ShutterBase):

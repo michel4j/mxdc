@@ -1,8 +1,8 @@
 import atexit
-import re
 import threading
 
 from gi.repository import GObject, GLib
+from gi.types import GObjectMeta
 from zope.interface import providedBy
 from zope.interface.adapter import AdapterRegistry
 from zope.interface.interface import adapter_hooks
@@ -10,6 +10,8 @@ from zope.interface.interface import adapter_hooks
 from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
+
+logger = get_module_logger(__name__)
 
 
 class Registry(object):
@@ -72,8 +74,8 @@ def _hook(provided, obj):
     :param obj: object to adapt
     :return:
     """
-    adapter = Registry.adapters.lookup1(providedBy(object), provided, '')
-    return adapter(object)
+    adapter = Registry.adapters.lookup1(providedBy(obj), provided, '')
+    return adapter(obj)
 
 
 def _del_hook():
@@ -85,27 +87,6 @@ adapter_hooks.append(_hook)
 atexit.register(_del_hook)
 
 
-def _make_tuple(value_type):
-    """
-    Convert a value_type into a typle of value_types
-    @param value_type: value type
-    @return: tuple of value types
-    """
-    if isinstance(value_type, (tuple, list)):
-        return value_type
-    elif value_type in (bool, object, str, int, float):
-        return value_type,
-
-
-def _make_signal_name(name):
-    """
-    Format a signal name from an attribute name
-    @param name: attribute name
-    @return: signal name
-    """
-    return name.replace('_', '-')
-
-
 def _get_signal_ids(itype):
     """
     Get a list of all signal names supported by the object
@@ -113,11 +94,11 @@ def _get_signal_ids(itype):
     @return: [str]
     """
     try:
-        ptype = GObject.type_parent(itype)
-        psigs = _get_signal_ids(ptype)
+        parent_type = GObject.type_parent(itype)
+        parent_signals = _get_signal_ids(parent_type)
     except:
-        psigs = []
-    return GObject.signal_list_ids(itype) + psigs
+        parent_signals = []
+    return GObject.signal_list_ids(itype) + parent_signals
 
 
 def _get_signal_properties(itype):
@@ -131,16 +112,44 @@ def _get_signal_properties(itype):
 Signal = GObject.Signal
 
 
-class SignalObject(GObject.GObject):
+class ObjectType(GObjectMeta):
     """
-    Base Class for all objects that emit signals
+    MetaClass for adding extra syntactic sugar when you want to define signals without polluting the namespace with
+    signal names
     """
-    name = 'Signal Object'
+
+    def __new__(cls, name, superclasses, attributes):
+        signals = attributes.get('Signals', None)
+        if signals:
+            attributes.update({
+                '__sig_{}'.format(name): signal
+                for name, signal in signals.__dict__.items() if isinstance(signal, Signal)
+            })
+        return GObjectMeta.__new__(cls, name, superclasses, attributes)
+
+
+class Object(GObject.GObject, metaclass=ObjectType):
+    """
+    Base Class for all objects in MxDC which can emit signals.
+
+    Signals are defined as follows:
+
+    class Signals:
+        name = Signal('name', arg_types=(str,))
+        ready = Signal('ready', arg_types=(bool, str))
+
+    object instances  can then emit signals as follows:
+
+    >>> obj.emit('name', 'My name is Foo Bar')
+    >>> obj.emit('ready', True, 'Ready to roll!')
+
+    """
+    name = 'Base Object'
 
     def __init__(self):
         super().__init__()
-        self.__state__ = {}
         self.__signal_types__ = _get_signal_properties(self)
+        self.__state__ = {name: None for name in self.__signal_types__.keys()}
 
     def _emission(self, signal, *args):
         try:
@@ -148,12 +157,14 @@ class SignalObject(GObject.GObject):
         except TypeError as e:
             logger.error("'{}': Invalid parameters for signal '{}': {}".format(self, signal, args))
 
-    def emit(self, signal, *args):
+    def emit(self, signal: str, *args):
         """
         Emit the signal in a thread save manner
-        :param signal: Signal name
-        :param args: list of signal parameters
+        @param signal: Signal name
+        @param args: list of signal parameters
         """
+
+        signal = signal.replace('_', '-')
 
         num_args = len(args)
         current = self.__state__.get(signal)
@@ -172,28 +183,28 @@ class SignalObject(GObject.GObject):
             else:
                 GLib.idle_add(self._emission, signal, *args)
 
-
-    def get_state(self, item):
+    def get_state(self, item: str):
         """
-        Get a specific state by key
+        Get a specific state by key. The key is transformed so that underscores are replaced with hyphens
         @param item: state key
         """
-        return self.__state__.get(item)
+        return self.__state__.get(item.replace('_', '-'))
 
     def get_states(self):
         """
-        Obtain a copy of the internal state dictionary
+        Obtain a copy of the internal state dictionary. The return dictionary is not neccessarily usable as kwargs
+        for set_state due to the '_' to '-' transformation of the keys.
         """
         return self.__state__.copy()
 
     def set_state(self, *args, **kwargs):
         """
         Set the state of the object and emit the corresponding signal.
-        :param args: List of strings to emit with no values or default values
-        :param kwargs: Keyworded arguments represent signal, value pairs. signal names are processed
+        @param args: list of strings corresponding to non-value signal names
+        @param kwargs: name, value pairs corresponding to signal name and signal arguments. signal names are processed
         to convert underscores to hyphens
-        :return:
         """
+
         for signal in args:
             self.emit(signal)
 
@@ -203,52 +214,41 @@ class SignalObject(GObject.GObject):
             else:
                 self.emit(signal, value)
 
-logger = get_module_logger(__name__)
 
-
-class BaseDevice(SignalObject):
-    """A generic devices object class.  All devices should be derived from this
-    class. Objects of this class are instances of `GObject.GObject`.
-
-    **Attributes:**
-
-        - `pending_devs`: a list of inactive child devices.
-        - `health_manager`: A :class:`HealthManager` object.
-        - `_state`: A dict containing state information.
-        - `name`:  the name of the devices
-
-    **Signals:**
-        - `active`: emitted when the state of the devices changes from inactive
-          to active and vice-versa. Passes a single boolean value.
-        - `busy`: emitted to notify listeners of a change in the busy state. A
-          single boolean parameter is passed along with the signal. `True` means
-          busy, `False` means not busy.
-        - `health`: signals an devices sanity/error condition. Passes two
-          parameters, an integer error code and a string description. The
-          integer error codes are:
-
-              - 0 : No error
-              - 1 : MINOR, no impact to devices functionality.
-              - 2 : MARGINAL, no immediate impact. Attention may soon be needed.
-              - 4 : SERIOUS, functionality impacted but recovery is possible.
-              - 8 : CRITICAL, functionality broken, recovery is not possible.
-              - 16 : DISABLED, devices has been manually disabled.
-
-        - `message`: signal for sending messages from the devices to any
-          listeners. Messages are passed as a single string parameter.
+class Device(Object):
     """
-    # Signals:
-    active = Signal("active", arg_types=(bool,))
-    busy = Signal("busy", arg_types=(bool,))
-    enabled = Signal("enabled", arg_types=(bool,))
-    health = Signal("health", arg_types=(int, str, str))
-    message = Signal("message", arg_types=(str,))
+    Base device object. All devices should be derived from this class.
+
+    Signals:
+        active: arg_types=(bool,), True when device is ready to be controlled
+        busy: arg_types=(bool,), True when device is busy
+        enabled: arg_types=(bool,), True when device is enabled for control
+        health: arg_types=(severity: int, context: str, message: str), represents the health state of the device
+            severity values:
+                0 : OK
+                1 : MINOR, no impact to devices functionality.
+                2 : MARGINAL, no immediate impact. Attention may soon be needed.
+                4 : SERIOUS, functionality impacted but recovery is possible.
+                8 : CRITICAL, functionality broken, recovery is not possible.
+                16: DISABLED, devices has been manually disabled.
+            health events within a given context can cancel previous values in the same context but do not
+            affect other contexts. The overall health of the device is dependent on all contexts and is usually
+            emitted with an empty string.
+
+    """
+
+    class Signals:
+        active = Signal("active", arg_types=(bool,))
+        busy = Signal("busy", arg_types=(bool,))
+        enabled = Signal("enabled", arg_types=(bool,))
+        health = Signal("health", arg_types=(int, str, str))
+        message = Signal("message", arg_types=(str,))
 
     def __init__(self):
         super().__init__()
         self.name = self.__class__.__name__
-        self.pending = []  # inactive child devices or process variables
-        self.health_manager = HealthManager()  # manages the health states
+        self.__pending = []                     # inactive child devices or process variables
+        self.health_manager = HealthManager()   # manages the health states
         GLib.timeout_add(10000, self.check_inactive)
 
     def __str__(self):
@@ -257,8 +257,8 @@ class BaseDevice(SignalObject):
     def do_active(self, state):
         desc = {True: 'active', False: 'inactive'}
         logger.info("'{}' is now {}.".format(self.name, desc[state]))
-        if not state and len(self.pending) > 0:
-            inactive_devs = [dev.name for dev in self.pending]
+        if not state and len(self.__pending) > 0:
+            inactive_devs = [dev.name for dev in self.__pending]
             msg = '[{:d}] inactive variables.'.format(len(inactive_devs))
             logger.debug("'{}' {}".format(self.name, msg))
 
@@ -280,8 +280,8 @@ class BaseDevice(SignalObject):
         return self.get_state("enabled")
 
     def check_inactive(self):
-        if self.pending:
-            inactive = [dev.name for dev in self.pending]
+        if self.__pending:
+            inactive = [dev.name for dev in self.__pending]
             self.set_state(health=(16, 'inactive', '{} Inactive'.format(len(inactive))))
             logger.error("'{}' inactive components: {}".format(self.name, ', '.join(inactive)))
 
@@ -302,22 +302,15 @@ class BaseDevice(SignalObject):
         super().set_state(*args, **kwargs)
 
     def add_pv(self, *args, **kwargs):
-        """Add a process variable (PV) to the devices.
+        """
+        Add a process variable (PV) to the devices.
 
         Create a new process variable, add it to the devices.
-        Keyworded arguments should be the same as those expected for instantiating the process variable
-        class. The Process Variable protocol may be requested by passing in the module through the
-        'protocol' key-word argument. The  default protocol will be mxdc.com.ca
-
-        :class:`mxdc.com.ca.PV` object.
-
-        Returns:
-            A reference to the created object.
-            @rtype: mxdc.com.ca.PV
+        arguments and Keyworded arguments should be the same as those expected for instantiating the process variable
+        class.
         """
-
         dev = ca.PV(*args, **kwargs)
-        self.pending.append(dev)
+        self.__pending.append(dev)
         dev.connect('active', self.on_device_active)
         return dev
 
@@ -326,8 +319,13 @@ class BaseDevice(SignalObject):
 
         for dev in devices:
             if not dev.is_active():
-                self.pending.append(dev)
+                self.__pending.append(dev)
             dev.connect('active', self.on_device_active)
+
+    def get_pending(self):
+        """ Get the list of inactive device names"""
+
+        return self.__pending
 
     def on_device_active(self, dev, state):
         """I am called every time a devices becomes active or inactive.
@@ -338,11 +336,11 @@ class BaseDevice(SignalObject):
         zero, I set the group state to active and inactive otherwise.
         """
 
-        if state and dev in self.pending:
-            self.pending.remove(dev)
-        elif not state and dev not in self.pending:
-            self.pending.append(dev)
-        if len(self.pending) == 0:
+        if state and dev in self.__pending:
+            self.__pending.remove(dev)
+        elif not state and dev not in self.__pending:
+            self.__pending.append(dev)
+        if len(self.__pending) == 0:
             self.set_state(active=True, health=(0, 'active', ''))
         else:
             self.set_state(active=False, health=(4, 'active', 'inactive components.'))
@@ -415,22 +413,32 @@ class HealthManager(object):
         return severity, '', msg
 
 
-class BaseEngine(SignalObject):
+class Engine(Object):
     """
     Base class for all Engines.
 
     An Engine provides utilities for running stoppable/pausable activities
     in a thread, reporting progress and notifying watchers of the start, end and progress
     of the activity
+
+    Signals:
+        started: arg_types=(data: object,)
+        stopped: arg_types=(data: object,)
+        busy: arg_types=(bool,)
+        done: arg_types=(data: object,)
+        error: arg_types=(str,)
+        paused: arg_types=(paused: bool, reason: str)
+        progress: arg_types=(fraction: float, message: str)
     """
-    # Signals:
-    started = GObject.Signal('started', arg_types=(object,))
-    stopped = GObject.Signal('stopped', arg_types=(object,))
-    busy = GObject.Signal('busy', arg_types=(bool,))
-    done = GObject.Signal('done', arg_types=(object,))
-    error = GObject.Signal('error', arg_types=(str,))
-    paused = GObject.Signal('paused', arg_types=(bool, str))
-    progress = GObject.Signal('progress', arg_types=(float, str))
+
+    class Signals:
+        started = Signal('started', arg_types=(object,))
+        stopped = Signal('stopped', arg_types=(object,))
+        busy = Signal('busy', arg_types=(bool,))
+        done = Signal('done', arg_types=(object,))
+        error = Signal('error', arg_types=(str,))
+        paused = Signal('paused', arg_types=(bool, str))
+        progress = Signal('progress', arg_types=(float, str))
 
     def __init__(self):
         super().__init__()
@@ -457,6 +465,9 @@ class BaseEngine(SignalObject):
         self.paused = False
 
     def is_busy(self):
+        """
+        @return: True if the in the busy state
+        """
         return self.get_state("busy")
 
     def pause(self, reason=''):

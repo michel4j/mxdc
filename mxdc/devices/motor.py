@@ -2,10 +2,9 @@ import time
 from threading import Lock
 
 import numpy
-from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils import converter
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
@@ -20,7 +19,7 @@ class MotorError(Exception):
 
 
 @implementer(IMotor)
-class MotorBase(BaseDevice):
+class MotorBase(Device):
     """Base class for motors.
     
     Signals:
@@ -28,7 +27,6 @@ class MotorBase(BaseDevice):
           Data contains the current position of the motor.
         - `target` (float): Emitted everytime the requested position of the motor changes.
           Data is a tuple containing the previous set point and the current one.
-        - `time` (float): Emitted everytime the motor changes.
           Data is a 2-tuple with the current position and the timestamp of the last change.
         - `starting` (None): Emitted when this a command to move has been accepted by this instance of the motor.
         - `done` (None): Emitted within the instance when a commanded move has completed.
@@ -39,9 +37,8 @@ class MotorBase(BaseDevice):
     starting = Signal("starting", arg_types=())
     done = Signal("done", arg_types=())
     target = Signal("target", arg_types=(object, float))
-    time = Signal("time", arg_types=(float,))
 
-    def __init__(self, name, precision=2, units=''):
+    def __init__(self, name, *args, precision=2, units=''):
         super().__init__()
         self.name = name
         self.description = name
@@ -50,8 +47,11 @@ class MotorBase(BaseDevice):
         self.starting = False
         self.target_position = 0
         self.previous_position = None
+
+        self.position = None
+        self.targets = (None, None)
         self.units = units
-        self.default_precision = precision
+        self.precision = precision
 
         self.moving_value = 1
         self.disabled_value = 0
@@ -64,6 +64,7 @@ class MotorBase(BaseDevice):
         """
         raise NotImplementedError
 
+    # Signal Closures
     def do_starting(self):
         self.starting = True
 
@@ -75,28 +76,28 @@ class MotorBase(BaseDevice):
             self.set_state(done=None)
 
     # general notification callbacks
-    def notify_change(self, obj, value):
+    def on_change(self, obj, value):
         """
-        Callback to Emit "changed" and "time" signals whenn the motor position changes
+        Callback to Emit "changed" signals when the motor position changes
 
         @param obj: process variable object
         @param value: value of process variable
         """
-        t = obj.get_state('time') or time.time()
-        self.set_state(time=t)
-        self.set_state(changed=self.get_position())
+        self.position = self.get_position()
+        self.set_state(changed=self.position)
 
-    def notify_target(self, obj, value):
+    def on_target(self, obj, value):
         """
         Callback to emit "target" signal when the motor target is changed.
 
         @param obj: process variable object
         @param value: value of process variable
         """
+        self.targets = (self.targets + (value,))[-2:]
         self.set_state(target=(self.previous_position, value))
         self.previous_position = value
 
-    def notify_motion(self, obj, state):
+    def on_motion(self, obj, state):
         """
         Callback to emit "starting" and "busy" signal when the motor starts moving.
 
@@ -115,7 +116,7 @@ class MotorBase(BaseDevice):
         if not self.moving:
             logger.debug("(%s) stopped at %f" % (self.name, self.get_position()))
 
-    def notify_calibration(self, obj, state):
+    def on_calibration(self, obj, state):
         """
         Callback to emit "health" signal changes when the motor calibration changes.
 
@@ -127,7 +128,7 @@ class MotorBase(BaseDevice):
         else:
             self.set_state(health=(4, 'calib' ,'Not Calibrated!'))
 
-    def notify_enable(self, obj, val):
+    def on_enable(self, obj, val):
         """
         Callback to emit "enabled" signal when the motor-enabled state is changed.
 
@@ -137,13 +138,6 @@ class MotorBase(BaseDevice):
         self.set_state(enabled=(val != self.disabled_value))
 
     # main motor utility interface methods
-    def get_precision(self):
-        """
-        Get the number of decimal places, of the precition of the motor
-        @return: (integer)
-        """
-        return self.default_precision
-
     def has_reached(self, value):
         """
         Check if the motor has reached a given position.
@@ -152,11 +146,10 @@ class MotorBase(BaseDevice):
         @return: (boolean)
         """
         current = self.get_position()
-        precision = self.get_precision()
         if self.units == 'deg':
             value = value % 360.0
             current = current % 360.0
-        return abs(round(current - value, precision)) <= 10 ** -precision
+        return abs(round(current - value, self.precision)) <= 10 ** - self.precision
 
     def wait_start(self, timeout=2, poll=0.05):
         """
@@ -254,8 +247,8 @@ class SimMotor(MotorBase):
 
     def initialize(self):
         self.set_state(health=self._health, active=self._active, enabled=True)
-        self.notify_target(self, self._position)
-        self.notify_change(self, self._position)
+        self.on_target(self, self._position)
+        self.on_change(self, self._position)
 
     def get_position(self):
         return self._position
@@ -287,10 +280,19 @@ class SimMotor(MotorBase):
         self.set_state(busy=False)
 
     def move_to(self, pos, wait=False, force=False, **kwargs):
-        self.configure(**kwargs)
-        if pos == self._position:
-            logger.debug("(%s) is already at %s" % (self.name, pos))
+
+        severity, context, message = self.get_state("health")
+        if severity:
+            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
             return
+
+        # Do not move if requested position is within precision error
+        # from current position.
+        if self.has_reached(pos):
+            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
+            return
+
+        self.configure(**kwargs)
         self._move_action(pos)
         if wait:
             self.wait()
@@ -307,11 +309,11 @@ class SimMotor(MotorBase):
 class Motor(MotorBase):
     """Base Motor object for EPICS based motor records."""
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         name_parts = name.split(':')
         units = name_parts[-1]
         self.name_root = ':'.join(name_parts[:-1])
-        super().__init__(name, **kwargs)
+        super().__init__(name, *args, **kwargs)
         self.connect_monitors()
 
     def connect_monitors(self):
@@ -327,8 +329,8 @@ class Motor(MotorBase):
         msg = "({}) {}".format(self.name, message)
         logger.debug(msg)
 
-    def get_precision(self):
-        return self.PREC.get() or self.default_precision
+    def on_precision(self, obj, value):
+        self.precision = value
 
     def get_position(self):
         val = self.RBV.get()
@@ -336,31 +338,23 @@ class Motor(MotorBase):
         return val
 
     def move_to(self, pos, wait=False, force=False, **kwargs):
-        """Request the motor to move to an absolute position. By default, the 
-        command will not be sent to the motor if its current position is the 
-        same as the requested position within its preset precision. In addition
-        the command will not be sent if the motor health severity is not zero
-        (GOOD). 
-        
-        Args:
-            - `pos` (float): Target position to move to.
-        
-        Kwargs:
-            - `wait` (bool): Whether to wait for move to complete or return 
-              immediately.
-            - `force` (bool): Force a command to be sent to the motor even if the
-              target is the same as the current position.        
         """
-        # Do not move if motor state is not sane.
-        sanity, msg = self.health_state
-        if sanity != 0:
-            logger.warning("({}) not sane. Reason: '{}'. Move cancelled!".format(self.name, msg))
+        Move to an absolute position.
+        @param pos: Target position
+        @param wait: Block until move is done, default is non-blocking
+        @param force: Force move even if already at current position
+        @param kwargs: Additional options for the move
+        """
+
+        severity, context, message = self.get_state("health")
+        if severity:
+            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
             return
 
         # Do not move if requested position is within precision error
         # from current position.
         if self.has_reached(pos):
-            logger.debug("({}) is already at {:g}. Move Cancelled!".format(self.name, pos))
+            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
             return
 
         self.command_active = True
@@ -368,7 +362,7 @@ class Motor(MotorBase):
         current_position = self.get_position()
         self.VAL.put(self.target_position)
 
-        logger.debug("({}) moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
+        logger.debug("'{}' moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
 
         if wait:
             self.wait()
@@ -394,6 +388,9 @@ class Motor(MotorBase):
     def stop(self):
         """Stop the motor from moving."""
         self.STOP.put(1)
+
+    def setup(self):
+        pass
 
 
 class VMEMotor(Motor):
@@ -424,12 +421,12 @@ class VMEMotor(Motor):
         self.CW_LIM = self.add_pv("{}:cw".format(self.name_root))
 
     def connect_monitors(self):
-        self.RBV.connect('time', self.notify_change)
-        self.VAL.connect('changed', self.notify_target)
-        self.MOVN.connect('changed', self.notify_motion)
-        self.CALIB.connect('changed', self.notify_calibration)
-        self.ENAB.connect('changed', self.notify_enable)
+        self.VAL.connect('changed', self.on_target)
+        self.MOVN.connect('changed', self.on_motion)
+        self.CALIB.connect('changed', self.on_calibration)
+        self.ENAB.connect('changed', self.on_enable)
         self.DESC.connect('changed', self.on_desc)
+        self.PREC.connect('changed', self.on_precision)
 
 
 class APSMotor(VMEMotor):
@@ -501,7 +498,7 @@ class PseudoMotor(VMEMotor):
             self.MOVN = self.add_pv("%s:stopped" % self.name_root)
 
     def connect_monitors(self):
-        super(PseudoMotor, self).connect_monitors()
+        super().connect_monitors()
         self.LOG.connect('changed', self.on_log)
 
 
@@ -534,11 +531,11 @@ class JunkEnergyMotor(Motor):
         self.ENAB = self.add_pv('{}:enBraggChg'.format(self.name1))  # self.CALIB
 
     def connect_monitors(self):
-        self.RBV.connect('changed', self.notify_change)
-        self.VAL.connect('changed', self.notify_target)
-        self.MOVN.connect('changed', self.notify_motion)
-        self.CALIB.connect('changed', self.notify_calibration)
-        self.ENAB.connect('changed', self.notify_enable)
+        self.RBV.connect('changed', self.on_change)
+        self.VAL.connect('changed', self.on_target)
+        self.MOVN.connect('changed', self.on_motion)
+        self.CALIB.connect('changed', self.on_calibration)
+        self.ENAB.connect('changed', self.on_enable)
         self.LOG.connect('changed', self.on_log)
 
     def get_position(self):
@@ -552,7 +549,7 @@ class BraggEnergyMotor(VMEMotor):
         VME Motor for Bragg based Energy
         @param name: PV name
         @param encoder: external encoder if not using internal encoder
-        @param mono_unit_cell: Si-111 unti cell parameter
+        @param mono_unit_cell: Si-111 unit cell parameter
         """
         self.encoder = encoder
         self.mono_unit_cell = mono_unit_cell
@@ -571,12 +568,10 @@ class BraggEnergyMotor(VMEMotor):
     def get_position(self):
         return self.convert(self.RBV.get())
 
-    def notify_change(self, obj, value):
-        #val = self.convert(value)
-        self.set_state(time=obj.get_state('time'))  # make sure time is set before changed value
+    def on_change(self, obj, value):
         self.set_state(changed=value)
 
-    def notify_target(self, obj, value):
+    def on_target(self, obj, value):
         pass  # not needed for bragg
 
     def on_desc(self, pv, val):
@@ -584,15 +579,15 @@ class BraggEnergyMotor(VMEMotor):
 
     def move_to(self, pos, wait=False, force=False, **kwargs):
         # Do not move if motor state is not sane.
-        sanity, msg = self.health_state
-        if sanity != 0:
-            logger.warning("({}) not sane. Reason: '{}'. Move cancelled!".format(self.name, msg))
+        severity, context, message = self.get_state("health")
+        if severity:
+            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
             return
 
         # Do not move if requested position is within precision error
         # from current position.
         if self.has_reached(pos):
-            logger.debug("({}) is already at {:g}. Move Cancelled!".format(self.name, pos))
+            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
             return
 
         self.command_active = True
@@ -600,7 +595,7 @@ class BraggEnergyMotor(VMEMotor):
         bragg_target = converter.energy_to_bragg(self.target_position, unit_cell=self.mono_unit_cell)
         current_position = self.get_position()
         self.VAL.put(bragg_target)
-        self.notify_target(None, self.target_position)
+        self.on_target(None, self.target_position)
 
         logger.debug("({}) moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
 
@@ -610,16 +605,16 @@ class BraggEnergyMotor(VMEMotor):
 
 class ResolutionMotor(MotorBase):
     def __init__(self, energy, distance, detector_size):
-        super().__init__(self, 'Resolution')
+        super().__init__('Resolution')
         self.description = 'Max Detector Resolution'
         self.energy = energy
         self.detector_size = detector_size
         self.distance = distance
         self.moving_value = True
-        self.energy.connect('changed', self.notify_change)
-        self.distance.connect('changed', self.notify_change)
+        self.energy.connect('changed', self.on_change)
+        self.distance.connect('changed', self.on_change)
 
-        self.distance.connect('busy', self.notify_motion)
+        self.distance.connect('busy', self.on_motion)
         self.distance.connect('starting', lambda x: self.emit("starting"))
         self.distance.connect('done', lambda x: self.emit("done"))
 

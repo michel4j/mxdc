@@ -12,7 +12,7 @@ from zope.interface import implementer
 
 from mxdc.com import ca
 from mxdc.utils import decorators
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
 
 from .interfaces import IImagingDetector
@@ -24,9 +24,9 @@ TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 
 
 @implementer(IImagingDetector)
-class BaseDetector(BaseDevice):
-    # Signals:
-    new_image = Signal("new-image", arg_types=(str,))
+class BaseDetector(Device):
+    class Signals:
+        new_image = Signal("new-image", arg_types=(str,))
 
 
 class SimDetector(BaseDetector):

@@ -7,7 +7,7 @@ from PIL import Image
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gdk
 from gi.repository import Gtk
 from zope.interface import implementer
@@ -72,7 +72,7 @@ class VideoWidget(Gtk.DrawingArea):
 
     def set_src(self, src):
         self.camera = src
-        self.camera.connect('resize', self.on_resize)
+        self.camera.connect('resized', self.on_resize)
         self.camera.start()
 
     def mm_scale(self):
@@ -154,8 +154,8 @@ class VideoWidget(Gtk.DrawingArea):
     def on_configure_event(self, widget, event):
         self.configure_video(event.width, event.height, *self.camera.size)
 
-    def on_resize(self, camera, size):
-        self.configure_video(self.display_width, self.display_height, *size)
+    def on_resize(self, camera, width, height):
+        self.configure_video(self.display_width, self.display_height, width, height)
 
     def get_size(self):
         return self.display_width, self.display_height
@@ -181,7 +181,7 @@ class VideoWidget(Gtk.DrawingArea):
             img.putpalette(self.palette)
         img = img.convert('RGB')
         self.surface = image_to_surface(img)
-        GObject.idle_add(self.queue_draw)
+        GLib.idle_add(self.queue_draw)
         self.update_fps()
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)

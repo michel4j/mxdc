@@ -6,7 +6,7 @@ import pytz
 from gi.repository import GObject, GLib
 from zope.interface import implementer
 
-from mxdc import Registry, Signal, SignalObject, BaseEngine
+from mxdc import Registry, Signal, Object, Engine
 from mxdc.com import ca
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
@@ -19,11 +19,11 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IDataCollector)
-class DataCollector(BaseEngine):
+class DataCollector(Engine):
 
-    # Signals:
-    new_image = Signal('new-image', arg_types=(str,))
-    message = Signal('message', arg_types=(str,))
+    class Signals:
+        new_image = Signal('new-image', arg_types=(str,))
+        message = Signal('message', arg_types=(str,))
 
     # Properties:
     name = 'Data Collector'

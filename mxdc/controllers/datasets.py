@@ -68,7 +68,7 @@ class ConfigDisplay(object):
                 field.set_text(format.format(self.item.props.info[name]))
 
 
-class AutomationController(mxdc.SignalObject):
+class AutomationController(mxdc.Object):
     class StateType:
         STOPPED, PAUSED, ACTIVE, PENDING = list(range(4))
 
@@ -330,11 +330,11 @@ class AutomationController(mxdc.SignalObject):
                 self.image_viewer.set_collect_mode(True)
 
 
-class DatasetsController(mxdc.SignalObject):
-    # Signals:
-    changed = mxdc.Signal('samples-changed', arg_types=(object,))
-    active = mxdc.Signal('active-sample', arg_types=(object,))
-    selected = mxdc.Signal('sample-selected', arg_types=(object,))
+class DatasetsController(mxdc.Object):
+    class Signals:
+        changed = mxdc.Signal('samples-changed', arg_types=(object,))
+        active = mxdc.Signal('active-sample', arg_types=(object,))
+        selected = mxdc.Signal('sample-selected', arg_types=(object,))
 
     def __init__(self, widget):
         super().__init__()

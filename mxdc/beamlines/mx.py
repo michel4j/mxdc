@@ -4,7 +4,7 @@ import threading
 
 import mxdc.devices.shutter
 from .interfaces import IBeamline
-from mxdc import Registry, SignalObject, Signal
+from mxdc import Registry, Object, Signal
 from mxdc.com import ca
 from mxdc.conf import settings
 from mxdc.devices import stages, misc, automounter, diagnostics, motor, video
@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IBeamline)
-class MXBeamline(SignalObject):
+class MXBeamline(Object):
     """MX Beamline(Macromolecular Crystallography Beamline) objects
 
     Initializes a MXBeamline object from a python configuration file. The 

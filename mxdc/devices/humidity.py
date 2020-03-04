@@ -1,6 +1,6 @@
 from zope.interface import implementer
 
-from mxdc import BaseDevice
+from mxdc import Device
 from mxdc.devices.misc import Positioner, SimPositioner
 from mxdc.utils.log import get_module_logger
 from .interfaces import IHumidifier
@@ -9,10 +9,10 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IHumidifier)
-class Humidifier(BaseDevice):
+class Humidifier(Device):
 
     def __init__(self, root_name):
-        BaseDevice.__init__(self)
+        Device.__init__(self)
         self.name = 'Humidity Controller'
         self.humidity = Positioner('%s:SetpointRH' % root_name, '%s:RH' % root_name)
         self.temperature = Positioner('%s:SetpointSampleTemp' % root_name, '%s:SampleTemp' % root_name)
@@ -50,7 +50,7 @@ class Humidifier(BaseDevice):
 
 
 @implementer(IHumidifier)
-class SimHumidifier(BaseDevice):
+class SimHumidifier(Device):
 
     def __init__(self):
         super(SimHumidifier, self).__init__()

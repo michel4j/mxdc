@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 from gi.repository import GObject
 from twisted.internet.defer import returnValue, inlineCallbacks
-from mxdc import Registry, Signal, BaseEngine
+from mxdc import Registry, Signal, Engine
 from zope.interface import Interface, implementer
 
 from mxdc.beamlines.interfaces import IBeamline
@@ -31,10 +31,10 @@ class IRasterCollector(Interface):
 
 
 @implementer(IRasterCollector)
-class RasterCollector(BaseEngine):
-    # Signals:
-    image = Signal('new-image', arg_types=(str,))
-    result = Signal('result', arg_types=(int, object))
+class RasterCollector(Engine):
+    class Signals:
+        image = Signal('new-image', arg_types=(str,))
+        result = Signal('result', arg_types=(int, object))
 
     def __init__(self):
         super().__init__()

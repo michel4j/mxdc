@@ -4,7 +4,7 @@ from enum import Enum
 from gi.repository import GObject
 from zope.interface import implementer
 
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
 from .interfaces import IModeManager
 
@@ -13,14 +13,14 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IModeManager)
-class BaseManager(BaseDevice):
+class BaseManager(Device):
     """Base class for goniometer."""
 
     class ModeType(Enum):
         MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = list(range(6))
 
-    # Signals :
-    dev_mode = Signal("mode", arg_types=(object,))
+    class Signals :
+        mode = Signal("mode", arg_types=(object,))
 
     # Properties
     mode = GObject.property(type=object)
@@ -207,7 +207,7 @@ class MD2Manager(BaseManager):
         mode_val = self.mode_fbk.get()
         message = ''
         if state in [5, 6, 7, 8]:
-            health = (0, 'faults')
+            health = (0, 'faults', '')
             busy = True
             current_mode = self.ModeType.BUSY
             message = 'Switching mode ...'

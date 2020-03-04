@@ -9,7 +9,7 @@ import atexit
 
 from gi.repository import GObject
 from mxdc.conf import settings
-from mxdc import BaseDevice
+from mxdc import Device
 from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
 from twisted.internet import reactor
@@ -18,7 +18,7 @@ from twisted.spread import pb
 logger = get_module_logger(__name__)
 
 
-class BaseService(BaseDevice):
+class BaseService(Device):
     def __init__(self):
         super(BaseService, self).__init__()
         self.name = self.__class__.__name__ + ' Service'

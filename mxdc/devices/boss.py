@@ -5,7 +5,7 @@ from gi.repository import GObject, GLib
 from zope.interface import Interface, Attribute
 from zope.interface import implementer
 
-from mxdc import Signal, BaseDevice
+from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -43,10 +43,10 @@ class IBeamTuner(Interface):
 
 
 @implementer(IBeamTuner)
-class BaseTuner(BaseDevice):
-    # Signals:
-    changed = Signal("changed", arg_types=(float,))
-    percent = Signal("percent", arg_types=(float,))
+class BaseTuner(Device):
+    class Signals:
+        changed = Signal("changed", arg_types=(float,))
+        percent = Signal("percent", arg_types=(float,))
 
     def __init__(self):
         super().__init__()

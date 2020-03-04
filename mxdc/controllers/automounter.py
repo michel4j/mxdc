@@ -8,15 +8,15 @@ from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 
-from mxdc import Registry, SignalObject
+from mxdc import Registry, Object
 
 logger = get_module_logger(__name__)
 
 
-class DewarController(SignalObject):
+class DewarController(Object):
 
-    # Signals
-    selected = GObject.Signal("selected", arg_types=(str,))
+    class Signals:
+        selected = GObject.Signal("selected", arg_types=(str,))
 
     layout = GObject.Property(type=object)
     ports = GObject.Property(type=object)

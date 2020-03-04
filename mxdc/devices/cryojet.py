@@ -3,7 +3,7 @@ from zope.interface import implementer
 
 import mxdc.devices.shutter
 from mxdc.devices import misc
-from mxdc import BaseDevice
+from mxdc import Device
 from mxdc.utils.log import get_module_logger
 
 from .interfaces import ICryojet
@@ -29,7 +29,7 @@ class CryoJetNozzle(mxdc.devices.shutter.BasicShutter):
 
 
 @implementer(ICryojet)
-class CryoJetBase(BaseDevice):
+class CryoJetBase(Device):
     """
     Cryogenic Nozzle Jet Device
     """
@@ -40,7 +40,7 @@ class CryoJetBase(BaseDevice):
     level = GObject.Property(type=float, default=0.0)
 
     def __init__(self, *args, **kwargs):
-        BaseDevice.__init__(self)
+        Device.__init__(self)
         self.name = 'Cryojet'
         self._previous_flow = 7.0
         self.setup(*args, **kwargs)
