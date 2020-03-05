@@ -1,19 +1,16 @@
 import copy
-import os
 import fnmatch
-import random
+import os
 import shutil
 import time
 from datetime import datetime
+from enum import Enum
 
-from gi.repository import GObject, GLib
 from zope.interface import implementer
 
-from mxdc.com import ca
-from mxdc.utils import decorators
 from mxdc import Signal, Device
+from mxdc.utils import decorators
 from mxdc.utils.log import get_module_logger
-
 from .interfaces import IImagingDetector
 
 # setup module logger with a default do-nothing handler
@@ -22,13 +19,111 @@ logger = get_module_logger(__name__)
 TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'test')
 
 
+class States(Enum):
+    """
+    Detector State Flags
+    """
+    INITIALIZING = 0  # initializing the detector
+    IDLE = 1  # idle and ready to acquire
+    ARMED = 2  # Armed and ready for triggers
+    ACQUIRING = 3  # Triggered and acquiring images
+    STANDBY = 4  # Misc processing in progress eg, readout, corrections, saving etc
+    ERROR = 5  # Detector error
+
+
 @implementer(IImagingDetector)
 class BaseDetector(Device):
+    """
+    Base class for all imaging detector classes
+    """
+
+    BUSY_STATES = (States.ACQUIRING, States.STANDBY,)  # list of states representing the busy state
+
     class Signals:
+        state = Signal("state", arg_types=(object,))
         new_image = Signal("new-image", arg_types=(str,))
+
+    shutterless = False
+
+    def initialize(self, wait=True):
+        """
+        Initialize the detector
+        :param wait: if True, wait for the detector to complete initialization
+        @return:
+        """
+        pass
+
+    def set_state(self, *args, **kwargs):
+        # make sure device busy signal is consistent with busy states
+        if "state" in kwargs and "busy" not in kwargs:
+            kwargs["busy"] = kwargs["state"] in self.BUSY_STATES
+        super().set_state(*args, **kwargs)
+
+    def wait_until(self, *states, timeout=20.0):
+        """
+        Wait for a maximum amount of time until the detector state is one of the specified states, or busy
+        if no states are specified.
+
+        :param states: states to check for. Attaining any of the states will terminate the wait
+        :param timeout: Maximum time in seconds to wait
+        @return: True if state was attained, False if timeout was reached.
+        """
+
+        states = states if len(states) else self.BUSY_STATES
+        states_text = "|".join((str(s) for s in states))
+
+        logger.debug('"{}" Waiting for {}'.format(self.name, states_text))
+        elapsed = 0
+
+        while elapsed <= timeout and self.get_state("state") not in states:
+            elapsed += 0.05
+            time.sleep(0.05)
+
+        if elapsed <= timeout:
+            logger.debug('"{}": {} attained after {:0.2f}s'.format(self.name, self.get_state("state"), elapsed))
+            return True
+        else:
+            logger.warning('"{}" timed-out waiting for "{}"'.format(self.name, states_text))
+            return False
+
+    def wait_while(self, *states, timeout=20.0):
+        """
+        Wait for a maximum amount of time while the detector state is one of the specified states, or not busy
+        if no states are specified.
+
+        :param state: states to check for. Attaining a state other than any of the states will terminate the wait
+        :param timeout: Maximum time in seconds to wait
+        @return: True if state was attained, False if timeout was reached.
+        """
+
+        states = states if len(states) else self.BUSY_STATES
+        states_text = "|".join(states)
+
+        logger.debug('"{}" Waiting for {}'.format(self.name, states_text))
+        elapsed = 0
+
+        while elapsed <= timeout and self.get_state("state") in states:
+            elapsed += 0.05
+            time.sleep(0.05)
+
+        if elapsed <= timeout:
+            logger.debug('"{}": {} attained after {:0.2f}s'.format(self.name, self.get_state("state"), elapsed))
+            return True
+        else:
+            logger.warning('"{}" timed-out waiting in "{}"'.format(self.name, states_text))
+            return False
+
+    def wait(self):
+        """
+        Wait while the detector is busy.
+
+        @return: True if detector became idle or False if wait timed-out.
+        """
+        return self.wait_while()
 
 
 class SimDetector(BaseDetector):
+
     def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
         super().__init__()
         self.size = int(size), int(size)
@@ -36,11 +131,11 @@ class SimDetector(BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = name
         self.detector_type = detector_type
-        self.shutterless = False
         self.file_extension = 'img'
-        self.set_state(active=True, health=(0, '', ''))
+        self.set_state(active=True, health=(0, '', ''), state=self.States.IDLE)
         self.sim_images_src = images
         self._datasets = {}
+        self.parameters = {}
         self._powders = {}
         self._state = 'idle'
         self._bg_taken = False
@@ -61,15 +156,11 @@ class SimDetector(BaseDetector):
                     self._datasets[key] = len(data_files)
         self._select_dir()
 
-    def initialize(self, wait=True):
-        logger.debug('(%s) Initializing CCD ...' % (self.name,))
-        time.sleep(0.1)
-        logger.debug('(%s) CCD Initialization complete.' % (self.name,))
-
     def start(self, first=False):
         if first:
             self.initialize(True)
         time.sleep(0.1)
+        self.set_state(state=self.States.ACQUIRING)
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
@@ -102,6 +193,7 @@ class SimDetector(BaseDetector):
             self._num_frames = 2
 
     def _copy_frame(self):
+
         file_parms = copy.deepcopy(self.parameters)
         logger.debug('Saving frame: %s' % datetime.now().isoformat())
         src_img = self._src_template.format(1 + (file_parms['start_frame'] % self._num_frames))
@@ -113,6 +205,7 @@ class SimDetector(BaseDetector):
 
     def save(self, wait=False):
         self._copy_frame()
+        self.set_state(state=self.States.IDLE)
 
     def delete(self, directory, *frame_list):
         for frame_name in frame_list:
@@ -122,9 +215,6 @@ class SimDetector(BaseDetector):
                     os.remove(frame_path)
                 except OSError:
                     logger.error('Unable to remove existing frame: {}'.format(frame_name))
-
-    def wait(self, *states):
-        time.sleep(0.1)
 
     def set_parameters(self, data):
         self.parameters = copy.deepcopy(data)
@@ -134,177 +224,8 @@ class SimDetector(BaseDetector):
         self._stopped = True
 
 
-@implementer(IImagingDetector)
-class PilatusDetector(BaseDetector):
-    STATES = {
-        'acquiring': [1],
-        'idle': [0]
-    }
-
-    def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
-        super().__init__()
-        self.size = size
-        self.resolution = 0.172
-        self.mm_size = self.resolution * min(self.size)
-        self.name = description
-        self.detector_type = detector_type
-        self.shutterless = True
-        self.file_extension = 'cbf'
-
-        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
-        self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
-
-        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
-        self.armed_status = self.add_pv("{}:Armed".format(name))
-        self.acquire_status = self.add_pv("{}:Acquire".format(name))
-        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name), monitor=False)
-        self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
-        self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
-        self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
-        self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.file_format = self.add_pv("{}:FileTemplate".format(name))
-
-        self.saved_frame_num = self.add_pv('{}:ArrayCounter_RBV'.format(name))
-        self.saved_frame_num.connect('changed', self.on_new_frame)
-
-        # Data Parameters
-        self.settings = {
-            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
-            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
-            'file_prefix': self.add_pv("{}:FileName".format(name), monitor=True),
-            'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
-
-            'start_angle': self.add_pv("{}:StartAngle".format(name), monitor=False),
-            'delta_angle': self.add_pv("{}:AngleIncr".format(name), monitor=False),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
-            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
-
-            'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
-            'beam_x': self.add_pv("{}:BeamX".format(name), monitor=False),
-            'beam_y': self.add_pv("{}:BeamY".format(name), monitor=False),
-            'distance': self.add_pv("{}:DetDist".format(name), monitor=False),
-            'axis': self.add_pv("{}:OscillAxis".format(name), monitor=False),
-            'two_theta': self.add_pv("{}:Det2theta".format(name), monitor=False),
-            'alpha': self.add_pv("{}:Alpha".format(name), monitor=False),
-            'kappa': self.add_pv("{}:Kappa".format(name), monitor=False),
-            'phi': self.add_pv("{}:Phi".format(name), monitor=False),
-            'chi': self.add_pv("{}:Chi".format(name), monitor=False),
-            'polarization': self.add_pv("{}:Polarization".format(name), monitor=False),
-            'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
-
-            'comments': self.add_pv('{}:HeaderString'.format(name), monitor=False),
-        }
-
-        self.connected_status.connect('changed', self.on_connection_changed)
-
-    def initialize(self, wait=True):
-        logger.debug('({}) Initializing Detector ...'.format(self.name))
-
-    def start(self, first=False):
-        logger.debug('({}) Starting Acquisition ...'.format(self.name))
-        self.wait('idle')
-        self.acquire_cmd.put(1, wait=True)
-        self.wait('acquiring')
-
-    def stop(self):
-        logger.debug('({}) Stopping Detector ...'.format(self.name))
-        self.acquire_cmd.put(0)
-        self.wait('idle')
-
-    def get_origin(self):
-        return self.size[0] // 2, self.size[1] // 2
-
-    def save(self, wait=False):
-        return
-
-    def delete(self, directory, *frame_list):
-        for frame_name in frame_list:
-            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            if os.path.exists(frame_path):
-                try:
-                    os.remove(frame_path)
-                except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
-
-    def on_new_frame(self, obj, frame_number):
-        template = self.file_format.get()
-        directory = self.settings['directory'].get()
-        directory += os.sep if not directory.endswith(os.sep) else ''
-        file_path = template % (
-            directory,
-            self.settings['file_prefix'].get(),
-            frame_number
-        )
-        self.emit('new-image', file_path)
-
-    def wait(self, state='idle'):
-        return self.wait_for_state(state)
-
-    def set_parameters(self, data):
-        params = {}
-        params.update(data)
-
-        if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
-            params['threshold_energy'] = round(0.6 * params['energy'], 2)
-
-        params['beam_x'] = self.settings['beam_x'].get()
-        params['beam_y'] = self.settings['beam_y'].get()
-        params['polarization'] = self.settings['polarization'].get()
-        params['exposure_period'] = params['exposure_time']
-        params['exposure_time'] -= 0.002
-
-        self.mode_cmd.put(2)  # External Trigger Mode
-        for k, v in list(params.items()):
-            if k in self.settings:
-                time.sleep(0.05)
-                self.settings[k].put(v, wait=True)
-
-    def wait_for_state(self, state, timeout=20.0):
-        logger.debug('({}) Waiting for state: {}'.format(self.name, state, ))
-        while timeout > 0 and not self.is_in_state(state):
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0:
-            logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
-            return True
-        else:
-            logger.warning('({}) Timed out waiting for state: {}'.format(self.name, state, ))
-            return False
-
-    def on_connection_changed(self, obj, state):
-        if state == 0:
-            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
-        else:
-            self.set_state(health=(0, 'socket', ''))
-
-    def wait_in_state(self, state, timeout=60):
-        logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, state, ))
-        while self.is_in_state(state) and timeout > 0:
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0:
-            logger.debug('({}) state "{}" expired after: {:0.1f} sec'.format(self.name, state, 10 - timeout))
-            return True
-        else:
-            logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, state, ))
-            return False
-
-    def is_in_state(self, state):
-        return self.acquire_status.get() in self.STATES.get(state, [])
-
-
 class RayonixDetector(BaseDetector):
-    STATES = {
-        'init': [8],
-        'acquiring': [1],
-        'reading': [2],
-        'correcting': [3],
-        'saving': [4],
-        'idle': [0, 6, 10],
-        'error': [6, 9],
-        'waiting': [7],
-        'busy': [1, 2, 3, 4, 5, 7, 8],
-    }
+    shutterless = False
 
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
         super().__init__()
@@ -318,9 +239,9 @@ class RayonixDetector(BaseDetector):
         self.initialized = False
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
-        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
-        self.frame_type = self.add_pv('{}:FrameType'.format(name), monitor=False)
-        self.trigger_mode = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
+        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
+        self.frame_type = self.add_pv('{}:FrameType'.format(name))
+        self.trigger_mode = self.add_pv('{}:TriggerMode'.format(name))
         self.acquire_status = self.add_pv("{}:Acquire_RBV".format(name))
         self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
         self.write_status = self.add_pv("{}:MarWritingStatus_RBV".format(name))
@@ -328,31 +249,32 @@ class RayonixDetector(BaseDetector):
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
         self.saved_filename = self.add_pv('{}:FullFileName_RBV'.format(name))
+
         self.write_status.connect('changed', self.on_new_frame)
+        self.state_value.connect('changed', self.on_state_value)
         self.file_format.connect('changed', self.on_new_format)
+        self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
         self.settings = {
-            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
-            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
-            'file_prefix': self.add_pv("{}:FileName".format(name), monitor=True),
-            'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
+            'start_frame': self.add_pv("{}:FileNumber".format(name)),
+            'num_frames': self.add_pv('{}:NumImages'.format(name)),
+            'file_prefix': self.add_pv("{}:FileName".format(name)),
+            'directory': self.add_pv("{}:FilePath".format(name)),
 
-            'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
-            'beam_x': self.add_pv("{}:BeamX".format(name), monitor=False),
-            'beam_y': self.add_pv("{}:BeamY".format(name), monitor=False),
-            'distance': self.add_pv("{}:DetectorDistance".format(name), monitor=False),
-            'axis': self.add_pv("{}:RotationAxis".format(name), monitor=False),
-            'start_angle': self.add_pv("{}:StartPhi".format(name), monitor=False),
-            'delta_angle': self.add_pv("{}:RotationRange".format(name), monitor=False),
-            'two_theta': self.add_pv("{}:TwoTheta".format(name), monitor=False),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
-            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
+            'wavelength': self.add_pv("{}:Wavelength".format(name)),
+            'beam_x': self.add_pv("{}:BeamX".format(name)),
+            'beam_y': self.add_pv("{}:BeamY".format(name)),
+            'distance': self.add_pv("{}:DetectorDistance".format(name)),
+            'axis': self.add_pv("{}:RotationAxis".format(name)),
+            'start_angle': self.add_pv("{}:StartPhi".format(name)),
+            'delta_angle': self.add_pv("{}:RotationRange".format(name)),
+            'two_theta': self.add_pv("{}:TwoTheta".format(name)),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
+            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name)),
 
-            'comments': self.add_pv('{}:DatasetComments'.format(name), monitor=False),
+            'comments': self.add_pv('{}:DatasetComments'.format(name)),
         }
-
-        self.connected_status.connect('changed', self.on_connection_changed)
 
     def initialize(self, wait=True):
         logger.debug('({}) Initializing Detector ...'.format(self.name))
@@ -367,14 +289,14 @@ class RayonixDetector(BaseDetector):
 
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
-        self.wait('idle', 'correct', 'saving', 'waiting', 'reading')
+        self.wait_until(States.IDLE, States.STANDBY)
         self.acquire_cmd.put(1)
-        self.wait('acquiring')
+        self.wait_until(States.ACQUIRING)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
-        self.wait('idle')
+        self.wait_until(States.IDLE)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
@@ -403,12 +325,24 @@ class RayonixDetector(BaseDetector):
             file_path = self.saved_filename.get()
             self.emit('new-image', file_path)
 
+    def on_state_value(self, obj, value):
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            2: States.ACQUIRING,
+            3: States.STANDBY,
+            4: States.STANDBY,
+            5: States.STANDBY,
+            6: States.ERROR,
+            7: States.STANDBY,
+            8: States.INITIALIZING,
+            9: States.ERROR,
+            10: States.IDLE,
+        }.get(value, States.IDLE)
+        self.set_state(state=state)
+
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
-
-    def wait(self, *states):
-        states = states or ('idle',)
-        return self.wait_for_state(*states)
 
     def set_parameters(self, data):
         if not self.initialized:
@@ -420,46 +354,8 @@ class RayonixDetector(BaseDetector):
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
 
-    def wait_for_state(self, *states, **kwargs):
-        timeout = kwargs.get('timeout', 10)
-        logger.debug('({}) Waiting for state: {}'.format(self.name, '|'.join(states)))
-        while timeout > 0 and not self.is_in_state(*states):
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0:
-            logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
-            return True
-        else:
-            logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states), ))
-            return False
-
-    def wait_in_state(self, *states, **kwargs):
-        timeout = kwargs.get('timeout', 60)
-        logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states), ))
-        while self.is_in_state(*states) and timeout > 0:
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0:
-            logger.debug(
-                '({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
-            return True
-        else:
-            logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states), ))
-            return False
-
-    def is_in_state(self, *states):
-        return any(self.state_value.get() in self.STATES.get(state, []) for state in states)
-
 
 class ADSCDetector(BaseDetector):
-    STATES = {
-        'init': [8],
-        'acquiring': [1],
-        'reading': [2],
-        'idle': [0, 4, 5, 6],
-        'error': [3],
-        'busy': [1, 2],
-    }
 
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
         super().__init__()
@@ -474,17 +370,17 @@ class ADSCDetector(BaseDetector):
 
         # commands
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
-        self.prepare_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
-        self.acquire_cmd = self.add_pv("{}:ExSwTrCtl".format(name), monitor=True)
-        self.reset_cmd = self.add_pv("{}:ADSCSoftReset".format(name), monitor=False)
-        self.save_cmd = self.add_pv("{}:WriteFile".format(name), monitor=False)
+        self.prepare_cmd = self.add_pv('{}:Acquire'.format(name))
+        self.acquire_cmd = self.add_pv("{}:ExSwTrCtl".format(name))
+        self.reset_cmd = self.add_pv("{}:ADSCSoftReset".format(name))
+        self.save_cmd = self.add_pv("{}:WriteFile".format(name))
 
         # settings and feedback
         self.armed_staus = self.add_pv("{}:ExSwTrOkToExp".format(name))
-        self.dezinger_mode = self.add_pv("{}:ADSCDezingr".format(name), monitor=False)
-        self.stored_darks = self.add_pv("{}:ADSCStrDrks".format(name), monitor=True)
-        self.reuse_dark = self.add_pv("{}:ADSCReusDrk".format(name), monitor=False)
-        self.trigger_mode = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
+        self.dezinger_mode = self.add_pv("{}:ADSCDezingr".format(name))
+        self.stored_darks = self.add_pv("{}:ADSCStrDrks".format(name))
+        self.reuse_dark = self.add_pv("{}:ADSCReusDrk".format(name))
+        self.trigger_mode = self.add_pv('{}:TriggerMode'.format(name))
 
         self.state_value = self.add_pv('{}:ADSCState'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
@@ -492,25 +388,26 @@ class ADSCDetector(BaseDetector):
 
         self.saved_filename.connect('changed', self.on_new_frame)
         self.file_format.connect('changed', self.on_new_format)
+        self.state_value.connect('changed', self.on_state_value)
 
         # Data Parameters
         self.settings = {
-            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
-            'num_frames': self.add_pv('{}:NumImages'.format(name), monitor=False),
-            'file_prefix': self.add_pv("{}:FileName".format(name), monitor=True),
-            'directory': self.add_pv("{}:FilePath".format(name), monitor=False),
+            'start_frame': self.add_pv("{}:FileNumber".format(name)),
+            'num_frames': self.add_pv('{}:NumImages'.format(name)),
+            'file_prefix': self.add_pv("{}:FileName".format(name)),
+            'directory': self.add_pv("{}:FilePath".format(name)),
 
-            'wavelength': self.add_pv("{}:ADSCWavelen".format(name), monitor=False),
-            'beam_x': self.add_pv("{}:ADSCBeamX".format(name), monitor=False),
-            'beam_y': self.add_pv("{}:ADSCBeamY".format(name), monitor=False),
-            'distance': self.add_pv("{}:ADSCDistnce".format(name), monitor=False),
-            'axis': self.add_pv("{}:ADSCAxis".format(name), monitor=False),
-            'start_angle': self.add_pv("{}:ADSCOmega".format(name), monitor=False),
-            'delta_angle': self.add_pv("{}:ADSCImWidth".format(name), monitor=False),
-            'two_theta': self.add_pv("{}:ADSC2Theta".format(name), monitor=False),
-            'kappa': self.add_pv("{}:ADSCKappa".format(name), monitor=False),
-            'phi': self.add_pv("{}:ADSCPhi".format(name), monitor=False),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
+            'wavelength': self.add_pv("{}:ADSCWavelen".format(name)),
+            'beam_x': self.add_pv("{}:ADSCBeamX".format(name)),
+            'beam_y': self.add_pv("{}:ADSCBeamY".format(name)),
+            'distance': self.add_pv("{}:ADSCDistnce".format(name)),
+            'axis': self.add_pv("{}:ADSCAxis".format(name)),
+            'start_angle': self.add_pv("{}:ADSCOmega".format(name)),
+            'delta_angle': self.add_pv("{}:ADSCImWidth".format(name)),
+            'two_theta': self.add_pv("{}:ADSC2Theta".format(name)),
+            'kappa': self.add_pv("{}:ADSCKappa".format(name)),
+            'phi': self.add_pv("{}:ADSCPhi".format(name)),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
         }
         self.connected_status.connect('changed', self.on_connection_changed)
 
@@ -556,16 +453,28 @@ class ADSCDetector(BaseDetector):
         else:
             self.set_state(health=(0, 'socket', ''))
 
+    def on_state_value(self, obj, value):
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            2: States.ACQUIRING,
+            3: States.ERROR,
+            4: States.STANDBY,
+            5: States.STANDBY,
+            6: States.STANDBY,
+            7: States.STANDBY,
+            8: States.INITIALIZING,
+            9: States.ERROR,
+            10: States.IDLE,
+        }.get(value, States.IDLE)
+        self.set_state(state=state)
+
     def on_new_frame(self, obj, path):
         file_path = self.saved_filename.get()
         self.emit('new-image', file_path)
 
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
-
-    def wait(self, *states):
-        states = states or ('idle',)
-        return self.wait_for_state(*states)
 
     def set_parameters(self, data):
         if not self.initialized:
@@ -577,121 +486,84 @@ class ADSCDetector(BaseDetector):
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
 
-    def wait_for_state(self, *states, **kwargs):
-        timeout = kwargs.get('timeout', 10)
-        logger.debug('({}) Waiting for state: {}'.format(self.name, '|'.join(states)))
-        while timeout > 0 and not self.is_in_state(*states):
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0:
-            logger.debug('({}) state {} attained after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
-            return True
-        else:
-            logger.warning('({}) Timed out waiting for state: {}'.format(self.name, '|'.join(states), ))
-            return False
 
-    def wait_in_state(self, *states, **kwargs):
-        timeout = kwargs.get('timeout', 60)
-        logger.debug('({}) Waiting for state "{}" to expire.'.format(self.name, '|'.join(states), ))
-        while self.is_in_state(*states) and timeout > 0:
-            timeout -= 0.05
-            time.sleep(0.05)
-        if timeout > 0:
-            logger.debug(
-                '({}) state "{}" expired after: {:0.1f} sec'.format(self.name, '|'.join(states), 10 - timeout))
-            return True
-        else:
-            logger.warning('({}) Timed out waiting for state "{}" to expire'.format(self.name, '|'.join(states), ))
-            return False
+@implementer(IImagingDetector)
+class PilatusDetector(BaseDetector):
+    shutterless = True
 
-    def is_in_state(self, *states):
-        cur_state = self.state_value.get()
-        checks = [cur_state in self.STATES.get(state, []) for state in states]
-        checks += ['armed' in states and self.armed_staus.get() == 1]  # Armed state is special
-        return any(checks)
-
-
-class EigerDetector(BaseDetector):
-    STATES = {
-        'acquiring': [1],
-        'idle': [0]
-    }
-
-    def __init__(self, name, size=(3110, 3269), detector_type='Eiger', description='Eiger'):
+    def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
         self.size = size
-        self.resolution = 0.075
+        self.resolution = 0.172
         self.mm_size = self.resolution * min(self.size)
         self.name = description
         self.detector_type = detector_type
-        self.shutterless = True
-        self.file_extension = 'h5'
-        self.initialized = False
+        self.file_extension = 'cbf'
 
-        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name), monitor=False)
-        self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name), monitor=False)
+        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
+        self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
         self.acquire_status = self.add_pv("{}:Acquire".format(name))
-        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name), monitor=False)
+        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name))
         self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
+        self.saved_frame_num = self.add_pv('{}:ArrayCounter_RBV'.format(name))
 
-        self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
-        self.num_images = self.add_pv('{}:NumImages'.format(name))
         self.saved_frame_num.connect('changed', self.on_new_frame)
+        self.state_value.connect('changed', self.on_state_change)
+        self.armed_status.connect('changed', self.on_change)
+        self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
         self.settings = {
-            'start_frame': self.add_pv("{}:FileNumber".format(name), monitor=False),
-            'num_frames': self.add_pv('{}:NumTriggers'.format(name)),
-            'file_prefix': self.add_pv("{}:FWNamePattern".format(name)),
-            'batch_size': self.add_pv("{}:FWNImagesPerFile".format(name)),
+            'start_frame': self.add_pv("{}:FileNumber".format(name)),
+            'num_frames': self.add_pv('{}:NumImages'.format(name)),
+            'file_prefix': self.add_pv("{}:FileName".format(name)),
             'directory': self.add_pv("{}:FilePath".format(name)),
 
-            'start_angle': self.add_pv("{}:OmegaStart".format(name), monitor=False),
-            'delta_angle': self.add_pv("{}:OmegaIncr".format(name), monitor=False),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name), monitor=False),
-            'acquire_period': self.add_pv("{}:AcquirePeriod".format(name), monitor=False),
+            'start_angle': self.add_pv("{}:StartAngle".format(name)),
+            'delta_angle': self.add_pv("{}:AngleIncr".format(name)),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
+            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name)),
 
-            'wavelength': self.add_pv("{}:Wavelength".format(name), monitor=False),
-            'beam_x': self.add_pv("{}:BeamX".format(name), monitor=False),
-            'beam_y': self.add_pv("{}:BeamY".format(name), monitor=False),
-            'distance': self.add_pv("{}:DetDist".format(name), monitor=False),
-            'two_theta': self.add_pv("{}:TwoThetaStart".format(name), monitor=False),
-            'kappa': self.add_pv("{}:KappaStart".format(name), monitor=False),
-            'phi': self.add_pv("{}:PhiStart".format(name), monitor=False),
-            'chi': self.add_pv("{}:ChiStart".format(name), monitor=False),
-            # 'energy': self.add_pv('{}:PhotonEnergy'.format(name), monitor=False),
-            # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name), monitor=False),
+            'wavelength': self.add_pv("{}:Wavelength".format(name)),
+            'beam_x': self.add_pv("{}:BeamX".format(name)),
+            'beam_y': self.add_pv("{}:BeamY".format(name)),
+            'distance': self.add_pv("{}:DetDist".format(name)),
+            'axis': self.add_pv("{}:OscillAxis".format(name)),
+            'two_theta': self.add_pv("{}:Det2theta".format(name)),
+            'alpha': self.add_pv("{}:Alpha".format(name)),
+            'kappa': self.add_pv("{}:Kappa".format(name)),
+            'phi': self.add_pv("{}:Phi".format(name)),
+            'chi': self.add_pv("{}:Chi".format(name)),
+            'polarization': self.add_pv("{}:Polarization".format(name)),
+            'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
+            'comments': self.add_pv('{}:HeaderString'.format(name)),
         }
-
-        self.connected_status.connect('changed', self.on_connection_changed)
-        self.acquire_status.connect('changed', self.on_acquire_status)
 
     def initialize(self, wait=True):
         logger.debug('({}) Initializing Detector ...'.format(self.name))
 
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        self.wait_until(States.IDLE)
         self.acquire_cmd.put(1)
-        self.wait_for_busy()
+        self.wait_until(States.ARMED)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
-        self.wait_for_idle()
+        self.wait_until(States.IDLE)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
     def save(self, wait=False):
-        time.sleep(3)
-        self.acquire_cmd.put(0)
         return
 
     def delete(self, directory, *frame_list):
@@ -707,18 +579,127 @@ class EigerDetector(BaseDetector):
         template = self.file_format.get()
         directory = self.settings['directory'].get()
         directory += os.sep if not directory.endswith(os.sep) else ''
-        # file_path = template % (
-        #     directory,
-        #     self.settings['file_prefix'].get(),
-        #     frame_number
-        # )
-        self.emit('new-image', directory)
+        file_path = template % (
+            directory,
+            self.settings['file_prefix'].get(),
+            frame_number
+        )
+        self.emit('new-image', file_path)
 
-    def wait(self, state='idle'):
-        if state == 'idle':
-            return self.wait_for_idle()
+    def on_state_change(self, obj, value):
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            6: States.ERROR,
+            8: States.INITIALIZING,
+        }.get(self.state_value.get(), States.IDLE)
+        armed = self.armed_status.get()
+        if armed == 1:
+            state = States.ARMED
+        self.set_state(state=state)
+
+    def set_parameters(self, data):
+        params = {}
+        params.update(data)
+
+        if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
+            params['threshold_energy'] = round(0.6 * params['energy'], 2)
+
+        params['beam_x'] = self.settings['beam_x'].get()
+        params['beam_y'] = self.settings['beam_y'].get()
+        params['polarization'] = self.settings['polarization'].get()
+        params['exposure_period'] = params['exposure_time']
+        params['exposure_time'] -= 0.002
+
+        self.mode_cmd.put(2)  # External Trigger Mode
+        for k, v in list(params.items()):
+            if k in self.settings:
+                time.sleep(0.05)
+                self.settings[k].put(v, wait=True)
+
+    def on_connection_changed(self, obj, state):
+        if state == 0:
+            self.set_state(health=(4, 'socket', 'Detector disconnected!'))
         else:
-            return self.wait_for_busy()
+            self.set_state(health=(0, 'socket', ''))
+
+
+class EigerDetector(BaseDetector):
+    shutterless = True
+
+    def __init__(self, name, size=(3110, 3269), detector_type='Eiger', description='Eiger'):
+        super().__init__()
+        self.size = size
+        self.resolution = 0.075
+        self.mm_size = self.resolution * min(self.size)
+        self.name = description
+        self.detector_type = detector_type
+        self.file_extension = 'h5'
+        self.initialized = False
+
+        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
+        self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
+
+        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
+        self.armed_status = self.add_pv("{}:Armed".format(name))
+
+        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name))
+        self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
+        self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
+        self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
+        self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
+        self.file_format = self.add_pv("{}:FileTemplate".format(name))
+
+        self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
+        self.num_images = self.add_pv('{}:NumImages'.format(name))
+
+        self.saved_frame_num.connect('changed', self.on_new_frame)
+        self.state_value.connect('changed', self.on_state_change)
+        self.armed_status.connect('changed', self.on_state_change)
+        self.connected_status.connect('changed', self.on_connection_changed)
+
+        # Data Parameters
+        self.settings = {
+            'start_frame': self.add_pv("{}:FileNumber".format(name)),
+            'num_frames': self.add_pv('{}:NumTriggers'.format(name)),
+            'file_prefix': self.add_pv("{}:FWNamePattern".format(name)),
+            'batch_size': self.add_pv("{}:FWNImagesPerFile".format(name)),
+            'directory': self.add_pv("{}:FilePath".format(name)),
+
+            'start_angle': self.add_pv("{}:OmegaStart".format(name)),
+            'delta_angle': self.add_pv("{}:OmegaIncr".format(name)),
+            'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
+            'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
+
+            'wavelength': self.add_pv("{}:Wavelength".format(name)),
+            'beam_x': self.add_pv("{}:BeamX".format(name)),
+            'beam_y': self.add_pv("{}:BeamY".format(name)),
+            'distance': self.add_pv("{}:DetDist".format(name)),
+            'two_theta': self.add_pv("{}:TwoThetaStart".format(name)),
+            'kappa': self.add_pv("{}:KappaStart".format(name)),
+            'phi': self.add_pv("{}:PhiStart".format(name)),
+            'chi': self.add_pv("{}:ChiStart".format(name)),
+            # 'energy': self.add_pv('{}:PhotonEnergy'.format(name)),
+            # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
+        }
+
+    def start(self, first=False):
+        logger.debug('"{}" Arming detector ...'.format(self.name))
+        self.acquire_cmd.put(1)
+        self.wait_until(States.ARMED)
+
+    def stop(self):
+        logger.debug('"{}" Disarming detector ...'.format(self.name))
+        self.acquire_cmd.put(0)
+        self.wait_until(States.IDLE)
+
+    def get_origin(self):
+        return self.size[0] // 2, self.size[1] // 2
+
+    def save(self, wait=False):
+        time.sleep(3)
+        self.acquire_cmd.put(0)
+        return
 
     def set_parameters(self, data):
         params = {}
@@ -739,42 +720,44 @@ class EigerDetector(BaseDetector):
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
 
+    def delete(self, directory, *frame_list):
+        for frame_name in frame_list:
+            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
+            if os.path.exists(frame_path):
+                try:
+                    os.remove(frame_path)
+                except OSError:
+                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
+
+    def on_new_frame(self, obj, frame_number):
+        template = self.file_format.get()
+        directory = self.settings['directory'].get()
+        directory += os.sep if not directory.endswith(os.sep) else ''
+        # file_path = template % (
+        #     directory,
+        #     self.settings['file_prefix'].get(),
+        #     frame_number
+        # )
+        logger.warning('Frame {} acquired'.format(frame_number))
+        self.set_state(new_image=directory)
+
+    def on_state_change(self, obj, value):
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            6: States.ERROR,
+            8: States.INITIALIZING,
+        }.get(self.state_value.get(), States.IDLE)
+        armed = self.armed_status.get()
+        if armed == 1:
+            state = States.ARMED
+        self.set_state(state=state)
+
     def on_connection_changed(self, obj, state):
         if state == 0:
             self.set_state(health=(4, 'socket', 'Detector disconnected!'))
         else:
             self.set_state(health=(0, 'socket', ''))
-
-    def on_acquire_status(self, obj, state):
-        self.set_state(busy=(state == 1))
-
-    def wait_for_busy(self, timeout=5):
-        logger.debug('Waiting for {} to start ..'.format(self.name))
-        elapsed = 0
-        while not self.is_busy() and elapsed <= timeout:
-            elapsed += 0.05
-            time.sleep(0.05)
-
-        if elapsed > timeout:
-            logger.debug('{} busy after: {:0.1f} seconds'.format(self.name, elapsed))
-            return True
-        else:
-            logger.warning('{} timed out! Not busy after {} seconds'.format(self.name, elapsed))
-            return False
-
-    def wait_for_idle(self, timeout=5):
-        logger.debug('Waiting for {} to stop ..'.format(self.name))
-        elapsed = 0
-        while self.is_busy() and elapsed <= timeout:
-            elapsed += 0.05
-            time.sleep(0.05)
-
-        if elapsed > timeout:
-            logger.debug('{} idle after: {:0.1f} seconds'.format(self.name, elapsed))
-            return True
-        else:
-            logger.warning('{} timed out! Not idle after {} seconds'.format(self.name, elapsed))
-            return False
 
 
 __all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector', 'EigerDetector']

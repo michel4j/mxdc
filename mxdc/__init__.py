@@ -116,7 +116,7 @@ def _get_signal_properties(itype):
 
 
 Signal = GObject.Signal
-
+Property = GObject.Property
 
 class ObjectType(GObjectMeta):
     """

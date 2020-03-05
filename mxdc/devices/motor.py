@@ -15,38 +15,39 @@ logger = get_module_logger(__name__)
 
 
 class MotorError(Exception):
-    """Base class for errors in the motor module."""
+    """
+    Base class for errors in the motor module.
+    """
 
 
 @implementer(IMotor)
 class MotorBase(Device):
-    """Base class for motors.
+    """
+    Base class for motors.
     
     Signals:
-        - `changed` (float): Emitted everytime the position of the motor changes.
+        changed: float, Emitted everytime the position of the motor changes.
           Data contains the current position of the motor.
-        - `target` (float): Emitted everytime the requested position of the motor changes.
+        target: float, Emitted everytime the requested position of the motor changes.
           Data is a tuple containing the previous set point and the current one.
           Data is a 2-tuple with the current position and the timestamp of the last change.
-        - `starting` (None): Emitted when this a command to move has been accepted by this instance of the motor.
-        - `done` (None): Emitted within the instance when a commanded move has completed.
+        starting: bool, Emitted when this a command to move has been accepted by this instance of the motor.
     """
 
     # Motor signals
-    changed = Signal("changed", arg_types=(float,))
-    starting = Signal("starting", arg_types=())
-    done = Signal("done", arg_types=())
-    target = Signal("target", arg_types=(object, float))
+    class Signals:
+        changed = Signal("changed", arg_types=(float,))
+        starting = Signal("starting", arg_types=(bool,))
+        target = Signal("target", arg_types=(object, float))
+        done = Signal("done", arg_types=())
 
     def __init__(self, name, *args, precision=2, units=''):
         super().__init__()
         self.name = name
         self.description = name
-        self.moving = False
-        self.command_active = False
-        self.starting = False
         self.target_position = 0
         self.previous_position = None
+        self.target_master = False  # tracks whether motion was requested from this client
 
         self.position = None
         self.targets = (None, None)
@@ -60,20 +61,93 @@ class MotorBase(Device):
 
     def setup(self):
         """
-        Prepare all the components of the motor when it is started. Subclasses must implement it
+        Prepare all the components of the motor when it is started.
         """
-        raise NotImplementedError
 
-    # Signal Closures
-    def do_starting(self):
-        self.starting = True
+    def is_starting(self):
+        """
+        Check if motor is starting, ie a command has been received but has not yet started moving.
 
-    def do_done(self):
-        self.starting = False
+        :return: True if starting, False otherwise
+        """
+        return self.get_state("starting")
 
-    def do_busy(self, state):
-        if self.starting and not state:
-            self.set_state(done=None)
+    def is_moving(self):
+        """
+        Check if motor is moving, ie a command has been received.
+
+        :return: True if moving, False otherwise
+        """
+        return self.get_state("busy")
+
+    def move_to(self, pos, wait=False, force=False, **kwargs):
+        """
+        Move to an absolute position.
+
+        :param pos: Target position
+        :param wait: Block until move is done, default is non-blocking
+        :param force: Force move even if already at current position
+        :param kwargs: Additional options for the move
+        """
+
+        severity, context, message = self.get_state("health")
+        if severity:
+            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
+            return
+
+        # Do not move if requested position is within precision error
+        # from current position.
+        if self.has_reached(pos) and not force:
+            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
+            return
+
+        self.set_state(starting=True)
+        self.target_position = pos
+        cur_pos = self.get_position()
+        self.move_operation(self.target_position)
+
+        logger.debug("'{}' moving from {:g} to {:g}".format(self.name, cur_pos, self.target_position))
+
+        if wait:
+            self.wait()
+
+    def move_by(self, value, wait=False, force=False, **kwargs):
+        """
+        Similar to :func:`move_to`, except request the motor to move by a
+        relative amount.
+
+        :param value: Relative amount to move position by
+        :param wait: Whether to block until move is completed or not
+        :param force: Force move even if already at current position
+        :param kwargs: Additional options for the move
+        """
+        if value == 0.0:
+            return
+        cur_pos = self.get_position()
+        self.move_to(cur_pos + value, wait, force)
+
+    def move_operation(self, target):
+        """
+        Raw move operation command. Moves the motor to the absolute position. Warning: this method sends the command
+        directy to the device without additional checks. Should not be used directly without additional checks.
+        Subclasses must implement this method.
+
+        :param target: Absolute position to move to.
+        """
+        raise NotImplementedError('Sub-classes must implement this method!')
+
+    def do_busy(self, busy):
+        """
+        Busy closure
+
+        :param state: busy state
+        """
+        if self.is_starting() and busy:
+            self.target_master = True
+            self.set_state(starting=False)
+        elif not busy and self.target_master:
+            self.set_state("done")
+            self.target_master = False
 
     # general notification callbacks
     def on_change(self, obj, value):
@@ -97,24 +171,18 @@ class MotorBase(Device):
         self.set_state(target=(self.previous_position, value))
         self.previous_position = value
 
-    def on_motion(self, obj, state):
+    def on_motion(self, obj, value):
         """
         Callback to emit "starting" and "busy" signal when the motor starts moving.
 
         :param obj: process variable object
         :param value: value of process variable
         """
-        if state == self.moving_value:
-            self.moving = True
-            if self.command_active:
-                self.emit("starting")
-                self.command_active = False
-        else:
-            self.moving = False
+        moving = (value == self.moving_value)
+        self.set_state(busy=moving)
 
-        self.set_state(busy=self.moving)
-        if not self.moving:
-            logger.debug("(%s) stopped at %f" % (self.name, self.get_position()))
+        if not moving:
+            logger.debug("'{}' stopped at {:g}".format(self.name, self.get_position()))
 
     def on_calibration(self, obj, state):
         """
@@ -123,10 +191,11 @@ class MotorBase(Device):
         :param obj: process variable object
         :param value: value of process variable
         """
+
         if state == self.calibrated_value:
             self.set_state(health=(0, 'calib', ''))
         else:
-            self.set_state(health=(4, 'calib' ,'Not Calibrated!'))
+            self.set_state(health=(4, 'calib', 'Not Calibrated!'))
 
     def on_enable(self, obj, val):
         """
@@ -158,14 +227,13 @@ class MotorBase(Device):
         :param poll: Time step between checking motor state
         :return: (boolean), True if motor started successfully
         """
-        if self.command_active and not self.is_busy():
+        if self.is_starting() and not self.is_busy():
             logger.debug('Waiting for {} to start '.format(self.name))
             elapsed = 0
-            while self.command_active and not self.is_busy() and elapsed < timeout:
+            while self.is_starting() and not self.is_busy() and elapsed < timeout:
                 elapsed += poll
                 time.sleep(poll)
                 if self.has_reached(self.target_position):
-                    self.command_active = False
                     logger.debug('{} already at {:g}'.format(self.name, self.target_position))
             if elapsed >= timeout:
                 logger.warning('"{}" Timed out. Did not move after {:g} sec.'.format(self.name, elapsed))
@@ -201,7 +269,7 @@ class MotorBase(Device):
                 time.sleep(poll)
             if elapsed >= timeout:
                 logger.warning(
-                    '({}) Timed-out. Did not stop moving after {:d} sec.'.format(self.name, elapsed)
+                    '"{}" Timed-out. Did not stop moving after {:d} sec.'.format(self.name, elapsed)
                 )
                 return False
         return True
@@ -215,7 +283,6 @@ class MotorBase(Device):
         :return: (bool), True if successful
         """
         success = True
-        target = self.target_position if self.command_active else None
         if start:
             success &= self.wait_start()
         if stop:
@@ -260,7 +327,7 @@ class SimMotor(MotorBase):
                 self._step_size = self._speed * self._step_time
 
     @async_call
-    def _move_action(self, target):
+    def move_operation(self, target):
         self._stopped = False
         self.command_active = True
         with self._lock:
@@ -278,28 +345,6 @@ class SimMotor(MotorBase):
                     break
                 time.sleep(self._step_time)
         self.set_state(busy=False)
-
-    def move_to(self, pos, wait=False, force=False, **kwargs):
-
-        severity, context, message = self.get_state("health")
-        if severity:
-            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
-            return
-
-        # Do not move if requested position is within precision error
-        # from current position.
-        if self.has_reached(pos):
-            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
-            return
-
-        self.configure(**kwargs)
-        self._move_action(pos)
-        if wait:
-            self.wait()
-
-    def move_by(self, pos, wait=False, **kwargs):
-        self.configure(**kwargs)
-        self.move_to(self._position + pos, wait)
 
     def stop(self):
         self._stopped = True
@@ -322,71 +367,28 @@ class Motor(MotorBase):
         """
         raise NotImplementedError
 
-    def on_desc(self, pv, val):
-        self.description = val
+    def on_desc(self, obj, descr):
+        self.description = descr
 
     def on_log(self, obj, message):
-        msg = "({}) {}".format(self.name, message)
+        msg = "'{}' {}".format(self.name, message)
         logger.debug(msg)
 
-    def on_precision(self, obj, value):
-        self.precision = value
+    def on_precision(self, obj, prec):
+        self.precision = prec
 
     def get_position(self):
         val = self.RBV.get()
         val = 0.0001 if val is None else val
         return val
 
-    def move_to(self, pos, wait=False, force=False, **kwargs):
-        """
-        Move to an absolute position.
-        :param pos: Target position
-        :param wait: Block until move is done, default is non-blocking
-        :param force: Force move even if already at current position
-        :param kwargs: Additional options for the move
-        """
-
-        severity, context, message = self.get_state("health")
-        if severity:
-            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
-            return
-
-        # Do not move if requested position is within precision error
-        # from current position.
-        if self.has_reached(pos):
-            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
-            return
-
-        self.command_active = True
-        self.target_position = pos
-        current_position = self.get_position()
-        self.VAL.put(self.target_position)
-
-        logger.debug("'{}' moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
-
-        if wait:
-            self.wait()
-
-    def move_by(self, val, wait=False, force=False, **kwargs):
-        """Similar to :func:`move_to`, except request the motor to move by a 
-        relative amount.
-        
-        Args:
-            - `val` (float): amount to move position by.
-        
-        Kwargs:
-            - `wait` (bool): Whether to wait for move to complete or return 
-              immediately.
-            - `force` (bool): Force a command to be sent to the motor even if the
-              target is the same as the current position.        
-        """
-        if val == 0.0:
-            return
-        cur_pos = self.get_position()
-        self.move_to(cur_pos + val, wait, force)
+    def move_operation(self, target):
+        self.VAL.put(target)
 
     def stop(self):
-        """Stop the motor from moving."""
+        """
+        Stop the motor from moving.
+        """
         self.STOP.put(1)
 
     def setup(self):
@@ -544,9 +546,11 @@ class JunkEnergyMotor(Motor):
 
 class BraggEnergyMotor(VMEMotor):
 
-    def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, fixed_lo=2.0, fixed_hi=2.1, fixed_value=8.157, **kwargs):
+    def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, fixed_lo=2.0, fixed_hi=2.1, fixed_value=8.157,
+                 **kwargs):
         """
         VME Motor for Bragg based Energy
+
         :param name: PV name
         :param encoder: external encoder if not using internal encoder
         :param mono_unit_cell: Si-111 unit cell parameter
@@ -568,39 +572,15 @@ class BraggEnergyMotor(VMEMotor):
     def get_position(self):
         return self.convert(self.RBV.get())
 
-    def on_change(self, obj, value):
-        self.set_state(changed=value)
-
     def on_target(self, obj, value):
         pass  # not needed for bragg
 
     def on_desc(self, pv, val):
         pass  # do not change description
 
-    def move_to(self, pos, wait=False, force=False, **kwargs):
-        # Do not move if motor state is not sane.
-        severity, context, message = self.get_state("health")
-        if severity:
-            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
-            return
-
-        # Do not move if requested position is within precision error
-        # from current position.
-        if self.has_reached(pos):
-            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
-            return
-
-        self.command_active = True
-        self.target_position = pos
-        bragg_target = converter.energy_to_bragg(self.target_position, unit_cell=self.mono_unit_cell)
-        current_position = self.get_position()
+    def move_operation(self, target):
+        bragg_target = converter.energy_to_bragg(target, unit_cell=self.mono_unit_cell)
         self.VAL.put(bragg_target)
-        self.on_target(None, self.target_position)
-
-        logger.debug("({}) moving from {:g} to {:g}".format(self.name, current_position, self.target_position))
-
-        if wait:
-            self.wait()
 
 
 class ResolutionMotor(MotorBase):
@@ -610,30 +590,26 @@ class ResolutionMotor(MotorBase):
         self.energy = energy
         self.detector_size = detector_size
         self.distance = distance
-        self.moving_value = True
+
         self.energy.connect('changed', self.on_change)
         self.distance.connect('changed', self.on_change)
-
         self.distance.connect('busy', self.on_motion)
-        self.distance.connect('starting', lambda x: self.emit("starting"))
-        self.distance.connect('done', lambda x: self.emit("done"))
-
-    def setup(self):
-        pass  # no process variables needed
+        self.distance.connect('starting', self.on_starting)
 
     def get_position(self):
         return converter.dist_to_resol(self.distance.get_position(), self.detector_size, self.energy.get_position())
 
-    def move_by(self, val, wait=False, force=False, **kwargs):
-        if val == 0.0: return
-        self.move_to(val + self.get_position(), wait=wait, force=force)
-
-    def move_to(self, val, wait=False, force=False, **kwargs):
-        target = converter.resol_to_dist(val, self.detector_size, self.energy.get_position())
-        self.distance.move_to(target, wait=wait, force=force)
+    def move_operation(self, target):
+        dist_target = converter.resol_to_dist(target, self.detector_size, self.energy.get_position())
+        self.distance.move_operation(dist_target)
 
     def stop(self):
         self.distance.stop()
 
-    def wait(self, start=True, stop=True):
-        self.distance.wait(start=start, stop=stop)
+    def on_starting(self, obj, value):
+        starting = self.distance.is_starting() or self.energy.is_starting()
+        self.set_state(starting=starting)
+
+    def on_motion(self, obj, value):
+        moving = self.distance.is_moving() or self.energy.is_moving()
+        self.set_state(busy=moving)
