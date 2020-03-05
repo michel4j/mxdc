@@ -314,7 +314,9 @@ class Device(Object):
         if self.__pending:
             inactive = [dev.name for dev in self.__pending]
             self.set_state(health=(16, 'inactive', '{} Inactive'.format(len(inactive))))
-            logger.error("'{}' inactive components: {}".format(self.name, ', '.join(inactive)))
+            logger.error("'{}' inactive components:".format(self.name))
+            for dev_name in sorted(inactive):
+                logger.error("\t\t{}".format(dev_name))
 
     def set_state(self, *args, **kwargs):
         # health needs special pre-processing
