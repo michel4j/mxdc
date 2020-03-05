@@ -1,10 +1,4 @@
-# -*- coding: UTF8 -*-
-try:
-    from queue import Queue
-except ImportError:
-    from queue import Queue
 
-import re
 import logging
 import math
 import os
@@ -14,6 +8,7 @@ import cv2
 import cairo
 import matplotlib
 import numpy
+from queue import Queue
 from gi.repository import GObject
 from gi.repository import Gdk
 from gi.repository import Gtk
@@ -22,13 +17,13 @@ from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
-from imageio import read_image
+from mxdc.libs.imageio import read_image
 from mxdc.utils import cmaps, colors
 from mxdc.utils.gui import color_palette
 
+from mxdc import Signal, Object
 
-__log_section__ = 'mxdc.imagewidget'
-logger = logging.getLogger(__log_section__)
+logger = logging.getLogger('mxdc.imagewidget')
 
 ZSCALE_MULTIPLIER = 3
 MAX_ZSCALE = 12
@@ -70,13 +65,12 @@ def adjust_spines(ax, spines, color):
         ax.xaxis.set_ticks([])
 
 
-class DataLoader(GObject.GObject):
-    __gsignals__ = {
-        "new-image": (GObject.SignalFlags.RUN_FIRST, None, []),
-    }
+class DataLoader(Object):
+    class Signals:
+        new_image = Signal("new-image", arg_types=())
 
     def __init__(self, path=None):
-        GObject.GObject.__init__(self)
+        super().__init__()
         self.gamma = 0
         self.dataset = None
         self.header = None
@@ -214,12 +208,11 @@ class DataLoader(GObject.GObject):
 
 
 class ImageWidget(Gtk.DrawingArea):
-    __gsignals__ = {
-        "image-loaded": (GObject.SignalFlags.RUN_FIRST, None, []),
-    }
+
+    image_loaded = Signal("image-loaded", arg_types=())
 
     def __init__(self, size):
-        super(ImageWidget, self).__init__()
+        super().__init__()
         self.surface = None
         self._rubber_band = False
         self._shifting = False

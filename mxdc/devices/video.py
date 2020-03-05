@@ -4,6 +4,7 @@ import re
 import threading
 import time
 from io import BytesIO, StringIO
+import cv2
 
 import numpy
 import redis
@@ -23,7 +24,7 @@ session = requests.Session()
 
 class VideoSrc(Device):
     class Signals:
-        resize = Signal("resize", arg_types=(object,))
+        resized = Signal("resized", arg_types=(int,int))
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
         """
@@ -44,11 +45,6 @@ class VideoSrc(Device):
         self.sinks = []
         self._stopped = True
         self.set_state(active=True)
-
-    def notify_size(self, frame):
-        if frame and frame.size != self.size:
-            self.size = self.frame.size
-            self.set_state(resize=self.size)
 
     def configure(self, **kwargs):
         """
@@ -100,12 +96,11 @@ class VideoSrc(Device):
                     img = self.get_frame()
                     if img and img.size != self.size:
                         self.size = img.size
-                        self.set_state(resize=self.size)
+                        self.set_state(resized=self.size)
                     if not img:
                         continue
                     for sink in self.sinks:
-                        if not sink.stopped:
-                            sink.display(img)
+                        sink.display(img)
                 except Exception as e:
                     logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
                     raise

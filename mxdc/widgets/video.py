@@ -174,6 +174,8 @@ class VideoWidget(Gtk.DrawingArea):
             self._frame_count = 0
 
     def display(self, img):
+        if self.stopped:
+            return
         img = img.resize((self.display_width, self.display_height), Image.BICUBIC)
         if self.colorize:
             if img.mode != 'L':
@@ -185,6 +187,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.update_fps()
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)
+
 
     def set_colorize(self, state=True):
         self.colorize = state
