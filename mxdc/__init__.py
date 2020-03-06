@@ -490,6 +490,35 @@ class Engine(Object):
         self.paused = False
         self.beamline = Registry.get_utility(IBeamline)
 
+    def __engine__(self):
+        """
+        Proxy for calling run method inside a thread
+        """
+        ca.threads_init()
+        self.run()
+
+    def is_stopped(self):
+        """
+        Check if the engine is stopped
+        :return: True if stopped
+        """
+        return self.stopped
+
+    def is_paused(self):
+        """
+        Check if the engine is paused
+        :return: True if paused
+        """
+        return self.paused
+
+    def is_busy(self):
+        """
+        Check if the engine is busy
+
+        :Returns: True if busy, False otherwise
+        """
+        return self.get_state("busy")
+
     def start(self):
         """
         Start the engine as a daemon thread
@@ -508,14 +537,6 @@ class Engine(Object):
         self.stopped = True
         self.paused = False
 
-    def is_busy(self):
-        """
-        Check if the engine is busy
-
-        :Returns: True if busy, False otherwise
-        """
-        return self.get_state("busy")
-
     def pause(self, reason=''):
         """
         Pause the engine
@@ -531,13 +552,6 @@ class Engine(Object):
         """
         self.paused = False
         self.emit('paused', self.paused, '')
-
-    def __engine__(self):
-        """
-        Proxy for calling run method inside a thread
-        """
-        ca.threads_init()
-        self.run()
 
     def run(self):
         """

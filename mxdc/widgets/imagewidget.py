@@ -9,7 +9,7 @@ import cairo
 import matplotlib
 import numpy
 from queue import Queue
-from gi.repository import GObject
+
 from gi.repository import Gdk
 from gi.repository import Gtk
 from matplotlib import cm
