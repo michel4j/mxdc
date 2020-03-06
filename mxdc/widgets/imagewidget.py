@@ -1,4 +1,3 @@
-
 import logging
 import math
 import os
@@ -30,6 +29,7 @@ MAX_ZSCALE = 12
 MIN_ZSCALE = 0.0
 COLORMAPS = ('binary', 'inferno')
 MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for tile to be done writing to disk
+
 
 def cmap(name):
     c_map = cm.get_cmap(name, 256)
@@ -77,7 +77,7 @@ class DataLoader(Object):
         self.stopped = False
         self.paused = False
         self.skip_count = 10  # number of frames to skip at once
-        self.zscale = ZSCALE_MULTIPLIER # Standard zscale above mean for palette maximum
+        self.zscale = ZSCALE_MULTIPLIER  # Standard zscale above mean for palette maximum
         self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
         self.loading = False
@@ -93,7 +93,21 @@ class DataLoader(Object):
             self.open(path)
 
     def open(self, path):
+        """
+        Add data path to queue for lazy loading
+
+        :param path: full path to data frame
+        """
         self.inbox.put(path)
+
+    def show(self, dataset):
+        """
+        Prepare and display externally loaded dataset
+
+        :param dataset: dataset
+        """
+        self.dataset = self.dataset
+        self.needs_refresh = True
 
     def loadable(self, path):
         return os.path.exists(path) and time.time() - os.path.getmtime(path) > MAX_SAVE_JITTER
@@ -112,9 +126,9 @@ class DataLoader(Object):
                     success = False
             attempts += 1
             time.sleep(0.1)
-        
+
         if not success:
-            #logger.warning('Error loading frame "{}".'.format(path))
+            # logger.warning('Error loading frame "{}".'.format(path))
             self.loading = False
             return False
 
@@ -129,7 +143,7 @@ class DataLoader(Object):
         return True
 
     def set_colormap(self, index):
-        if cv2.__version__ >='3.0.0':
+        if cv2.__version__ >= '3.0.0':
             self.colormap = cmap(COLORMAPS[index])
         else:
             self.colormap = {
@@ -142,7 +156,7 @@ class DataLoader(Object):
         if not direction:
             self.zscale = self.default_zscale
         else:
-            step = direction * max(round(self.zscale/10, 2), 0.1)
+            step = direction * max(round(self.zscale / 10, 2), 0.1)
             self.zscale = min(MAX_ZSCALE, max(MIN_ZSCALE, self.zscale + step))
         self.scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
         self.needs_refresh = (prev_scale != self.scale)
@@ -152,7 +166,7 @@ class DataLoader(Object):
         self.data = self.dataset.data
         self.header = self.dataset.header
 
-        img = cv2.convertScaleAbs(self.data, None, 255/self.scale, 0)
+        img = cv2.convertScaleAbs(self.data, None, 255 / self.scale, 0)
         img1 = cv2.applyColorMap(img, self.colormap)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         self.emit('new-image')
@@ -208,7 +222,6 @@ class DataLoader(Object):
 
 
 class ImageWidget(Gtk.DrawingArea):
-
     image_loaded = Signal("image-loaded", arg_types=())
 
     def __init__(self, size):
@@ -256,7 +269,7 @@ class ImageWidget(Gtk.DrawingArea):
 
     def select_reflections(self, reflections=None):
         if reflections is not None:
-            diff = (reflections[:,2] - self.frame_number)
+            diff = (reflections[:, 2] - self.frame_number)
             frame_sel = (diff >= 0) & (diff < 1)
             frame_reflections = reflections[frame_sel]
             sel = numpy.abs(frame_reflections[:, 4:]).sum(1) > 0
@@ -282,7 +295,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.raw_img = obj.image
         self.frame_number = obj.header['frame_number']
         self.filename = obj.header['filename']
-        num_frames = int(obj.header.get('total_angle', 1)/obj.header['delta_angle'])
+        num_frames = int(obj.header.get('total_angle', 1) / obj.header['delta_angle'])
         self.name = '{} [ {} / {} ]'.format(obj.header['name'], self.frame_number, num_frames)
         self.image_size = obj.header['detector_size']
         self.create_surface()
@@ -297,7 +310,7 @@ class ImageWidget(Gtk.DrawingArea):
             ox, oy, ow, oh = self.extents
             nx = min(ox, self.image_width)
             ny = min(oy, self.image_height)
-            nw = nh = max(16, min(ow, oh, self.image_width-nx, self.image_height - ny))
+            nw = nh = max(16, min(ow, oh, self.image_width - nx, self.image_height - ny))
             self.extents = (nx, ny, nw, nh)
         self.surface = cairo.ImageSurface.create_for_data(
             self.raw_img, cairo.FORMAT_ARGB32, self.image_width, self.image_height
@@ -408,7 +421,7 @@ class ImageWidget(Gtk.DrawingArea):
 
         # cross
         x, y, w, h = self.extents
-        radius = 16*self.scale
+        radius = 16 * self.scale
         if (0 < (self.beam_x - x) < x + w) and (0 < (self.beam_y - y) < y + h):
             cx = int((self.beam_x - x) * self.scale)
             cy = int((self.beam_y - y) * self.scale)
@@ -418,7 +431,7 @@ class ImageWidget(Gtk.DrawingArea):
             cr.move_to(cx, cy - radius)
             cr.line_to(cx, cy + radius)
             cr.stroke()
-            cr.arc(cx, cy, radius/2, 0, 2.0 * numpy.pi)
+            cr.arc(cx, cy, radius / 2, 0, 2.0 * numpy.pi)
 
         # measuring
         if self._measuring:
@@ -628,7 +641,7 @@ class ImageWidget(Gtk.DrawingArea):
     def _res(self, x, y):
         displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
         if self.distance == 0.0:
-            angle = math.pi/2
+            angle = math.pi / 2
         else:
             angle = 0.5 * math.atan(displacement / self.distance)
         if angle < 1e-3:
