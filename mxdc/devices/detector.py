@@ -156,7 +156,6 @@ class SimDetector(BaseDetector):
         self._stopped = False
         self.prepare_datasets()
 
-
     @decorators.async_call
     def prepare_datasets(self):
         self._datasets = {}
@@ -768,7 +767,7 @@ class EigerDetector(BaseDetector):
 
     def on_new_frame(self, obj, frame_number):
         num_frames = self.settings['num_frames'].get()
-        self.set_state(progress=(frame_number/num_frames, 'frames acquired'))
+        self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def on_state_change(self, obj, value):
         state = {

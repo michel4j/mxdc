@@ -2,18 +2,8 @@ import os
 import time
 from queue import Queue
 
-import cv2
-import numpy
-from matplotlib import cm
-from mxdc import Engine, Signal
+from mxdc import Engine
 from mxdc.libs.imageio import read_image
-
-
-def cmap(name):
-    c_map = cm.get_cmap(name, 256)
-    rgba_data = cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
-    rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
-    return rgba_data[:, :, ::-1]
 
 
 class DataMonitor(Engine):
@@ -51,8 +41,8 @@ class FileMonitor(DataMonitor):
         success = False
         while not success and attempts < 10:
             loadable = (
-                os.path.exists(path) and
-                time.time() - os.path.getmtime(path) > self.MAX_SAVE_JITTER
+                    os.path.exists(path) and
+                    time.time() - os.path.getmtime(path) > self.MAX_SAVE_JITTER
             )
             if loadable:
                 try:
