@@ -108,14 +108,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         except IOError:
             logger.error('Could not load reflections from %s' % filename)
 
-    def open_image(self, filename):
-        # select spots and display for current image
-        if len(self.reflections) > 0:
-            self.canvas.select_reflections(self.reflections)
-
-        logger.info("Loading image {}".format(filename))
-        self.canvas.open(filename)
-
     def set_collect_mode(self, state=True):
         self.collecting = state
 
@@ -166,7 +158,15 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.last_follow_time = time.time()
 
     def open_frame(self, filename):
+        # select spots and display for current image
+        if len(self.reflections) > 0:
+            self.canvas.select_reflections(self.reflections)
+
+        logger.info("Loading image {}".format(filename))
         self.canvas.open(filename)
+
+    def show_frame(self, frame):
+        self.canvas.show(frame)
 
     def follow_frames(self):
         if time.time() - self.last_follow_time < MAX_FOLLOW_DURATION:
@@ -204,7 +204,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                     self.canvas.select_reflections(self.reflections)
                     GObject.idle_add(self.canvas.queue_draw)
             else:
-                self.open_image(filename)
+                self.open_frame(filename)
 
     def on_colorize_toggled(self, button):
         self.canvas.colorize(self.colorize_tbtn.get_active())

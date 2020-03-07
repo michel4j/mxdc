@@ -79,11 +79,11 @@ class Script(Engine):
 
     def enable(self):
         self.set_state(enabled=True)
-        logger.debug('Script "{}" enabled.'.format(self.__class__.__name__, ))
+        #logger.debug('Script "{}" enabled.'.format(self.__class__.__name__, ))
 
     def disable(self):
         self.set_state(enabled=False)
-        logger.debug('Script "{}" disabled.'.format(self.__class__.__name__, ))
+        #logger.debug('Script "{}" disabled.'.format(self.__class__.__name__, ))
 
     def on_complete(self, *args, **kwargs):
         pass

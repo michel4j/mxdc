@@ -106,7 +106,14 @@ class DataLoader(Object):
 
         :param dataset: dataset
         """
-        self.dataset = self.dataset
+
+        self.dataset = dataset
+        avg = self.dataset.header['average_intensity']
+        stdev = self.dataset.header['std_dev']
+        pLo, pHi = numpy.percentile(self.dataset.stats_data, (1., 99.))
+        self.default_zscale = ZSCALE_MULTIPLIER * (pHi - avg) / stdev  # default Z-scale
+        self.zscale = self.default_zscale
+        self.scale = avg + self.zscale * stdev
         self.needs_refresh = True
 
     def loadable(self, path):
@@ -284,6 +291,9 @@ class ImageWidget(Gtk.DrawingArea):
 
     def open(self, filename):
         self.data_loader.open(filename)
+
+    def show(self, frame):
+        self.data_loader.show(frame)
 
     def on_data_loaded(self, obj):
         self.image_header = obj.header

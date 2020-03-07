@@ -30,7 +30,7 @@ class ImageApp(object):
     def run(self):
         try:
             if len(sys.argv) >= 2:
-                self.viewer.open_image(os.path.abspath(sys.argv[1]))
+                self.viewer.open_frame(os.path.abspath(sys.argv[1]))
             Gtk.main()
         finally:
             logger.info('Stopping...')
