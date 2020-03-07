@@ -71,15 +71,15 @@ DEVICES = {
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     # 'sample_camera': SimCamera(),
-    'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82', zoom_slave=True),
-
+    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82', zoom_slave=True),
+    'sample_camera': video.SimCamera(),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
     'sample_uvlight': misc.SimLight('UV light', 25.0, '%'),
 
     # 'hutch_video':  SimPTZCamera(),
-    'hutch_video': video.AxisPTZCamera('ccd1608-302.clsi.ca'),
+    'hutch_video': video.SimPTZCamera(),
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),

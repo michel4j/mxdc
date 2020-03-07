@@ -5,6 +5,8 @@ from queue import Queue
 from mxdc import Engine
 from mxdc.libs.imageio import read_image
 
+MAX_FILE_FREQUENCY = 10
+
 
 class DataMonitor(Engine):
     """
@@ -69,6 +71,7 @@ class FileMonitor(DataMonitor):
                 success = self.load(path)
                 if success:
                     path = None
+            time.sleep(1/MAX_FILE_FREQUENCY)
 
 
 class StreamMonitor(DataMonitor):

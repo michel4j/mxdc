@@ -1,19 +1,19 @@
-import os
+
 import pickle
 import re
 import threading
 import time
 from io import BytesIO, StringIO
-import cv2
+
 
 import numpy
 import redis
 import requests
-from PIL import Image
+from PIL import Image, GifImagePlugin
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
-from scipy import misc
+
 from zope.interface import implementer
 
 # setup module logger with a default do-nothing handler
@@ -121,25 +121,17 @@ class VideoSrc(Device):
 @implementer(ICamera)
 class SimCamera(VideoSrc):
 
-    def __init__(self, name="Camera Simulator", img="sim_sample_video.png"):
-        VideoSrc.__init__(self, name)
-        if img is not None:
-            fname = '%s/data/%s' % (os.environ.get('BCM_CONFIG_PATH'), img)
-            self.frame = Image.open(fname)
-            self.size = self.frame.size
-            self.resolution = 1.0e-3
-        else:
-            self.size = (640, 480)
-            self.resolution = 5.34e-3 * numpy.exp(-0.18)
-            self._packet_size = self.size[0] * self.size[1]
-            self._fsource = open('/dev/urandom', 'rb')
-            data = self._fsource.read(self._packet_size)
-            self.frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
-                self.size[1],
-                self.size[0]))
+    def __init__(self, name="Camera Simulator", ):
+        super().__init__(name=name)
+        self.size = (1280, 960)
+        self.resolution = 5.34e-3 * numpy.exp(-0.18)
+        self._packet_size = self.size[0] * self.size[1]*3
+        self._fsource = open('/dev/urandom', 'rb')
         self.set_state(active=True, health=(0, '', ''))
 
     def get_frame(self):
+        data = self._fsource.read(self._packet_size)
+        self.frame = Image.frombytes('RGB', self.size, data)
         return self.frame
 
 
@@ -167,7 +159,7 @@ class SimZoomableCamera(SimCamera):
 class SimPTZCamera(SimCamera):
 
     def __init__(self):
-        SimCamera.__init__(self, img="sim_hutch_video.png")
+        super().__init__(name='Sim PTZ Camera')
 
     def zoom(self, value):
         pass

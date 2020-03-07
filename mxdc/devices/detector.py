@@ -146,7 +146,7 @@ class SimDetector(BaseDetector):
         self.name = name
         self.detector_type = detector_type
         self.file_extension = 'img'
-        self.set_state(active=True, health=(0, '', ''), state=self.States.IDLE)
+        self.set_state(active=True, health=(0, '', ''), state=States.IDLE)
         self.sim_images_src = images
         self._datasets = {}
         self.parameters = {}
@@ -174,7 +174,7 @@ class SimDetector(BaseDetector):
         if first:
             self.initialize(True)
         time.sleep(0.1)
-        self.set_state(state=self.States.ACQUIRING)
+        self.set_state(state=States.ACQUIRING)
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
@@ -218,7 +218,7 @@ class SimDetector(BaseDetector):
 
     def save(self, wait=False):
         self._copy_frame()
-        self.set_state(state=self.States.IDLE)
+        self.set_state(state=States.IDLE)
 
     def delete(self, directory, *frame_list):
         for frame_name in frame_list:
