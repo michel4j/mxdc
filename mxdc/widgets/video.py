@@ -23,12 +23,13 @@ logger = get_module_logger(__name__)
 
 
 class VideoBox(Enum):
-    PAD, CROP = list(range(2))
+    PAD, CROP = range(2)
+
 
 @implementer(IVideoSink)
 class VideoWidget(Gtk.DrawingArea):
 
-    def __init__(self, camera, mode=VideoBox.PAD):
+    def __init__(self, camera, pixel_size=1.0, mode=VideoBox.PAD):
         super(VideoWidget, self).__init__()
         self.props.expand = True
         self.props.halign = Gtk.Align.FILL
@@ -36,6 +37,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.camera = camera
         self.mode = mode
         self.scale = 1
+        self.pixel_size = pixel_size
         self.voffset = 0
         self.hoffset = 0
         self.surface = None
@@ -75,8 +77,16 @@ class VideoWidget(Gtk.DrawingArea):
         self.camera.connect('resized', self.on_resize)
         self.camera.start()
 
+    def set_pixel_size(self, size):
+        """
+        Update the pixel size.  Assumes square pixels.
+
+        :param size: pixel_size
+        """
+        self.pixel_size = size
+
     def mm_scale(self):
-        return self.camera.resolution / self.scale
+        return self.pixel_size / self.scale
 
     def screen_to_mm(self, x, y):
         mm_scale = self.mm_scale()
@@ -97,6 +107,7 @@ class VideoWidget(Gtk.DrawingArea):
     def configure_video(self, dwidth, dheight, vwidth, vheight):
         """
         Configure the display
+
         :param dwidth: display widget width in pixels
         :param dheight: display widget height in pixels
         :param vwidth: video width in pixels

@@ -117,6 +117,7 @@ class Microscope(GObject.GObject):
 
         # Video Area
         self.video = VideoWidget(self.camera)
+        self.beamline.camera_scale.connect('changed', self.on_camera_scale)
         self.widget.microscope_video_frame.add(self.video)
 
         # status, save, etc
@@ -474,6 +475,9 @@ class Microscope(GObject.GObject):
         window = self.widget.microscope_bkg.get_window()
         if window:
             window.set_cursor(self.tool_cursors[self.props.tool])
+
+    def on_camera_scale(self, obj, value):
+        self.video.set_pixel_size(value)
 
     def on_gonio_mode(self, obj, mode):
         self.props.mode = mode
