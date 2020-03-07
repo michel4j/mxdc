@@ -71,7 +71,7 @@ DEVICES = {
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     # 'sample_camera': SimCamera(),
-    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82', zoom_slave=True),
+    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82'),
     'sample_camera': video.SimCamera(),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),

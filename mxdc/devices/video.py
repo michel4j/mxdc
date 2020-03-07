@@ -135,26 +135,6 @@ class SimCamera(VideoSrc):
         return self.frame
 
 
-@implementer(IZoomableCamera)
-class SimZoomableCamera(SimCamera):
-
-    def __init__(self, name, motor):
-        SimCamera.__init__(self, name)
-        self._zoom = IMotor(motor)
-        self._zoom.connect('changed', self._on_zoom_change)
-
-    def zoom(self, value):
-        """
-        Zoom to the given value.
-
-        :param value: zoom value
-        """
-        self._zoom.move_to(value, wait=True)
-
-    def _on_zoom_change(self, obj, val):
-        self.resolution = 5.34e-6 * numpy.exp(-0.18 * val)
-
-
 @implementer(IPTZCameraController)
 class SimPTZCamera(SimCamera):
 
@@ -241,11 +221,10 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, zoom_slave=False, size=(1280,1024), name='REDIS Camera'):
+    def __init__(self, server, mac,size=(1280,1024), name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
-        self.zoom_slave = zoom_slave
         self.server = server
         self.size = size
 
@@ -302,16 +281,9 @@ class AxisCamera(JPGCamera):
 @implementer(IZoomableCamera)
 class ZoomableCamera(object):
 
-    def __init__(self, camera, zoom_motor, scale_device=None):
+    def __init__(self, camera, zoom_motor):
         self.camera = camera
         self._zoom = zoom_motor
-        if scale_device:
-            self._scale = scale_device
-            self._scale.connect('changed', self.update_resolution)
-            self._scale.connect('active', self.update_resolution)
-        else:
-            self._zoom.connect('changed', self.update_zoom)
-            self._zoom.connect('active', self.update_zoom)
 
     def zoom(self, value, wait=False):
         """
@@ -321,15 +293,6 @@ class ZoomableCamera(object):
         :param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
         self._zoom.move_to(value, wait=wait)
-
-    def update_resolution(self, *args, **kwar):
-        self.camera.resolution = self._scale.get() or 0.0028
-
-    def update_zoom(self, *args, **kwar):
-        scale = 1360. / self.camera.size[0]
-        self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
-        if self.camera.zoom_slave:
-            self.camera.configure(gain=(self._zoom.get_position()**2)/4)
 
     def __getattr__(self, key):
         try:

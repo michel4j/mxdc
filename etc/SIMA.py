@@ -68,9 +68,9 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  motor.PseudoMotor('PMTR1608-301:bstZ:mm'),
     'sample_zoom':  motor.PseudoMotor('PMTR1608-301:zoom:pos'),
-    'camera_scale': misc.Positioner('MD1608-301:CoaxCamScaleX', 'MD1608-301:CoaxCamScaleX'),
+    'camera_scale': ca.PV('MD1608-301:CoaxCamScaleX'),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
-    'sample_camera': video.REDISCamera('10.52.31.240', mac='0030180F06E5', zoom_slave=False),
+    'sample_camera': video.REDISCamera('10.52.31.240', mac='0030180F06E5'),
 
     'sample_backlight': misc.SampleLight('MD1608-301:BackLightLevel', 'MD1608-301:BackLightLevel', 'MD1608-301:BackLightIsOn', 100.0),
     'sample_frontlight': misc.SampleLight('MD1608-301:FrontLightLevel', 'MD1608-301:FrontLightLevel', 'MD1608-301:FrontLightIsOn',100.0),
