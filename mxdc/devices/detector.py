@@ -514,8 +514,9 @@ class ADSCDetector(BaseDetector):
 @implementer(IImagingDetector)
 class PilatusDetector(BaseDetector):
     shutterless = True
+    detector_type='PILATUS 6M'
 
-    def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
+    def __init__(self, name, size=(2463, 2527), description='PILATUS Detector'):
         super().__init__()
 
         # frame monitor
@@ -525,7 +526,6 @@ class PilatusDetector(BaseDetector):
         self.resolution = 0.172
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.detector_type = detector_type
         self.file_extension = 'cbf'
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
@@ -658,18 +658,18 @@ class PilatusDetector(BaseDetector):
 
 class EigerDetector(BaseDetector):
     shutterless = True
+    detector_type = 'Eiger'
 
-    def __init__(self, name, size=(3110, 3269), detector_type='Eiger', description='Eiger'):
+    def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
         super().__init__()
 
         # frame monitor
-        self.monitor = frames.StreamMonitor(self)
+        self.monitor = frames.StreamMonitor(self, address=stream)
 
         self.size = size
         self.resolution = 0.075
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.detector_type = detector_type
         self.file_extension = 'h5'
         self.initialized = False
 

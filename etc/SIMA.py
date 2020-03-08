@@ -63,7 +63,7 @@ DEVICES = {
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     #'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
     #'detector': detector.ADSCDetector('13ADCS1:cam1', size=4096, pixel_size=0.07243),
-    'detector': detector.EigerDetector('DEC1608-002:cam1', size=(3110, 3269), detector_type='Eiger 9M', description='Eiger 9M'),
+    'detector': detector.EigerDetector('DEC1608-002:cam1', size=(3110, 3269), stream='tcp://10.52.31.230:9999', description='Eiger 9M'),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  motor.PseudoMotor('PMTR1608-301:bstZ:mm'),

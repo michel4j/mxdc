@@ -1,3 +1,5 @@
+lz4
+pyzmq
 cryptography
 gepics
 h5py
