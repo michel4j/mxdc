@@ -502,3 +502,27 @@ class Enclosures(Device):
             self.set_state(health=(2, 'ready',self.get_messages()))
         else:
             self.set_state(health=(0, 'ready',self.get_messages()))
+
+
+class CamScaleFromZoom(PositionerBase):
+    def __init__(self, zoom, width=1360.0):
+        super().__init__()
+        self.name = 'Sample Camera Scale'
+        self.zoom = zoom
+        self.factor = 1360./width
+        self._position = 1.0
+        self.zoom.connect('changed', self.on_zoom)
+        self.zoom.connect('active', self.on_active)
+    def on_zoom(self, obj, value):
+        self._position = self.factor * 0.00227167 * numpy.exp(-0.26441385 * value)
+        self.set_state(changed=self._position)
+
+    def get(self):
+        return self._position
+
+    def set(self, value):
+        self._position = value
+        self.set_state(changed=self._position)
+
+    def on_active(self, obj, active):
+        self.set_state(active=active)

@@ -1,19 +1,19 @@
-import os
+
 import pickle
 import re
 import threading
 import time
 from io import BytesIO, StringIO
-import cv2
+
 
 import numpy
 import redis
 import requests
-from PIL import Image
+from PIL import Image, GifImagePlugin
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
-from scipy import misc
+
 from zope.interface import implementer
 
 # setup module logger with a default do-nothing handler
@@ -121,53 +121,25 @@ class VideoSrc(Device):
 @implementer(ICamera)
 class SimCamera(VideoSrc):
 
-    def __init__(self, name="Camera Simulator", img="sim_sample_video.png"):
-        VideoSrc.__init__(self, name)
-        if img is not None:
-            fname = '%s/data/%s' % (os.environ.get('BCM_CONFIG_PATH'), img)
-            self.frame = Image.open(fname)
-            self.size = self.frame.size
-            self.resolution = 1.0e-3
-        else:
-            self.size = (640, 480)
-            self.resolution = 5.34e-3 * numpy.exp(-0.18)
-            self._packet_size = self.size[0] * self.size[1]
-            self._fsource = open('/dev/urandom', 'rb')
-            data = self._fsource.read(self._packet_size)
-            self.frame = misc.toimage(numpy.fromstring(data, 'B').reshape(
-                self.size[1],
-                self.size[0]))
+    def __init__(self, name="Camera Simulator", ):
+        super().__init__(name=name)
+        self.size = (1280, 960)
+        self.resolution = 5.34e-3 * numpy.exp(-0.18)
+        self._packet_size = self.size[0] * self.size[1]*3
+        self._fsource = open('/dev/urandom', 'rb')
         self.set_state(active=True, health=(0, '', ''))
 
     def get_frame(self):
+        data = self._fsource.read(self._packet_size)
+        self.frame = Image.frombytes('RGB', self.size, data)
         return self.frame
-
-
-@implementer(IZoomableCamera)
-class SimZoomableCamera(SimCamera):
-
-    def __init__(self, name, motor):
-        SimCamera.__init__(self, name)
-        self._zoom = IMotor(motor)
-        self._zoom.connect('changed', self._on_zoom_change)
-
-    def zoom(self, value):
-        """
-        Zoom to the given value.
-
-        :param value: zoom value
-        """
-        self._zoom.move_to(value, wait=True)
-
-    def _on_zoom_change(self, obj, val):
-        self.resolution = 5.34e-6 * numpy.exp(-0.18 * val)
 
 
 @implementer(IPTZCameraController)
 class SimPTZCamera(SimCamera):
 
     def __init__(self):
-        SimCamera.__init__(self, img="sim_hutch_video.png")
+        super().__init__(name='Sim PTZ Camera')
 
     def zoom(self, value):
         pass
@@ -249,11 +221,10 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac, zoom_slave=False, size=(1280,1024), name='REDIS Camera'):
+    def __init__(self, server, mac,size=(1280,1024), name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
-        self.zoom_slave = zoom_slave
         self.server = server
         self.size = size
 
@@ -310,16 +281,9 @@ class AxisCamera(JPGCamera):
 @implementer(IZoomableCamera)
 class ZoomableCamera(object):
 
-    def __init__(self, camera, zoom_motor, scale_device=None):
+    def __init__(self, camera, zoom_motor):
         self.camera = camera
         self._zoom = zoom_motor
-        if scale_device:
-            self._scale = scale_device
-            self._scale.connect('changed', self.update_resolution)
-            self._scale.connect('active', self.update_resolution)
-        else:
-            self._zoom.connect('changed', self.update_zoom)
-            self._zoom.connect('active', self.update_zoom)
 
     def zoom(self, value, wait=False):
         """
@@ -329,15 +293,6 @@ class ZoomableCamera(object):
         :param wait: (boolean) default False, whether to wait until camera has zoomed in.
         """
         self._zoom.move_to(value, wait=wait)
-
-    def update_resolution(self, *args, **kwar):
-        self.camera.resolution = self._scale.get() or 0.0028
-
-    def update_zoom(self, *args, **kwar):
-        scale = 1360. / self.camera.size[0]
-        self.camera.resolution = scale * 0.00227167 * numpy.exp(-0.26441385 * self._zoom.get_position())
-        if self.camera.zoom_slave:
-            self.camera.configure(gain=(self._zoom.get_position()**2)/4)
 
     def __getattr__(self, key):
         try:

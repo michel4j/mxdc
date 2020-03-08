@@ -61,7 +61,8 @@ DEVICES = {
     'distance': tmp1,
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
+    #'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
+    'detector': detector.EigerDetector('DEC1608-002:cam1', 'tcp://10.52.31.230:9999', size=(3110, 3269), description='Eiger 9M'),
     #'detector': detector.ADSCDetector('13ADCS1:cam1', size=4096, pixel_size=0.07243),
 
     # Sample environment, beam stop, cameras, zoom, lighting
@@ -71,15 +72,15 @@ DEVICES = {
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     # 'sample_camera': SimCamera(),
-    'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82', zoom_slave=True),
-
+    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82'),
+    'sample_camera': video.SimCamera(),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
     'sample_uvlight': misc.SimLight('UV light', 25.0, '%'),
 
     # 'hutch_video':  SimPTZCamera(),
-    'hutch_video': video.AxisPTZCamera('ccd1608-302.clsi.ca'),
+    'hutch_video': video.SimPTZCamera(),
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),

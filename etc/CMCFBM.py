@@ -3,6 +3,7 @@ import mxdc.devices.shutter
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
 from mxdc.devices.automounter import sam
+from mxdc.com import ca
 from mxdc.services import clients
 
 CONFIG = {
@@ -69,11 +70,11 @@ DEVICES = {
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_z':  motor.PseudoMotor('PMTR1608-001:bstZ:mm'),
     'sample_zoom':  motor.PseudoMotor('PMTR1608-001:zoom:pos'),
-    'camera_scale': misc.Positioner('MD1608-05:CoaxCamScaleX', 'MD1608-05:CoaxCamScaleX'),
+    'camera_scale': ca.PV('MD1608-05:CoaxCamScaleX'),
     'cryojet':  cryojet.CryoJet5('CSC1608-5-03', 'CSC1608-5-B10-01'),
 
 
-    'sample_camera': video.REDISCamera('V2E1608-501.clsi.ca', mac='000F31030CAA', zoom_slave=True),
+    'sample_camera': video.REDISCamera('V2E1608-501.clsi.ca', mac='000F31030CAA'),
     'sample_backlight': misc.SampleLight('MD1608-05:BackLightLevel', 'MD1608-05:BackLightLevel', 'MD1608-05:BackLightIsOn', 100.0),
     'sample_frontlight': misc.SampleLight('MD1608-05:FrontLightLevel', 'MD1608-05:FrontLightLevel', 'MD1608-05:FrontLightIsOn',100.0),
     'hutch_video':  video.AxisPTZCamera('ccd1608-501.clsi.ca'),

@@ -199,6 +199,7 @@ class MD2Gonio(Goniometer):
 class SimGonio(Goniometer):
     def __init__(self):
         super().__init__('SIM Diffractometer')
+        self.settings = {}
         self._scanning = False
         self._lock = Lock()
         self.set_state(active=True, health=(0, '', ''))
@@ -208,22 +209,21 @@ class SimGonio(Goniometer):
 
     @async_call
     def _scan_async(self):
-        self._scan_sync(wait=False)
+        self._scan_sync()
 
-    def _scan_sync(self, wait=True):
+    def _scan_sync(self):
         self.set_state(message='Scanning ...', busy=True)
         with self._lock:
             self._scanning = True
             bl = Registry.get_utility(IBeamline)
-            st = time.time()
+            bl.omega.configure(speed=bl.omega.default_speed)
             logger.debug('Starting scan at: %s' % datetime.now().isoformat())
             logger.debug('Moving to scan starting position')
             bl.fast_shutter.open()
-            bl.omega.move_to(self.settings['angle'] - 0.05, wait=True, speed=90.0)
+            bl.omega.move_to(self.settings['angle'] - 0.05, wait=True)
             scan_speed = float(self.settings['delta']) / self.settings['time']
-            if wait:
-                logger.debug('Waiting for scan to complete ...')
-            bl.omega.move_to(self.settings['angle'] + self.settings['delta'] + 0.05, wait=True, speed=scan_speed)
+            bl.omega.configure(speed=scan_speed)
+            bl.omega.move_to(self.settings['angle'] + self.settings['delta'] + 0.05, wait=True)
             bl.fast_shutter.close()
             bl.omega.configure(speed=bl.omega.default_speed)
             logger.debug('Scan done at: %s' % datetime.now().isoformat())

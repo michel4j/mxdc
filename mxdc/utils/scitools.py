@@ -1,9 +1,9 @@
 import os
 import re
+import json
 
 import numpy
 from mxdc.utils import converter
-from mxdc.utils import json
 from scipy import interpolate, optimize, signal
 from mxdc.utils import fitting
 
