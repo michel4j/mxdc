@@ -82,6 +82,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
         # signals
         self.open_btn.connect('clicked', self.on_file_open)
+        self.save_btn.connect('clicked', self.on_file_save)
         self.prev_btn.connect('clicked', self.on_prev_frame)
         self.next_btn.connect('clicked', self.on_next_frame)
         self.back_btn.connect('clicked', self.on_go_back, False)
@@ -205,6 +206,12 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                     GObject.idle_add(self.canvas.queue_draw)
             else:
                 self.open_image(filename)
+
+    def on_file_save(self, widget):
+        filename, flt = dialogs.select_save_file("Save display to file")
+        if filename:
+            path = os.path.abspath(filename)
+            self.canvas.save_surface(path)
 
     def on_colorize_toggled(self, button):
         self.canvas.colorize(self.colorize_tbtn.get_active())

@@ -482,6 +482,10 @@ class ImageWidget(Gtk.DrawingArea):
         Res = self._res(Ix, Iy)
         return Ix, Iy, Res, self.pixel_data[Ix, Iy]
 
+    def save_surface(self, path):
+        self.surface.write_to_png(path)
+        logger.info('Image saved to PNG: {}'.format(path))
+
     def on_mouse_motion(self, widget, event):
         if not self.image_loaded:
             return False
