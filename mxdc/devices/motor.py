@@ -320,6 +320,9 @@ class SimMotor(MotorBase):
     def get_position(self):
         return self._position
 
+    def get_speed(self):
+        return self._speed
+
     def configure(self, *args, **kwargs):
         with self._lock:
             if 'speed' in kwargs:
@@ -340,7 +343,7 @@ class SimMotor(MotorBase):
             self.command_active = False
             for pos in targets:
                 self._position = pos
-                self.set_state(changed=self._position, time=time.time())
+                self.set_state(changed=self._position)
                 if self._stopped:
                     break
                 time.sleep(self._step_time)

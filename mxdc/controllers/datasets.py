@@ -360,7 +360,6 @@ class DatasetsController(Object):
 
         self.collector.connect('done', self.on_done)
         self.collector.connect('paused', self.on_pause)
-        self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
@@ -422,6 +421,7 @@ class DatasetsController(Object):
         }
         self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
         self.microscope.connect('notify::points', self.on_points)
+        self.beamline.detector.connect('new-image', self.on_new_image)
 
     def create_run_config(self, item):
         config = datawidget.RunConfig()
@@ -684,7 +684,10 @@ class DatasetsController(Object):
         self.widget.datasets_overlay.set_sensitive(False)
         logger.info("Data Acquisition Started.")
 
-    def on_new_image(self, widget, file_path):
+    def on_new_image(self, obj, frame):
+        self.image_viewer.show_frame(frame)
+
+    def on_new_path(self, widget, file_path):
         directory = os.path.dirname(file_path)
         home_dir = misc.get_project_home()
         current_dir = directory.replace(home_dir, '~')

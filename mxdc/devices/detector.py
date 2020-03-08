@@ -10,6 +10,7 @@ from zope.interface import implementer
 
 from mxdc import Signal, Device
 from mxdc.utils import decorators
+from mxdc.utils import frames
 from mxdc.utils.log import get_module_logger
 from .interfaces import IImagingDetector
 
@@ -41,7 +42,8 @@ class BaseDetector(Device):
 
     class Signals:
         state = Signal("state", arg_types=(object,))
-        new_image = Signal("new-image", arg_types=(str,))
+        new_image = Signal("new-image", arg_types=(object,))
+        progress = Signal("progress", arg_types=(float, str))
 
     shutterless = False
 
@@ -52,6 +54,14 @@ class BaseDetector(Device):
         @return:
         """
         pass
+
+    def process_frame(self, data):
+        """
+        Process the frame data from a monitor helper
+
+        :param data: Data to be processed
+        """
+        self.emit("new-image", data)
 
     def set_state(self, *args, **kwargs):
         # make sure device busy signal is consistent with busy states
@@ -126,13 +136,17 @@ class SimDetector(BaseDetector):
 
     def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
         super().__init__()
+
+        # file monitor
+        self.monitor = frames.FileMonitor(self)
+
         self.size = int(size), int(size)
         self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
         self.name = name
         self.detector_type = detector_type
         self.file_extension = 'img'
-        self.set_state(active=True, health=(0, '', ''), state=self.States.IDLE)
+        self.set_state(active=True, health=(0, '', ''), state=States.IDLE)
         self.sim_images_src = images
         self._datasets = {}
         self.parameters = {}
@@ -160,7 +174,7 @@ class SimDetector(BaseDetector):
         if first:
             self.initialize(True)
         time.sleep(0.1)
-        self.set_state(state=self.States.ACQUIRING)
+        self.set_state(state=States.ACQUIRING)
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
@@ -193,7 +207,6 @@ class SimDetector(BaseDetector):
             self._num_frames = 2
 
     def _copy_frame(self):
-
         file_parms = copy.deepcopy(self.parameters)
         logger.debug('Saving frame: %s' % datetime.now().isoformat())
         src_img = self._src_template.format(1 + (file_parms['start_frame'] % self._num_frames))
@@ -201,11 +214,11 @@ class SimDetector(BaseDetector):
         file_path = os.path.join(file_parms['directory'], file_name)
         shutil.copyfile(src_img, file_path)
         logger.debug('Frame saved: %s' % datetime.now().isoformat())
-        self.emit('new-image', file_path)
+        self.monitor.add(file_path)
 
     def save(self, wait=False):
         self._copy_frame()
-        self.set_state(state=self.States.IDLE)
+        self.set_state(state=States.IDLE)
 
     def delete(self, directory, *frame_list):
         for frame_name in frame_list:
@@ -229,6 +242,10 @@ class RayonixDetector(BaseDetector):
 
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
         super().__init__()
+
+        # frame monitor
+        self.monitor = frames.FileMonitor(self)
+
         self.size = size, size
         self.resolution = 0.073242
         self.mm_size = self.resolution * min(self.size)
@@ -323,7 +340,7 @@ class RayonixDetector(BaseDetector):
     def on_new_frame(self, obj, state):
         if state == 2:
             file_path = self.saved_filename.get()
-            self.emit('new-image', file_path)
+            self.monitor.add(file_path)
 
     def on_state_value(self, obj, value):
         state = {
@@ -359,6 +376,10 @@ class ADSCDetector(BaseDetector):
 
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
         super().__init__()
+
+        # frame monitor
+        self.monitor = frames.FileMonitor(self)
+
         self.size = size, size
         self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
@@ -389,6 +410,7 @@ class ADSCDetector(BaseDetector):
         self.saved_filename.connect('changed', self.on_new_frame)
         self.file_format.connect('changed', self.on_new_format)
         self.state_value.connect('changed', self.on_state_value)
+        self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
         self.settings = {
@@ -409,7 +431,9 @@ class ADSCDetector(BaseDetector):
             'phi': self.add_pv("{}:ADSCPhi".format(name)),
             'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
         }
-        self.connected_status.connect('changed', self.on_connection_changed)
+
+        # frame monitor
+        self.monitor = frames.FileMonitor(self)
 
     def initialize(self, wait=True):
         logger.debug('({}) Initializing Detector ...'.format(self.name))
@@ -420,16 +444,16 @@ class ADSCDetector(BaseDetector):
 
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
-        self.wait('idle')
+        self.wait_until(States.IDLE)
         self.prepare_cmd.put(1)
-        self.wait('armed')
+        self.wait_until(States.ARMED)
         self.acquire_cmd.put(1)
-        self.wait('acquiring')
+        self.wait_until(States.ACQUIRING)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
         self.acquire_cmd.put(0)
-        self.wait('idle')
+        self.wait_until(States.IDLE)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
@@ -471,7 +495,7 @@ class ADSCDetector(BaseDetector):
 
     def on_new_frame(self, obj, path):
         file_path = self.saved_filename.get()
-        self.emit('new-image', file_path)
+        self.monitor.add(file_path)
 
     def on_new_format(self, obj, format):
         self.file_extension = format.split('.')[-1]
@@ -490,14 +514,18 @@ class ADSCDetector(BaseDetector):
 @implementer(IImagingDetector)
 class PilatusDetector(BaseDetector):
     shutterless = True
+    detector_type='PILATUS 6M'
 
-    def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
+    def __init__(self, name, size=(2463, 2527), description='PILATUS Detector'):
         super().__init__()
+
+        # frame monitor
+        self.monitor = frames.FileMonitor(self)
+
         self.size = size
         self.resolution = 0.172
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.detector_type = detector_type
         self.file_extension = 'cbf'
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
@@ -584,7 +612,11 @@ class PilatusDetector(BaseDetector):
             self.settings['file_prefix'].get(),
             frame_number
         )
-        self.emit('new-image', file_path)
+        self.monitor.add(file_path)
+
+        # progress
+        num_frames = self.settings['num_frames'].get()
+        self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def on_state_change(self, obj, value):
         state = {
@@ -626,14 +658,18 @@ class PilatusDetector(BaseDetector):
 
 class EigerDetector(BaseDetector):
     shutterless = True
+    detector_type = 'Eiger'
 
-    def __init__(self, name, size=(3110, 3269), detector_type='Eiger', description='Eiger'):
+    def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
         super().__init__()
+
+        # frame monitor
+        self.monitor = frames.StreamMonitor(self, address=stream)
+
         self.size = size
         self.resolution = 0.075
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.detector_type = detector_type
         self.file_extension = 'h5'
         self.initialized = False
 
@@ -730,16 +766,8 @@ class EigerDetector(BaseDetector):
                     logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_new_frame(self, obj, frame_number):
-        template = self.file_format.get()
-        directory = self.settings['directory'].get()
-        directory += os.sep if not directory.endswith(os.sep) else ''
-        # file_path = template % (
-        #     directory,
-        #     self.settings['file_prefix'].get(),
-        #     frame_number
-        # )
-        logger.warning('Frame {} acquired'.format(frame_number))
-        self.set_state(new_image=directory)
+        num_frames = self.settings['num_frames'].get()
+        self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def on_state_change(self, obj, value):
         state = {
