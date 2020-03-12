@@ -56,7 +56,6 @@ class RunItem(GObject.GObject):
         super(RunItem, self).__init__()
         self.connect('notify::info', self.info_changed)
         self.frames = []
-        self.collected = set()
         self.props.created = created if created else time.time()
         self.props.uuid = uid if uid else str(uuid.uuid4())
         self.props.state = state
@@ -75,16 +74,17 @@ class RunItem(GObject.GObject):
                 self.props.info.get('energy')
             )
 
-    def set_collected(self, frame):
+    def set_progress(self, progress):
         state = self.props.state
-        self.collected.add(frame)
-        prog = (100.0 * len(self.collected)) / len(self.frames)
-        self.props.progress = prog
-        if 0.0 < prog < 100.0:
-            self.props.state = RunItem.StateType.ACTIVE
-        elif prog == 100.0:
-            self.props.state = RunItem.StateType.COMPLETE
 
+        if state == RunItem.StateType.ADD:
+            return False
+
+        self.props.progress = progress
+        if 0.0 < progress < 0.95:
+            self.props.state = RunItem.StateType.ACTIVE
+        elif progress >= 0.95:
+            self.props.state = RunItem.StateType.COMPLETE
         return state != self.props.state  # return True if state changed
 
     @staticmethod
@@ -137,13 +137,6 @@ STATE_PROPERTIES = {
     RunItem.StateType.COMPLETE: ('complete-run', 'object-select-symbolic'),
     RunItem.StateType.ERROR: ('error-run', 'dialog-warning-symbolic'),
 }
-
-
-def exclude_by_value(model, column):
-    """Generate a model from another model filtering by the boolean value of a specified column"""
-    filter_model = model.filter_new()
-    filter_model.set_visible_func(lambda model, itr, data: bool(model[itr][2]) in [0, column])
-    return filter_model
 
 
 class DataEditor(gui.BuilderMixin):
@@ -398,10 +391,10 @@ class RunEditor(DataEditor):
         adjustment = Gtk.Adjustment(10, 2, 100, 1, 5, 0)
         self.data_vector_size_spin.set_adjustment(adjustment)
         self.data_end_point_pbox.bind_property(
-            'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda x, y: bool(y)
+            'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda args: bool(args[1])
         )
         self.data_vector_size_spin.bind_property(
-            'sensitive', self.data_wedge_entry, 'sensitive', 0,  lambda x, y: not y
+            'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda args: not args[1]
         )
         for i, field_name in enumerate(['point', 'end_point']):
             field_name = 'data_{}_pbox'.format(field_name)

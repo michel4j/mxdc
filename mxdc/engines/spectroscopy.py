@@ -529,11 +529,11 @@ class XASScanner(BasicScan):
 
     def save_metadata(self, upload=True):
         params = self.config
-        frames, count, start_time, end_time = datatools.get_disk_frameset(params['directory'], params['frame_glob'])
-        if count:
+        info = datatools.dataset_from_files(params['directory'], params['frame_glob'])
+        if info['num_frames']:
             metadata = {
                 'name': params['name'],
-                'frames': frames,
+                'frames': info['frames'],
                 'filename': params['frame_template'],
                 'container': params['container'],
                 'port': params['port'],

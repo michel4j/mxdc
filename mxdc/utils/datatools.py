@@ -1,7 +1,7 @@
 import copy
-import fnmatch
 import itertools
 import os
+import glob
 import re
 import pytz
 from datetime import datetime
@@ -56,7 +56,7 @@ Strategy = {
 }
 
 StrategyDataType = {
-    StrategyType.SINGLE: '',
+    StrategyType.SINGLE: 'SCREEN',
     StrategyType.FULL: 'DATA',
     StrategyType.SCREEN_4: 'SCREEN',
     StrategyType.SCREEN_3: 'SCREEN',
@@ -193,54 +193,6 @@ def generate_frames(wedge):
         frame_list.append(frame)
 
     return frame_list
-
-
-class FrameChecker(object):
-    def __init__(self, ext, detect_bad=False):
-        self.ext = ext
-        self.detect_bad = detect_bad
-
-    def __call__(self, frame):
-        frame_name = frame['frame_name']
-        filename = "{}/{}.{}".format(frame['directory'], frame_name, self.ext)
-        if os.path.exists(filename):
-            if self.detect_bad:
-                header = read_header(filename, full=True)
-                value = header.get('average_intensity')
-            else:
-                value = 10
-            return frame['dataset'], frame['first'], True, value
-        return frame['dataset'], frame['first'], False, 0
-
-
-def check_frame_list(frames, ext='img', detect_bad=False):
-    intensities = defaultdict(list)
-    check_frame = FrameChecker(ext, detect_bad)
-    # pool = Pool(cpu_count())
-    results = map(check_frame, frames)
-    existing_frames = defaultdict(list)
-    for dataset, frame_number, exists, value in results:
-        if exists:
-            intensities[dataset].append((frame_number, value))
-            existing_frames[dataset].append(frame_number)
-    existing = {
-        k: summarize_list(v)
-        for k, v in existing_frames.items()
-    }
-    bad_frames = {}
-    if detect_bad:
-        for dataset, values in intensities.items():
-            frame_info = numpy.array(values)
-            data = frame_info[:, 1]
-            devs = numpy.abs(data - numpy.median(data))
-            mdev = numpy.median(devs)
-            s = devs / mdev if mdev else 0.0
-            bad_frames['dataset'] = frame_info[s > OUTLIER_DEVIATION]
-    bad = {
-        k: summarize_list(v)
-        for k, v in bad_frames.items()
-    }
-    return existing, bad
 
 
 def generate_collection_list(run, frame_set):
@@ -401,47 +353,62 @@ def generate_wedges(runs):
     wedge_list = []
     while items_exist:
         chunk = dispensers[pos].fetch()
+
         if chunk:
+            # update wedge weight (total exposure for wedge)
+            chunk['weight'] = chunk['exposure']*chunk['num_frames']
             wedge_list.append(chunk)
         items_exist = any(disp.has_items() for disp in dispensers)
         pos = (pos + 1) % len(dispensers)
     return runs, wedge_list
 
 
-def _all_files(root, patterns='*'):
+def dataset_from_files(directory, file_glob):
     """
-    Return a list of all the files in a directory matching the pattern
+    Given a file pattern and directory, read the header and dataset information for the dataset on disk
 
+    :param directory: directory containing the dataset
+    :param file_glob: pattern for matching files
+    :return:  dataset dictionary. Expected fields are
+        'start_time':  start time for the dataset
+        'frames':  A frame list string, eg '1-5,8-10' or '1'
     """
-    patterns = patterns.split(';')
-    sfiles = []
-    for path, subdirs, files in os.walk(root):
-        for name in files:
-            for pattern in patterns:
-                if fnmatch.fnmatch(name, pattern):
-                    sfiles.append(name)
-        break
-    return sfiles
+    file_pattern = re.compile(file_glob.replace('*', r'(\d{2,6})'))
+    data_files = sorted(glob.glob(os.path.join(directory, file_glob)))
 
-
-def get_disk_frameset(directory, file_glob):
-    # Given a glob and pattern, determine the collected frame set and number of frames based on images on disk
-
-    file_pattern = file_glob.replace('*', '(\d{2,6})')
-    data_files = sorted(_all_files(directory, file_glob))
     start_time = None
-    end_time = None
+
     if data_files:
         start_time = datetime.fromtimestamp(
             os.path.getmtime(os.path.join(directory, data_files[0])), tz=pytz.utc
         )
-        end_time = datetime.fromtimestamp(
-            os.path.getmtime(os.path.join(directory, data_files[-1])), tz=pytz.utc
-        )
-    text = ' '.join(data_files)
-    full_set = list(map(int, re.findall(file_pattern, text)))
 
-    return summarize_list(full_set), len(full_set), start_time, end_time
+    full_set = [int(m.group(1)) for f in data_files for m in [file_pattern.match(f)] if m]
+    return {
+        'start_time': start_time,
+        'frames':summarize_list(full_set),
+        'num_frames': len(full_set),
+    }
+
+
+def dataset_from_reference(directory, reference_file):
+    """
+    Given a reference file and directory, read the header and dataset information for the dataset on disk
+
+    :param directory: directory containing the dataset
+    :param reference_file: representative file from the dataset
+    :return:  dataset dictionary. Expected fields are
+        'start_time':  start time for the dataset
+        'frames':  A frame list string, eg '1-5,8-10' or '1'
+    """
+
+    header = read_header(os.path.join(directory, reference_file))
+    sequence = header['dataset'].get('sequence', [])
+    return {
+        'start_time': header['dataset'].get('start_time', datetime.now(tz=pytz.utc)),
+        'frames': summarize_list(sequence),
+        'num_frames': len(sequence)
+    }
 
 
 def frameset_to_list(frame_set):
@@ -464,6 +431,10 @@ def merge_framesets(*args):
 
 def make_file_template(name):
     return '{}_{}'.format(name, '{{:0{}d}}'.format(FRAME_NUMBER_DIGITS))
+
+
+def template_to_glob(template):
+    return re.sub(r'{[^{}]*}', '*', template)
 
 
 def generate_grid_frames(grid, params):

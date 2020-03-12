@@ -147,7 +147,7 @@ class RasterCollector(Engine):
             )
 
             if self.stopped or self.paused: break
-            self.beamline.detector.set_parameters(detector_parameters)
+            self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
             self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 20)
             self.beamline.detector.save()
@@ -215,21 +215,19 @@ class RasterCollector(Engine):
 
     def save_metadata(self, upload=True):
         params = self.config['params']
+        template = self.beamline.detector.get_template(params['name'])
+        wild_card = datatools.template_to_glob(template)
         try:
-            frames, count, start_time, end_time = datatools.get_disk_frameset(
-                params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
-            )
+            info = datatools.dataset_from_files(params['directory'], wild_card)
         except OSError as e:
             logger.error('Unable to find files on disk')
             return
 
-        if count > 1:
+        if info['num_frames'] > 1:
             metadata = {
                 'name': params['name'],
-                'frames': frames,
-                'filename': '{}.{}'.format(
-                    datatools.make_file_template(params['name']), self.beamline.detector.file_extension
-                ),
+                'frames': info['frames'],
+                'filename': self.beamline.detector.get_template(params['name']),
                 'container': params['container'],
                 'port': params['port'],
                 'type': 'RASTER',

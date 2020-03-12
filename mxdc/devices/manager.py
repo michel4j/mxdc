@@ -305,13 +305,13 @@ class ModeManager(BaseManager):
             busy = False
             current_mode = self.ModeType.UNKNOWN
         elif moving:
-            health = (0, 'faults')
+            health = (0, 'faults', '')
             busy = True
             current_mode = self.ModeType.BUSY
             message = 'Switching mode ...'
         else:
             current_mode = self.int_to_mode.get(state, self.ModeType.UNKNOWN)
-            health = (0, 'faults','')
+            health = (0, 'faults', '')
             busy = False
 
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)

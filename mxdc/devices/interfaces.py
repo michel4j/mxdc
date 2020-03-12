@@ -309,7 +309,7 @@ class IImagingDetector(IDevice):
     def get_origin():
         """Return the current x,y position of the beam on the detector as a tuple"""
 
-    def set_parameters():
+    def configure(**kwargs):
         """Update the devices parameters."""
 
 

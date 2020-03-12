@@ -1,6 +1,8 @@
 import copy
 import fnmatch
 import os
+import re
+import glob
 import shutil
 import time
 from datetime import datetime
@@ -11,6 +13,7 @@ from zope.interface import implementer
 from mxdc import Signal, Device
 from mxdc.utils import decorators
 from mxdc.utils import frames
+from mxdc.libs.imageio import read_header
 from mxdc.utils.log import get_module_logger
 from .interfaces import IImagingDetector
 
@@ -36,16 +39,18 @@ class States(Enum):
 class BaseDetector(Device):
     """
     Base class for all imaging detector classes
-    """
 
+    :param monitor:  Dataset monitor instance
+
+    """
+    FRAME_DIGITS = 4
     BUSY_STATES = (States.ACQUIRING, States.STANDBY,)  # list of states representing the busy state
+    SHUTTERLESS = False
 
     class Signals:
         state = Signal("state", arg_types=(object,))
         new_image = Signal("new-image", arg_types=(object,))
         progress = Signal("progress", arg_types=(float, str))
-
-    shutterless = False
 
     def initialize(self, wait=True):
         """
@@ -59,9 +64,21 @@ class BaseDetector(Device):
         """
         Process the frame data from a monitor helper
 
-        :param data: Data to be processed
+        :param data: Dataset object to be processed
         """
         self.emit("new-image", data)
+
+    def get_template(self, prefix):
+        """
+        Given a file name template, generate the file name template for the dataset.  This should be
+        a format string specification which takes a single parameter `number` representing the file number, or
+        no parameter at all, for archive formats like hdf5
+
+        :param prefix: file name prefix
+        :return: format string
+        """
+
+        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.img'
 
     def set_state(self, *args, **kwargs):
         # make sure device busy signal is consistent with busy states
@@ -131,13 +148,53 @@ class BaseDetector(Device):
         """
         return self.wait_while()
 
+    def delete(self, directory, prefix, frames=()):
+        """
+        Delete dataset frames given a file name prefix and directory
+
+        :param directory: Directory in which to delete files
+        :param prefix:  file name prefix
+        :param frames: list of frame numbers.
+        """
+        template = self.get_template(prefix)
+        for frame in frames:
+            frame_path = os.path.join(directory, template.format(frame))
+            if os.path.exists(frame_path):
+                try:
+                    os.remove(frame_path)
+                except OSError:
+                    logger.error('Unable to remove existing frame: {}'.format(frame_path))
+
+    def check(self, directory, prefix, first=1):
+        """
+        Check the a dataset in a given directory and prefix.
+
+        :param directory: Directory in which to check files
+        :param prefix:  file name prefix
+        :param first: first frame number, defaults to 1
+        :return: tuple with the following sequence of values
+            list - list of existing frame numbers
+            bool - True if dataset can be resumed, False otherwise
+        """
+
+        file_path = os.path.join(directory, self.get_template(prefix).format(first))
+        if os.path.exists(file_path):
+            header = read_header(file_path)
+            return [], False
+        return [], False
+
+    def is_shutterless(self):
+        """
+        Check if the detector supports shutterless mode
+        :return: True if capable
+        """
+        return self.SHUTTERLESS
+
 
 class SimDetector(BaseDetector):
 
     def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
         super().__init__()
-
-        # file monitor
         self.monitor = frames.FileMonitor(self)
 
         self.size = int(size), int(size)
@@ -156,19 +213,16 @@ class SimDetector(BaseDetector):
         self._stopped = False
         self.prepare_datasets()
 
-    @decorators.async_call
-    def prepare_datasets(self):
-        self._datasets = {}
-        for root, dir, files in os.walk(self.sim_images_src):
-            if self._stopped: break
-            for file in fnmatch.filter(files, '*_001.img'):
-                if self._stopped: break
-                key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
-                data_root = file.replace('_001.', '_???.')
-                data_files = fnmatch.filter(files, data_root)
-                if len(data_files) >= 60:
-                    self._datasets[key] = len(data_files)
-        self._select_dir()
+    def save(self, wait=False):
+        self._copy_frame()
+        self.set_state(state=States.IDLE)
+
+    def configure(self, **kwargs):
+        self.parameters = copy.deepcopy(kwargs)
+        self._select_dir(name=self.parameters['file_prefix'])
+
+    def cleanup(self):
+        self._stopped = True
 
     def start(self, first=False):
         if first:
@@ -179,6 +233,9 @@ class SimDetector(BaseDetector):
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(0.1)
+
+    def get_template(self, prefix):
+        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{self.file_extension}'
 
     def get_origin(self):
         return self.size[0] // 2, self.size[0] // 2
@@ -216,34 +273,26 @@ class SimDetector(BaseDetector):
         logger.debug('Frame saved: %s' % datetime.now().isoformat())
         self.monitor.add(file_path)
 
-    def save(self, wait=False):
-        self._copy_frame()
-        self.set_state(state=States.IDLE)
-
-    def delete(self, directory, *frame_list):
-        for frame_name in frame_list:
-            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            if os.path.exists(frame_path):
-                try:
-                    os.remove(frame_path)
-                except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
-
-    def set_parameters(self, data):
-        self.parameters = copy.deepcopy(data)
-        self._select_dir(name=self.parameters['file_prefix'])
-
-    def cleanup(self):
-        self._stopped = True
+    @decorators.async_call
+    def prepare_datasets(self):
+        self._datasets = {}
+        for root, dir, files in os.walk(self.sim_images_src):
+            if self._stopped: break
+            for file in fnmatch.filter(files, '*_001.img'):
+                if self._stopped: break
+                key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
+                data_root = file.replace('_001.', '_???.')
+                data_files = fnmatch.filter(files, data_root)
+                if len(data_files) >= 60:
+                    self._datasets[key] = len(data_files)
+        self._select_dir()
 
 
 class RayonixDetector(BaseDetector):
-    shutterless = False
+    SHUTTERLESS = False
 
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
         super().__init__()
-
-        # frame monitor
         self.monitor = frames.FileMonitor(self)
 
         self.size = size, size
@@ -251,8 +300,6 @@ class RayonixDetector(BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = desc
         self.detector_type = detector_type
-        self.shutterless = False
-        self.file_extension = 'img'
         self.initialized = False
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
@@ -269,7 +316,6 @@ class RayonixDetector(BaseDetector):
 
         self.write_status.connect('changed', self.on_new_frame)
         self.state_value.connect('changed', self.on_state_value)
-        self.file_format.connect('changed', self.on_new_format)
         self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
@@ -318,17 +364,12 @@ class RayonixDetector(BaseDetector):
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
+    def get_template(self, prefix):
+        extension = self.file_format.get().split('.')[-1]
+        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{extension}'
+
     def save(self):
         self.acquire_cmd.put(0)
-
-    def delete(self, directory, *frame_list):
-        for frame_name in frame_list:
-            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            if os.path.exists(frame_path):
-                try:
-                    os.remove(frame_path)
-                except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_connection_changed(self, obj, state):
         if state == 0:
@@ -358,14 +399,11 @@ class RayonixDetector(BaseDetector):
         }.get(value, States.IDLE)
         self.set_state(state=state)
 
-    def on_new_format(self, obj, format):
-        self.file_extension = format.split('.')[-1]
-
-    def set_parameters(self, data):
+    def configure(self, **kwargs):
         if not self.initialized:
             self.initialize(True)
         params = {}
-        params.update(data)
+        params.update(kwargs)
         for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
@@ -376,8 +414,6 @@ class ADSCDetector(BaseDetector):
 
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
         super().__init__()
-
-        # frame monitor
         self.monitor = frames.FileMonitor(self)
 
         self.size = size, size
@@ -385,8 +421,6 @@ class ADSCDetector(BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = desc
         self.detector_type = detector_type
-        self.shutterless = False
-        self.file_extension = 'img'
         self.initialized = False
 
         # commands
@@ -408,7 +442,6 @@ class ADSCDetector(BaseDetector):
         self.saved_filename = self.add_pv('{}:FullFileName_RBV'.format(name))
 
         self.saved_filename.connect('changed', self.on_new_frame)
-        self.file_format.connect('changed', self.on_new_format)
         self.state_value.connect('changed', self.on_state_value)
         self.connected_status.connect('changed', self.on_connection_changed)
 
@@ -431,9 +464,6 @@ class ADSCDetector(BaseDetector):
             'phi': self.add_pv("{}:ADSCPhi".format(name)),
             'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
         }
-
-        # frame monitor
-        self.monitor = frames.FileMonitor(self)
 
     def initialize(self, wait=True):
         logger.debug('({}) Initializing Detector ...'.format(self.name))
@@ -458,17 +488,12 @@ class ADSCDetector(BaseDetector):
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
+    def get_template(self, prefix):
+        extension = self.file_format.get().split('.')[-1]
+        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{extension}'
+
     def save(self):
         self.acquire_cmd.put(0)
-
-    def delete(self, directory, *frame_list):
-        for frame_name in frame_list:
-            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            if os.path.exists(frame_path):
-                try:
-                    os.remove(frame_path)
-                except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_connection_changed(self, obj, state):
         if state == 0:
@@ -497,14 +522,11 @@ class ADSCDetector(BaseDetector):
         file_path = self.saved_filename.get()
         self.monitor.add(file_path)
 
-    def on_new_format(self, obj, format):
-        self.file_extension = format.split('.')[-1]
-
-    def set_parameters(self, data):
+    def configure(self, **kwargs):
         if not self.initialized:
             self.initialize(True)
         params = {}
-        params.update(data)
+        params.update(kwargs)
         for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
@@ -513,20 +535,18 @@ class ADSCDetector(BaseDetector):
 
 @implementer(IImagingDetector)
 class PilatusDetector(BaseDetector):
-    shutterless = True
+
+    SHUTTERLESS = True
     detector_type='PILATUS 6M'
 
     def __init__(self, name, size=(2463, 2527), description='PILATUS Detector'):
         super().__init__()
-
-        # frame monitor
         self.monitor = frames.FileMonitor(self)
 
         self.size = size
         self.resolution = 0.172
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.file_extension = 'cbf'
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
@@ -591,17 +611,12 @@ class PilatusDetector(BaseDetector):
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
+    def get_template(self, prefix):
+        extension = self.file_format.get().split('.')[-1]
+        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{extension}'
+
     def save(self, wait=False):
         return
-
-    def delete(self, directory, *frame_list):
-        for frame_name in frame_list:
-            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            if os.path.exists(frame_path):
-                try:
-                    os.remove(frame_path)
-                except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
 
     def on_new_frame(self, obj, frame_number):
         template = self.file_format.get()
@@ -630,9 +645,9 @@ class PilatusDetector(BaseDetector):
             state = States.ARMED
         self.set_state(state=state)
 
-    def set_parameters(self, data):
+    def configure(self, **kwargs):
         params = {}
-        params.update(data)
+        params.update(kwargs)
 
         if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
             params['threshold_energy'] = round(0.6 * params['energy'], 2)
@@ -657,20 +672,18 @@ class PilatusDetector(BaseDetector):
 
 
 class EigerDetector(BaseDetector):
-    shutterless = True
+    SHUTTERLESS = True
     detector_type = 'Eiger'
 
     def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
         super().__init__()
-
-        # frame monitor
         self.monitor = frames.StreamMonitor(self, address=stream)
+        self.monitor.connect('progress', self.on_data_progress)
 
         self.size = size
         self.resolution = 0.075
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.file_extension = 'h5'
         self.initialized = False
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
@@ -689,7 +702,6 @@ class EigerDetector(BaseDetector):
         self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
         self.num_images = self.add_pv('{}:NumImages'.format(name))
 
-        self.saved_frame_num.connect('changed', self.on_new_frame)
         self.state_value.connect('changed', self.on_state_change)
         self.armed_status.connect('changed', self.on_state_change)
         self.connected_status.connect('changed', self.on_connection_changed)
@@ -707,20 +719,21 @@ class EigerDetector(BaseDetector):
             'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
             'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
 
-            'wavelength': self.add_pv("{}:Wavelength".format(name)),
-            'beam_x': self.add_pv("{}:BeamX".format(name)),
-            'beam_y': self.add_pv("{}:BeamY".format(name)),
-            'distance': self.add_pv("{}:DetDist".format(name)),
-            'two_theta': self.add_pv("{}:TwoThetaStart".format(name)),
-            'kappa': self.add_pv("{}:KappaStart".format(name)),
-            'phi': self.add_pv("{}:PhiStart".format(name)),
-            'chi': self.add_pv("{}:ChiStart".format(name)),
+            'wavelength': self.add_pv(f"{name}:Wavelength"),
+            'beam_x': self.add_pv(f"{name}:BeamX"),
+            'beam_y': self.add_pv(f"{name}:BeamY"),
+            'distance': self.add_pv(f"{name}:DetDist"),
+            'two_theta': self.add_pv(f"{name}:TwoThetaStart"),
+            'kappa': self.add_pv(f"{name}:KappaStart"),
+            'phi': self.add_pv(f"{name}:PhiStart"),
+            'chi': self.add_pv(f"{name}:ChiStart"),
             # 'energy': self.add_pv('{}:PhotonEnergy'.format(name)),
             # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
         }
 
     def start(self, first=False):
-        logger.debug('"{}" Arming detector ...'.format(self.name))
+        logger.debug(f'"{self.name}" Arming detector ...')
+        self.monitor.start()
         self.acquire_cmd.put(1)
         self.wait_until(States.ARMED)
 
@@ -732,14 +745,30 @@ class EigerDetector(BaseDetector):
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
+    def get_template(self, prefix):
+        return f'{prefix}_master.h5'
+
     def save(self, wait=False):
-        time.sleep(3)
+        time.sleep(2)
         self.acquire_cmd.put(0)
         return
 
-    def set_parameters(self, data):
+    def delete(self, directory, prefix, frames=()):
+        master_file = self.get_template(prefix)
+        data_glob = re.sub(r'master', 'data_*', master_file)
+        dataset_files = [
+            os.path.join(directory, master_file)
+        ] + glob.glob(os.path.join(directory, data_glob))
+        for file_path in dataset_files:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except OSError:
+                    logger.error('Unable to remove existing frame: {}'.format(file_path))
+
+    def configure(self, **kwargs):
         params = {}
-        params.update(data)
+        params.update(kwargs)
 
         if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
             params['threshold_energy'] = round(0.5 * params['energy'], 2)
@@ -755,19 +784,6 @@ class EigerDetector(BaseDetector):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
-
-    def delete(self, directory, *frame_list):
-        for frame_name in frame_list:
-            frame_path = os.path.join(directory, '{}.{}'.format(frame_name, self.file_extension))
-            if os.path.exists(frame_path):
-                try:
-                    os.remove(frame_path)
-                except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(frame_name))
-
-    def on_new_frame(self, obj, frame_number):
-        num_frames = self.settings['num_frames'].get()
-        self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def on_state_change(self, obj, value):
         state = {
@@ -787,5 +803,14 @@ class EigerDetector(BaseDetector):
         else:
             self.set_state(health=(0, 'socket', ''))
 
+    def on_data_progress(self, monitor, fraction, message):
+        """
+        Route progress messages from monitor to the device
+
+        :param monitor:  Monitor which triggered the progress
+        :param fraction: fraction complete
+        :param message:  text message
+        """
+        self.set_state(progress=(fraction, message))
 
 __all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector', 'EigerDetector']

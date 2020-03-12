@@ -27,6 +27,7 @@ class Centering(Engine):
         super().__init__()
         self.name = 'Auto Centering'
         self.method = None
+        self.ext_device = None
         self.score = 0.0
         self.methods = {
             'loop': self.center_loop,
@@ -43,7 +44,13 @@ class Centering(Engine):
         self.microscope = Registry.get_utility(IMicroscope)
         self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = Registry.get_utility(IRasterCollector)
-        self.method = self.methods[method]
+        if method in self.methods:
+            self.method = self.methods[method]
+        elif method in self.beamline.registry:
+            self.method = self.center_external()
+            self.ext_device = self.beamline.registry[method]
+        else:
+            self.method = self.center_loop
 
     def screen_to_mm(self, x, y):
         mm_scale = self.beamline.sample_video.resolution
@@ -92,8 +99,45 @@ class Centering(Engine):
                 self.emit('error', str(e))
             else:
                 self.emit('done', None)
-        logger.info('Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(time.time() - start_time,
-                                                                                      100 * self.score))
+        logger.info(
+            'Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(
+                time.time() - start_time, 100 * self.score
+            )
+        )
+
+    def center_external(self, low_trials=3, med_trials=2):
+        if self.ext_device:
+            return
+
+        self.beamline.sample_frontlight.set_off()
+        low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
+        self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
+        scores = []
+
+        # Find tip of loop at low and high zoom
+        max_trials = low_trials + med_trials
+        trial_count = 0
+        failed = False
+        reliability = 0
+        for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
+            if failed:
+                break
+            self.beamline.sample_video.zoom(zoom_level, wait=True)
+            for i in range(trials):
+                trial_count += 1
+                x, y, reliability = self.ext_device.get_loop_coords()
+                if reliability > 0.75:
+                    logger.debug('... tip found at {}, {}'.format(x, y))
+                    xmm, ymm = self.screen_to_mm(x, y)
+                    self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+
+                # final 90 rotation not needed
+                if trial_count < max_trials:
+                    cur_pos = self.beamline.omega.get_position()
+                    self.beamline.omega.move_to((90 + cur_pos) % 360, wait=True)
+
+        self.score = numpy.mean(scores)
 
     def center_loop(self, low_trials=3, med_trials=2):
         self.beamline.sample_frontlight.set_off()

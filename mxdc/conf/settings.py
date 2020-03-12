@@ -57,7 +57,7 @@ def get_keys():
         }
     else:
         with open(_KEY_FILE, 'rb') as handle:
-            raw_data = msgpack.load(handle)
+            raw_data = msgpack.load(handle, raw=True)
             data = {key.decode('utf-8') if isinstance(key, bytes) else key: value for key, value in raw_data.items()}
     return data
 
@@ -65,7 +65,7 @@ def get_keys():
 def save_keys(keys):
     if not keys_exist():
         with open(_KEY_FILE, 'wb') as handle:
-            msgpack.dump(keys, handle)
+            msgpack.dump(keys, handle, raw=True)
 
 
 def get_session():
