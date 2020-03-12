@@ -59,7 +59,7 @@
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Save PNG</property>
                 <property name="use_underline">True</property>
-                <property name="icon_name">document-save-symbolic</property>
+                <property name="icon_name">media-floppy-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>

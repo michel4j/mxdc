@@ -129,7 +129,7 @@ class SingleCollector(GObject.GObject):
         # prepare goniometer for scan
         self.beamline.goniometer.configure(time=frame['exposure'], delta=frame['delta'], angle=frame['start'])
 
-        self.beamline.detector.set_parameters(detector_parameters)
+        self.beamline.detector.configure(**detector_parameters)
         self.beamline.detector.start(first=True)
         self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 4)
         self.beamline.detector.save()

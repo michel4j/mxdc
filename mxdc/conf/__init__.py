@@ -83,7 +83,7 @@ def initialize(name=None):
 
     app_config_dir = os.path.join(misc.get_project_home(), '.config', 'mxdc')
     try:
-        # initiallize users settings
+        # initialize users settings
         if not os.path.exists(app_config_dir):
             os.makedirs(app_config_dir, mode=0o700)
 
@@ -100,9 +100,9 @@ def initialize(name=None):
         assert bool(CONFIGS), 'Configuration error'
         APP_CACHE_DIR = os.path.join(app_config_dir, '{}.cache'.format(misc.short_hash(PROPERTIES['name'])))
 
-        for dir in [app_config_dir, APP_CACHE_DIR]:
-            if not os.path.exists(dir):
-                os.makedirs(dir, mode=0o700)
+        for directory in [app_config_dir, APP_CACHE_DIR]:
+            if not os.path.exists(directory):
+                os.makedirs(directory, mode=0o700)
     except Exception as e:
         logger.error('Could not find Beamline Configuration.')
         logger.error('Please make sure MXDC is properly installed and configured.')
@@ -129,7 +129,8 @@ def save_cache(data, realm):
 
 def clear_cache(keep_session=True):
     for cache_file in os.listdir(APP_CACHE_DIR):
-        if keep_session and cache_file == 'session': continue
+        if keep_session and cache_file == 'session':
+            continue
         file_path = os.path.join(APP_CACHE_DIR, cache_file)
         try:
             if os.path.isfile(file_path):

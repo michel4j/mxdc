@@ -6,14 +6,13 @@ import cv2
 import lz4.block, lz4.frame
 
 import json
-from pprint import pprint
 from queue import Queue
 
-from mxdc import Engine
+from mxdc import Engine, Signal
 from mxdc.libs.imageio import read_image
 from mxdc.libs.imageio.formats import DataSet
 
-MAX_FILE_FREQUENCY = 10
+MAX_FILE_FREQUENCY = 5
 
 SIZES = {
     'uint16': 2,
@@ -31,11 +30,20 @@ class DataMonitor(Engine):
     A detector helper engine which loads frames and emits them to watchers as they are being acquired.
 
     :param master: Master object to which new data should be added. Must implement the
-        process_frame(data) method.
+        process_frame(data) method takes a single parameter which is a imageio.DataSet object
     """
 
     def __init__(self, master):
         super().__init__()
+        self.master = master
+
+    def set_master(self, master):
+        """
+        Change the master device to which datasets should be sent
+
+        :param master: Master, must implement a `process_frame` function that accepts a single parameter which is
+            an instance of a imageio.DataSet object.
+        """
         self.master = master
 
 
@@ -46,8 +54,8 @@ class FileMonitor(DataMonitor):
 
     MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for tile to be done writing to disk
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, master):
+        super().__init__(master)
         self.skip_count = 10  # number of frames to skip at once
         self.inbox = Queue(10000)
         self.start()
@@ -61,13 +69,14 @@ class FileMonitor(DataMonitor):
         success = False
         while not success and attempts < 10:
             loadable = (
-                    os.path.exists(path) and
-                    time.time() - os.path.getmtime(path) > self.MAX_SAVE_JITTER
+                os.path.exists(path) and
+                time.time() - os.path.getmtime(path) > self.MAX_SAVE_JITTER
             )
             if loadable:
                 try:
                     dataset = read_image(path)
-                    self.master.process_frame(dataset)
+                    if self.master:
+                        self.master.process_frame(dataset)
                     success = True
                 except Exception:
                     success = False
@@ -85,7 +94,7 @@ class FileMonitor(DataMonitor):
                 path = self.inbox.get()
                 count += 1
 
-            if path and not self.get_state("busy"):
+            if path and not self.is_busy():
                 success = self.load(path)
                 if success:
                     path = None
@@ -130,12 +139,11 @@ class StreamMonitor(DataMonitor):
         self.receiver = None
         self.dataset = None
         self.address = address
+        self.last_time = time.time()
         self.metadata = {}
-        self.start()
 
     def parse_header(self, info, msg):
         header = json.loads(msg[1])
-        pprint(header)
         for key, field in self.HEADER_FIELDS.items():
             converter = self.CONVERTERS.get(key, lambda v: v)
             try:
@@ -145,7 +153,6 @@ class StreamMonitor(DataMonitor):
                     self.metadata[key] = tuple(converter(header[sub_field]) for sub_field in field)
             except ValueError:
                 pass
-            print(header, key, field, self.metadata)
 
         # try to find oscillation axis and parameters as first non-zero average
         for axis in ['chi', 'kappa', 'omega', 'phi']:
@@ -159,58 +166,60 @@ class StreamMonitor(DataMonitor):
                 break
 
     def parse_image(self, info, msg):
-        frame = json.loads(msg[1])
-        extra = json.loads(msg[3])
-        size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
-        raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
-        dtype = TYPES[frame['type']]
-        data = numpy.fromstring(raw_data, dtype=frame['type']).reshape(*frame['shape'])
+        # only display at most MAX_FILE_FREQUENCY images every second, except the last image
+        if time.time() - self.last_time > 1/MAX_FILE_FREQUENCY or info['frame'] == self.metadata['num_images']:
+            frame = json.loads(msg[1])
+            size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
+            raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
+            dtype = TYPES[frame['type']]
+            data = numpy.fromstring(raw_data, dtype=frame['type']).reshape(*frame['shape'])
 
-        self.dataset = DataSet()
-        header = self.metadata.copy()
+            self.dataset = DataSet()
+            header = self.metadata.copy()
 
-        data = data.view(dtype)
+            header['saturated_value'] = 1e6
+            stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
+            data = data.view(dtype)
 
-        header['saturated_value'] = data.max()
-        stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
+            try:
+                avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
 
-        avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
+                header['average_intensity'] = avg
+                header['std_dev'] = stdev
+                header['min_intensity'] = stats_data.min()
+                header['max_intensity'] = stats_data.max()
+                header['overloads'] = 0
+                header['frame_number'] = int(info['frame'])
+                header['filename'] = 'Stream'
+                header['name'] = 'Stream'
+                header['start_angle'] += header['frame_number'] * header['delta_angle']
 
-        header['average_intensity'] = avg
-        header['std_dev'] = stdev
-        header['min_intensity'] = stats_data.min()
-        header['max_intensity'] = stats_data.max()
-        header['overloads'] = 0
-        header['frame_number'] = int(info['frame'])
-        header['filename'] = 'Frame {}'.format(info['frame'])
-        header['name'] = 'Frame {}'.format(info['frame'])
-        header['start_angle'] += header['frame_number'] * header['delta_angle']
-
-        # update dataset
-        self.dataset.header = header
-        self.dataset.data = data
-        self.dataset.stats_data = stats_data
-
-        self.master.process_frame(self.dataset)
+                # update dataset
+                self.dataset.header = header
+                self.dataset.data = data
+                self.dataset.stats_data = stats_data
+                if self.master:
+                    self.master.process_frame(self.dataset)
+                self.set_state(progress=(header['frame_number']/header['num_images'], 'frames collected'))
+                self.last_time = time.time()
+            except cv2.error:
+                pass
 
     def parse_footer(self, info, msg):
-        print(info)
+        self.stop()
 
     def run(self):
         self.context = zmq.Context()
         self.receiver = self.context.socket(zmq.PULL)
         self.receiver.connect(self.address)
+        self.last_time = time.time()
         while not self.stopped:
             msg = self.receiver.recv_multipart()
             msg_type = json.loads(msg[0])
-            print(msg_type)
             if msg_type['htype'] == 'dheader-1.0':
                 self.parse_header(msg_type, msg)
             elif msg_type['htype'] == 'dimage-1.0':
-                try:
-                    self.parse_image(msg_type, msg)
-                except:
-                    pass
+                self.parse_image(msg_type, msg)
             elif msg_type['htype'] == 'dseries_end-1.0':
                 self.parse_footer(msg_type, msg)
-            time.sleep(0)
+            time.sleep(0.01)

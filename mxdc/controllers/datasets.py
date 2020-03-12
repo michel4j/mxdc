@@ -493,32 +493,37 @@ class DatasetsController(Object):
         return runs
 
     def check_runlist(self, runs):
-        frame_list = datatools.generate_run_list(runs)
-        existing, bad = datatools.check_frame_list(
-            frame_list, self.beamline.detector.file_extension, detect_bad=False
-        )
+        existing = {
+            run['name']: self.beamline.detector.check(run['directory'], run['name'], first=run['first'])
+            for run in runs
+        }
+
         config_data = copy.deepcopy(runs)
         success = True
         collected = 0
-        if any(existing.values()):
-            details = '\n'.join(['{}: {}'.format(k, v) for k, v in list(existing.items())])
+
+        # check for existing files
+        if any(pair[0] for pair in existing.values()):
+            details = '\n'.join(['{}: {}'.format(k, v[0]) for k, v in list(existing.items())])
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
-                '\n\n<b>What would you like to do with them? </b>\n'
-                'NOTE: Starting over will delete existing frames!\n'
+                '\n\n<b>What would you like to? </b>\n'
+                'NOTE: Starting over will delete existing data!\n'
             )
             buttons = (
                 ('Cancel', RESPONSE_CANCEL),
                 ('Start Over', RESPONSE_REPLACE_ALL),
-                ('Resume', RESPONSE_SKIP)
             )
+            # Add resume option if resumable
+            if all(pair[1] for pair in existing.values()):
+                buttons += (('Resume', RESPONSE_SKIP),)
 
             response = dialogs.warning(header, sub_header, buttons=buttons)
             if response == RESPONSE_SKIP:
                 success = True
                 collected = 0
                 for run in config_data:
-                    run['existing'] = existing.get(run['name'], '')
+                    run['existing'] = datatools.summarize_list(existing.get(run['name'], ([], False))[0])
                     collected += len(datatools.frameset_to_list(run['existing']))
             elif response == RESPONSE_REPLACE_ALL:
                 success = True
@@ -643,20 +648,25 @@ class DatasetsController(Object):
 
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
-        remaining_time = (1 - fraction) * used_time / fraction
-        eta_time = remaining_time
-        self.widget.collect_eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
+        if fraction > 0:
+            remaining_time = (1 - fraction) * used_time / fraction
+            eta_time = remaining_time
+            eta = '{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60))
+        else:
+            eta = '--:--'
+        self.widget.collect_eta.set_text(eta)
         self.widget.collect_pbar.set_fraction(fraction)
+        self.widget.collect_progress_lbl.set_text('Acquiring images ... {:0.2%}'.format(fraction))
 
-    def on_done(self, obj, data):
-        self.on_complete(obj)
+    def on_done(self, obj, completion):
+        self.complete_run(completion)
         self.widget.collect_eta.set_text('--:--')
         self.widget.collect_pbar.set_fraction(1.0)
-        self.widget.collect_progress_lbl.set_text('Data acquisition completed.')
+        self.widget.collect_progress_lbl.set_text('Acquisition complete!')
 
-    def on_stopped(self, obj, data):
+    def on_stopped(self, obj, completion):
         self.widget.collect_eta.set_text('--:--')
-        self.on_complete(obj)
+        self.complete_run(completion)
 
     def on_pause(self, obj, paused, message):
         if paused:
@@ -666,9 +676,8 @@ class DatasetsController(Object):
             self.widget.notifier.notify(message, duration=30, show_timer=True)
             self.pause_info = False
 
-    def on_complete(self, obj=None):
+    def complete_run(self, completion):
         self.widget.datasets_collect_btn.set_sensitive(True)
-        # gobject.idle_add(self.emit, 'new-datasets', obj.results)
         self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
         self.widget.datasets_clean_btn.set_sensitive(True)
         self.widget.datasets_overlay.set_sensitive(True)
@@ -677,39 +686,27 @@ class DatasetsController(Object):
         if self.pause_info:
             self.widget.notifier.close()
 
+        # mark runs as complete
+        completion = {} if not completion else completion
+        count = 0
+        item = self.run_store.get_item(count)
+        changed = False
+        while item:
+            changed = item.set_progress(completion.get(item.uuid, 1.0))
+            count += 1
+            item = self.run_store.get_item(count)
+        if changed:
+            self.update_cache()
+
     def on_started(self, obj, data):
         self.start_time = time.time()
         self.widget.datasets_collect_btn.set_sensitive(True)
         self.widget.datasets_clean_btn.set_sensitive(False)
         self.widget.datasets_overlay.set_sensitive(False)
-        logger.info("Data Acquisition Started.")
+        logger.info("Acquiring images ...")
 
     def on_new_image(self, obj, frame):
         self.image_viewer.show_frame(frame)
-
-    def on_new_path(self, widget, file_path):
-        directory = os.path.dirname(file_path)
-        home_dir = misc.get_project_home()
-        current_dir = directory.replace(home_dir, '~')
-        self.widget.dsets_dir_fbk.set_text(current_dir)
-        frame = os.path.splitext(os.path.basename(file_path))[0]
-        self.image_viewer.open_frame(file_path)
-        run_item = self.frame_manager.get(frame)
-        if run_item:
-
-            changed = run_item.set_collected(frame)
-            if changed:
-                self.update_cache()
-            if self.collecting:
-                action = 'Acquiring' if not self.stopping else 'Stopping'
-                self.widget.collect_progress_lbl.set_text(
-                    '{} dataset {}: {} ...'.format(action, run_item.props.info['name'], frame)
-                )
-            else:
-                self.widget.collect_progress_lbl.set_text(
-                    'Stopped at dataset {}: {} ...'.format(run_item.props.info['name'], frame)
-                )
-        logger.info('Frame acquired: {}'.format(frame))
 
     def on_collect_btn(self, obj):
         self.widget.datasets_collect_btn.set_sensitive(False)

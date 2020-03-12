@@ -5,9 +5,8 @@ import socket
 import msgpack
 import redis
 import requests
-import atexit
 
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 from mxdc.conf import settings
 from mxdc import Device
 from mxdc.utils import mdns, signing, misc
@@ -61,7 +60,7 @@ class PBClient(BaseService):
                 }
                 self.service_added(None, data)
         else:
-            GObject.idle_add(self.setup)
+            GLib.idle_add(self.setup)
 
     def reset_retries(self):
         self.retry_count = 0
@@ -107,12 +106,12 @@ class PBClient(BaseService):
         self.set_state(active=False)
         if not self.retrying:
             logger.warning('Connection to {} disconnected'.format(self.name))
-            GObject.timeout_add(self.retry_delay, self.retry)
+            GLib.timeout_add(self.retry_delay, self.retry)
 
     def on_failure(self, reason):
         if not self.retrying:
             logger.error('Connection to {} failed'.format(self.name))
-            GObject.timeout_add(self.retry_delay, self.retry)
+            GLib.timeout_add(self.retry_delay, self.retry)
 
 
 class DPSClient(PBClient):

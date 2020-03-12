@@ -22,7 +22,6 @@ logger = get_module_logger(__name__)
 class DataCollector(Engine):
 
     class Signals:
-        new_image = Signal('new-image', arg_types=(str,))
         message = Signal('message', arg_types=(str,))
 
     # Properties:
@@ -36,11 +35,14 @@ class DataCollector(Engine):
         self.runs = []
         self.results = []
         self.config = {}
-        self.total_frames = 0
+        self.total = 1
         self.count = 0
+        self.current_wedge = None
+        self.completion = {}
         self.analyst = Registry.get_utility(IAnalyst)
-        self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.progress_link = self.beamline.detector.connect('progress', self.on_progress)
         self.unwatch_frames()
+
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
 
@@ -54,30 +56,32 @@ class DataCollector(Engine):
         self.config['wedges'] = wedges
         self.config['datasets'] = datasets
         self.config['existing'] = existing
+        self.completion = {}
 
         # delete existing frames
         for wedge in wedges:
-            frame_list = [wedge['frame_template'].format(i + wedge['first']) for i in range(wedge['num_frames'])]
-            self.beamline.detector.delete(wedge['directory'], *frame_list)
+            self.completion[wedge['uuid']] = 0.0
+            frames = [i + wedge['first'] for i in range(wedge['num_frames'])]
+            self.beamline.detector.delete(wedge['directory'], wedge['name'], frames)
 
     def run(self):
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
         self.count = self.config['existing']
-        self.total_frames = self.count + sum([wedge['num_frames'] for wedge in self.config['wedges']])
+        self.total = sum([wedge['weight'] for wedge in self.config['wedges']])  # total raw time for all wedges
         current_attenuation = self.beamline.attenuator.get()
         self.watch_frames()
 
         self.results = []
 
         with self.beamline.lock:
-            # Take snapshots and prepare endstation mode
+            # Take snapshots and prepare end station mode
             self.take_snapshots()
             self.beamline.manager.collect(wait=True)
             self.emit('started', None)
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             try:
-                if self.beamline.detector.shutterless:
+                if self.beamline.detector.is_shutterless():
                     self.run_shutterless()
                 else:
                     self.run_default()
@@ -85,35 +89,34 @@ class DataCollector(Engine):
                 self.beamline.fast_shutter.close()
             self.config['end_time'] = datetime.now(tz=pytz.utc)
 
-        # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
-        time.sleep(2.0)
+        if self.stopped or self.paused:
+            self.emit('stopped', self.completion)
+        else:
+            self.emit('done', None)
 
+        self.beamline.attenuator.set(current_attenuation)  # restore attenuation
+        self.collecting = False
+        self.beamline.detector_cover.close()
+
+        # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
+        time.sleep(5.0)
         for dataset in self.config['datasets']:
             metadata = self.save(dataset)
             self.results.append(metadata)
             if metadata and self.config['analysis']:
                 self.analyse(metadata, dataset['sample'], first=self.config.get('first', False))
 
-        if not (self.stopped or self.paused):
-            self.emit('done', None)
-        elif self.stopped or not self.paused:
-            self.emit('done', self.results)
-        elif self.stopped:
-            self.emit('stopped', None)
-
-        self.beamline.attenuator.set(current_attenuation)  # restore attenuation
-        self.collecting = False
-        self.beamline.detector_cover.close()
-        GLib.timeout_add(5000, self.unwatch_frames)
         return self.results
 
     def run_default(self):
         is_first_frame = True
+
         for wedge in self.config['wedges']:
+            self.current_wedge = wedge
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
 
-            for frame in datatools.generate_frames(wedge):
+            for i, frame in enumerate(datatools.generate_frames(wedge)):
                 if self.stopped or self.paused: break
                 # Prepare image header
                 energy = self.beamline.energy.get_position()
@@ -137,13 +140,17 @@ class DataCollector(Engine):
                     num_frames=1
                 )
 
-                if self.stopped or self.paused: break
+                if self.stopped or self.paused:
+                    break
 
-                self.beamline.detector.set_parameters(detector_parameters)
+                self.beamline.detector.configure(**detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
                 self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 20)
                 self.beamline.detector.save()
 
+                # calculate progress
+                wedge_progress = ((i + 1)/wedge['num_frames'])
+                self.on_progress(None, wedge_progress, '')
                 is_first_frame = False
                 time.sleep(0)
 
@@ -151,7 +158,9 @@ class DataCollector(Engine):
         is_first_frame = True
 
         for wedge in self.config['wedges']:
-            if self.stopped or self.paused: break
+            self.current_wedge = wedge
+            if self.stopped or self.paused:
+                break
             self.prepare_for_wedge(wedge)
             energy = self.beamline.energy.get_position()
             detector_parameters = {
@@ -170,20 +179,18 @@ class DataCollector(Engine):
             }
 
             # prepare goniometer for scan
-            logger.info("Collecting {} images starting at: {}".format(
-                wedge['num_frames'], wedge['frame_template'].format(wedge['first']))
-            )
-            logger.debug('Configuring diffractometer for scan ...')
+            logger.info("Collecting {} frames for dataset {}...".format(wedge['num_frames'], wedge['dataset']))
             self.beamline.goniometer.configure(
                 time=wedge['exposure']*wedge['num_frames'], delta=wedge['delta']*wedge['num_frames'],
                 angle=wedge['start'], num_frames=wedge['num_frames']
             )
 
-            if self.stopped or self.paused: break
+            if self.stopped or self.paused:
+                break
 
             # Perform scan
             logger.debug('Configuring detector for acquisition ...')
-            self.beamline.detector.set_parameters(detector_parameters)
+            self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
 
             logger.debug('Starting scan ...')
@@ -231,27 +238,23 @@ class DataCollector(Engine):
         logger.debug('Ready for acquisition.')
 
     def save(self, params):
-        try:
-            frames, count, start_time, end_time = datatools.get_disk_frameset(
-              params['directory'], '{}_*.{}'.format(params['name'], self.beamline.detector.file_extension)
-            )
-        except OSError as e:
-            logger.error('Unable to fine dataset on disk')
-            return
+        template = self.beamline.detector.get_template(params['name'])
+        reference = template.format(params['first'])
 
-        if count < 2 or params['strategy'] == datatools.StrategyType.SINGLE:
+        try:
+            info = datatools.dataset_from_reference(params['directory'], reference)
+        except OSError as e:
+            logger.error('Unable to find files on disk')
             return
 
         metadata = {
             'name': params['name'],
-            'frames':  frames,
-            'filename': '{}.{}'.format(
-                datatools.make_file_template(params['name']), self.beamline.detector.file_extension
-            ),
+            'frames':  info['frames'],
+            'filename': template,
             'group': params['group'],
             'container': params['container'],
-            'start_time': min(start_time, self.config['start_time']).isoformat(),
-            'end_time': max(end_time, self.config['end_time']).isoformat(),
+            'start_time': min(info['start_time'], self.config['start_time']).isoformat(),
+            'end_time': self.config['end_time'].isoformat(),
             'port': params['port'],
             'type': datatools.StrategyDataType.get(params['strategy']),
             'sample_id': params['sample_id'],
@@ -275,8 +278,11 @@ class DataCollector(Engine):
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)
-        reply = self.beamline.lims.upload_data(self.beamline.name, filename)
-        return reply
+
+        # do not upload fewer than 2 frames
+        if info['num_frames'] > 2:
+            reply = self.beamline.lims.upload_data(self.beamline.name, filename)
+            return reply
 
     def analyse(self, metadata, sample, first=False):
 
@@ -292,14 +298,11 @@ class DataCollector(Engine):
             flags = ('calibrate',) if first else ()
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
-    def on_new_image(self, obj, file_path):
-        self.count += 1
-        fraction = float(self.count) / max(1, self.total_frames)
-        self.emit('new-image', file_path)
+    def on_progress(self, obj, fraction, message):
+        overall = fraction * self.current_wedge['weight']/self.total
+        self.completion[self.current_wedge['uuid']] = fraction
         if not (self.paused or self.stopped):
-            self.emit('progress', fraction, '')
-
-        self.emit("message", "Acquired frame {}/{}".format(self.count, self.total_frames))
+            self.set_state(progress=(overall, message))
 
     def on_beam_change(self, obj, available):
         if not (self.stopped or self.paused) and self.collecting and not available:
@@ -317,15 +320,10 @@ class DataCollector(Engine):
 
         # reset 'existing' field
         for run in self.config['runs']:
-            run['existing'] = ''
-        frame_list = datatools.generate_run_list(self.config['runs'])
-        existing, bad = datatools.check_frame_list(
-            frame_list, self.beamline.detector.file_extension, detect_bad=False
-        )
-
-        for run in self.config['runs']:
-            run['existing'] = existing.get(run['name'], '')
+            existing, resumable = self.beamline.detector.check(run['directory'], run['name'], first=run['first'])
+            run['existing'] = datatools.summarize_list(existing)
             collected += len(datatools.frameset_to_list(run['existing']))
+
         self.configure(self.config['runs'], existing=collected, take_snapshots=False)
         self.beamline.all_shutters.open()
         self.start()
@@ -349,7 +347,7 @@ class DataCollector(Engine):
         self.beamline.goniometer.stop()
 
     def watch_frames(self):
-        self.beamline.detector.handler_unblock(self.frame_link)
+        self.beamline.detector.handler_unblock(self.progress_link)
 
     def unwatch_frames(self):
-        self.beamline.detector.handler_block(self.frame_link)
+        self.beamline.detector.handler_block(self.progress_link)

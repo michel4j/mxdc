@@ -22,7 +22,7 @@ if __name__ == "__main__":
     else:
         log.log_to_console(logging.INFO)
 
-    conf.initialize('SIM-2')
+    conf.initialize('SIM-1')
     from mxdc.mxdcapp import MxDCApp
 
     app = MxDCApp()
