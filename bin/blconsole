@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from mxdc import conf
 
 if __name__ == "__main__":
-    conf.initialize('SIM-2')
+    conf.initialize()
     from mxdc.consoleapp import ConsoleApp
 
     app = ConsoleApp()

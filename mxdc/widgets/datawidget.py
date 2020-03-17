@@ -66,12 +66,13 @@ class RunItem(GObject.GObject):
             self.frames = datatools.generate_frame_names(self.props.info)
             self.props.size = len(self.frames)
             if len(self.frames):
-                self.props.title = '{},...'.format(self.frames[0])
+                self.props.title = '{}, ...'.format(self.frames[0])
             else:
                 self.props.title = '...'
-            self.props.subtitle = '{}f {:0.4g}°/{:0.2g}s  @ {:0.5g} keV'.format(
+            self.props.subtitle = '{}f {:0.4g}°/{:0.2g}s  @ {:0.5g} keV {}'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
-                self.props.info.get('energy')
+                self.props.info.get('energy'),
+                '(inverse beam)' if self.props.info.get('inverse') else ''
             )
 
     def set_progress(self, progress):
@@ -158,6 +159,7 @@ class DataEditor(gui.BuilderMixin):
         'frames':       ['entry', '{}', int, ''],
         'name':         ['entry', '{}', Validator.Length(str, 30), ''],
         'strategy':     ['cbox', '{}', int, StrategyType.SINGLE],
+        'inverse':      ['check', '{}', bool, False],
         'point':        ['pbox', '{}', tuple, None],
         'end_point':    ['pbox', '{}', tuple, None],
         'vector_size':  ['spin', '{}', Validator.Clip(int, 2, 100), 10],
@@ -230,6 +232,11 @@ class DataEditor(gui.BuilderMixin):
             else:
                 self.data_name_entry.get_style_context().add_class('warning')
 
+        if info['strategy'] == StrategyType.FULL and 'inverse' not in self.disabled:
+            self.data_inverse_check.set_sensitive(True)
+        else:
+            self.data_inverse_check.set_sensitive(False)
+
         self.exposure_rate = info['delta']/float(info['exposure'])
 
     def get_parameters(self):
@@ -242,7 +249,7 @@ class DataEditor(gui.BuilderMixin):
             raw_value = default
             if field_type == 'entry':
                 raw_value = field.get_text()
-            elif field_type == 'switch':
+            elif field_type in ['switch', 'check']:
                 raw_value = field.get_active()
             elif field_type == 'cbox':
                 raw_value = field.get_active_id()
@@ -343,17 +350,16 @@ class DataEditor(gui.BuilderMixin):
             elif 'exposure' in defaults and 'delta' not in defaults:
                 defaults['delta'] = default_rate/defaults['exposure']
             new_values.update(defaults)
+            if new_values['strategy'] == StrategyType.FULL and 'strategy' not in self.disabled:
+                self.data_inverse_check.set_sensitive(True)
+            else:
+                self.data_inverse_check.set_sensitive(False)
+
         elif field_name == 'delta':
-            #new_values['delta'] = min(720.0, max(new_values['delta'], 0.01))
             new_values['exposure'] = new_values['delta']/self.exposure_rate
-        # elif field_name == 'range':
-        #     new_values['range'] = min(1440.0, max(new_values['range'], 0.01))
-        # elif field_name == 'attenuation':
-        #     new_values['attenuation'] = min(100.0, max(new_values['attenuation'], 0.0))
-        # elif field_name == 'first':
-        #     new_values['first']  = max(1, new_values['first'])
-        # elif field_name == 'wedge':
-        #     new_values['wedge'] = max(new_values['wedge'], new_values['delta'])
+
+        elif field_name == 'inverse':
+            new_values['inverse'] = new_values['inverse'] and new_values['strategy'] == StrategyType.FULL
 
         self.configure(new_values)
 

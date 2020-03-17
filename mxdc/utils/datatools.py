@@ -290,7 +290,7 @@ def generate_frame_sets(run, show_number=True):
     n_wedge = int(round(wedge / delta_angle))  # number of frames in a wedge
 
     # inverse beam
-    if run.get('inverse_beam', False):
+    if run.get('inverse', False):
         offsets = [0.0, 180.0]
     else:
         offsets = [0.0, ]
