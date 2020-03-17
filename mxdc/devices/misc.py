@@ -513,6 +513,7 @@ class CamScaleFromZoom(PositionerBase):
         self._position = 1.0
         self.zoom.connect('changed', self.on_zoom)
         self.zoom.connect('active', self.on_active)
+
     def on_zoom(self, obj, value):
         self._position = self.factor * 0.00227167 * numpy.exp(-0.26441385 * value)
         self.set_state(changed=self._position)

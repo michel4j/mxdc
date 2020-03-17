@@ -39,6 +39,7 @@ class Script(Engine):
 
     class Signals:
         enabled = Signal('enabled', arg_types=(bool,))
+        message = Signal('message', arg_types=(str,))
 
     description = 'A Script'
     progress = None
@@ -47,43 +48,34 @@ class Script(Engine):
         super().__init__()
         self.name = self.__class__.__name__
         self.enable()
-        self._output = None
+        self.output = None
 
     def __repr__(self):
-        return '<Script:%s>' % self.name
+        return ':{}()'.format(self.name)
 
     def is_enabled(self):
         return self.get_state("enabled")
 
-    def start(self, *args, **kwargs):
-        if self.is_enabled() and not self.is_busy():
-            worker_thread = threading.Thread(target=self._thread_run, args=args, kwargs=kwargs)
-            worker_thread.setDaemon(True)
-            worker_thread.setName(self.name)
-            self._output = None
-            worker_thread.start()
-        else:
-            logger.warning('Script "%s" disabled or busy.' % (self,))
-
-    def _thread_run(self, *args, **kwargs):
-        with self.beamline.lock:
+    def __engine__(self, *args, **kwargs):
+        if self.is_enabled():
             ca.threads_init()
-            self.set_state(busy=True, message=self.description)
-            self._output = self.run(*args, **kwargs)
-            logger.info('Script `%s` terminated successfully' % (self.name))
-            self.set_state(done=self._output, busy=False, message='Done.')
-            self.on_complete(*args, **kwargs)
+            with self.beamline.lock:
+                self.set_state(busy=True, message=self.description)
+                self.output = self.run()
+                logger.info('Script `{}` terminated successfully'.format(self.name))
+                self.set_state(done=self.output, busy=False, message='Done.')
+                self.on_complete(*args, **kwargs)
+        else:
+            logger.warning('Script "{}" disabled or busy.'.format(self, ))
 
     def run(self, *args, **kwargs):
         raise ScriptError('`script()` not implemented!')
 
     def enable(self):
         self.set_state(enabled=True)
-        #logger.debug('Script "{}" enabled.'.format(self.__class__.__name__, ))
 
     def disable(self):
         self.set_state(enabled=False)
-        #logger.debug('Script "{}" disabled.'.format(self.__class__.__name__, ))
 
     def on_complete(self, *args, **kwargs):
         pass

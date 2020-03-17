@@ -1,7 +1,6 @@
 import os
 import time
 from datetime import datetime
-
 import pytz
 from gi.repository import GObject, GLib
 from zope.interface import implementer

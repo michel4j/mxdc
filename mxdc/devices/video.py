@@ -245,7 +245,7 @@ class REDISCamera(VideoSrc):
                 value = max(1, min(22, self.gain_factor * self.gain_value))
             else:
                 value = v
-            self.store.publish('{}:CFG:{}'.format(self.key, attr), pickle.dumps(value))
+            self.store.publish('{}:CFG:{}'.format(self.key, attr), value)
 
     def get_frame(self):
         return self.get_frame_jpg()
