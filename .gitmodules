@@ -1,3 +1,3 @@
 [submodule "mxdc/libs/imageio"]
 	path = mxdc/libs/imageio
-	url = git@github.com:michel4j/imageio.git
+	url = git@srv-cmcf4.clsi.ca:cmcf/imageio.git
