@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=MX Hutch Viewer
+Comment=Hutch Viewer for Macro-Molecular Crystallography Beamline
+Exec=hutchviewer
+Icon=mxdc.png
+Terminal=false
