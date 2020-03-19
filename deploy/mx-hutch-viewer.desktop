@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=MX Data Collector
+Comment=Software for Macro-Molecular Crystallography Data Acquisition
+Exec=mxdc
+Icon=mxdc.png
+Terminal=false

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=MX Diffraction Image Viewer
+Comment=Software for viewing Macro-Molecular Crystallography Images
+Exec=imgview
+Icon=mxdc.png
+Terminal=false
