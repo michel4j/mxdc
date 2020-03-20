@@ -14,6 +14,7 @@ from mxdc.widgets import dialogs
 logger = get_module_logger(__name__)
 log_to_console()
 
+
 class ImageApp(object):
     def __init__(self):
         self.win = Gtk.Window()

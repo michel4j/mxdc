@@ -223,3 +223,43 @@ class StreamMonitor(DataMonitor):
             elif msg_type['htype'] == 'dseries_end-1.0':
                 self.parse_footer(msg_type, msg)
             time.sleep(0.01)
+
+
+def line(x1, y1, x2, y2):
+    steep = 0
+    coords = []
+    dx = abs(x2 - x1)
+    sx = 1 if (x2 - x1) > 0 else -1
+
+    dy = abs(y2 - y1)
+    sy = 1 if (y2 - y1) > 0 else -1
+
+    if dy > dx:
+        steep = 1
+        x1, y1 = y1, x1
+        dx, dy = dy, dx
+        sx, sy = sy, sx
+
+    d = (2 * dy) - dx
+    for i in range(0, dx):
+        if steep:
+            coords.append((y1, x1))
+        else:
+            coords.append((x1, y1))
+
+        while d >= 0:
+            y1 = y1 + sy
+            d = d - (2 * dx)
+
+        x1 = x1 + sx
+        d = d + (2 * dy)
+    coords.append((x2, y2))
+    return coords
+
+
+def bounding_box(x0, y0, x1, y1):
+    x = int(min(x0, x1))
+    y = int(min(y0, y1))
+    w = int(abs(x0 - x1))
+    h = int(abs(y0 - y1))
+    return (x, y, w, h)
