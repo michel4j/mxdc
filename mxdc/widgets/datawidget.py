@@ -2,9 +2,8 @@ import time
 import uuid
 
 from gi.repository import Gtk, Gdk, GObject, Gio
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import gui, converter, datatools, glibref, misc
 from mxdc.utils.datatools import StrategyType, Strategy, Validator
 

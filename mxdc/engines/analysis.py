@@ -3,10 +3,9 @@ import uuid
 import json
 
 from gi.repository import GObject
-from mxdc import Registry, Signal, Engine
+from mxdc import Registry, Signal, Engine, IBeamline
 from twisted.internet.defer import  inlineCallbacks, returnValue
 from zope.interface import implementer
-from mxdc.beamlines.interfaces import IBeamline
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc, datatools
 from mxdc.utils.log import get_module_logger

@@ -205,7 +205,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                     self.canvas.select_reflections(self.reflections)
                     GObject.idle_add(self.canvas.queue_draw)
             else:
-                self.open_frame(filename)
+                self.open_frame(os.path.abspath(filename))
 
     def on_file_save(self, widget):
         filename, flt = dialogs.select_save_file("Save display to file")

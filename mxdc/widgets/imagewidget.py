@@ -187,7 +187,6 @@ class DataLoader(Object):
             if path and not self.loading:
                 try:
                     success = self.load(path)
-
                     if success:
                         path = None
                 except KeyError:

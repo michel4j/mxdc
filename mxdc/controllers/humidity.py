@@ -3,9 +3,8 @@ from datetime import datetime
 
 import numpy
 from gi.repository import Gtk
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.devices.misc import SimPositioner
 from mxdc.engines.humidity import SingleCollector

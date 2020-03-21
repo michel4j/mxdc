@@ -7,10 +7,9 @@ from datetime import datetime
 import pytz
 from gi.repository import GObject
 from twisted.internet.defer import returnValue, inlineCallbacks
-from mxdc import Registry, Signal, Engine
+from mxdc import Registry, Signal, Engine, IBeamline
 from zope.interface import Interface, implementer
 
-from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import datatools, misc

@@ -1,9 +1,8 @@
 import logging
 
 from gi.repository import GObject
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
-from mxdc.beamlines.interfaces import IBeamline
 from mxdc.controllers.diagnostics import DiagnosticsController
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger

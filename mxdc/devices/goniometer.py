@@ -5,8 +5,7 @@ from threading import Lock
 warnings.simplefilter("ignore")
 from datetime import datetime
 from zope.interface import implementer
-from mxdc import Registry, Device
-from mxdc.beamlines.interfaces import IBeamline
+from mxdc import Registry, Device, IBeamline
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call
 from .interfaces import IGoniometer

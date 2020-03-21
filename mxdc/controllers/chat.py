@@ -1,5 +1,4 @@
-from mxdc.beamlines.mx import IBeamline
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 from datetime import datetime
 from gi.repository  import GObject, Gtk, Gio, Gdk
 

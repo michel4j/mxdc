@@ -4,10 +4,9 @@ from collections import defaultdict
 from copy import copy
 
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject, GLib
-from mxdc import Registry, Signal, Object
+from mxdc import Registry, Signal, Object, IBeamline
 from zope.interface import Interface, implementer
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
 from mxdc.utils.automounter import Port, PortColors
