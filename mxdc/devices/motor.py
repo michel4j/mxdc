@@ -80,14 +80,29 @@ class MotorBase(Device):
         """
         return self.get_state("busy")
 
-    def move_to(self, pos, wait=False, force=False, **kwargs):
+    def configure(self, speed=None, accel=None):
+        """
+        Configure the motor.
+
+        :param speed: speed value to set, None if no change required
+        :param accel: acceleration value to set, None if no change required
+        """
+
+    def get_config(self):
+        """
+        Get the current configuration of the motor. that can be used with the
+        configure method like self.configure(**config)
+        :return: A dictionary containing the following keys {'speed': ..., 'accel': ...}
+        """
+        return {'speed': None, 'accel': None}
+
+    def move_to(self, pos, wait=False, force=False):
         """
         Move to an absolute position.
 
         :param pos: Target position
         :param wait: Block until move is done, default is non-blocking
         :param force: Force move even if already at current position
-        :param kwargs: Additional options for the move
         """
 
         severity, context, message = self.get_state("health")
@@ -111,7 +126,7 @@ class MotorBase(Device):
         if wait:
             self.wait()
 
-    def move_by(self, value, wait=False, force=False, **kwargs):
+    def move_by(self, value, wait=False, force=False):
         """
         Similar to :func:`move_to`, except request the motor to move by a
         relative amount.
@@ -119,7 +134,6 @@ class MotorBase(Device):
         :param value: Relative amount to move position by
         :param wait: Whether to block until move is completed or not
         :param force: Force move even if already at current position
-        :param kwargs: Additional options for the move
         """
         if value == 0.0:
             return
@@ -323,10 +337,10 @@ class SimMotor(MotorBase):
     def get_speed(self):
         return self._speed
 
-    def configure(self, *args, **kwargs):
+    def configure(self, speed=None, accel=None):
         with self._lock:
-            if 'speed' in kwargs:
-                self._speed = kwargs['speed']  # speed
+            if speed is not None:
+                self._speed = speed  # speed
                 self._step_size = self._speed * self._step_time
 
     @async_call
@@ -361,7 +375,7 @@ class Motor(MotorBase):
         name_parts = name.split(':')
         units = name_parts[-1]
         self.name_root = ':'.join(name_parts[:-1])
-        super().__init__(name, *args, **kwargs)
+        super().__init__(name, *args, units=units, **kwargs)
         self.connect_monitors()
 
     def connect_monitors(self):
@@ -380,19 +394,31 @@ class Motor(MotorBase):
     def on_precision(self, obj, prec):
         self.precision = prec
 
+    def get_config(self):
+        return {
+            'speed': self.speed_fbk.get(),
+            'accel': self.accel_fbk.get()
+        }
+
+    def configure(self, speed=None, accel=None):
+        if speed is not None:
+            self.speed_tgt.put(speed)
+        if accel is not None:
+            self.accel_tgt.put(accel)
+
     def get_position(self):
-        val = self.RBV.get()
+        val = self.pos_fbk.get()
         val = 0.0001 if val is None else val
         return val
 
     def move_operation(self, target):
-        self.VAL.put(target)
+        self.pos_tgt.put(target)
 
     def stop(self):
         """
         Stop the motor from moving.
         """
-        self.STOP.put(1)
+        self.stop_cmd.put(1)
 
     def setup(self):
         pass
@@ -408,30 +434,37 @@ class VMEMotor(Motor):
     def setup(self):
         self.moving_value = 1
 
-        self.VAL = self.add_pv(self.name)
-        self.DESC = self.add_pv("{}:desc".format(self.name_root))
+        self.pos_tgt = self.add_pv(self.name)
+        self.desc_val = self.add_pv("{}:desc".format(self.name_root))
+
         if self.use_encoder:
-            self.RBV = self.add_pv("{}:fbk".format(self.name))
-            self.PREC = self.add_pv("{}:fbk.PREC".format(self.name))
+            self.pos_fbk = self.add_pv("{}:fbk".format(self.name))
+            self.prec_val = self.add_pv("{}:fbk.PREC".format(self.name))
         else:
-            self.RBV = self.add_pv("{}:sp".format(self.name))
-            self.PREC = self.add_pv("{}:sp.PREC".format(self.name))
-        self.STAT = self.add_pv("{}:status".format(self.name_root))
-        self.MOVN = self.STAT
-        self.STOP = self.add_pv("{}:stop".format(self.name_root))
-        self.SET = self.add_pv("{}:setPosn".format(self.name))
-        self.CALIB = self.add_pv("{}:calibDone".format(self.name_root))
-        self.ENAB = self.CALIB
-        self.CCW_LIM = self.add_pv("{}:ccw".format(self.name_root))
-        self.CW_LIM = self.add_pv("{}:cw".format(self.name_root))
+            self.pos_fbk = self.add_pv("{}:sp".format(self.name))
+            self.prec_val = self.add_pv("{}:sp.PREC".format(self.name))
+
+        self.status_fbk = self.add_pv("{}:status".format(self.name_root))
+        self.moving_fbk = self.status_fbk
+        self.stop_cmd = self.add_pv("{}:stop".format(self.name_root))
+        self.pos_reset = self.add_pv("{}:setPosn".format(self.name))
+        self.calib_fbk = self.add_pv("{}:calibDone".format(self.name_root))
+        self.enable_fbk = self.calib_fbk
+        self.ccw_limit = self.add_pv("{}:ccw".format(self.name_root))
+        self.cw_limit = self.add_pv("{}:cw".format(self.name_root))
+
+        self.accel_tgt = self.add_pv("{}:accel:{}pss".format(self.name_root, self.units))
+        self.accel_fbk = self.add_pv("{}:acc:{}pss:sp".format(self.name_root, self.units))
+        self.speed_tgt = self.add_pv("{}:velo:{}ps".format(self.name_root, self.units))
+        self.speed_fbk = self.add_pv("{}:vel:{}ps:sp".format(self.name_root, self.units))
 
     def connect_monitors(self):
-        self.VAL.connect('changed', self.on_target)
-        self.MOVN.connect('changed', self.on_motion)
-        self.CALIB.connect('changed', self.on_calibration)
-        self.ENAB.connect('changed', self.on_enable)
-        self.DESC.connect('changed', self.on_desc)
-        self.PREC.connect('changed', self.on_precision)
+        self.pos_tgt.connect('changed', self.on_target)
+        self.moving_fbk.connect('changed', self.on_motion)
+        self.calib_fbk.connect('changed', self.on_calibration)
+        self.enable_fbk.connect('changed', self.on_enable)
+        self.desc_val.connect('changed', self.on_desc)
+        self.prec_val.connect('changed', self.on_precision)
 
 
 class APSMotor(VMEMotor):
@@ -442,16 +475,21 @@ class APSMotor(VMEMotor):
         self.calibrated_value = 0
         self.disabled_value = 1
 
-        self.DESC = self.add_pv("{}.DESC".format(self.name))
-        self.VAL = self.add_pv("{}.VAL".format(self.name))
-        self.PREC = self.add_pv("{}.PREC".format(self.name))
-        self.EGU = self.add_pv("{}.EGU".format(self.name))
-        self.RBV = self.add_pv("{}.RBV".format(self.name))
-        self.MOVN = self.add_pv("{}.DMOV".format(self.name))
-        self.STOP = self.add_pv("{}.STOP".format(self.name))
-        self.CALIB = self.add_pv("{}.SET".format(self.name))
-        self.STAT = self.add_pv("{}.STAT".format(self.name))
-        self.ENAB = self.CALIB
+        self.desc_val = self.add_pv("{}.DESC".format(self.name))
+        self.pos_tgt = self.add_pv("{}.VAL".format(self.name))
+        self.prec_val = self.add_pv("{}.PREC".format(self.name))
+        self.egu_val = self.add_pv("{}.EGU".format(self.name))
+        self.pos_fbk = self.add_pv("{}.RBV".format(self.name))
+        self.moving_fbk = self.add_pv("{}.DMOV".format(self.name))
+        self.stop_cmd = self.add_pv("{}.STOP".format(self.name))
+        self.calib_fbk = self.add_pv("{}.SET".format(self.name))
+        self.status_fbk = self.add_pv("{}.STAT".format(self.name))
+        self.enable_fbk = self.calib_fbk
+
+        self.accel_tgt = self.add_pv("{}.ACCL".format(self.name))
+        self.accel_fbk = self.accel_tgt
+        self.speed_tgt = self.add_pv("{}.VELO".format(self.name))
+        self.speed_fbk = self.speed_tgt
 
 
 class CLSMotor(VMEMotor):
@@ -462,16 +500,16 @@ class CLSMotor(VMEMotor):
         self.calibrated_value = 1
         self.disabled_value = 0
 
-        self.DESC = self.add_pv("{}:desc".format(self.name_root))
-        self.VAL = self.add_pv("{}".format(self.name))
-        self.PREC = self.add_pv("{}.PREC".format(self.name))
-        self.EGU = self.add_pv("{}.EGU".format(self.name))
-        self.RBV = self.add_pv("{}:fbk".format(self.name))
-        self.MOVN = self.add_pv("{}:state".format(self.name_root))
-        self.STOP = self.add_pv("{}:emergStop".format(self.name_root))
-        self.CALIB = self.add_pv("{}:isCalib".format(self.name_root))
-        self.STAT = self.add_pv("{}:state".format(self.name_root))
-        self.ENAB = self.CALIB
+        self.desc_val = self.add_pv("{}:desc".format(self.name_root))
+        self.pos_tgt = self.add_pv("{}".format(self.name))
+        self.prec_val = self.add_pv("{}.PREC".format(self.name))
+        self.egu_val = self.add_pv("{}.EGU".format(self.name))
+        self.pos_fbk = self.add_pv("{}:fbk".format(self.name))
+        self.moving_fbk = self.add_pv("{}:state".format(self.name_root))
+        self.stop_cmd = self.add_pv("{}:emergStop".format(self.name_root))
+        self.calib_fbk = self.add_pv("{}:isCalib".format(self.name_root))
+        self.status_fbk = self.add_pv("{}:state".format(self.name_root))
+        self.enable_fbk = self.calib_fbk
 
 
 class PseudoMotor(VMEMotor):
@@ -482,69 +520,39 @@ class PseudoMotor(VMEMotor):
         super().__init__(name, *args, **kwargs)
 
     def setup(self):
-        self.VAL = self.add_pv(self.name)
-        self.DESC = self.add_pv("%s:desc" % (self.name_root))
-        self.STAT = self.add_pv("%s:status" % self.name_root)
-        self.STOP = self.add_pv("%s:stop" % self.name_root)
-        self.CALIB = self.add_pv("%s:calibDone" % self.name_root)
-        self.LOG = self.add_pv("%s:log" % self.name_root)
-        self.ENAB = self.add_pv("%s:enabled" % (self.name_root))
+        self.pos_tgt = self.add_pv(self.name)
+        self.desc_val = self.add_pv("{}:desc".format(self.name_root))
+        self.status_fbk = self.add_pv("{}:status".format(self.name_root))
+        self.stop_cmd = self.add_pv("{}:stop".format(self.name_root))
+        self.calib_fbk = self.add_pv("{}:calibDone".format(self.name_root))
+        self.log_fbk = self.add_pv("{}:log".format(self.name_root))
+        self.enable_fbk = self.add_pv("{}:enabled".format(self.name_root))
 
         if self.version == 2:
             self.moving_value = 1
-            self.PREC = self.add_pv("%s:fbk.PREC" % (self.name))
-            self.RBV = self.add_pv("%s:fbk" % (self.name))
-            self.MOVN = self.add_pv("%s:moving" % self.name_root)
+            self.prec_val = self.add_pv("{}:fbk.PREC".format(self.name))
+            self.pos_fbk = self.add_pv("{}:fbk".format(self.name))
+            self.moving_fbk = self.add_pv("{}:moving".format(self.name_root))
 
         else:
             self.moving_value = 0
-            self.PREC = self.add_pv("%s:sp.PREC" % (self.name))
-            self.RBV = self.add_pv("%s:sp" % (self.name))
-            self.MOVN = self.add_pv("%s:stopped" % self.name_root)
+            self.prec_val = self.add_pv("{}:sp.PREC".format(self.name))
+            self.pos_fbk = self.add_pv("{}:sp".format(self.name))
+            self.moving_fbk = self.add_pv("{}:stopped".format(self.name_root))
+
+    def get_config(self):
+        return {
+            'speed': None,
+            'accel': None
+        }
+
+    def configure(self, speed=None, accel=None):
+        # not relevant for pseudo motors
+        pass
 
     def connect_monitors(self):
         super().connect_monitors()
-        self.LOG.connect('changed', self.on_log)
-
-
-@implementer(IMotor)
-class JunkEnergyMotor(Motor):
-
-    def __init__(self, name1, name2, encoder=None, mono_unit_cell=5.4310209, **kwargs):
-        self.name1 = name1
-        self.name2 = name2
-        self.name2_root = ':'.join(name2.split(':')[:-1])
-        self.encoder = encoder
-        self.mono_unit_cell = mono_unit_cell
-        kwargs['units'] = 'keV'
-        super().__init__(self.name1, **kwargs)
-        self.description = 'Energy'
-
-    def setup(self):
-        self.VAL = self.add_pv(self.name1)
-        if self.encoder is not None:
-            self.RBV = self.add_pv(self.encoder)
-            self.PREC = self.add_pv("{}.PREC".format(self.encoder))
-        else:
-            self.RBV = self.add_pv("{}:sp".format(self.name2))
-            self.PREC = self.add_pv("{}:sp.PREC".format(self.name2))
-        self.MOVN = self.add_pv("{}:moving:fbk".format(self.name1))
-        self.STOP = self.add_pv("{}:stop".format(self.name1))
-        self.CALIB = self.add_pv("{}:calibDone".format(self.name2_root))
-        self.STAT = self.add_pv("{}:status".format(self.name2_root))
-        self.LOG = self.add_pv("{}:stsLog".format(self.name1))
-        self.ENAB = self.add_pv('{}:enBraggChg'.format(self.name1))  # self.CALIB
-
-    def connect_monitors(self):
-        self.RBV.connect('changed', self.on_change)
-        self.VAL.connect('changed', self.on_target)
-        self.MOVN.connect('changed', self.on_motion)
-        self.CALIB.connect('changed', self.on_calibration)
-        self.ENAB.connect('changed', self.on_enable)
-        self.LOG.connect('changed', self.on_log)
-
-    def get_position(self):
-        return converter.bragg_to_energy(self.RBV.get(), unit_cell=self.mono_unit_cell)
+        self.log_fbk.connect('changed', self.on_log)
 
 
 class BraggEnergyMotor(VMEMotor):
@@ -573,7 +581,7 @@ class BraggEnergyMotor(VMEMotor):
             return converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
 
     def get_position(self):
-        return self.convert(self.RBV.get())
+        return self.convert(self.pos_fbk.get())
 
     def on_target(self, obj, value):
         pass  # not needed for bragg
@@ -583,7 +591,7 @@ class BraggEnergyMotor(VMEMotor):
 
     def move_operation(self, target):
         bragg_target = converter.energy_to_bragg(target, unit_cell=self.mono_unit_cell)
-        self.VAL.put(bragg_target)
+        self.pos_tgt.put(bragg_target)
 
 
 class ResolutionMotor(MotorBase):
