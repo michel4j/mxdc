@@ -1,7 +1,6 @@
 from gi.repository import GObject
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc, imageviewer

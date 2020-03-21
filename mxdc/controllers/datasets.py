@@ -4,11 +4,10 @@ import time
 
 from gi.repository import GObject, Gio, Gtk
 
-from mxdc import Object, Signal
+from mxdc import Object, Signal, IBeamline
 from mxdc import Registry
 from zope.interface import Interface
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
 from mxdc.engines.diffraction import DataCollector

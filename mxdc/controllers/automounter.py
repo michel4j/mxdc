@@ -3,12 +3,11 @@
 from datetime import datetime
 
 from gi.repository import Gdk, GObject, Gtk, GLib
-from mxdc.beamlines.mx import IBeamline
 from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 
-from mxdc import Registry, Object
+from mxdc import Registry, Object, IBeamline
 
 logger = get_module_logger(__name__)
 

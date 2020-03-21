@@ -3,15 +3,24 @@ import threading
 
 from gi.repository import GObject, GLib
 from gi.types import GObjectMeta
-from zope.interface import providedBy
+from zope.interface import providedBy, Interface, Attribute
 from zope.interface.adapter import AdapterRegistry
 from zope.interface.interface import adapter_hooks
 
-from mxdc.beamlines.interfaces import IBeamline
+
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
+
+
+class IBeamline(Interface):
+    """
+    Inteface for Beamline Objects
+    """
+    name = Attribute("""Name or description of devices.""")
+    config = Attribute("""A dictionary of beamline configuratioin parameters.""")
+    lock = Attribute("""A reentrant lock""")
 
 
 class Registry(object):

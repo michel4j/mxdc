@@ -5,8 +5,7 @@ from datetime import datetime
 
 import pytz
 from gi.repository import GObject
-from mxdc import Registry, Signal
-from mxdc.beamlines.interfaces import IBeamline
+from mxdc import Registry, Signal, IBeamline
 from mxdc.engines.chooch import AutoChooch
 from mxdc.engines.scanning import BasicScan
 from mxdc.utils import scitools, misc, datatools

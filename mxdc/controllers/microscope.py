@@ -4,10 +4,9 @@ import os
 import numpy
 from gi.repository import Gtk, Gdk, GObject
 from matplotlib.path import Path
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 from zope.interface import Interface, Attribute, implementer
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts

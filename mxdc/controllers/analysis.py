@@ -6,10 +6,9 @@ from enum import Enum
 
 gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gdk
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
 from mxdc.conf import settings
-from mxdc.beamlines.mx import IBeamline
 from mxdc.utils import colors, misc
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger

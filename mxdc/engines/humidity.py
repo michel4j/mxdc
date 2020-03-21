@@ -4,9 +4,8 @@ import threading
 
 from gi.repository import GObject
 from twisted.internet.defer import returnValue, inlineCallbacks
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
-from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import datatools, misc

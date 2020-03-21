@@ -1,11 +1,11 @@
 from . import common
 from gi.repository import Gtk
-from mxdc.beamlines.mx import IBeamline
 from mxdc.devices.manager import BaseManager
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
-from mxdc import Registry
+from mxdc import Registry, IBeamline
+
 logger = get_module_logger(__name__)
 
 MODE_MAP = {

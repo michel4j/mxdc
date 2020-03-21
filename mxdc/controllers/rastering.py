@@ -6,9 +6,8 @@ from datetime import datetime
 
 from enum import Enum
 from gi.repository import Gtk, GObject
-from mxdc import Registry
+from mxdc import Registry, IBeamline
 
-from mxdc.beamlines.mx import IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.rastering import RasterCollector
 from mxdc.utils import datatools, misc

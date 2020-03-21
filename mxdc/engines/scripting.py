@@ -3,10 +3,9 @@ import time
 import importlib
 
 from gi.repository import GObject, GLib
-from mxdc import Registry, Signal, Engine
+from mxdc import Registry, Signal, Engine, IBeamline
 from zope.interface import Interface, Attribute, implementer
 
-from mxdc.beamlines.interfaces import IBeamline
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 

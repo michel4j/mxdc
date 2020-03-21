@@ -6,9 +6,9 @@ import msgpack
 import redis
 import requests
 
-from gi.repository import GObject, GLib
+from gi.repository import GLib
 from mxdc.conf import settings
-from mxdc import Device
+from mxdc import Device, Object, Signal
 from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
 from twisted.internet import reactor
@@ -35,7 +35,7 @@ class PBClient(BaseService):
     CODE = ''
 
     def __init__(self, address=None):
-        super(PBClient, self).__init__()
+        super().__init__()
         self.service = None
         self.browser = None
         self.name = self.NAME
@@ -150,7 +150,7 @@ class DSSClient(PBClient):
 
 class MxLIVEClient(BaseService):
     def __init__(self, address):
-        BaseService.__init__(self)
+        super().__init__()
         self.name = "MxLIVE Server"
         self.address = address
         self.cookies = {}
@@ -197,7 +197,7 @@ class MxLIVEClient(BaseService):
             data = misc.load_metadata(filename)
             reply = self.post(path, data=msgpack.dumps(data))
         except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable upload to MxLIVE: \n {}'.format(e))
+            logger.error('Unable upload to MxLIVE: {}'.format(e))
             data = None
         else:
             data.update(reply)
@@ -224,7 +224,7 @@ class MxLIVEClient(BaseService):
         try:
             reply = self.get(path)
         except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable to fetch Samples from MxLIVE: \n {}'.format(str(e)))
+            logger.error('Unable to fetch Samples from MxLIVE: {}'.format(e))
             reply = {'error': 'Unable to fetch Samples from MxLIVE'}
         return reply
 
@@ -233,17 +233,20 @@ class MxLIVEClient(BaseService):
         path = '/launch/{}/{}/'.format(beamline, session)
         try:
             reply = self.post(path)
+        except requests.ConnectionError as err:
+            logger.error('Unable to Connect to MxLIVE: {}'.format(err))
         except requests.HTTPError as e:
             if e.response.status_code == 400:
                 self.register(update=True)
                 try:
                     reply = self.post(path)
                 except requests.HTTPError as err:
-                    reply = {'error': 'Unable to Open MxLIVE Session'}
-                    logger.error('Unable to Open MxLIVE Session: \n {}'.format(err))
+                    logger.error('Unable to Open MxLIVE Session: {}'.format(err))
+                else:
+                    logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
             else:
-                reply = {'error': 'Unable to Open MxLIVE Session'}
-                logger.error('Unable to Open MxLIVE Session: \n {}'.format(e))
+                self.session_active = (beamline, session)
+                logger.error('Unable to Open MxLIVE Session: {}'.format(e))
         else:
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
@@ -253,8 +256,8 @@ class MxLIVEClient(BaseService):
         path = '/close/{}/{}/'.format(beamline, session)
         try:
             reply = self.post(path)
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable to close MxLIVE Session: \n {}'.format(e))
+        except (IOError, ValueError, requests.ConnectionError, requests.HTTPError) as e:
+            logger.error('Unable to close MxLIVE Session: {}'.format(e))
         else:
             self.session_active = None
             logger.info('Leaving session {session} after {duration}.'.format(**reply))
@@ -286,10 +289,9 @@ class Referenceable(pb.Referenceable, object):
     pass
 
 
-class Messenger(GObject.GObject):
-    __gsignals__ = {
-        'message': (GObject.SignalFlags.RUN_FIRST, None, [str, str]),
-    }
+class Messenger(Object):
+    class Signals:
+        message = Signal('message', arg_types=(str, str))
 
     def __init__(self, host, realm=None):
         super().__init__()

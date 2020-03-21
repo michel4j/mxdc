@@ -6,8 +6,7 @@ import numpy
 from scipy import interpolate
 from zope.interface import implementer
 
-from mxdc import Registry, Signal, Engine
-from mxdc.beamlines.mx import IBeamline
+from mxdc import Registry, Signal, Engine, IBeamline
 from mxdc.devices.interfaces import IMotor, ICounter
 from mxdc.engines.interfaces import IScan, IScanPlotter
 from mxdc.utils import misc, xdi
