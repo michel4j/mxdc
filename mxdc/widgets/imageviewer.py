@@ -1,12 +1,9 @@
-# -*- coding: UTF8 -*-
-
 import time
 import logging
 import os
-import re
 
 import numpy
-from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from mxdc.utils import gui
 from mxdc.widgets import dialogs
@@ -37,13 +34,13 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'average_intensity': '{:0.2f}',
         'max_intensity': '{:0.0f}',
         'overloads': '{:0.0f}',
-        'wavelength': '{:0.4f} \u212B',
-        'delta_angle': '{:0.2f} deg',
-        'two_theta': '{:0.1f} deg',
-        'start_angle': '{:0.2f} deg',
+        'wavelength': '{:0.4g} Å',
+        'delta_angle': '{:0.3g}°',
+        'two_theta': '{:0.2g}°',
+        'start_angle': '{:0.3g}°',
         'exposure_time': '{:0.2f} s',
         'distance': '{:0.1f} mm',
-        'pixel_size': '{:0.4f} um',
+        'pixel_size': '{:0.4f} μm',
         'detector_size': '{}, {}',
         'beam_center': '{:0.0f}, {:0.0f}',
         'filename': '{}',
@@ -203,7 +200,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 # if reflections information is available  and an image is loaded display it
                 if self.canvas.image_loaded:
                     self.canvas.select_reflections(self.reflections)
-                    GObject.idle_add(self.canvas.queue_draw)
+                    GLib.idle_add(self.canvas.queue_draw)
             else:
                 self.open_frame(os.path.abspath(filename))
 
@@ -220,9 +217,9 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.following = widget.get_active()
         if self.following:
             if not self.collecting:
-                self.following_id = GObject.timeout_add(1000, self.follow_frames)
+                self.following_id = GLib.timeout_add(1000, self.follow_frames)
         else:
             if self.following_id:
-                GObject.source_remove(self.following_id)
+                GLib.source_remove(self.following_id)
                 self.following_id = None
 
