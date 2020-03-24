@@ -87,9 +87,9 @@ class ScanPlotter(object):
 
     def on_done(self, scan, info):
         """Done handler."""
-        filename = scan.save()
-        print(info)
+        #filename = scan.save()
         #self.plot_file(filename)
+        print(info)
 
     def plot_file(self, filename):
         """Do fitting and plot Fits"""
