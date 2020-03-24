@@ -30,7 +30,7 @@ class XRFScanner(BasicScan):
         self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name'], info['energy']))
         self.config['user'] = misc.get_project_name()
         self.results = {}
-        self.units['energy'] = 'keV'
+        self.data_units['energy'] = 'keV'
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
@@ -232,7 +232,7 @@ class MADScanner(BasicScan):
                         break
 
                     self.beamline.bragg_energy.move_to(x, wait=True)
-                    y, i0 = multi_count(self.beamline.mca, self.beamline.i_0, self.config['exposure'])
+                    y, i0 = multi_count(self.beamline.mca, self.beamline.i0, self.config['exposure'])
                     if i == 0:
                         scale = 1.0
                         reference = i0
@@ -430,7 +430,7 @@ class XASScanner(BasicScan):
                             break
 
                         self.beamline.bragg_energy.move_to(x, wait=True)
-                        y, i0 = multi_count(self.beamline.multi_mca, self.beamline.i_0, t)
+                        y, i0 = multi_count(self.beamline.multi_mca, self.beamline.i0, t)
                         mca_values = self.beamline.multi_mca.get_roi_counts()
                         if i == 0:
                             scale = 1.0

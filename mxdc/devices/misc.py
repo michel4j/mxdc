@@ -73,7 +73,7 @@ class SimPositioner(PositionerBase):
             self.set_state(changed=self._pos, active=active, health=(16, 'disabled',''))
 
         if not isinstance(pos, (list, tuple)) and (self._noise > 0 or self._delay):
-            GLib.timeout_add(1000, self._drive)
+            GLib.timeout_add(50, self._drive)
 
     def set(self, pos, wait=False):
         self._pos = pos
@@ -85,12 +85,7 @@ class SimPositioner(PositionerBase):
         return self._fbk
 
     def _drive(self):
-        if abs(self._pos - self._fbk) >= self._noise:
-            self._fbk += (self._pos - self._fbk) / 3
-        else:
-            self._fbk = numpy.random.normal(self._pos, 0.5 * self._noise / 2.35)
-        if self._fbk != self._pos:
-            self.set_state(changed=self._fbk)
+        self._fbk += numpy.random.normal(0, self._noise)
         return True
 
 
@@ -279,9 +274,6 @@ class PositionerMotor(MotorBase):
         self.name = positioner.name
         self.units = positioner.units
         self.positioner.connect('changed', self.on_change)
-
-    def configure(self, props):
-        pass
 
     def move_to(self, pos, wait=False):
         self.positioner.set(pos, wait)

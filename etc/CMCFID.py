@@ -92,9 +92,9 @@ DEVICES = {
     'fast_shutter': mxdc.devices.shutter.Shutter('PSH16083I1001'),
 
     # Intensity monitors,
-    'i_0': counter.Counter('AH501-03:QEM:SumAll:MeanValue_RBV'),
-    'i_1': counter.Counter('AH501-04:QEM:SumAll:MeanValue_RBV'),
-    'i_2': counter.Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
+    'i0': counter.Counter('AH501-03:QEM:SumAll:MeanValue_RBV'),
+    'i1': counter.Counter('AH501-04:QEM:SumAll:MeanValue_RBV'),
+    'i2': counter.Counter('AH501-01:QEM:SumAll:MeanValue_RBV'),
 
     # Misc: Automounter, HC1 etc
     #'automounter': isara.ISARA('BOT1608-I01'),

@@ -92,9 +92,9 @@ DEVICES = {
     'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
 
     # Intensity monitors, shutter, attenuation, mca etc
-    'i_0': counter.SimCounter('I_0', zero=26931),
-    'i_1': counter.SimCounter('I_1', zero=35019),
-    'i_2': counter.SimCounter('I_2', zero=65228),
+    'i0': counter.SimCounter('i0', zero=26931),
+    'i1': counter.SimCounter('i1', zero=35019),
+    'i2': counter.SimCounter('i2', zero=65228),
 
     # Misc: Automounter, HC1 etc
     'automounter': sim.SimSAM(),

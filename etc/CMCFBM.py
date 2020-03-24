@@ -89,8 +89,8 @@ DEVICES = {
     'fast_shutter': mxdc.devices.shutter.ToggleShutter('MD1608-05:FastShutterIsOpen'),
     
     # Intensity monitors,
-    'i_0': counter.Counter('AH1608-05:QEM:SumAll:MeanValue_RBV'),
-    'i_1': counter.Counter('AH1608-02:QEM:SumAll:MeanValue_RBV'),
+    'i0': counter.Counter('AH1608-05:QEM:SumAll:MeanValue_RBV'),
+    'i1': counter.Counter('AH1608-02:QEM:SumAll:MeanValue_RBV'),
 
 
     
@@ -116,7 +116,7 @@ SERVICES = {
 
 # Devices only available in the console
 CONSOLE = {
-    'i_2': counter.Counter('VCMBVBPM:I'),
+    'i2': counter.Counter('VCMBVBPM:I'),
     'wbs_hgap': motor.PseudoMotor('PSL1608-4-B10-02:gap:mm'),
     'wbs_vgap': motor.PseudoMotor('PSL1608-4-B10-01:gap:mm'),
     'wbs_x': motor.PseudoMotor('PSL1608-4-B10-02:cntr:mm'),
@@ -169,5 +169,5 @@ CONSOLE = {
     'table_x1': motor.VMEMotor('SMTR1608-5-B10-12:mm', encoded=True),
     'table_x2': motor.VMEMotor('SMTR1608-5-B10-13:mm', encoded=True),
 
-    'i_3': counter.Counter('AH1608-04:QEM:SumAll:MeanValue_RBV'),
+    'i3': counter.Counter('AH1608-04:QEM:SumAll:MeanValue_RBV'),
 }

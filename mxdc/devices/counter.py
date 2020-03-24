@@ -39,6 +39,16 @@ class BaseCounter(Device):
         """
         raise NotImplementedError('Subclasses must implement this method')
 
+    def start(self):
+        """
+        Start counting as fast as possible until stopped. Values should be emitted as the count signal
+        """
+
+    def stop(self):
+        """
+        Stop fast counting
+        """
+
     @decorators.async_call
     def count_async(self, t):
         """
@@ -63,6 +73,7 @@ class Counter(BaseCounter):
         super().__init__()
         self.name = pv_name
         self.zero = float(zero)
+        self.stopped = True
 
         self.value = self.add_pv(pv_name)
         self.descr = self.add_pv('%s.DESC' % pv_name)
@@ -91,8 +102,20 @@ class Counter(BaseCounter):
             time_left -= interval
         total = (sum(values, 0.0)/len(values)) - self.zero
         logger.debug('(%s) Returning average of %d values for %0.2f sec.' % (self.name, len(values), t) )
+        self.set_state(count=total)
         return total
-                        
+
+    @decorators.async_call
+    def start(self):
+        self.stopped = False
+        while not self.stopped:
+            val = self.value.get()
+            self.set_state(count=val)
+            time.sleep(.01)  # 10 ms
+
+    def stop(self):
+        self.stopped = True
+
 
 class SimCounter(BaseCounter):
     """
@@ -106,16 +129,34 @@ class SimCounter(BaseCounter):
         from mxdc.devices.misc import SimPositioner
         self.zero = float(zero)
         self.name = name
+        self.stopped = True
         self.value = SimPositioner('PV', self.zero, '', noise=50)
         self.set_state(active=True, health=(0, '', ''))
         self.value.connect('changed', self.on_value)
         self.counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0] ** 2)
-    
-    def count(self, t):
-        time.sleep(t)
+
+    def fetch_value(self):
         i, j = divmod(self.counter_position, self.SIM_COUNTER_DATA.shape[0])
         self.counter_position += 1
-        return self.SIM_COUNTER_DATA[i,j]
+        value = self.SIM_COUNTER_DATA[i,j]
+        return value
+
+    def count(self, t):
+        time.sleep(t)
+        value = self.fetch_value()
+        self.set_state(count=value)
+        return value
+
+    @decorators.async_call
+    def start(self):
+        self.stopped = False
+        while not self.stopped:
+            val = self.value.get()
+            self.set_state(count=val)
+            time.sleep(.01)  # 10 ms
+
+    def stop(self):
+        self.stopped = True
 
     def on_value(self, obj, val):
         self.set_state(changed=val)
