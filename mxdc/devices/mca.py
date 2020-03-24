@@ -454,7 +454,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         return numpy.array(list(zip(self._x_axis, self._raw_data[:, 1], self._raw_data[:, 1])))
 
     def get_roi_counts(self):
-        return [self._roi_count] * self.elements
+        return (self._roi_count,) * self.elements
 
     def get_count_rates(self):
         self.set_state(deadtime=random.random() * 51.0)

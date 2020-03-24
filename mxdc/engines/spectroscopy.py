@@ -4,8 +4,8 @@ import time
 from datetime import datetime
 
 import pytz
-from gi.repository import GObject
-from mxdc import Registry, Signal, IBeamline
+
+from mxdc import Signal
 from mxdc.engines.chooch import AutoChooch
 from mxdc.engines.scanning import BasicScan
 from mxdc.utils import scitools, misc, datatools
@@ -25,67 +25,55 @@ class XRFScanner(BasicScan):
     """
     name = 'XRF Scan'
 
-    def configure(self, info):
-        self.config = copy.deepcopy(info)
-        self.config['filename'] = os.path.join(info['directory'], "{}.xdi".format(info['name'], info['energy']))
-        self.config['user'] = misc.get_project_name()
-        self.results = {}
+    def configure(self, **kwargs):
+        super().configure(**kwargs)
+        self.config.filename = os.path.join(
+            self.config.directory, "{}.xdi".format(self.config.name, self.config.energy)
+        )
+        self.config.user = misc.get_project_name()
         self.data_units['energy'] = 'keV'
+        names = ['energy', 'normfluor'] + ['ifluor.{}'.format(i + 1) for i in range(self.beamline.mca.elements)]
+        self.data_type = {
+            'names': names,
+            'formats': ['f4'] * len(names),
+        }
+        self.data_scale = []
+        self.data_scale.append(tuple(names[1:3]))
+        self.data_scale += [(name,) for name in names[3:]]
+        self.results = {}
         if not os.path.exists(self.config['directory']):
             os.makedirs(self.config['directory'])
 
-    def prepare_for_scan(self):
-        self.emit("progress", 0.01, "Preparing devices ...")
-        self.beamline.energy.move_to(self.config['energy'])
-        self.beamline.manager.collect(wait=True)
-        self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
-        self.beamline.attenuator.set(self.config['attenuation'])
-        self.beamline.energy.wait()
-        self.beamline.goniometer.wait(start=False)
-
-    def set_data(self, raw_data):
-        self.data_types = {
-            'names': ['energy', 'normfluor'],
-            'formats': [float, float],
-        }
-        extra_names = ['ifluor.{}'.format(i + 1) for i in range(self.beamline.mca.elements)]
-        self.data_types['names'] += extra_names
-        self.data_types['formats'] += [float] * len(extra_names)
-        self.data = numpy.core.records.fromarrays(raw_data.transpose(), dtype=self.data_types)
-        return self.data
+    def finalize(self):
+        self.data = numpy.core.records.fromarrays(self.raw_data.transpose(), dtype=self.data_type)
+        self.save(self.config['filename'])
+        self.analyse()
+        self.save_metadata()
 
     def scan(self):
         logger.debug('Excitation Scan waiting for beamline to become available.')
-        self.total = 4
         with self.beamline.lock:
             saved_attenuation = self.beamline.attenuator.get()
             try:
-                self.emit('started', None)
-                self.config['start_time'] = datetime.now(tz=pytz.utc)
-                self.prepare_for_scan()
-                self.emit("progress", 1 / self.total, "Acquiring spectrum ...")
+                self.emit("progress", 0.01, "Preparing devices ...")
+                self.beamline.energy.move_to(self.config['energy'])
+                self.beamline.manager.collect(wait=True)
+                self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
+                self.beamline.attenuator.set(self.config['attenuation'])
+                self.beamline.energy.wait()
+                self.beamline.goniometer.wait(start=False)
+                self.emit("progress", .1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
-                raw_data = self.beamline.mca.acquire(t=self.config['exposure'])
-                self.set_data(raw_data)
+                self.raw_data = self.beamline.mca.acquire(self.config.exposure)
                 self.beamline.fast_shutter.close()
-                self.config['end_time'] = datetime.now(tz=pytz.utc)
-                self.save(self.config['filename'])
-                self.emit("progress", 3 / self.total, "Interpreting spectrum ...")
-                self.analyse()
-                self.save_metadata()
-                self.emit("done", None)
+                self.config['end_time'] = datetime.utcnow()
+                self.emit("progress", 1, "Interpreting spectrum ...")
+
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
                 self.beamline.mca.configure(cooling=False, nozzle=False)
                 self.beamline.manager.collect()
-        return self.results
-
-    def stop(self, error=''):
-        pass
-
-    def pause(self, reason=''):
-        pass
 
     def analyse(self):
         x = self.data['energy'].astype(float)
@@ -125,14 +113,14 @@ class XRFScanner(BasicScan):
     def prepare_xdi(self):
         xdi_data = super(XRFScanner, self).prepare_xdi()
         xdi_data['Element.symbol'], xdi_data['Element.edge'] = self.config['edge'].split('-')
-        xdi_data['Scan.edge_energy'] = self.config['energy'], 'keV'
+        xdi_data['Scan.edge_energy'] = self.config.energy, 'keV'
         if 'sample' in self.config:
-            xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
-            xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
+            xdi_data['Sample.name'] = self.config.sample.get('name', 'unknown')
+            xdi_data['Sample.id'] = self.config.sample.get('sample_id', 'unknown')
             xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
-            xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
-        xdi_data['Scan.end_time'] = self.config['end_time']
-        xdi_data['Scan.start_time'] = self.config['start_time']
+            xdi_data['Sample.group'] = self.config.sample.get('group', 'unknown')
+        xdi_data['Scan.end_time'] = self.config.get('end_time', datetime.utcnow())
+        xdi_data['Scan.start_time'] = self.config.start_time
         xdi_data['Mono.d_spacing'] = converter.energy_to_d(
             self.config['energy'], self.beamline.config['mono_unit_cell']
         )
@@ -209,7 +197,7 @@ class MADScanner(BasicScan):
         with self.beamline.lock:
             self.total = len(self.config['targets'])
             saved_attenuation = self.beamline.attenuator.get()
-            self.data_rows = []
+            self.raw_data = []
             self.results = {}
             try:
                 self.emit('started', None)
@@ -239,12 +227,12 @@ class MADScanner(BasicScan):
                     else:
                         scale = float(reference) / i0
 
-                    self.data_rows.append((x, y * scale, y, i0))
+                    self.raw_data.append((x, y * scale, y, i0))
                     self.emit("new-point", (x, y * scale, y, i0))
                     self.emit("progress", (i + 1) / self.total, "Scanning {} of {} ...".format(i, self.total))
                     time.sleep(0)
 
-                self.set_data(self.data_rows)
+                self.set_data(self.raw_data)
                 self.config['end_time'] = datetime.now()
                 self.save(self.config['filename'])
                 if self.stopped:

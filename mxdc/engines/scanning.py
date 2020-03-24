@@ -28,12 +28,13 @@ class BasicScan(Engine):
 
     def __init__(self):
         super().__init__()
+        self.name = misc.camel_to_snake(self.__class__.__name__)
         self.config = misc.DotDict({})
 
         # data variables
         self.data = None
         self.data_units = {}
-        self.data_rows = []
+        self.raw_data = []
         self.data_row = []
         self.data_ids = {}
         self.data_type = {}
@@ -100,12 +101,12 @@ class BasicScan(Engine):
             'units': self.data_units,
         }
 
-    def prepare_data(self, data):
+    def finalize(self):
         """
-        Convert the data after the scan is complete
+        Convert the data after the scan is complete and finalize before wrapping up
         :param data: a list of tuples representing the acquired data
         """
-        self.data = numpy.array(data, self.data_type)
+        self.data = numpy.array(self.raw_data, self.data_type)
 
     def extend(self, steps):
         logger.error('Scan can not be extended.')
@@ -127,7 +128,7 @@ class BasicScan(Engine):
         specs['start_time'] = datetime.utcnow()
         self.set_state(busy=True, message='Scan in progress', started=specs)
         self.scan()
-        self.prepare_data(self.data_rows)
+        self.finalize()
         self.set_state(busy=False, done={"end_time": datetime.utcnow(), "data": self.data})
 
     def scan(self):
