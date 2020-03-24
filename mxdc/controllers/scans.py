@@ -134,7 +134,7 @@ class ScanController(Object):
             params['activity'] = '{}-scan'.format(self.prefix)
             params = datatools.update_for_sample(params, self.sample_store.get_current())
             self.props.config = params
-            self.scanner.configure(self.props.config)
+            self.scanner.configure(**self.props.config)
             self.scanner.start()
 
     def stop(self, *args, **kwargs):
@@ -519,7 +519,7 @@ class XRFScanController(ScanController):
             x_label='Energy (keV)', y1_label='Fluorescence'
         )
         self.plotter.add_line(analysis['energy'], analysis['fit'], ':', color=colors.Category.GOOG20[4], name='Fit')
-        self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
+        self.plotter.axis['default'].axhline(0.0, color='gray', linewidth=0.5)
         self.plotter.add_line(
             data['energy'], data['normfluor'], '-', color=colors.Category.CAT20C[16],
             name='Experimental', lw=1, alpha=0.2
@@ -528,7 +528,7 @@ class XRFScanController(ScanController):
             analysis['energy'], analysis['counts'], '-', color=colors.Category.GOOG20[0], name='Smoothed'
         )
 
-        ax = self.plotter.axis[0]
+        ax = self.plotter.axis['default']
         ax.axis('tight')
         ax.set_xlim(-0.25, energy + 1.5)
 
@@ -556,7 +556,7 @@ class XRFScanController(ScanController):
                 if position > energy: continue
                 line_points.extend(([position, position], [0.0, height * 0.95]))
                 annotation = ax.text(
-                    position, -0.5, "{}-{}".format(symbol, name), rotation=90, fontsize=8,
+                    position, -0.5, "{}-{}".format(symbol, name), rotation=90, fontsize=10,
                     horizontalalignment='center', verticalalignment='top', color=color
                 )
                 self.annotations[symbol].append(annotation)
@@ -566,9 +566,9 @@ class XRFScanController(ScanController):
                 annotation.set_visible(visible)
 
         ax.axvline(energy, c='#cccccc', ls='--', lw=0.5, label='Excitation Energy')
-        self.plotter.get_axis().legend()
+        self.plotter.axis['default'].legend()
 
-        ymin, ymax = misc.get_min_max(ys, ldev=1, rdev=1)
+        ymin, ymax = misc.get_min_max(analysis['counts'], ldev=1, rdev=2)
         ax.axis(ymin=ymin, ymax=ymax)
         self.plotter.redraw()
 
