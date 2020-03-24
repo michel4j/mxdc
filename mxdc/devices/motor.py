@@ -334,8 +334,11 @@ class SimMotor(MotorBase):
     def get_position(self):
         return self._position
 
-    def get_speed(self):
-        return self._speed
+    def get_config(self):
+        return {
+            'speed': self._speed,
+            'accel': None,
+        }
 
     def configure(self, speed=None, accel=None):
         with self._lock:

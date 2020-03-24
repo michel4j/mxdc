@@ -1,4 +1,3 @@
-
 import mxdc.devices.shutter
 from mxdc.beamlines import Beamline
 from mxdc.devices import stages, misc, diagnostics, motor, video
@@ -9,18 +8,18 @@ logger = get_module_logger(__name__)
 
 class MXBeamline(Beamline):
     REQUIRED = [
-        'energy', 'bragg_energy','beam_tuner','manager',
+        'energy', 'bragg_energy', 'beam_tuner', 'manager',
         'goniometer', 'omega', 'sample_x', 'sample_y1', 'sample_y2',
         'aperture', 'distance', 'two_theta',
 
         'detector', 'beamstop_z', 'sample_zoom', 'camera_scale',
         'cryojet', 'sample_camera', 'sample_backlight', 'sample_frontlight',
         'hutch_video', 'synchrotron', 'fast_shutter', 'enclosures',
-        'automounter', 'attenuator', 'mca', 'i_0',
+        'automounter', 'attenuator', 'mca', 'i0',
         'disk_space',
 
         # services
-        'dss','lims', 'dps', 'messenger'
+        'dss', 'lims', 'dps', 'messenger'
     ]
     DEFAULTS = {
         'name': 'SIM-1',

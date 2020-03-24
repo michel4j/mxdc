@@ -38,8 +38,8 @@ class StatusPanel(object):
     def setup(self):
 
         self.monitors = [
-            common.DeviceMonitor(self.beamline.i_0, self.widget.status_i0_fbk, format='{:0.3e}'),
-            common.DeviceMonitor(self.beamline.i_1, self.widget.status_i1_fbk, format='{:0.3e}'),
+            common.DeviceMonitor(self.beamline.i0, self.widget.status_i0_fbk, format='{:0.3e}'),
+            common.DeviceMonitor(self.beamline.i1, self.widget.status_i1_fbk, format='{:0.3e}'),
             common.PropertyMonitor(
                 self.beamline.synchrotron, 'current', self.widget.status_current_fbk, format='{:0.1f} mA'
             ),

@@ -160,15 +160,6 @@ class ShutterGroup(ShutterBase):
         for i, dev in enumerate(newlist):
             dev.close(wait=True)
 
-    def wait(self, state=True, timeout=5.0):
-        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
-        while self.get_state('changed') != state and timeout > 0:
-            time.sleep(0.1)
-            timeout -= 0.1
-        if timeout <= 0:
-            logger.warning('Timed-out waiting for %s.' % (self.name))
-
-
 class SimShutter(ShutterBase):
 
     def __init__(self, name):

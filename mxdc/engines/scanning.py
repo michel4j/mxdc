@@ -15,6 +15,8 @@ from mxdc.utils.log import get_module_logger
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
+MIN_CNTSCAN_UPDATE = 0.01  # minimum time between updates for continuous scans
+
 
 @implementer(IScan)
 class BasicScan(Engine):
@@ -26,72 +28,131 @@ class BasicScan(Engine):
 
     def __init__(self):
         super().__init__()
-        self.send_notification = False
-        self.append = False
         self.config = misc.DotDict({})
-        self.data_types = {}
-        self.units = {}
-        self.data = []
+
+        # data variables
+        self.data = None
+        self.data_units = {}
         self.data_rows = []
-        self.total = 0
-        self.plotter = None
+        self.data_row = []
+        self.data_ids = {}
+        self.data_type = {}
+        self.data_scale = []
+        self.data_size = None
 
-        self.start_time = None
-        self.end_time = None
-
-    def configure(self, *args, **kwargs):
         self.plotter = Registry.get_utility(IScanPlotter)
         if self.plotter:
             self.plotter.link_scan(self)
-        self.data = []
-        self.config = misc.DotDict(kwargs)
 
-    def extend(self, steps):
-        self.append = True
+    def configure(self, **kwargs):
+        """
+        Set configuration parameters
+        :param kwargs: keyword, value pairs to add to configuration
+        :return: config object, fields are dictionary keywords
+        """
+        self.config.update(kwargs)
+        return self.config
+
+    def setup(self, motors, counters, i0=None):
+        """
+        Setup scan data configuration
+        :param motors: sequence of motors
+        :param counters: sequence of counters
+        :param i0: reference counter
+        """
+
+        self.data_units = {
+            misc.slugify(m.name): m.units for m in motors
+        }
+        motor_names = [misc.slugify(m.name) for m in motors]
+
+        if self.config.i0 is not None:
+            counters = [*counters, i0]
+            self.config.start_channel = len(motor_names) + 1  # channel 1 is i0 scaled version of channel 2
+            scaled_names = ['norm_{}'.format(misc.slugify(counters[0].name))]
+        else:
+            self.config.start_channel = len(motor_names)  # no i0 therefore no scaled channel
+            scaled_names = []
+
+        self.config.counters = [ICounter(counter) for counter in counters]  # adapt counters
+        names = motor_names + scaled_names + [misc.slugify(counter.name) for counter in counters]
+
+        self.data_type = {
+            'names': names,
+            'formats': ['f4'] * len(names)
+        }
+
+        # tuples of channel names that are on the same scale
+        self.data_scale = []
+        self.data_scale.append(tuple(names[1:self.config.start_channel + 1]))
+        self.data_scale += [(name,) for name in names[(self.config.start_channel + 1):]]
 
     def get_specs(self):
-        return {}
+        """
+        Get the scan specification describing the scan and scan data
 
-    def start(self, append=None):
+        :return: dictionary
+        """
+        return {
+            'scan_type': misc.camel_to_snake(self.__class__.__name__),
+            'data_type': self.data_type,
+            'data_scale': self.data_scale,
+            'units': self.data_units,
+        }
+
+    def prepare_data(self, data):
+        """
+        Convert the data after the scan is complete
+        :param data: a list of tuples representing the acquired data
+        """
+        self.data = numpy.array(data, self.data_type)
+
+    def extend(self, steps):
+        logger.error('Scan can not be extended.')
+
+    def start(self):
+        """
+        Start the scan engine
+        """
         self.stopped = False
-        if append is not None and append:
-            self.append = True
-        if not self.append:
-            self.data_rows = []
-        self.start_time = datetime.now()
+        self.config.start_time = datetime.now()
         super().start()
 
     def run(self):
-
-        self.set_state(busy=True, message='Scan in progress')
+        """
+        Run the scan in the current execution loop. Normally executed in a thread by when the start
+        method is called.
+        """
+        specs = self.get_specs()
+        specs['start_time'] = datetime.utcnow()
+        self.set_state(busy=True, message='Scan in progress', started=specs)
         self.scan()
-        self.set_state(busy=False)
+        self.prepare_data(self.data_rows)
+        self.set_state(busy=False, done={"end_time": datetime.utcnow(), "data": self.data})
 
     def scan(self):
-        pass  # derived classes should implement this
-
-    def on_beam_change(self, obj, beam_available):
-        self.send_notification = not beam_available
-        if self.send_notification and (not self.paused) and (not self.stopped):
-            self.pause()
-
-    def set_data(self, raw_data):
-        self.data = numpy.array(raw_data, dtype=self.data_types)
-        return self.data
+        """
+        Scan implementation. Details must be implemented by sub-classes
+        """
+        NotImplementedError('Derived classes must implement scan method')
 
     def prepare_xdi(self):
+        """
+        Prepare XDI file for saving
+        :return: xdi_data object
+        """
         comments = inspect.getdoc(self)
-        xdi_data = xdi.XDIData(data=self.data, comments=comments, version='MxDC/2017.10')
+        xdi_data = xdi.XDIData(data=self.data, comments=comments, version='MxDC')
         xdi_data['Facility.name'] = self.beamline.config['facility']
         xdi_data['Facility.xray_source'] = self.beamline.config['source']
         xdi_data['Beamline.name'] = self.beamline.name
         xdi_data['Mono.name'] = self.beamline.config.get('mono', 'Si 111')
         xdi_data['Scan.start_time'] = self.config.get('start_time', datetime.now())
         xdi_data['Scan.end_time'] = self.config.get('end_time', datetime.now())
-        xdi_data['CMCF.scan_type'] = self.__class__.__name__
-        for i, name in enumerate(self.data_types['names']):
+        xdi_data['CMCF.scan_type'] = self.get_specs()['scan_type']
+        for i, name in enumerate(self.data_type['names']):
             key = 'Column.{}'.format(i + 1)
-            xdi_data[key] = (name, self.units.get(name))
+            xdi_data[key] = (name, self.data_units.get(name))
         return xdi_data
 
     def save(self, filename=None):
@@ -103,27 +164,117 @@ class BasicScan(Engine):
         return filename
 
 
-class AbsScan(BasicScan):
-    """An absolute scan of a single motor."""
+class SlewScan(BasicScan):
+    """
+    A Continuous scan of a single motor.
 
-    def __init__(self, m1, p1, p2, steps, counter, t, i0=None):
+    :param m1: motor or positioner
+    :param p1: start position
+    :param p2: end position
+    :param counters: one or more counters
+    :param i0: reference counter
+    :param speed:  scan speed of m1
+    """
+
+    def __init__(self, m1, p1, p2, *counters, i0=None, speed=None):
         super().__init__()
-        self.configure(m1=IMotor(m1), p1=p1, p2=p2, steps=steps, counter=ICounter(counter), t=t, i0=i0)
+        assert len(counters) > 0, ValueError('At least one counter is required.')
+        self.configure(
+            m1=IMotor(m1),
+            p1=p1,
+            p2=p2,
+            counters=counters,
+            i0=i0,
+            speed=speed
+        )
+        self.setup((self.config.m1,), self.config.counters, i0)
+        self.last_update = time.time()
 
-    def configure(self, *args, **kwargs):
-        super(AbsScan, self).configure(self, *args, **kwargs)
+    def on_data(self, device, value, channel):
+        self.data_row[channel] = value
 
-        counter_name = misc.slugify(self.config.counter.name)
-        self.data_types = {
-            'names': [misc.slugify(self.config.m1.name), 'norm_{}'.format(counter_name), counter_name, 'i0'],
-            'formats': [float, float, float, float]
-        }
-        self.units[misc.slugify(self.config.m1.name)] = self.config.m1.units
+        # When i0 is specified, add scaled value of first channel, last channel is i0
+        if self.config.i0 and channel == self.config.start_channel and len(self.data_rows):
+            self.data_row[1] = value*self.data_rows[0][-1]/self.data_row[-1]
+        row = tuple(self.data_row)
+        self.data_rows.append(row)
+        if time.time() - self.last_update > MIN_CNTSCAN_UPDATE:
+            progress = abs((self.data_row[0] - self.config.p1)/(self.config.p2 - self.config.p1))
+            self.set_state(new_point=(row,), progress=(progress, ''))
+            self.last_update = time.time()
 
-        self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)
-        self.config.position = 0
-        self.config.positions = numpy.linspace(self.config.p1, self.config.p2, self.config.steps)
-        self.config.step_size = self.config.positions[1] - self.config.positions[0]
+    def stop(self):
+        self.config.m1.stop()
+        self.emit('stopped', None)
+
+    def scan(self):
+        # go to start position and configure motor, save config first
+        motor_conf = self.config.m1.get_config()
+        self.config.m1.move_to(self.config.p1, wait=True)
+        self.config.m1.configure(speed=self.config.speed)
+
+        # initialize row connect devices
+        self.data_row = [numpy.nan] * len(self.data_type['names'])
+        self.data_row[-1] = 1.0  # make sure default i0 is 1.0
+        self.data_row[0] = self.config.m1.get_position()
+        self.data_rows = []
+
+        # register data monitor to gather data points
+        self.data_ids[self.config.m1] = self.config.m1.connect('changed', self.on_data, 0)
+
+        self.data_ids.update({
+            dev: dev.connect('count', self.on_data, i + self.config.start_channel)
+            for i, dev in enumerate(self.config.counters)
+        })
+
+        # start recording data as fast as possible
+        for counter in self.config.counters:
+            counter.start()
+
+        # move motor or position to end position
+        self.config.m1.move_to(self.config.p2, wait=True)
+
+        # disconnect data monitor at the end
+        for counter, src_id in self.data_ids.items():
+            counter.disconnect(src_id)
+
+        # return motor to previous configuration
+        self.config.m1.configure(**motor_conf)
+
+
+class AbsScan(BasicScan):
+    """
+    An absolute scan of a single motor.
+
+    :param m1: motor or positioner
+    :param p1: absolute start position
+    :param p2: absolute end position
+    :param steps: number of steps
+    :param exposure: count time at each point
+    :param counters: one or more counters
+    :param i0: reference counter
+    """
+
+    def __init__(self, m1, p1, p2, steps, exposure, *counters, i0=None):
+        super().__init__()
+        steps = max(2, steps)  # minimum of 2 steps
+        positions = numpy.linspace(p1, p2, steps)
+        assert len(counters) > 0, ValueError('At least one counter is required.')
+        self.configure(
+            m1=IMotor(m1),
+            p1=p1,
+            p2=p2,
+            steps=steps,
+            exposure=exposure,
+            counters=counters,
+            i0=i0,
+            position=0,
+            positions=positions,
+            step_size=(positions[1]-positions[2])
+        )
+        self.setup((self.config.m1,), counters, i0)
+        self.data_size = (self.config.steps,)
+        self.append = False
 
     def extend(self, steps):
         self.append = True
@@ -134,220 +285,333 @@ class AbsScan(BasicScan):
 
     def scan(self):
         if not self.append:
-            self.emit("started", None)
             self.data_rows = []
 
+        ref_value = 1.0
         for i, x in enumerate(self.config.positions):
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
-            if i < self.config.position:
-                continue
+
+            # skip to current position
+            if i < self.config.position: continue
+
             self.config.m1.move_to(x, wait=True)
+            counts = misc.multi_count(self.config.exposure, *self.config.counters)
             if self.config.i0:
-                y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
-            else:
-                y = self.config.counter.count(self.config.t)
-                i0 = 1.0
-            #x = self.config.m1.get_position()
-            self.data_rows.append((x, y / i0, y, i0))
-            self.emit("new-point", [x, y / i0, y, i0])
-            self.emit("progress", (i + 1.0) / (self.config.steps), "")
-        self.set_data(self.data_rows)
+                if i == 0:
+                    ref_value = counts[-1]
+                counts = (counts[0]*ref_value/counts[-1],) + counts
+
+            row = (x,) + counts
+            self.data_rows.append(row)
+            self.emit("new-point", row)
+            self.emit("progress", (i + 1.0)/self.config.steps, "")
+
         self.append = False
-        self.emit("done", None)
 
 
 class RelScan(AbsScan):
-    """A relative scan of a single motor."""
+    """
+    Relative scan of a single motor.
 
-    def __init__(self, m1, p1, p2, steps, counter, t, i0=None):
+    :param m1: motor or positioner
+    :param p1: relative start position
+    :param p2: relative end position
+    :param steps: number of steps
+    :param exposure: count time at each point
+    :param counters: one or more counters
+    :param i0: reference counter
+    """
+
+    def __init__(self, m1, p1, p2, steps, exposure, *counters, i0=None):
         cur = IMotor(m1).get_position()
-        super().__init__(m1, cur+p1, cur+p2, steps, counter, t, i0)
-
-
-class CntScan(AbsScan):
-    """A Continuous scan of a single motor."""
-
-    def __init__(self, m1, p1, p2, counter, t, i0=None):
-        super(CntScan, self).__init__(m1, p1, p2, 1, counter, t, i0)
-
-    def scan(self):
-        if not self.append:
-            self.emit("started", None)
-            self.data_rows = []
-        x_ot = []
-        y_ot = []
-        i_ot = []
-
-        def _chg_cb(obj, dat):
-            x_ot.append(dat)
-
-        self.config.m1.move_to(self.config.p1, wait=True)
-        self.config.m1.move_to(self.config.p2, wait=False)
-        src_id = self._motor.connect('change', lambda x, y: x_ot.append((x.time_state, y)))
-        self.config.m1.wait(start=True, stop=False)
-
-        while self.m1.is_busy():
-            if self.stopped:
-                logger.info("Scan stopped!")
-                break
-            ts = time.time()
-            y = self.config.counter.count(self.config.t)
-            t = (ts + time.time() / 2.0)
-
-            if self.config.i0:
-                ts = time.time()
-                i0 = self.config.i0.count(self.config.t)
-                ti = (ts + time.time() / 2.0)
-            else:
-                ti = time.time()
-                i0 = 1.0
-            y_ot.append((y, t))
-            i_ot.append((i0, ti))
-            yi = y / i0
-            if len(x_ot) > 0:
-                x = x_ot[-1][0]  # x should be the last value, only rough estimate for now
-                self.emit("new-point", (x, yi, i0, y))
-                self.emit("progress", (x - self.config.p1) / (self.config.p2 - self.config.p1), "")
-            time.sleep(0.01)
-
-        self.config.m1.disconnect(src_id)
-        # Perform interpolation
-        xi, tx = list(zip(*x_ot))
-        yi, ty = list(zip(*y_ot))
-        ii, ti = list(zip(*i_ot))
-
-        mintx, maxtx = min(tx), max(tx)
-        minty, maxty = min(ty), max(ty)
-        tst = max(mintx, minty)
-        ten = min(maxtx, maxty)
-        t_final = numpy.linspace(tst, ten, len(y_ot) * 2)  # 2 x oversampling based on counter
-
-        # tckx = interpolate.splrep(tx, xi)
-        tcky = interpolate.splrep(ty, yi)
-        tcki = interpolate.splrep(ti, ii)
-
-        # xnew = interpolate.splev(t_final, tckx, der=0)
-        ynew = interpolate.splev(tx, tcky, der=0)
-        inew = interpolate.splev(tx, tcki, der=0)
-
-        yinew = ynew / inew
-        self.data_rows = list(zip(xi, yinew, ynew, inew))
-        self.set_data(self.data_rows)
-        self.emit("done", None)
+        super().__init__(m1, cur+p1, cur+p2, steps, exposure, *counters, i0=i0)
 
 
 class AbsScan2(BasicScan):
-    """An Absolute scan of two motors."""
+    """
+    Sequential Absolute scan of two motors.
 
-    def __init__(self, m1, p11, p12, m2, p21, p22, steps, counter, t, i0=None):
+    :param m1: first motor or positioner
+    :param p11: relative start position of first motor
+    :param p12: relative end position of first motor
+    :param m2: second motor or positioner
+    :param p21: relative start position of second motor
+    :param p22: relative end position of second motor
+    :param steps: number of steps for both motors
+    :param exposure: count time at each point
+    :param counters: one or more counters
+    :param i0: reference counter
+    """
+
+    def __init__(self, m1, p11, p12, m2, p21, p22, steps, exposure, *counters, i0=None):
         super().__init__()
+        positions_1 = numpy.linspace(p11, p12, steps)
+        positions_2 = numpy.linspace(p21, p22, steps)
+        assert len(counters) > 0, ValueError('At least one counter is required.')
         self.configure(
-            m1=IMotor(m1), p11=p11, p12=p12, m2=IMotor(m2), p21=p21, p22=p22, steps=steps,
-            counter=ICounter(counter), t=t, i0=i0
+            m1=IMotor(m1),
+            p11=p11,
+            p12=p12,
+            m2=IMotor(m2),
+            p21=p21,
+            p22=p22,
+            steps=steps,
+            counters=counters,
+            exposure=exposure,
+            i0=i0,
+            position=0,
+            positions_1=positions_1,
+            positions_2=positions_2,
+            step_size_1=positions_1[1] - positions_1[0],
+            step_size_2=positions_2[1] - positions_2[0],
         )
-
-    def configure(self, *args, **kwargs):
-        super(AbsScan2, self).configure(*args, **kwargs)
-        self.units[misc.slugify(self.config.m1.name)] = self.config.m1.units
-        self.units[misc.slugify(self.config.m1.name)] = self.config.m2.units
-        counter_name = misc.slugify(self.config.counter.name)
-        self.data_types = {
-            'names': [misc.slugify(self.config.m1.name), misc.slugify(self.config.m2.name), 'norm_{}'.format(counter_name), counter_name, 'i0'],
-            'formats': [float, float, float, float, float]
-        }
-        self.config.i0 = None if not self.config.i0 else ICounter(self.config.i0)
-        self.config.positions1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
-        self.config.positions2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
-        self.config.position = 0
-        self.config.step_size1 = (self.config.positions1[1] - self.config.positions1[0])
-        self.config.step_size2 = (self.config.positions2[1] - self.config.positions2[0])
+        self.setup((self.config.m1, self.config.m2,), counters, i0)
+        self.data_size = (self.config.steps,)
+        self.append = False
 
     def extend(self, steps):
         self.append = True
         self.config.position = self.config.steps
-        self.p12 +=  self.config.step_size1 * steps
-        self.p22 += self.config.step_size2 * steps
+        self.config.p12 += self.config.step_size_1 * steps
+        self.config.p22 += self.config.step_size_2 * steps
         self.config.steps += steps
+        self.data_size = (self.config.steps,)
         self.config.positions1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
         self.config.positions2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
 
     def scan(self):
         if not self.append:
-            self.emit("started", None)
             self.data_rows = []
+
+        ref_value = 1.0
 
         for i in range(self.config.steps):
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
-            if i < self.config.position : continue
-            x1 = self.positions1[i]
-            x2 = self.positions2[i]
+            if i < self.config.position: continue
+            x1 = self.config.positions_1[i]
+            x2 = self.config.positions_2[i]
             self.config.m1.move_to(x1)
             self.config.m2.move_to(x2)
             self.config.m1.wait()
             self.config.m2.wait()
-            if self.config.i0 is not None:
-                y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
-            else:
-                y = self.config.counter.count(self.config.t)
-                i0 = 1.0
-            x1 = self.config.m1.get_position()
-            x2 = self.config.m2.get_position()
-            self.data_rows.append((x1, x2, y / i0, y, i0))
-            self.emit("new-point", [x1, x2, y / i0, y, i0])
-            self.emit("progress", (i + 1.0) / (self.config.steps), "")
-        self.set_data(self.data_rows)
-        self.emit("done", None)
+
+            counts = misc.multi_count(self.config.exposure, *self.config.counters)
+            if self.config.i0:
+                if i == 0:
+                    ref_value = counts[-1]
+                counts = (counts[0]*ref_value/counts[-1],) + counts
+
+            row = (x1, x2, ) + counts
+            self.data_rows.append(row)
+            self.emit("new-point", row)
+            self.emit("progress", (i + 1.0) / self.config.steps, "")
+
+        self.append = False
 
 
 class RelScan2(AbsScan2):
-    """A relative scan of a two motors."""
+    """
+    Sequential Relative scan of two motors.
 
-    def __init__(self, m1, p11, p12, m2, p21, p22, steps, counter, t, i0=None):
+    :param m1: first motor or positioner
+    :param p11: relative start position of first motor
+    :param p12: relative end position of first motor
+    :param m2: second motor or positioner
+    :param p21: relative start position of second motor
+    :param p22: relative end position of second motor
+    :param steps: number of steps for both motors
+    :param exposure: count time at each point
+    :param counters: one or more counters
+    :param i0: reference counter
+    """
+
+    def __init__(self, m1, p11, p12, m2, p21, p22, steps, *counters, t, i0=None):
         cur1 = IMotor(m1).get_position()
         cur2 = IMotor(m2).get_position()
-        super(RelScan2, self).__init__(m1, cur1+p11, cur1+p12, m2, cur2+p21, cur2+p22, steps, counter, t, i0)
+        super().__init__(m1, cur1+p11, cur1+p12, m2, cur2+p21, cur2+p22, steps, *counters, t, i0)
 
 
-class GridScan(AbsScan2):
-    """A absolute scan of two motors in a grid."""
+class GridScan(BasicScan):
+    """
+    Absolute Step Grid scan of two motors.
 
-    def configure(self, *args, **kwargs):
-        super(GridScan, self).configure(*args, **kwargs)
+    :param m1: first motor or positioner
+    :param p11: relative start position of first motor
+    :param p12: relative end position of first motor
+    :param steps1: number of steps for motor 1
+    :param m2: second motor or positioner
+    :param p21: relative start position of second motor
+    :param p22: relative end position of second motor
+    :param steps2: number of steps for motor 2
+    :param exposure: count time at each point
+    :param counters: one or more counters
+    :param i0: reference counter
+    :param snake: if True, scan in both directions
+    """
 
-        self.config.points1 = numpy.linspace(self.config.p12, self.config.p11, self.config.steps)
-        self.config.points2 = numpy.linspace(self.config.p22, self.config.p21, self.config.steps)
+    def __init__(self, m1, p11, p12, steps1, m2, p21, p22, steps2, exposure, *counters, i0=None, snake=False):
+        super().__init__()
+        positions_1 = numpy.linspace(p11, p12, steps1)
+        positions_2 = numpy.linspace(p21, p22, steps2)
+        assert len(counters) > 0, ValueError('At least one counter is required.')
+        self.configure(
+            m1=IMotor(m1),
+            p11=p11,
+            p12=p12,
+            m2=IMotor(m2),
+            p21=p21,
+            p22=p22,
+            steps_1=steps1,
+            steps_2=steps2,
+            counters=counters,
+            exposure=exposure,
+            i0=i0,
+            position=0,
+            positions_1=positions_1,
+            positions_2=positions_2,
+            step_size_1=positions_1[1] - positions_1[0],
+            step_size_2=positions_2[1] - positions_2[0],
+            snake=snake
+        )
+        self.setup((self.config.m1, self.config.m2,), counters, i0)
+        self.data_size = (self.config.steps_1, self.config.steps_2)
 
-    def extend(self, steps):
-        logger.error('Grid Scan can not be extended')
+    def get_specs(self):
+        specs = super().get_specs()
+        specs['grid_snake'] = self.config.snake
+        return specs
 
     def scan(self):
-        self.emit("started", None)
-        total_points = len(self.config.points1) * len(self.config.points2)
-        pos = 0
-        for x2 in self.config.points2:
-            if self.stopped:
-                logger.info("Scan stopped!")
-                break
+        self.data_rows = []
+        total_points = self.config.steps_1 * self.config.steps_2
+        position = 0
+        ref_value = 1.0
+
+        for i, x2 in enumerate(self.config.positions_2):
+            if self.stopped: break
             self.config.m2.move_to(x2, wait=True)
-            for x1 in self.config.points1:
-                if self.stopped:
-                    logger.info("Scan stopped!")
-                    break
+            x1_positions = self.config.positions_1 if not self.config.snake else reversed(self.config.positions_1)
+            for j, x1 in enumerate(x1_positions):
+                if self.stopped: break
                 self.config.m1.move_to(x1, wait=True)
 
-                if self.config.i0 is not None:
-                    y, i0 = misc.multi_count(self.config.counter, self.config.i0, self.config.t)
-                else:
-                    y = self.config.counter.count(self.config.t)
-                    i0 = 1.0
-                self.data.append([x1, x2, y / i0, i0, y])
-                logger.info("%4d %15g %15g %15g %15g %15g" % (pos, x1, x2, y / i0, i0, y))
-                self.emit("new-point", (x1, x2, y / i0, i0, y))
-                self.emit("progress", (pos + 1.0) / (total_points), "")
-                pos += 1
+                counts = misc.multi_count(self.config.exposure, *self.config.counters)
+                if self.config.i0:
+                    if i == 0:
+                        ref_value = counts[-1]
+                    counts = (counts[0] * ref_value / counts[-1],) + counts
 
-        self.emit("done", None)
+                position += 1
+                row = (x1, x2,) + counts
+                self.data_rows.append(row)
+                self.emit("new-point", row)
+                self.emit("progress", position / total_points, "")
+
+
+class SlewGridScan(BasicScan):
+    """
+    Continuous Grid scan of two motors.
+
+    :param m1: first motor or positioner for slew scan
+    :param p11: relative start position of first motor
+    :param p12: relative end position of first motor
+    :param m2: second motor or positioner
+    :param p21: relative start position of second motor
+    :param p22: relative end position of second motor
+    :param steps: number of steps for motor 2
+    :param exposure: count time at each point
+    :param counters: one or more counters
+    :param i0: reference counter
+    """
+
+    def __init__(self, m1, p11, p12, m2, p21, p22, steps, exposure, *counters, i0=None):
+        super().__init__()
+        positions = numpy.linspace(p21, p22, steps)
+        self.configure(
+            m1=IMotor(m1),
+            p11=p11,
+            p12=p12,
+            m2=IMotor(m2),
+            p21=p21,
+            p22=p22,
+            steps=steps,
+            counters=counters,
+            exposure=exposure,
+            i0=i0,
+            position=0,
+            positions=positions,
+        )
+        self.setup((self.config.m1, self.config.m2,), counters, i0)
+        self.data_size(self.config.steps, None)
+        self.total_lines = steps
+        self.current_position = 0
+        self.last_update = time.time()
+
+    def get_specs(self):
+        specs = super().get_specs()
+        specs['grid_snake'] = True  # Slew Grids are always snake grids
+        return specs
+
+    def on_data(self, device, value, channel):
+        self.data_row[channel] = value
+        if self.config.i0 and channel == self.config.start_channel and len(self.data_rows):
+            self.data_row[1] = value*self.data_rows[0][-1]/self.data_row[-1]
+        row = tuple(self.data_row)
+        self.data_rows.append(row)
+        if time.time() - self.last_update > MIN_CNTSCAN_UPDATE:
+            progress = self.current_position/self.total_lines + abs((self.data_row[0] - self.config.p11)/(self.config.p12 - self.config.p11))
+            self.set_state(new_point=(row,), progress=(progress, ''))
+            self.last_update = time.time()
+
+    def stop(self):
+        self.stopped = True
+        self.config.m1.stop()
+        self.config.m2.stop()
+
+    def scan(self):
+        # initialize data
+        self.data_rows = []
+        self.data_row = [numpy.nan] * len(self.data_type['names'])
+        self.data_row[-1] = 1.0  # make sure default i0 is 1.0
+
+        outer_channel = 1
+        slew_channel = 0
+
+        # go to start position on m1 and configure motor, save config first
+        motor_conf = self.config.m1.get_config()
+        self.config.m1.move_to(self.config.p11, wait=True)
+        self.config.m1.configure(speed=self.config.speed)
+        self.data_row[outer_channel] = self.config.m1.get_position()
+
+        for i, x2 in enumerate(self.config.positions_2):
+            self.current_position = i
+            if self.stopped: break
+            self.config.m2.move_to(x2, wait=True)
+
+            # INNER Slew Scan
+            # prepare data recorder
+            self.data_ids[self.config.m1] = self.config.m1.connect('changed', self.on_data, slew_channel)
+            self.data_ids.update({
+                dev: dev.connect('count', self.on_data, i + self.config.start_channel)
+                for i, dev in enumerate(self.config.counters)
+            })
+
+            # start recording data as fast as possible
+            for counter in self.config.counters:
+                counter.start()
+
+            # move motor to start or end
+            x1 = [self.config.p12, self.config.p11][i % 2]  # alternate p11 and p12
+            self.config.m1.move_to(x1, wait=True)
+
+            # disconnect data monitor at the end
+            for counter, src_id in self.data_ids.items():
+                counter.disconnect(src_id)
+            self.data_ids = {}
+
+        # return motor to previous configuration
+        self.config.m1.configure(**motor_conf)

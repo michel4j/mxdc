@@ -6,7 +6,7 @@ from datetime import datetime
 
 from enum import Enum
 from gi.repository import Gtk, GObject
-from mxdc import Registry, IBeamline
+from mxdc import Registry, Object, IBeamline
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
 from mxdc.utils import colors, datatools, misc, scitools
@@ -56,7 +56,7 @@ def summarize_lines(data):
     return new_data
 
 
-class ScanController(GObject.GObject):
+class ScanController(Object):
     class StateType:
         READY, ACTIVE, PAUSED = list(range(3))
 
@@ -68,7 +68,7 @@ class ScanController(GObject.GObject):
     prefix = 'mad'
 
     def __init__(self, scanner, plotter, widget, edge_selector):
-        super(ScanController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.plotter = plotter
         self.scanner = scanner
@@ -77,6 +77,7 @@ class ScanController(GObject.GObject):
         self.start_time = 0
         self.axis = 0
         self.pause_dialog = None
+        self.data_types = None
         self.results = self.result_class(self.results_view)
         self.setup()
 
@@ -228,7 +229,7 @@ class ScanController(GObject.GObject):
             self.stop_btn.set_sensitive(False)
 
     def on_new_point(self, scanner, point):
-        self.plotter.add_point(point[0], point[1], lin=self.axis)
+        self.plotter.add_point(point)
 
     def on_progress(self, scanner, fraction, message):
         used_time = time.time() - self.start_time
@@ -257,6 +258,7 @@ class ScanController(GObject.GObject):
                 self.pause_dialog = None
 
     def on_started(self, scanner, data):
+        self.data_types = data
         self.axis = 0
         self.start_time = time.time()
         self.plotter.clear()
@@ -427,10 +429,10 @@ class MADScanController(ScanController):
         data = scanner.results.get('esf')
         if data is not None:
             self.plotter.add_line(
-                data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], label='f"', ax=new_axis
+                data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], name='f"', axis=new_axis
             )
             self.plotter.add_line(
-                data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis, redraw=True
+                data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], name="f'", axis=new_axis, redraw=True
             )
             self.plotter.set_labels(
                 title='{} Edge MAD Scan'.format(scanner.config['edge']),
@@ -454,22 +456,22 @@ class MADScanController(ScanController):
         if choices is None:
             return
 
-        new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
+        new_axis = self.plotter.add_axis(name="sfactors", label="Anomalous scattering factors (f', f'')")
         for choice in choices:
-            self.plotter.axis[0].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
+            self.plotter.axis["sfactors"].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
 
         if data:
             self.plotter.add_line(
-                data['energy'], data['normfluor'], '-', color=colors.Category.GOOG20[0], ax=0
+                data['energy'], data['normfluor'], '-', color=colors.Category.GOOG20[0], axis="sfactors"
             )
 
         esf = analysis.get('esf')
         if esf is not None:
             self.plotter.add_line(
-                esf['energy'], esf['fpp'], '-', color=colors.Category.GOOG20[1], label='f"', ax=new_axis
+                esf['energy'], esf['fpp'], '-', color=colors.Category.GOOG20[1], name='f"', axis=new_axis
             )
             self.plotter.add_line(
-                esf['energy'], esf['fp'], '-', color=colors.Category.CAT20[5], label="f'", ax=new_axis, redraw=True
+                esf['energy'], esf['fp'], '-', color=colors.Category.CAT20[5], name="f'", axis=new_axis, redraw=True
             )
             self.plotter.set_labels(
                 title='{} Edge MAD Scan'.format(meta['edge']),
@@ -516,14 +518,14 @@ class XRFScanController(ScanController):
             title='X-Ray Fluorescence from Excitation at {:0.3f} keV'.format(energy),
             x_label='Energy (keV)', y1_label='Fluorescence'
         )
-        self.plotter.add_line(analysis['energy'], analysis['fit'], ':', color=colors.Category.GOOG20[4], label='Fit')
+        self.plotter.add_line(analysis['energy'], analysis['fit'], ':', color=colors.Category.GOOG20[4], name='Fit')
         self.plotter.axis[0].axhline(0.0, color='gray', linewidth=0.5)
         self.plotter.add_line(
             data['energy'], data['normfluor'], '-', color=colors.Category.CAT20C[16],
-            label='Experimental', lw=1, alpha=0.2
+            name='Experimental', lw=1, alpha=0.2
         )
         self.plotter.add_line(
-            analysis['energy'], analysis['counts'], '-', color=colors.Category.GOOG20[0], label='Smoothed'
+            analysis['energy'], analysis['counts'], '-', color=colors.Category.GOOG20[0], name='Smoothed'
         )
 
         ax = self.plotter.axis[0]
@@ -564,7 +566,7 @@ class XRFScanController(ScanController):
                 annotation.set_visible(visible)
 
         ax.axvline(energy, c='#cccccc', ls='--', lw=0.5, label='Excitation Energy')
-        self.plotter.axis[0].legend()
+        self.plotter.get_axis().legend()
 
         ymin, ymax = misc.get_min_max(ys, ldev=1, rdev=1)
         ax.axis(ymin=ymin, ymax=ymax)

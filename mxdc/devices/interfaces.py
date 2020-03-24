@@ -159,8 +159,11 @@ class IMotor(IDevice):
 
     units = Attribute("""Engineering units.""")
 
-    def configure(props):
+    def configure(**kwargs):
         """Configure the properties of the devices."""
+
+    def get_config():
+        """Get the configuration"""
 
     def move_to(pos):
         """Move the motor to the specified position."""

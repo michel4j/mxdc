@@ -12,7 +12,7 @@ import time
 import uuid
 
 import numpy
-from gi.repository import GObject
+from gi.repository import GLib, GObject
 
 from mxdc.com import ca
 from . import decorators
@@ -26,15 +26,15 @@ def get_short_uuid():
     return str(uuid.uuid1()).split('-')[0]
 
 
-def get_min_max(values, ldev=10, rdev=10):
+def get_min_max(values, ldev=1, rdev=1):
     a = numpy.array(values)
-    a = a[(numpy.isnan(a) == False)]
+    a = a[(~numpy.isnan(a))]
     if len(a) == 0:
-        return -0.1, 0.1
-    _std = a.std()
-    if _std < 1e-10:  _std = 0.1
-    mn, mx = a.min() - ldev * _std, a.max() + rdev * _std
-    return mn, mx
+        mn, mx =  -0.1, 0.1
+    else:
+        mn, mx = a.min(), a.max()
+    dev = (mx - mn)/10
+    return mn - ldev*dev , mx + rdev*dev
 
 
 def same_value(a, b, prec, deg=False):
@@ -111,19 +111,29 @@ def get_project_id():
     return os.geteuid()
 
 
-def multi_count(*args):
-    counts = [0.0] * (len(args) - 1)
+def multi_count(exposure, *counters):
+    """
+    Count multiple devices asynchronously
+    :param exposure: count time
+    :param counters: list of counters to count
+    :return: tuple of floats corresponding to count results
+    """
 
-    def count(device, t, i):
-        ca.threads_init()
-        counts[i] = device.count(t)
+    if len(counters) == 1:
+        return counters[0].count(exposure),
+    else:
+        counts = [0.0] * len(counters)
 
-    threads = []
-    for i, device in enumerate(args[:-1]):
-        threads.append(threading.Thread(target=count, args=(device, args[-1], i,)))
-    [th.start() for th in threads]
-    [th.join() for th in threads]
-    return tuple(counts)
+        def count(device, exposure, i):
+            ca.threads_init()
+            counts[i] = device.count(exposure)
+
+        threads = []
+        for i, device in enumerate(counters):
+            threads.append(threading.Thread(target=count, args=(device, exposure, i,)))
+        [th.start() for th in threads]
+        [th.join() for th in threads]
+        return tuple(counts)
 
 
 def slugify(s, empty=""):
@@ -259,7 +269,7 @@ class Chain(object):
     def __init__(self, timeout, *calls):
         self.timeout = timeout
         self.calls = [Call(*call) for call in calls]
-        GObject.timeout_add(self.timeout, self.run)
+        GLib.timeout_add(self.timeout, self.run)
 
     def run(self):
         if self.calls:
@@ -288,3 +298,37 @@ def load_binary_data(filename):
     with open(filename, 'rb') as handle:
         data = handle.read()
     return data
+
+
+class RecordArray(object):
+    def __init__(self, dtype, size=10, loop=False):
+        self.dtype = numpy.dtype(dtype)
+        self.loop = loop
+        self.length = 0
+        self.size = size
+        self._data = numpy.empty(self.size, dtype=self.dtype)
+
+    def __len__(self):
+        return self.length
+
+    def append(self, rec):
+        rec = tuple(rec)
+        if self.length == self.size:
+            self.size = int(1.5 * self.size)
+            self._data = self._data.resize((self.size,))
+
+        self._data[self.length] = rec
+        self.length += 1
+
+    def extend(self, recs):
+        for rec in recs:
+            self.append(rec)
+
+    @property
+    def data(self):
+        return self._data[:self.length]
+
+
+def camel_to_snake(name):
+  name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+  return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
