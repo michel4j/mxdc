@@ -62,8 +62,15 @@ class MXBeamline(Beamline):
 
         # Setup coordination between Beam tuner and energy changes
         if 'beam_tuner' in self.registry:
-            self.energy.connect('starting', lambda x: self.beam_tuner.pause())
-            self.energy.connect('done', lambda x: self.beam_tuner.resume())
+
+            def on_bt_pause(obj, *args):
+                self.beam_tuner.pause()
+
+            def on_bt_resume(obj, *args):
+                self.beam_tuner.resume()
+
+            self.energy.connect('starting', on_bt_pause)
+            self.energy.connect('done', on_bt_pause)
 
         # default detector cover
         if not 'detector_cover' in self.registry:

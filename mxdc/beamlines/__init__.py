@@ -7,7 +7,7 @@ from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
 from mxdc.conf import settings
-from mxdc.utils.misc import get_project_id
+from mxdc.utils.misc import get_project_id, DotDict
 from mxdc.utils.log import get_module_logger
 
 
@@ -46,7 +46,7 @@ class Beamline(Object):
         self.console = console
         self.config_files = settings.get_configs()
         self.registry = {}
-        self.config = {}
+        self.config = DotDict()
         self.lock = threading.RLock()
         self.logger = get_module_logger(self.__class__.__name__)
         self.load_config()
@@ -100,7 +100,7 @@ class Beamline(Object):
         config.update(getattr(local_settings, 'CONFIG', {}))
 
         self.name = config.get('name', 'BL001')
-        self.config = config
+        self.config.update(config)
 
         # Register simple devices
         for settings in [global_settings, local_settings]:

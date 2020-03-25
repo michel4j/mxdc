@@ -23,10 +23,8 @@ class ScanPlotter(object):
         self.plotter = plotter.Plotter()
         self.widget = widget
         self.widget.scan_box.pack_start(self.plotter, True, True, 0)
-        self._sig_handlers = {}
         self.fit = Fit()
         self.axis = self.plotter.axis.get('default')
-        self.grid_scan = False
         self.start_time = 0
         self.scan = None
         self.scan_links = []
@@ -55,7 +53,6 @@ class ScanPlotter(object):
         Clear Scan and setup based on contents of data dictionary.
         """
         self.plotter.clear(specs)
-        self.grid_scan = 'grid' in specs.get('scan_type', '').lower()
         self.start_time = time.time()
 
         x_name = specs['data_type']['names'][0]
@@ -97,7 +94,7 @@ class ScanPlotter(object):
         columns = list(info['Column'].items())
         data = info.data
         self.fit.data = data
-        if info['CMCF.scan_type'] == 'grid_scan':
+        if info['MxDC.scan_type'] == 'grid_scan':
             xcol = columns[0]
             ycol = columns[1]
             zcol = columns[4]

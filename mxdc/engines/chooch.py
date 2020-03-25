@@ -51,12 +51,12 @@ class AutoChooch(Engine):
                 'chooch', '-e', element, '-a', edge, self.inp_file, '-o', self.esf_file
             ], stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            pass # Chooch sometimes exits with non-zero
+            # Chooch sometimes exits with non-zero
             logger.error(e.output)
         else:
-            self.read_results(output)
+            self.read_results(output.decode('utf-8'))
         finally:
-            os.remove(self.inp_file)
+            #os.remove(self.inp_file)
             self.emit('done', None)
         return self.results
 
@@ -79,8 +79,8 @@ class AutoChooch(Engine):
 
         # extract MAD wavelengths from output
         r = re.compile(
-            '\|\s+(?P<label>[^|]+)\s+\|\s+(?P<wavelength>(?P<energy>\d+\.\d+))\s+'
-            '\|\s+(?P<fpp>-?\d+\.\d+)\s+\|\s+(?P<fp>-?\d+\.\d+)\s+\|'
+            r'\|\s+(?P<label>[^|]+)\s+\|\s+(?P<wavelength>(?P<energy>\d+\.\d+))\s+'
+            r'\|\s+(?P<fpp>-?\d+\.\d+)\s+\|\s+(?P<fp>-?\d+\.\d+)\s+\|'
         )
 
         energies = [m.groupdict() for m in r.finditer(output)]

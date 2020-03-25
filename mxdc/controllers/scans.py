@@ -8,7 +8,7 @@ from enum import Enum
 from gi.repository import Gtk, GObject
 from mxdc import Registry, Object, IBeamline
 from mxdc.conf import load_cache, save_cache
-from mxdc.engines.spectroscopy import XRFScanner, MADScanner, XASScanner
+from mxdc.engines.spectroscopy import XRFScan, MADScan, XASScan
 from mxdc.utils import colors, datatools, misc, scitools
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
@@ -74,23 +74,26 @@ class ScanController(Object):
         self.scanner = scanner
         self.edge_selector = edge_selector
         self.sample_store = Registry.get_utility(ISampleStore)
-        self.start_time = 0
-        self.axis = 0
+
         self.pause_dialog = None
-        self.data_types = None
+        self.start_time = 0
+        self.scan = None
+        self.scan_links = []
+
         self.results = self.result_class(self.results_view)
         self.setup()
 
     def setup(self):
 
         self.connect('notify::config', self.on_config_changed)
+        self.scanner.connect('started', self.on_started)
         self.scanner.connect('new-point', self.on_new_point)
+        self.scanner.connect('progress', self.on_progress)
         self.scanner.connect('paused', self.on_paused)
         self.scanner.connect('stopped', self.on_stopped)
-        self.scanner.connect('progress', self.on_progress)
-        self.scanner.connect('started', self.on_started)
         self.scanner.connect('error', self.on_error)
         self.scanner.connect('done', self.on_done)
+
         self.start_btn.connect('clicked', self.start)
         self.stop_btn.connect('clicked', self.stop)
 
@@ -228,14 +231,15 @@ class ScanController(Object):
             self.start_btn.set_sensitive(True)
             self.stop_btn.set_sensitive(False)
 
-    def on_new_point(self, scanner, point):
-        self.plotter.add_point(point)
+    def on_new_point(self, scanner, data):
+        self.plotter.add_point(data)
 
     def on_progress(self, scanner, fraction, message):
-        used_time = time.time() - self.start_time
-        remaining_time = (1 - fraction) * used_time / fraction
-        eta_time = remaining_time
-        self.eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
+        if fraction > 0.0:
+            used_time = time.time() - self.start_time
+            remaining_time = (1 - fraction) * used_time / fraction
+            eta_time = remaining_time
+            self.eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
         self.pbar.set_fraction(fraction)
         self.progress_lbl.set_text(message)
 
@@ -257,14 +261,23 @@ class ScanController(Object):
                 self.pause_dialog.destroy()
                 self.pause_dialog = None
 
-    def on_started(self, scanner, data):
-        self.data_types = data
-        self.axis = 0
+    def on_started(self, scan, specs):
+        """
+        Clear Scan and setup based on contents of data dictionary.
+        """
+        self.plotter.clear(specs)
         self.start_time = time.time()
-        self.plotter.clear()
+
         self.props.state = self.StateType.ACTIVE
         logger.info("{} Started.".format(self.desc))
-        self.update_directory(scanner.config['directory'])
+        self.update_directory(scan.config.directory)
+
+        x_name = specs['data_type']['names'][0]
+        x_unit = specs['units'].get(x_name, '').strip()
+        self.plotter.set_labels(
+            title=specs['scan_type'],
+            x_label='{}{}'.format(x_name, ' ({})'.format(x_unit) if x_unit else ''),
+        )
 
     def on_stopped(self, scanner, data):
         self.props.state = self.StateType.READY
@@ -279,7 +292,7 @@ class ScanController(Object):
         error_dialog.run()
         error_dialog.destroy()
 
-    def on_done(self, scanner, data):
+    def on_done(self, scan, data):
         self.props.state = self.StateType.READY
         self.progress_lbl.set_text("{} Completed.".format(self.desc))
         self.eta.set_text('--:--')
@@ -415,29 +428,22 @@ class MADScanController(ScanController):
             self.widget.mad_runs_btn.set_sensitive(False)
             self.widget.mad_selected_lbl.set_text('')
 
-    def on_done(self, scanner, data):
-        super().on_done(scanner, data)
+    def on_done(self, scanner, config):
+        super().on_done(scanner, config)
         choices = scanner.results.get('choices')
         if choices is None:
             dialogs.warning('Error Analysing Scan', 'Analysis of MAD Scan failed')
             return
 
-        new_axis = self.plotter.add_axis(label="Anomalous scattering factors (f', f'')")
         for choice in choices:
-            self.plotter.axis[0].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
+            self.plotter.axis['default'].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
 
+        self.plotter.add_axis(name="sfactors", label="Anomalous factors")
         data = scanner.results.get('esf')
         if data is not None:
-            self.plotter.add_line(
-                data['energy'], data['fpp'], '-', color=colors.Category.GOOG20[1], name='f"', axis=new_axis
-            )
-            self.plotter.add_line(
-                data['energy'], data['fp'], '-', color=colors.Category.CAT20[5], name="f'", axis=new_axis, redraw=True
-            )
-            self.plotter.set_labels(
-                title='{} Edge MAD Scan'.format(scanner.config['edge']),
-                x_label='Energy (keV)', y1_label='Fluorescence'
-            )
+            self.plotter.add_line(data['energy'], data['fpp'], '-', name='fpp', axis='sfactors')
+            self.plotter.add_line(data['energy'], data['fp'], '-', name="fp", axis='sfactors',redraw=True)
+            self.plotter.set_labels(x_label='Energy (keV)', y1_label='Fluorescence')
 
         for choice in choices:
             parent, child = self.results.add_item({
@@ -456,27 +462,18 @@ class MADScanController(ScanController):
         if choices is None:
             return
 
-        new_axis = self.plotter.add_axis(name="sfactors", label="Anomalous scattering factors (f', f'')")
+        new_axis = self.plotter.add_axis(name="sfactors", label="Anomalous scattering factors (ƒ', ƒ"")")
         for choice in choices:
             self.plotter.axis["sfactors"].axvline(choice['energy'], color='#999999', linestyle='--', linewidth=1)
 
         if data:
-            self.plotter.add_line(
-                data['energy'], data['normfluor'], '-', color=colors.Category.GOOG20[0], axis="sfactors"
-            )
+            self.plotter.add_line(data['energy'], data['normfluor'], '-', axis="sfactors", name="normfluor")
 
         esf = analysis.get('esf')
         if esf is not None:
-            self.plotter.add_line(
-                esf['energy'], esf['fpp'], '-', color=colors.Category.GOOG20[1], name='f"', axis=new_axis
-            )
-            self.plotter.add_line(
-                esf['energy'], esf['fp'], '-', color=colors.Category.CAT20[5], name="f'", axis=new_axis, redraw=True
-            )
-            self.plotter.set_labels(
-                title='{} Edge MAD Scan'.format(meta['edge']),
-                x_label='Energy (keV)', y1_label='Fluorescence'
-            )
+            self.plotter.add_line(esf['energy'], esf['fpp'], '-', name='fpp', axis=new_axis)
+            self.plotter.add_line(esf['energy'], esf['fp'], '-', name="fp", axis=new_axis, redraw=True)
+            self.plotter.set_labels(x_label='Energy (keV)', y1_label='Fluorescence')
 
 
 class XRFScanController(ScanController):
@@ -518,14 +515,11 @@ class XRFScanController(ScanController):
             title='X-Ray Fluorescence from Excitation at {:0.3f} keV'.format(energy),
             x_label='Energy (keV)', y1_label='Fluorescence'
         )
-        self.plotter.add_line(analysis['energy'], analysis['fit'], ':', color=colors.Category.GOOG20[4], name='Fit')
+        self.plotter.add_line(analysis['energy'], analysis['fit'], ':', name='fit')
         self.plotter.axis['default'].axhline(0.0, color='gray', linewidth=0.5)
+        self.plotter.add_line(data['energy'], data['normfluor'], '-', name='expt', lw=1, alpha=0.2)
         self.plotter.add_line(
-            data['energy'], data['normfluor'], '-', color=colors.Category.CAT20C[16],
-            name='Experimental', lw=1, alpha=0.2
-        )
-        self.plotter.add_line(
-            analysis['energy'], analysis['counts'], '-', color=colors.Category.GOOG20[0], name='Smoothed'
+            analysis['energy'], analysis['counts'], '-', name='smooth'
         )
 
         ax = self.plotter.axis['default']
@@ -621,14 +615,14 @@ class ScanManager(GObject.GObject):
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = Registry.get_utility(ISampleStore)
-        self.plotter = plotter.Plotter(xformat='%g')
+        self.plotter = plotter.Plotter(xformat='%g', dpi=90)
         min_energy, max_energy = self.beamline.config['energy_range']
         self.edge_selector = periodictable.EdgeSelector(
             min_energy=min_energy, max_energy=max_energy, xrf_offset=self.beamline.config['xrf_energy_offset']
         )
-        self.xrf_scanner = XRFScanController(XRFScanner(), self.plotter, widget, self.edge_selector)
-        self.xas_scanner = XASScanController(XASScanner(), self.plotter, widget, self.edge_selector)
-        self.mad_scanner = MADScanController(MADScanner(), self.plotter, widget, self.edge_selector)
+        self.xrf_scanner = XRFScanController(XRFScan(), self.plotter, widget, self.edge_selector)
+        self.xas_scanner = XASScanController(XASScan(), self.plotter, widget, self.edge_selector)
+        self.mad_scanner = MADScanController(MADScan(), self.plotter, widget, self.edge_selector)
 
         # connect scanners
         self.status_monitor = common.StatusMonitor(

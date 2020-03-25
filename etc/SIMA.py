@@ -37,7 +37,7 @@ CONFIG = {
 
 # maps names to devices objects
 tmp1 = motor.SimMotor('Detector Distance', 150.0, 'mm', speed=50.0)  # use the same motor for distance and z
-tmp2 = motor.SimMotor('Energy', 12.5, 'keV', speed=0.2, precision=4)
+tmp2 = motor.SimMotor('Energy', 12.5, 'keV', speed=0.05, precision=6)
 
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers

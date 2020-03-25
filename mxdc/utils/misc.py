@@ -1,4 +1,5 @@
 import hashlib
+import reprlib
 import json
 import os
 import pwd
@@ -12,6 +13,7 @@ import time
 import uuid
 
 import numpy
+from scipy import interpolate
 from gi.repository import GLib, GObject
 
 from mxdc.com import ca
@@ -116,7 +118,7 @@ def multi_count(exposure, *counters):
     Count multiple devices asynchronously
     :param exposure: count time
     :param counters: list of counters to count
-    :return: tuple of floats corresponding to count results
+    :return: tuple of floats corresponding to count results, multi-element counters will have multiple entries in this tuple
     """
 
     if len(counters) == 1:
@@ -307,9 +309,40 @@ class RecordArray(object):
         self.length = 0
         self.size = size
         self._data = numpy.empty(self.size, dtype=self.dtype)
+        self.funcs = {}
 
     def __len__(self):
         return self.length
+
+    #@decorators.async_call
+    def update_funcs(self):
+        if self.length > 1:
+            names = tuple(self.dtype.fields.keys())
+            x_name = names[0]
+            for name in names[1:]:
+                self.add_func(name, self.data[x_name], self.data[name])
+
+    def add_func(self, name, x, y):
+        """
+        Add interpolated function to functions
+
+        :param name: column name
+        :param x: x-axis data
+        :param y: y-axis data
+        """
+        self.funcs[name] = interpolate.interp1d(x, y, fill_value="extrapolate")
+
+    def __call__(self, name, x):
+        """
+        Get interpolated value for named column at given position
+        :param name: column name
+        :param x: x-axis value
+        :return: y-axis value or 0 if function does not exist
+        """
+        if name in self.funcs:
+            return self.funcs[name](x)
+        else:
+            return 0
 
     def append(self, rec):
         rec = tuple(rec)
@@ -319,6 +352,7 @@ class RecordArray(object):
 
         self._data[self.length] = rec
         self.length += 1
+        self.update_funcs()
 
     def extend(self, recs):
         for rec in recs:
@@ -332,3 +366,24 @@ class RecordArray(object):
 def camel_to_snake(name):
   name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
   return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+def check_call(f):
+    """
+    Log all calls to the function or method
+    :param f: function or method
+    """
+
+    def new_f(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as err:
+            params = ['{}'.format(reprlib.repr(a)) for a in args[1:]]
+            params.extend(['{}={}'.format(p[0], reprlib.repr(p[1])) for p in list(kwargs.items())])
+            params = ', '.join(params)
+            logger.info('{} : <{}({})>'.format(f, f.__name__, params))
+            print(err)
+            raise
+
+    new_f.__name__ = f.__name__
+    return new_f

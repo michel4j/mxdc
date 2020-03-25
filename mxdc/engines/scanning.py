@@ -1,5 +1,7 @@
 import inspect
 import time
+import pytz
+import os
 from datetime import datetime
 
 import numpy
@@ -95,6 +97,7 @@ class BasicScan(Engine):
         :return: dictionary
         """
         return {
+            'start_time': self.config.get('start_time'),
             'scan_type': misc.camel_to_snake(self.__class__.__name__),
             'data_type': self.data_type,
             'data_scale': self.data_scale,
@@ -116,7 +119,6 @@ class BasicScan(Engine):
         Start the scan engine
         """
         self.stopped = False
-        self.config.start_time = datetime.now()
         super().start()
 
     def run(self):
@@ -124,12 +126,13 @@ class BasicScan(Engine):
         Run the scan in the current execution loop. Normally executed in a thread by when the start
         method is called.
         """
-        specs = self.get_specs()
-        specs['start_time'] = datetime.utcnow()
-        self.set_state(busy=True, message='Scan in progress', started=specs)
+
+        self.config.update(start_time=datetime.now(tz=pytz.utc))
+        self.set_state(busy=True, message='Scan in progress', started=self.get_specs())
         self.scan()
+        self.config.update(end_time=datetime.now(tz=pytz.utc))
         self.finalize()
-        self.set_state(busy=False, done={"end_time": datetime.utcnow(), "data": self.data})
+        self.set_state(busy=False, done=self.config)
 
     def scan(self):
         """
@@ -148,9 +151,16 @@ class BasicScan(Engine):
         xdi_data['Facility.xray_source'] = self.beamline.config['source']
         xdi_data['Beamline.name'] = self.beamline.name
         xdi_data['Mono.name'] = self.beamline.config.get('mono', 'Si 111')
-        xdi_data['Scan.start_time'] = self.config.get('start_time', datetime.now())
-        xdi_data['Scan.end_time'] = self.config.get('end_time', datetime.now())
-        xdi_data['CMCF.scan_type'] = self.get_specs()['scan_type']
+        xdi_data['Scan.start_time'] = self.config.get('start_time', datetime.now(tz=pytz.utc))
+        xdi_data['Scan.end_time'] = self.config.get('end_time', datetime.now(tz=pytz.utc))
+        xdi_data['MxDC.scan_type'] = self.get_specs()['scan_type']
+
+        if 'sample' in self.config:
+            xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
+            xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
+            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
+            xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
+
         for i, name in enumerate(self.data_type['names']):
             key = 'Column.{}'.format(i + 1)
             xdi_data[key] = (name, self.data_units.get(name))
@@ -158,7 +168,21 @@ class BasicScan(Engine):
 
     def save(self, filename=None):
         if filename is None:
-            filename = time.strftime('%y%m%dT%H%M%S') + '.xdi.gz'
+            # save in ~/Scans/YYYY/Mmm/HHMMSS.xdi.gz
+            directory = self.config.get(
+                'directory',
+                os.path.join(
+                    misc.get_project_home(),
+                    'Scans',
+                    time.strftime('%Y'),
+                    time.strftime('%b')
+                )
+            )
+            name = '{}-{}.xdi.gz'.format(self.data_type['names'][0], time.strftime('%H%M%S'))
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            filename = os.path.join(directory, name)
+
         logger.debug('Saving XDI: {}'.format(filename))
         xdi_data = self.prepare_xdi()
         xdi_data.save(filename)
@@ -308,6 +332,7 @@ class AbsScan(BasicScan):
             self.data_rows.append(row)
             self.emit("new-point", row)
             self.emit("progress", (i + 1.0)/self.config.steps, "")
+            time.sleep(0)
 
         self.append = False
 
@@ -410,6 +435,7 @@ class AbsScan2(BasicScan):
             self.data_rows.append(row)
             self.emit("new-point", row)
             self.emit("progress", (i + 1.0) / self.config.steps, "")
+            time.sleep(0)
 
         self.append = False
 
@@ -511,6 +537,7 @@ class GridScan(BasicScan):
                 self.data_rows.append(row)
                 self.emit("new-point", row)
                 self.emit("progress", position / total_points, "")
+                time.sleep(0)
 
 
 class SlewGridScan(BasicScan):
@@ -613,6 +640,7 @@ class SlewGridScan(BasicScan):
             for counter, src_id in self.data_ids.items():
                 counter.disconnect(src_id)
             self.data_ids = {}
+            time.sleep(0)
 
         # return motor to previous configuration
         self.config.m1.configure(**motor_conf)
