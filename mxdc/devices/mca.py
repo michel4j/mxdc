@@ -3,6 +3,7 @@ import random
 import time
 
 import numpy
+from scipy import interpolate
 from gi.repository import GObject
 from mxdc import conf, Signal, Device
 from mxdc.utils import fitting
@@ -148,11 +149,11 @@ class BasicMCA(Device):
         detector for the last performed data acquisition.
         
         :returns: Array(float). The array contains as many elements as the number of
-            elements plus one. The last entry is an average of all elements combined.
+            elements plus one. The first entry is an average of all elements combined.
         """
         # get counts for each spectrum within region of interest
         values = self.data[self.region_of_interest[0]:self.region_of_interest[1], 1:].sum(0)
-        return values
+        return tuple(values)
 
     def get_count_rates(self):
         """
@@ -163,7 +164,7 @@ class BasicMCA(Device):
             is the input count rate and the second is the output count rate. If 
             the values are not available (-1, -1) is substituted
         """
-        return [(-1, -1)]
+        return [(-1, -1)]*self.elements
 
     def count(self, t):
         """
@@ -171,7 +172,7 @@ class BasicMCA(Device):
         blocks.
         
         :param t: (float), integrating time in seconds.
-        :returns: float. The average integrated count from the region of interest of
+        :returns: float. The total integrated count from the region of interest of
             all detector elements. If individual counts for each element are
             desired, they can be obtained using :func:`get_roi_counts`.            
         """
@@ -179,7 +180,7 @@ class BasicMCA(Device):
         # use only the last column to integrate region of interest 
         # should contain corrected sum for multichannel devices
         values = self.get_roi_counts()
-        return values[-1]
+        return values[0]
 
     def acquire(self, t=1.0):
         """
@@ -395,7 +396,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.acquiring = False
         self.half_life = 60 * 30  # 1 hr
         self.start_time = time.time()
-        BasicMCA.__init__(self, name, elements=1, channels=channels)
+        super().__init__(name, elements=4, channels=channels)
         self.name = name
         self.nozzle = nozzle
 
@@ -403,23 +404,19 @@ class SimMultiChannelAnalyzer(BasicMCA):
         # Default parameters
         self.slope = 17.0 / 3298  # 50000     #0.00498
         self.offset = -96.0 * self.slope  # 9600 #-0.45347
-        self._energy_pos = 12.658
-        self._roi_count = 0.0
-        self.energy.connect('changed', self.on_energy_value)
+        self._roi_counts = [0.0] * self.elements
         self.set_state(active=True, health=(0, '', ''))
 
     def update_spectrum(self, edge):
         fwhm = 0.01
         self.start_time = time.time()
-        x = numpy.linspace(edge - 0.5, edge + 1, 10000)
+        offset = random.random()/2
+        x = numpy.linspace(edge - 0.5, edge + 1, 1000)
         y = (
-                    fitting.step_response(x, [0.5 + random.random(), fwhm, edge, 0])
-                    + fitting.gauss(x, [0.5 + random.random(), fwhm, edge + fwhm * 0.5, 0])
+                    fitting.step_response(x, [0.5 + offset, fwhm, edge, 0])
+                    + fitting.gauss(x, [0.5 + 0.5-offset, fwhm, edge + fwhm * 0.5, 0])
             ) + numpy.random.uniform(0.01, 0.02, len(x))
-        self.count_source = fitting.SplineRep(x, 5000 * y)
-
-    def on_energy_value(self, obj, val):
-        self._energy_pos = val
+        self.count_source = interpolate.interp1d(x, 5000 * y, kind='cubic', assume_sorted=True)
 
     def configure(self, **kwargs):
         BasicMCA.configure(self, **kwargs)
@@ -434,27 +431,32 @@ class SimMultiChannelAnalyzer(BasicMCA):
     def count(self, t):
         self.aquiring = True
         time.sleep(t)
-        elapsed = time.time() - self.start_time
-        decay = 2.0 ** (-elapsed / self.half_life)
         self.acquiring = False
-        val = decay * t * self.count_source(self._energy_pos)
-        self._roi_count = val
+        val = t * self.count_source(self.energy.get_position())
+        self._roi_counts = [(1-0.1*random.random())*val for i in range(self.elements)]
         self.set_state(deadtime=random.random() * 51.0)
-        return val
+        return sum(self._roi_counts)
 
     def acquire(self, t=1.0):
         self.aquiring = True
         time.sleep(t)
         self.acquiring = False
         fname = os.path.join(conf.APP_DIR, 'test/scans/xrf_%03d.raw' % random.choice(list(range(1, 7))))
-        logger.debug('Simulated Spectrum: %s' % fname)
+        logger.debug('Simulated Spectrum: {}'.format(fname))
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:, 0]
         self.set_state(deadtime=random.random() * 51.0)
-        return numpy.array(list(zip(self._x_axis, self._raw_data[:, 1], self._raw_data[:, 1])))
+
+        y_sum = self._raw_data[:, 1]
+        y_channels = [self._raw_data[:, 1]]
+        for i in range(self.elements - 1):
+            y_channel = (1-0.25*random.random())*self._raw_data[:, 1]
+            y_sum = y_sum + y_channel
+            y_channels.append(y_channel)
+        return numpy.array(list(zip(self._x_axis , y_sum, *y_channels)))
 
     def get_roi_counts(self):
-        return (self._roi_count,) * self.elements
+        return tuple(self._roi_counts)
 
     def get_count_rates(self):
         self.set_state(deadtime=random.random() * 51.0)

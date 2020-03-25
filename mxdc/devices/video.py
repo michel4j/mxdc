@@ -309,7 +309,10 @@ class AxisPTZCamera(AxisCamera):
         self.url_root = 'http://{}/axis-cgi/com/ptz.cgi'.format(hostname)
         self._rzoom = 0
         self.presets = []
-        self.fetch_presets()
+        try:
+            self.fetch_presets()
+        except requests.ConnectionError:
+            logger.error('Failed to establish connection')
 
     def zoom(self, value, wait=False):
         requests.get(self.url_root, params={'rzoom': value})

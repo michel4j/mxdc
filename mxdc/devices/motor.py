@@ -309,65 +309,55 @@ class SimMotor(MotorBase):
 
     def __init__(self, name, pos=0, units='mm', speed=5.0, active=True, precision=3, health=(0, '', '')):
         super().__init__(name, precision=precision, units=units)
-        self.default_speed = speed
 
-        self._status = 0
-        self._step_time = .01  # 100 steps per second
-        self._stopped = False
-        self._lock = Lock()
-        self._active = active
-        self._health = health
-        self._position = pos
-        self._target = pos
+        self.step_time = .01  # 100 steps per second
+        self.speed = speed
+        self.stopped = False
+        self.lock = Lock()
 
+        self.set_state(changed=pos, target=(None, pos), health=health)
+        self.set_state(active=active, enabled=True)
         self.configure(speed=speed)
-        self.initialize()
 
     def setup(self):
         pass
 
-    def initialize(self):
-        self.set_state(health=self._health, active=self._active, enabled=True)
-        self.on_target(self, self._position)
-        self.on_change(self, self._position)
-
     def get_position(self):
-        return self._position
+        return self.get_state("changed")
 
     def get_config(self):
         return {
-            'speed': self._speed,
+            'speed': self.speed,
             'accel': None,
         }
 
     def configure(self, speed=None, accel=None):
-        with self._lock:
+        with self.lock:
             if speed is not None:
-                self._speed = speed  # speed
-                self._step_size = self._speed * self._step_time
+                self.speed = speed  # speed
+                self.step_size = self.speed * self.step_time
 
     @async_call
     def move_operation(self, target):
-        self._stopped = False
-        self.command_active = True
-        with self._lock:
+        self.stopped = False
+        self.set_state(starting=True)
+        with self.lock:
             self.set_state(busy=True)
-            self.set_state(target=(self._target, target))
-            self._target = target
-            _num_steps = int(abs(self._position - target) / self._step_size)
-            targets = numpy.linspace(self._position, target, _num_steps)
-
-            self.command_active = False
+            self.on_target(self, target)
+            num_steps = int(abs(self.get_state('changed') - target) / self.step_size)
+            targets = numpy.linspace(self.get_state('changed'), target, num_steps)
             for pos in targets:
-                self._position = pos
-                self.set_state(changed=self._position)
-                if self._stopped:
+                self.on_change(self, pos)
+                if self.stopped:
                     break
-                time.sleep(self._step_time)
+                time.sleep(self.step_time)
+            if not self.stopped:
+                self.set_state(changed=target)
+            time.sleep(self.step_time)
         self.set_state(busy=False)
 
     def stop(self):
-        self._stopped = True
+        self.stopped = True
 
 
 @implementer(IMotor)

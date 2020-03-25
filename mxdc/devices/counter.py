@@ -117,13 +117,17 @@ class Counter(BaseCounter):
         self.stopped = True
 
 
+SIM_FILE = os.path.join(os.path.dirname(__file__),'data','simcounter.dat')
+SIM_DATA = numpy.abs(numpy.loadtxt(SIM_FILE))
+
+
 class SimCounter(BaseCounter):
     """
     Simulated Counter Device objects. Optionally reads from external file.
     """
 
-    SIM_COUNTER_DATA = numpy.loadtxt(os.path.join(os.path.dirname(__file__),'data','simcounter.dat'))
-    
+    SIM_COUNTER_DATA = 4*SIM_DATA/(SIM_DATA.max() - SIM_DATA.min()) + 1
+
     def __init__(self, name, zero=12345):
         super().__init__()
         from mxdc.devices.misc import SimPositioner

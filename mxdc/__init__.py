@@ -10,6 +10,7 @@ from zope.interface.interface import adapter_hooks
 
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import check_call
 
 logger = get_module_logger(__name__)
 
@@ -127,6 +128,7 @@ def _get_signal_properties(itype):
 Signal = GObject.Signal
 Property = GObject.Property
 
+
 class ObjectType(GObjectMeta):
     """
     MetaClass for adding extra syntactic sugar when you want to define signals without polluting the namespace with
@@ -171,6 +173,10 @@ class Object(GObject.GObject, metaclass=ObjectType):
             super().emit(signal, *args)
         except TypeError as e:
             logger.error("'{}': Invalid parameters for signal '{}': {}".format(self, signal, args))
+
+    # FOR diagnosis
+    def connect(self, signal:str, func, *args, **kwargs):
+        return super().connect(signal, check_call(func), *args, **kwargs)
 
     def emit(self, signal: str, *args):
         """
