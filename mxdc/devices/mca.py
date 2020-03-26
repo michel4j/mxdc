@@ -396,15 +396,17 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.acquiring = False
         self.half_life = 60 * 30  # 1 hr
         self.start_time = time.time()
+
         super().__init__(name, elements=4, channels=channels)
         self.name = name
         self.nozzle = nozzle
+        self.scales = [1 - random.random() * 0.3 for i in range(self.elements)]
 
     def custom_setup(self, *args, **kwargs):
         # Default parameters
         self.slope = 17.0 / 3298  # 50000     #0.00498
         self.offset = -96.0 * self.slope  # 9600 #-0.45347
-        self._roi_counts = [0.0] * self.elements
+        self.roi_counts = [0.0] * self.elements
         self.set_state(active=True, health=(0, '', ''))
 
     def update_spectrum(self, edge):
@@ -419,7 +421,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.count_source = interpolate.interp1d(x, 5000 * y, kind='cubic', assume_sorted=True)
 
     def configure(self, **kwargs):
-        BasicMCA.configure(self, **kwargs)
+        super().configure(**kwargs)
         self.update_spectrum(kwargs.get('edge', 12.658))
 
     def channel_to_energy(self, x):
@@ -433,9 +435,9 @@ class SimMultiChannelAnalyzer(BasicMCA):
         time.sleep(t)
         self.acquiring = False
         val = t * self.count_source(self.energy.get_position())
-        self._roi_counts = [(1-0.1*random.random())*val for i in range(self.elements)]
+        self.roi_counts = [self.scales[i] * val for i in range(self.elements)]
         self.set_state(deadtime=random.random() * 51.0)
-        return sum(self._roi_counts)
+        return sum(self.roi_counts)
 
     def acquire(self, t=1.0):
         self.aquiring = True
@@ -456,7 +458,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         return numpy.array(list(zip(self._x_axis , y_sum, *y_channels)))
 
     def get_roi_counts(self):
-        return tuple(self._roi_counts)
+        return tuple(self.roi_counts)
 
     def get_count_rates(self):
         self.set_state(deadtime=random.random() * 51.0)

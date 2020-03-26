@@ -32,7 +32,7 @@ class XRFScan(BasicScan):
         )
 
         self.data_units['energy'] = 'keV'
-        names = ['energy', 'normfluor'] + ['ifluor.{}'.format(i + 1) for i in range(self.beamline.mca.elements)]
+        names = ['energy', 'normfluor'] + ['ifluor{}'.format(i + 1) for i in range(self.beamline.mca.elements)]
         self.data_type = {
             'names': names,
             'formats': ['f4'] * len(names),
@@ -168,7 +168,7 @@ class MADScan(BasicScan):
             user=misc.get_project_name(),
             filename=os.path.join(self.config.directory, "{}.xdi".format(self.config.name))
         )
-        names = ['energy', 'normfluor'] + ['ifluor.{}'.format(i + 1) for i in range(self.beamline.mca.elements)] + ['i0']
+        names = ['energy', 'normfluor'] + ['ifluor{}'.format(i + 1) for i in range(self.beamline.mca.elements)] + ['i0']
         self.data_units['energy'] = 'keV'
         self.data_type = {
             'names': names,
@@ -206,7 +206,6 @@ class MADScan(BasicScan):
                 self.beamline.fast_shutter.open()
 
                 total = len(self.config.positions)
-                reference = 0.0
                 self.config['start_time'] = datetime.now(tz=pytz.utc)
                 for i, x in enumerate(self.config.positions):
                     if self.paused:
@@ -222,7 +221,7 @@ class MADScan(BasicScan):
                     counts = self.beamline.mca.get_roi_counts() + (i0,)
                     if i == 0:
                         ref_value = i0
-                    counts = (counts[0] * ref_value / i0, ) + counts
+                    counts = (y * ref_value / i0, ) + counts
                     row = (x,) + counts
                     self.raw_data.append(row)
                     self.emit("new-point", row)
@@ -312,8 +311,6 @@ class XASScan(BasicScan):
     X-Ray Absorption Spectroscopy (XAS, XANES, EXAFS). Monochromator is scanned around a specific  absorption-edge
     in a stepwise manner and the total _emission for the selected absorption-edge is recorded.
     """
-    class Signals:
-        new_scan = Signal('new-scan', arg_types=(int,))
 
     def __init__(self):
         super().__init__()
@@ -418,7 +415,7 @@ class XASScan(BasicScan):
                     filename = os.path.join(self.config['directory'], self.config['frame_template'].format(scan + 1))
                     self.save(filename)
                     self.analyse()
-                    self.emit('new-scan', scan + 1)
+                    self.emit('new-row', scan + 1)
                     self.raw_data = []
 
                 if self.stopped:

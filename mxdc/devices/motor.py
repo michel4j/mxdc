@@ -347,7 +347,7 @@ class SimMotor(MotorBase):
             num_steps = int(abs(self.get_state('changed') - target) / self.step_size)
             targets = numpy.linspace(self.get_state('changed'), target, num_steps)
             for pos in targets:
-                self.on_change(self, pos)
+                self.set_state(changed=pos)
                 if self.stopped:
                     break
                 time.sleep(self.step_time)

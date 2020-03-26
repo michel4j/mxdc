@@ -1,5 +1,6 @@
 import atexit
 import threading
+import reprlib
 
 from gi.repository import GObject, GLib
 from gi.types import GObjectMeta
@@ -7,12 +8,16 @@ from zope.interface import providedBy, Interface, Attribute
 from zope.interface.adapter import AdapterRegistry
 from zope.interface.interface import adapter_hooks
 
-
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import check_call
 
 logger = get_module_logger(__name__)
+
+
+obj_repr = reprlib.Repr()
+obj_repr.maxlevel = 4
+obj_repr.maxdict = 1
 
 
 class IBeamline(Interface):
@@ -161,12 +166,27 @@ class Object(GObject.GObject, metaclass=ObjectType):
     >>> obj.emit('ready', True, 'Ready to roll!')
 
     """
-    name = 'Base Object'
 
     def __init__(self):
         super().__init__()
+        self.name = self.__class__.__name__
         self.__signal_types__ = _get_signal_properties(self)
         self.__state__ = {name: None for name in self.__signal_types__.keys()}
+
+    def __str__(self):
+        obj_id = hex(id(self))
+        return (
+            f"<{self.__class__.__name__} | {self.name} | {obj_id}/>"
+        )
+
+    def __repr__(self):
+        state_info = '\n'.join(f'    {name}: {obj_repr.repr(value)}' for name, value in sorted(self.get_states().items()) if value is not None)
+        obj_id = hex(id(self))
+        return (
+            f"<{self.__class__.__name__} | {self.name} | {obj_id}\n"
+            f"{state_info}"
+            f"\n/>"
+        )
 
     def _emission(self, signal, *args):
         try:
@@ -272,13 +292,9 @@ class Device(Object):
 
     def __init__(self):
         super().__init__()
-        self.name = self.__class__.__name__
         self.__pending = []                     # inactive child devices or process variables
         self.health_manager = HealthManager()   # manages the health states
         GLib.timeout_add(10000, self.check_inactive)
-
-    def __str__(self):
-        return "<{}|{}>".format(self.__class__.__name__, id(self))
 
     def do_active(self, state):
         desc = {True: 'active', False: 'inactive'}
