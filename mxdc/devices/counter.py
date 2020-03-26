@@ -117,8 +117,14 @@ class Counter(BaseCounter):
         self.stopped = True
 
 
-SIM_FILE = os.path.join(os.path.dirname(__file__),'data','simcounter.dat')
-SIM_DATA = numpy.abs(numpy.loadtxt(SIM_FILE))
+def gen_sim_data():
+    delta = 0.025
+    x = y = numpy.arange(-3.0, 3.0, delta)
+    X, Y = numpy.meshgrid(x, y)
+    Z1 = numpy.exp(-X ** 2 - Y ** 2)
+    Z2 = numpy.exp(-(X - 1) ** 2 - (Y - 1) ** 2)
+    Z = (Z1 - Z2) * 2
+    return Z
 
 
 class SimCounter(BaseCounter):
@@ -126,7 +132,8 @@ class SimCounter(BaseCounter):
     Simulated Counter Device objects. Optionally reads from external file.
     """
 
-    SIM_COUNTER_DATA = 4*SIM_DATA/(SIM_DATA.max() - SIM_DATA.min()) + 1
+    SIM_COUNTER_DATA = gen_sim_data()
+    print(SIM_COUNTER_DATA.shape)
 
     def __init__(self, name, zero=12345):
         super().__init__()

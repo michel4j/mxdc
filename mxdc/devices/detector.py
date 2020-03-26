@@ -20,8 +20,6 @@ from .interfaces import IImagingDetector
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
-TEST_IMAGES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'test')
-
 
 class States(Enum):
     """
@@ -193,7 +191,7 @@ class BaseDetector(Device):
 
 class SimDetector(BaseDetector):
 
-    def __init__(self, name, size, pixel_size=0.073242, images='/archive/staff/school', detector_type="MX300"):
+    def __init__(self, name, size, pixel_size=0.073242, images='/tmp', detector_type="MX300"):
         super().__init__()
         self.monitor = frames.FileMonitor(self)
 
@@ -243,7 +241,6 @@ class SimDetector(BaseDetector):
     def _select_dir(self, name='junk'):
         import hashlib
 
-        self._src_template = os.path.join(TEST_IMAGES, 'images', 'sim_{:04d}.img')
         self._num_frames = 2
 
         # always select the same dataset for the same name and date
@@ -258,10 +255,6 @@ class SimDetector(BaseDetector):
             if num_datasets:
                 chosen = (datetime.today().day + name_int) % num_datasets
                 self._src_template, self._num_frames = list(self._datasets.items())[chosen]
-
-        if not os.path.exists(self._src_template.format(1)):
-            self._src_template = os.path.join(TEST_IMAGES, 'sim_{:04d}.img')
-            self._num_frames = 2
 
     def _copy_frame(self):
         file_parms = copy.deepcopy(self.parameters)
