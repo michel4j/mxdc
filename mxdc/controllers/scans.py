@@ -597,7 +597,7 @@ class XASScanController(ScanController):
         # fix adjustments
         self.kmax_spin.set_adjustment(Gtk.Adjustment(8, 1, 16, 1, 1, 0))
         self.scans_spin.set_adjustment(Gtk.Adjustment(4, 1, 128, 1, 10, 0))
-        self.scanner.connect('new-scan', self.on_new_scan)
+        self.scanner.connect('new-row', self.on_new_scan)
         self.results.connect('notify::directory', self.on_scan_selected)
 
     def on_new_scan(self, scanner, scan):
