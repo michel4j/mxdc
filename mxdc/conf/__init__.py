@@ -15,7 +15,7 @@ logger = get_module_logger(__name__)
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHARE_DIR = os.path.join(APP_DIR, 'share')
-CONFIG_DIR = os.path.join(APP_DIR, 'etc')
+CONFIG_DIR = os.environ.get('MXDC_CONFIG', os.path.join(APP_DIR, 'etc'))
 DOCS_DIR = os.path.join(APP_DIR, 'docs/html')
 LIBS_DIR = os.path.join(APP_DIR, 'mxdc/libs')
 
