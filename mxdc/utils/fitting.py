@@ -92,7 +92,7 @@ def decay_func(x, coeffs):
 
 TARGET_FUNC = {
     'gaussian': gauss,
-    'lorentzian': lorentz,
+    'lorentz': lorentz,
     'voigt': voigt,
     'step': step_func,
     'decay': decay_func,
@@ -111,7 +111,7 @@ class PeakFitter(object):
         else:
             target_func = target
 
-        if target in ['gaussian', 'voigt', 'lorentzian']:
+        if target in ['gaussian', 'voigt', 'lorentz']:
             pars, success = histogram_fit(x, y)
             coeffs = [pars[0], pars[1], pars[2], 0, 0]
         else:
