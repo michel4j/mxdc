@@ -466,12 +466,12 @@ class GridScan(BasicScan):
     Absolute Step Grid scan of two motors.
 
     :param m1: first motor or positioner
-    :param p11: relative start position of first motor
-    :param p12: relative end position of first motor
+    :param p11: start position of first motor
+    :param p12: end position of first motor
     :param steps1: number of steps for motor 1
     :param m2: second motor or positioner
-    :param p21: relative start position of second motor
-    :param p22: relative end position of second motor
+    :param p21: start position of second motor
+    :param p22: end position of second motor
     :param steps2: number of steps for motor 2
     :param exposure: count time at each point
     :param counters: one or more counters
@@ -544,11 +544,11 @@ class SlewGridScan(BasicScan):
     Continuous Grid scan of two motors.
 
     :param m1: first motor or positioner for slew scan
-    :param p11: relative start position of first motor
-    :param p12: relative end position of first motor
+    :param p11: start position of first motor
+    :param p12: end position of first motor
     :param m2: second motor or positioner
-    :param p21: relative start position of second motor
-    :param p22: relative end position of second motor
+    :param p21: start position of second motor
+    :param p22: end position of second motor
     :param steps: number of steps for motor 2
     :param exposure: count time at each point
     :param counters: one or more counters
