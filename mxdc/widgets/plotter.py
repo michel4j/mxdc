@@ -1,6 +1,8 @@
 import os
 
 import numpy
+from scipy import interpolate
+
 from gi.repository import Gtk, GLib
 from matplotlib import rcParams
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
@@ -19,44 +21,44 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 
 class PlotterToolbar(NavigationToolbar):
-    pass
-    # toolitems = (
-    #     ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
-    #     ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
-    #     ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
-    #     (None, None, None, None),
-    #     ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
-    #     ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
-    #     (None, None, None, None),
-    #     ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
-    # )
-    #
-    # def _init_toolbar(self):
-    #     for text, tooltip_text, icon, callback in self.toolitems:
-    #         if text is None:
-    #             self.insert(Gtk.SeparatorToolItem(), -1)
-    #             continue
-    #
-    #         tbutton = Gtk.ToolButton.new(Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU))
-    #         tbutton.set_label(text)
-    #         self.insert(tbutton, -1)
-    #         tbutton.connect('clicked', getattr(self, callback))
-    #         tbutton.set_tooltip_text(tooltip_text)
-    #
-    #     toolitem = Gtk.SeparatorToolItem()
-    #     self.insert(toolitem, -1)
-    #     toolitem.set_draw(False)
-    #     toolitem.set_expand(True)
-    #
-    #     toolitem = Gtk.ToolItem()
-    #     self.insert(toolitem, -1)
-    #
-    #     self.message = Gtk.Label()
-    #     self.message.get_style_context().add_class('plot-tool-message')
-    #     toolitem.add(self.message)
-    #     self.set_style(Gtk.ToolbarStyle.ICONS)
-    #     self.set_icon_size(Gtk.IconSize.BUTTON)
-    #     self.show_all()
+    toolitems = (
+        ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
+        ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
+        ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
+        (None, None, None, None),
+        ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
+        ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
+        (None, None, None, None),
+        ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
+    )
+
+    def _init_toolbar(self):
+        self.set_style(Gtk.ToolbarStyle.ICONS)
+
+        self._gtk_ids = {}
+        for text, tooltip_text, icon, callback in self.toolitems:
+            if text is None:
+                self.insert(Gtk.SeparatorToolItem(), -1)
+                continue
+            self._gtk_ids[text] = tbutton = Gtk.ToolButton.new(
+                Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.SMALL_TOOLBAR)
+            )
+            tbutton.set_label(text)
+            self.insert(tbutton, -1)
+            tbutton.connect('clicked', getattr(self, callback))
+            tbutton.set_tooltip_text(tooltip_text)
+
+        toolitem = Gtk.SeparatorToolItem()
+        self.insert(toolitem, -1)
+        toolitem.set_draw(False)
+        toolitem.set_expand(True)
+
+        toolitem = Gtk.ToolItem()
+        self.insert(toolitem, -1)
+        self.message = Gtk.Label()
+        toolitem.add(self.message)
+        self.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
+        self.show_all()
 
 
 class Plotter(Gtk.Alignment):
@@ -87,7 +89,7 @@ class Plotter(Gtk.Alignment):
         self.grid_norm = Normalize()
         self.grid_snake = False
 
-        self.fig = Figure(figsize=(12,8), dpi=dpi, facecolor='w')
+        self.fig = Figure(figsize=(12, 8), dpi=dpi, facecolor='w')
         self.clear()
 
         self.canvas = FigureCanvas(self.fig)  # a Gtk.DrawingArea
@@ -101,9 +103,15 @@ class Plotter(Gtk.Alignment):
         self.show_all()
 
     def clear(self, specs=None):
+        """
+        Clear the plot and configure it for the given specifications.
+
+        :param specs: dictionary containing configuration parameters
+        """
         self.fig.clear()
         self.fig.subplots_adjust(bottom=0.1, left=0.05, top=0.90, right=self.axis_space)
         specs = {} if specs is None else specs
+        self.grid_mode = 'grid' in specs.get('scan_type', '')
         self.data_type = specs.get('data_type')
         self.values = misc.RecordArray(self.data_type, size=self.buffer_size, loop=self.ring_buffer)
         self.cursor_line = None
@@ -118,7 +126,7 @@ class Plotter(Gtk.Alignment):
         ax.yaxis.set_major_formatter(OldScalarFormatter())
         self.axis = {'default': ax}
 
-        self.grid_mode = 'grid' in specs.get('scan_type', '')
+
         if specs:
             names = self.data_type['names'][1:]
             scales = specs.get('data_scale')
@@ -133,12 +141,28 @@ class Plotter(Gtk.Alignment):
                     for i, name in enumerate(names)
                 }
 
+    def get_axis_for(self, name):
+        """
+        Return the axis for the named line
+
+        :param name: line name
+        :return: an axis object
+        """
+        return self.lines[name].axes
+
     def add_axis(self, name=None, label=""):
+        """
+        Add a named axis to the plot with the
+
+        :param name: axis name
+        :param label: axis label
+        :return: matplotlib axis object
+        """
         name = 'axis-{}'.format(len(self.axis)) if not name else name
         default = self.axis.get('default')
         index = len(self.axis) + 1
-        axis_position = 1/(self.axis_space**(index-1))
-        self.fig.subplots_adjust(right=self.axis_space**index)
+        axis_position = 1 / (self.axis_space ** (index - 1))
+        self.fig.subplots_adjust(right=self.axis_space ** index)
         ax = self.fig.add_axes(default.get_position(), sharex=default, frameon=False)
         ax.spines['right'].set_position(('axes', axis_position))
         ax.yaxis.set_major_formatter(OldScalarFormatter())
@@ -154,7 +178,22 @@ class Plotter(Gtk.Alignment):
         self.plot_scales[name] = ()
         return ax
 
-    def add_line(self, xpoints, ypoints, style='-', name='', lw=1, axis="default", alpha=1.0, color=None, redraw=True, markevery=[]):
+    def add_line(self, xpoints, ypoints, style='-', name='', lw=1, axis="default", alpha=1.0, color=None, redraw=True,
+                 markevery=[]):
+        """
+        Add a named line to the plot
+
+        :param xpoints: initial x axis values
+        :param ypoints: initial y axis values
+        :param style: matplotlib line style string
+        :param name: line name, optional
+        :param lw: line width
+        :param axis: optional name of axis of add line to
+        :param alpha: line transparency
+        :param color: line color
+        :param redraw: whether to redraw the line or note
+        :param markevery: matplotlit 'markevery' parameter, set to None to show markers at every point
+        """
         assert (len(xpoints) == len(ypoints))
 
         if axis not in self.axis:
@@ -187,9 +226,18 @@ class Plotter(Gtk.Alignment):
 
         if redraw:
             self.redraw()
-        return True
 
     def add_point(self, row, redraw=True):
+        """
+        Add a row of scan points to the data table
+
+        :param row: sequence of values to add
+        :param redraw: Whether to redraw the plot
+        """
+
+        if numpy.nan in row:
+            return
+
         self.values.append(row)
         x_name = self.data_type['names'][0]
         if self.grid_mode:
@@ -225,7 +273,7 @@ class Plotter(Gtk.Alignment):
                 # adjust axes limits as necessary
                 if ax is not None:
                     offset = (ymax - ymin) * .1
-                    ax.set_ylim(ymin-offset, ymax+offset)
+                    ax.set_ylim(ymin - offset, ymax + offset)
                     ax.set_xlim(xmin, xmax)
 
             if len(self.lines) > 1:
@@ -236,20 +284,51 @@ class Plotter(Gtk.Alignment):
         if redraw:
             self.redraw()
 
+    def new_row(self, index):
+        """
+        Prepare for A new row of data
+        :param index: row index for next row
+        """
+
+        if self.grid_mode and index > 1:
+            # for slew grid scans, data needs to be padded/truncated
+            y_name = self.data_type['names'][1]
+            yo = self.values.data[y_name]
+
+            x_size = (yo == yo[0]).sum()
+            y_size = index
+            pad = x_size * y_size - yo.shape[0]
+            if pad == 0:
+                return
+            elif pad > 0:
+                for i in range(pad):
+                    self.values.append(self.values.data[-1])  # padding
+            elif pad < 0:
+                self.values.length = x_size * y_size
+            self.update_grid_data()
+
     def update_grid_data(self):
-        x1_name, x2_name, y_name = self.data_type['names'][:3]
-        m1 = self.values.data[x1_name]
-        m2 = self.values.data[x2_name]
-        counts = self.values.data[y_name]
+        """
+        Update the grid image values
+        """
+        x_name, y_name, counts_name = self.data_type['names'][:3]
+        xo = self.values.data[x_name]
+        yo = self.values.data[y_name]
+        counts = self.values.data[counts_name]
+
+        x_min, x_max = xo.min(), xo.max()
+        y_min, y_max = yo.min(), yo.max()
+
         self.grid_norm.autoscale(counts)
 
-        xsize = (m2 == m2[0]).sum()
-        ysize = int(numpy.ceil(m2.shape[0] / xsize))
-        blanks = xsize*ysize - m2.shape[0]
+        xsize = (yo == yo[0]).sum()
+        ysize = int(numpy.ceil(yo.shape[0] / xsize))
 
         # pad unfilled values with nan
+        blanks = xsize * ysize - counts.shape[0]
         if blanks:
             counts = numpy.pad(counts, (0, blanks), 'constant', constant_values=(numpy.nan, numpy.nan))
+
         count_data = numpy.resize(counts, (ysize, xsize))
 
         # flip alternate rows
@@ -257,13 +336,13 @@ class Plotter(Gtk.Alignment):
             count_data[1::2, :] = count_data[1::2, ::-1]
 
         self.grid_specs.update({
-            'x': numpy.resize(m1, (ysize, xsize)),
-            'y': numpy.resize(m2, (ysize, xsize)),
+            'x': xo,
+            'y': yo,
             'counts': count_data,
         })
         extent = [
-            self.grid_specs['x'].min(), self.grid_specs['x'].max(),
-            self.grid_specs['y'].min(), self.grid_specs['y'].max(),
+            x_min, x_max,
+            y_min, y_max,
         ]
         if self.grid_image is None:
             default = self.axis.get('default')
@@ -278,6 +357,13 @@ class Plotter(Gtk.Alignment):
         # set axis limits
         self.grid_image.axes.set_xlim(extent[:2])
         self.grid_image.axes.set_ylim(extent[-2:])
+        self.redraw()
+
+    def get_records(self):
+        """
+        Return the data array manager for the plot
+        """
+        return self.values
 
     def set_labels(self, title="", x_label="", y1_label=""):
         default = self.axis.get('default')
@@ -322,7 +408,8 @@ class Plotter(Gtk.Alignment):
                                 ax.get_yticklabels()[0].get_transform(), ax.transData
                             )
                             self.cursor_points[name] = ax.text(
-                                1, y_value, "◀ {}".format(name), color=line.get_color(), transform=trans, ha="left", va="center"
+                                1, y_value, "◀ {}".format(name), color=line.get_color(), transform=trans, ha="left",
+                                va="center"
                             )
             else:
                 self.cursor_line.set_xdata(x)
@@ -341,4 +428,3 @@ class Plotter(Gtk.Alignment):
                     mark = self.cursor_points.pop(name)
                     mark.remove()
                 self.canvas.draw_idle()
-

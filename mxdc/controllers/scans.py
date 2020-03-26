@@ -441,8 +441,8 @@ class MADScanController(ScanController):
         self.plotter.add_axis(name="sfactors", label="Anomalous factors")
         data = scanner.results.get('esf')
         if data is not None:
-            self.plotter.add_line(data['energy'], data['fpp'], '-', name='fpp', axis='sfactors')
-            self.plotter.add_line(data['energy'], data['fp'], '-', name="fp", axis='sfactors',redraw=True)
+            self.plotter.add_line(data['energy'], data['fpp'], '-', name='fpp', axis='sfactors', lw=0.5)
+            self.plotter.add_line(data['energy'], data['fp'], '-', name="fp", axis='sfactors',redraw=True, lw=0.5)
             self.plotter.set_labels(x_label='Energy (keV)', y1_label='Fluorescence')
 
         for choice in choices:
@@ -524,7 +524,7 @@ class XRFScanController(ScanController):
 
         ax = self.plotter.axis['default']
         ax.axis('tight')
-        ax.set_xlim(-0.25, energy + 1.5)
+        ax.set_xlim(-0.25, energy + 0.5)
 
         # get list of elements sorted in descending order of prevalence
         element_list = [(v[0], k) for k, v in list(assignments.items())]

@@ -138,11 +138,13 @@ class SimCounter(BaseCounter):
         self.set_state(active=True, health=(0, '', ''))
         self.value.connect('changed', self.on_value)
         self.counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0] ** 2)
+        self.prev_value = self.zero
 
     def fetch_value(self):
         i, j = divmod(self.counter_position, self.SIM_COUNTER_DATA.shape[0])
         self.counter_position += 1
         value = self.SIM_COUNTER_DATA[i,j]
+        self.prev_value = value
         return value
 
     def count(self, t):

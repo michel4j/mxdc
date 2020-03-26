@@ -1,14 +1,13 @@
 import inspect
-import time
-import pytz
 import os
+import time
 from datetime import datetime
 
 import numpy
-from scipy import interpolate
+import pytz
 from zope.interface import implementer
 
-from mxdc import Registry, Signal, Engine, IBeamline
+from mxdc import Registry, Signal, Engine
 from mxdc.devices.interfaces import IMotor, ICounter
 from mxdc.engines.interfaces import IScan, IScanPlotter
 from mxdc.utils import misc, xdi
@@ -26,11 +25,12 @@ class BasicScan(Engine):
 
     class Signals:
         new_point = Signal('new-point', arg_types=(object,))
+        new_row = Signal('new-row', arg_types=(int, ))
         message = Signal('message', arg_types=(str,))
 
     def __init__(self):
         super().__init__()
-        self.name = misc.camel_to_snake(self.__class__.__name__)
+        self.name = misc.normalize_name(self.__class__.__name__)
         self.config = misc.DotDict({})
 
         # data variables
@@ -41,7 +41,6 @@ class BasicScan(Engine):
         self.data_ids = {}
         self.data_type = {}
         self.data_scale = []
-        self.data_size = None
 
         self.plotter = Registry.get_utility(IScanPlotter)
         if self.plotter:
@@ -65,20 +64,20 @@ class BasicScan(Engine):
         """
 
         self.data_units = {
-            misc.slugify(m.name): m.units for m in motors
+            misc.normalize_name(m.name): m.units for m in motors
         }
-        motor_names = [misc.slugify(m.name) for m in motors]
+        motor_names = [misc.normalize_name(m.name) for m in motors]
 
         if self.config.i0 is not None:
             counters = [*counters, i0]
             self.config.start_channel = len(motor_names) + 1  # channel 1 is i0 scaled version of channel 2
-            scaled_names = ['norm_{}'.format(misc.slugify(counters[0].name))]
+            scaled_names = ['norm_{}'.format(misc.normalize_name(counters[0].name))]
         else:
             self.config.start_channel = len(motor_names)  # no i0 therefore no scaled channel
             scaled_names = []
 
         self.config.counters = [ICounter(counter) for counter in counters]  # adapt counters
-        names = motor_names + scaled_names + [misc.slugify(counter.name) for counter in counters]
+        names = motor_names + scaled_names + [misc.normalize_name(counter.name) for counter in counters]
 
         self.data_type = {
             'names': names,
@@ -98,7 +97,7 @@ class BasicScan(Engine):
         """
         return {
             'start_time': self.config.get('start_time'),
-            'scan_type': misc.camel_to_snake(self.__class__.__name__),
+            'scan_type': misc.normalize_name(self.__class__.__name__),
             'data_type': self.data_type,
             'data_scale': self.data_scale,
             'units': self.data_units,
@@ -132,7 +131,7 @@ class BasicScan(Engine):
         self.scan()
         self.config.update(end_time=datetime.now(tz=pytz.utc))
         self.finalize()
-        self.set_state(busy=False, done=self.config)
+        self.set_state(busy=False, done=self.config, message='Scan complete!')
 
     def scan(self):
         """
@@ -219,14 +218,14 @@ class SlewScan(BasicScan):
         self.data_row[channel] = value
 
         # When i0 is specified, add scaled value of first channel, last channel is i0
-        if self.config.i0 and channel == self.config.start_channel and len(self.data_rows):
-            self.data_row[1] = value*self.data_rows[0][-1]/self.data_row[-1]
+        if self.config.i0 and channel == self.config.start_channel and len(self.raw_data):
+            self.data_row[1] = value * self.raw_data[0][-1] / self.data_row[-1]
         row = tuple(self.data_row)
-        self.data_rows.append(row)
-        if time.time() - self.last_update > MIN_CNTSCAN_UPDATE:
-            progress = abs((self.data_row[0] - self.config.p1)/(self.config.p2 - self.config.p1))
-            self.set_state(new_point=(row,), progress=(progress, ''))
-            self.last_update = time.time()
+        self.raw_data.append(row)
+
+        progress = abs((self.data_row[0] - self.config.p1)/(self.config.p2 - self.config.p1))
+        self.set_state(new_point=(row,), progress=(progress, ''))
+        self.last_update = time.time()
 
     def stop(self):
         self.config.m1.stop()
@@ -242,7 +241,7 @@ class SlewScan(BasicScan):
         self.data_row = [numpy.nan] * len(self.data_type['names'])
         self.data_row[-1] = 1.0  # make sure default i0 is 1.0
         self.data_row[0] = self.config.m1.get_position()
-        self.data_rows = []
+        self.raw_data = []
 
         # register data monitor to gather data points
         self.data_ids[self.config.m1] = self.config.m1.connect('changed', self.on_data, 0)
@@ -310,7 +309,7 @@ class AbsScan(BasicScan):
 
     def scan(self):
         if not self.append:
-            self.data_rows = []
+            self.raw_data = []
 
         ref_value = 1.0
         for i, x in enumerate(self.config.positions):
@@ -329,7 +328,7 @@ class AbsScan(BasicScan):
                 counts = (counts[0]*ref_value/counts[-1],) + counts
 
             row = (x,) + counts
-            self.data_rows.append(row)
+            self.raw_data.append(row)
             self.emit("new-point", row)
             self.emit("progress", (i + 1.0)/self.config.steps, "")
             time.sleep(0)
@@ -409,7 +408,7 @@ class AbsScan2(BasicScan):
 
     def scan(self):
         if not self.append:
-            self.data_rows = []
+            self.raw_data = []
 
         ref_value = 1.0
 
@@ -432,7 +431,7 @@ class AbsScan2(BasicScan):
                 counts = (counts[0]*ref_value/counts[-1],) + counts
 
             row = (x1, x2, ) + counts
-            self.data_rows.append(row)
+            self.raw_data.append(row)
             self.emit("new-point", row)
             self.emit("progress", (i + 1.0) / self.config.steps, "")
             time.sleep(0)
@@ -505,7 +504,6 @@ class GridScan(BasicScan):
             snake=snake
         )
         self.setup((self.config.m1, self.config.m2,), counters, i0)
-        self.data_size = (self.config.steps_1, self.config.steps_2)
 
     def get_specs(self):
         specs = super().get_specs()
@@ -513,7 +511,7 @@ class GridScan(BasicScan):
         return specs
 
     def scan(self):
-        self.data_rows = []
+        self.raw_data = []
         total_points = self.config.steps_1 * self.config.steps_2
         position = 0
         ref_value = 1.0
@@ -534,10 +532,11 @@ class GridScan(BasicScan):
 
                 position += 1
                 row = (x1, x2,) + counts
-                self.data_rows.append(row)
+                self.raw_data.append(row)
                 self.emit("new-point", row)
                 self.emit("progress", position / total_points, "")
                 time.sleep(0)
+            self.emit('new-row', i + 1)
 
 
 class SlewGridScan(BasicScan):
@@ -574,9 +573,9 @@ class SlewGridScan(BasicScan):
             positions=positions,
         )
         self.setup((self.config.m1, self.config.m2,), counters, i0)
-        self.data_size(self.config.steps, None)
         self.total_lines = steps
-        self.current_position = 0
+        self.cur_count = 0
+        self.cur_origin = 0
         self.last_update = time.time()
 
     def get_specs(self):
@@ -586,14 +585,18 @@ class SlewGridScan(BasicScan):
 
     def on_data(self, device, value, channel):
         self.data_row[channel] = value
-        if self.config.i0 and channel == self.config.start_channel and len(self.data_rows):
-            self.data_row[1] = value*self.data_rows[0][-1]/self.data_row[-1]
+        if self.config.i0 and channel == self.config.start_channel and len(self.raw_data):
+            self.data_row[1] = value * self.raw_data[0][-1] / self.data_row[-1]
+
         row = tuple(self.data_row)
-        self.data_rows.append(row)
-        if time.time() - self.last_update > MIN_CNTSCAN_UPDATE:
-            progress = self.current_position/self.total_lines + abs((self.data_row[0] - self.config.p11)/(self.config.p12 - self.config.p11))
-            self.set_state(new_point=(row,), progress=(progress, ''))
-            self.last_update = time.time()
+        self.raw_data.append(row)
+
+        self.set_state(new_point=(row,))
+        outer_progress = self.cur_count / self.total_lines
+        inner_progress = abs((self.data_row[0] - self.cur_origin) / (self.config.p12 - self.config.p11))/self.total_lines
+        progress = outer_progress + inner_progress
+        self.set_state(progress=(progress, ''))
+        self.last_update = time.time()
 
     def stop(self):
         self.stopped = True
@@ -602,23 +605,26 @@ class SlewGridScan(BasicScan):
 
     def scan(self):
         # initialize data
-        self.data_rows = []
+        self.raw_data = []
         self.data_row = [numpy.nan] * len(self.data_type['names'])
         self.data_row[-1] = 1.0  # make sure default i0 is 1.0
 
         outer_channel = 1
         slew_channel = 0
 
-        # go to start position on m1 and configure motor, save config first
+        # go to start position and configure motor, save config first
         motor_conf = self.config.m1.get_config()
+
         self.config.m1.move_to(self.config.p11, wait=True)
         self.config.m1.configure(speed=self.config.speed)
-        self.data_row[outer_channel] = self.config.m1.get_position()
+        self.data_row[slew_channel] = self.config.m1.get_position()
 
-        for i, x2 in enumerate(self.config.positions_2):
-            self.current_position = i
+        for i, x2 in enumerate(self.config.positions):
+            self.cur_count = i
+
             if self.stopped: break
             self.config.m2.move_to(x2, wait=True)
+            self.data_row[outer_channel] = self.config.m2.get_position()
 
             # INNER Slew Scan
             # prepare data recorder
@@ -634,7 +640,10 @@ class SlewGridScan(BasicScan):
 
             # move motor to start or end
             x1 = [self.config.p12, self.config.p11][i % 2]  # alternate p11 and p12
+            self.cur_origin = self.config.m1.get_position()
             self.config.m1.move_to(x1, wait=True)
+
+            self.emit('new-row', i+1)
 
             # disconnect data monitor at the end
             for counter, src_id in self.data_ids.items():
