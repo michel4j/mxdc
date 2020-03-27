@@ -19,7 +19,6 @@ gtk3reactor.install()
 from mxdc import conf
 from mxdc.conf import settings
 from mxdc.services import server
-from mxdc.beamlines.mx import MXBeamline
 from mxdc.utils import mdns
 from mxdc.utils.log import get_module_logger
 
@@ -28,6 +27,7 @@ from mxdc.widgets import dialogs
 from mxdc.controllers.settings import SettingsDialog
 from mxdc.controllers.browser import Browser
 from mxdc.utils import excepthook, misc
+from mxdc.beamlines import build_beamline
 from mxdc.services import clients
 from twisted.internet import reactor
 from twisted.spread import pb
@@ -69,7 +69,7 @@ class Application(Gtk.Application):
         self.add_action(action)
 
         # initialize beamline
-        self.beamline = MXBeamline()
+        self.beamline = build_beamline()
         logger.info('Starting MxDC ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
             name='MxDC',

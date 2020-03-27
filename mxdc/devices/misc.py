@@ -496,6 +496,16 @@ class Enclosures(Device):
             self.set_state(health=(0, 'ready',self.get_messages()))
 
 
+class SimEnclosures(Device):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.set_state(active=True)
+
+    def get_messages(self):
+        return "All secure"
+
+
 class CamScaleFromZoom(PositionerBase):
     def __init__(self, zoom, width=1360.0):
         super().__init__()

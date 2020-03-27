@@ -6,8 +6,8 @@ import os
 from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
-from mxdc.conf import settings
-from mxdc.utils.misc import get_project_id, DotDict
+from mxdc.conf import settings, PROPERTIES
+from mxdc.utils.misc import get_project_id, DotDict, import_string
 from mxdc.utils.log import get_module_logger
 
 
@@ -161,3 +161,14 @@ class Beamline(Object):
         """
         return self.get_state('ready')
 
+
+def build_beamline(console=False):
+    """
+    Create and return a beamline object of the appropriate type as determined by the config file
+    :param console: Whether to instantiate console devices.
+    :return: beamline object
+    """
+
+    beamline_class_name = PROPERTIES.get('type', 'mxdc.beamlines.mx.MXBeamline')
+    BeamlineClass = import_string(beamline_class_name)
+    return BeamlineClass(console=console)

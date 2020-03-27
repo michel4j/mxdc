@@ -16,13 +16,14 @@ from twisted.internet import gtk3reactor
 gtk3reactor.install()
 
 from mxdc import conf
-from mxdc.beamlines.mx import MXBeamline
+
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import identifier_slug
 from mxdc.widgets.HutchWindow import AppWindow
 from mxdc.controllers.browser import Browser
 from mxdc.utils import excepthook, misc
 from mxdc.services import clients
+from mxdc.beamlines import build_beamline
 from twisted.internet import reactor
 
 USE_TWISTED = True
@@ -58,7 +59,7 @@ class Application(Gtk.Application):
         self.add_action(action)
 
         # initialize beamline
-        self.beamline = MXBeamline()
+        self.beamline = build_beamline()
         logger.info('Starting HutchViewer ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
             name='HutchViewer',

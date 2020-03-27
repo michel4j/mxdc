@@ -15,6 +15,7 @@ import uuid
 import numpy
 from gi.repository import GLib, GObject
 from scipy import interpolate
+from importlib import import_module
 
 from mxdc.com import ca
 from . import decorators
@@ -428,3 +429,23 @@ def check_call(f):
 
     new_f.__name__ = f.__name__
     return new_f
+
+
+def import_string(dotted_path):
+    """
+    Import a dotted module path and return the attribute/class designated by the
+    last name in the path. Raise ImportError if the import failed.
+    """
+    try:
+        module_path, class_name = dotted_path.rsplit('.', 1)
+    except ValueError as err:
+        raise ImportError("{} doesn't look like a module path".format(dotted_path)) from err
+
+    module = import_module(module_path)
+
+    try:
+        return getattr(module, class_name)
+    except AttributeError as err:
+        raise ImportError(
+            'Module "{}" does not define a "{}" attribute/class'.format(module_path, class_name)
+        ) from err

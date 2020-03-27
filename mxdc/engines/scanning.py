@@ -114,7 +114,9 @@ class BasicScan(Engine):
 
     def extend(self, amount):
         """
-        Extend the scan by the given amount.
+        Extend the scan by the given amount. Subclasses should update the configuration before calling the
+        base class extend() method since this method will start the scan.
+
         :param amount: amount to extend scan by
         :return:
         """
@@ -330,7 +332,7 @@ class AbsScan(BasicScan):
                 break
 
             # skip to current position
-            if i < self.config.position: continue
+            if i <= self.config.position: continue
 
             self.config.m1.move_to(x, wait=True)
             counts = misc.multi_count(self.config.exposure, *self.config.counters)
@@ -601,8 +603,8 @@ class SlewGridScan(BasicScan):
         self.raw_data.append(row)
 
         self.set_state(new_point=(row,))
-        outer_progress = self.cur_count / self.steps
-        inner_progress = abs((self.data_row[0] - self.cur_origin) / (self.config.p12 - self.config.p11))/self.steps
+        outer_progress = self.cur_count / self.config.steps
+        inner_progress = abs((self.data_row[0] - self.cur_origin) / (self.config.p12 - self.config.p11))/self.config.steps
         progress = outer_progress + inner_progress
         self.set_state(progress=(progress, ''))
         self.last_update = time.time()

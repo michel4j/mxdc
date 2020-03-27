@@ -121,6 +121,7 @@ def gen_sim_data():
     Z1 = numpy.exp(-X ** 2 - Y ** 2)
     Z2 = numpy.exp(-(X - 1) ** 2 - (Y - 1) ** 2)
     Z = (Z1 - Z2) * 2
+    Z = Z - Z.min() + 1
     return Z
 
 
@@ -137,7 +138,7 @@ class SimCounter(BaseCounter):
         self.zero = float(zero)
         self.name = name
         self.stopped = True
-        self.value = SimPositioner('PV', self.zero, '', noise=2)
+        self.value = SimPositioner('PV', self.zero, '', noise=0.5)
         self.set_state(active=True, health=(0, '', ''))
         self.value.connect('changed', self.on_value)
         self.counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0] ** 2)

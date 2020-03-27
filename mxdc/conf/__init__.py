@@ -97,12 +97,14 @@ def initialize(name=None):
 
         # get config modules
         CONFIGS, PROPERTIES = get_config_modules(CONFIG_DIR, name=name)
+
         assert bool(CONFIGS), 'Configuration error'
         APP_CACHE_DIR = os.path.join(app_config_dir, '{}.cache'.format(misc.short_hash(PROPERTIES['name'])))
 
         for directory in [app_config_dir, APP_CACHE_DIR]:
             if not os.path.exists(directory):
                 os.makedirs(directory, mode=0o700)
+
     except Exception as e:
         logger.error('Could not find Beamline Configuration.')
         logger.error('Please make sure MXDC is properly installed and configured.')

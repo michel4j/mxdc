@@ -131,15 +131,16 @@ class ScanPlotter(object):
         """
         Clear Scan and setup based on contents of data dictionary.
         """
-        self.plotter.clear(specs)
-        self.start_time = time.time()
 
-        x_name = specs['data_type']['names'][0]
-        x_unit = specs['units'].get(x_name, '').strip()
-        self.plotter.set_labels(
-            title=specs['scan_type'],
-            x_label='{}{}'.format(x_name, '({})'.format(x_unit) if x_unit else ''),
-        )
+        if not specs.get('extension'):
+            self.plotter.clear(specs)
+            self.start_time = time.time()
+            x_name = specs['data_type']['names'][0]
+            x_unit = specs['units'].get(x_name, '').strip()
+            self.plotter.set_labels(
+                title=specs['scan_type'],
+                x_label='{}{}'.format(x_name, '({})'.format(x_unit) if x_unit else ''),
+            )
 
     def on_progress(self, scan, fraction, message):
         if fraction > 0.0:

@@ -95,4 +95,10 @@ class MXBeamline(Beamline):
         self.emit('ready', True)
 
 
+class DummyBeamline(Beamline):
+
+    def setup(self):
+        self.emit('ready', True)
+
+
 __all__ = ['MXBeamline']

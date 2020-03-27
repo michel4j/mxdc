@@ -13,18 +13,18 @@
 import mxdc.devices.shutter
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
-from mxdc.devices.automounter import sim, isara
+from mxdc.devices.automounter import sim
 from mxdc.services import clients
 
 
 CONFIG = {
-    'name': 'SIM-2',
+    'name': 'SIM-1',
     'facility': 'CLS',
     'mono': 'Si 111',
     'mono_unit_cell': 5.4297575,
     'source': 'CLS Sim SGU',
-    'type': 'mx',
-    'subnet': '192.0.0.0/32',
+    'type': 'mxdc.beamlines.mx.MXBeamline',
+    'subnet': '0.0.0.0/32',
 
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 
@@ -71,9 +71,8 @@ DEVICES = {
     'distance': tmp1,
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    #'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
-    'detector': detector.EigerDetector('DEC1608-002:cam1', 'tcp://10.52.31.230:9999', size=(3110, 3269), description='Eiger 9M'),
-    #'detector': detector.ADSCDetector('13ADCS1:cam1', size=4096, pixel_size=0.07243),
+    'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
+    'camera_scale': misc.SimPositioner('Camera Scale', pos=0.025, noise=0),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_x': motor.SimMotor('Beamstop X', 0.0, 'mm'),
@@ -81,8 +80,6 @@ DEVICES = {
     'beamstop_z': motor.SimMotor('Beamstop Z', 30.0, 'mm'),
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
-    # 'sample_camera': SimCamera(),
-    #'sample_camera': video.REDISCamera('v2e1608-301.clsi.ca', mac='000F31031D82'),
     'sample_camera': video.SimCamera(),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
@@ -94,12 +91,11 @@ DEVICES = {
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
-    #'synchrotron':  synchrotron.StorageRing('SYSTEM:mode:fbk', 'PCT1402-01:mA:fbk', 'SRStatus'),
     'psh1': mxdc.devices.shutter.SimShutter('PSH1'),
     'ssh1': mxdc.devices.shutter.SimShutter('SSH2'),
     'psh2': mxdc.devices.shutter.SimShutter('PSH2'),
     'fast_shutter': mxdc.devices.shutter.SimShutter('Fast Shutter'),
-    'enclosures': misc.Enclosures(poe='ACIS1608-5-B10-01:poe1:secure', soe='ACIS1608-5-B10-01:soe1:secure'),
+    'enclosures': misc.SimEnclosures('Beamline Enclusures'),
 
     # Intensity monitors, shutter, attenuation, mca etc
     'i0': counter.SimCounter('i0', zero=26931),
@@ -108,21 +104,18 @@ DEVICES = {
 
     # Misc: Automounter, HC1 etc
     'automounter': sim.SimSAM(),
-    #'automounter': isara.AuntISARA('ISARA1608-301'),
-    #'automounter': automounter.ISARAMounter('BOT1608-I01'),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
     'mca': mca.SimMultiChannelAnalyzer('Simulated MCA', energy=tmp2),
     'multi_mca': mca.SimMultiChannelAnalyzer('Simulated MCA', energy=tmp2),
 
     # disk space monitor
-    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/users', warn=0.2, critical=0.1, freq=30),
+    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/home', warn=0.2, critical=0.1, freq=30),
 }
 
 # lims, dpm, imagesync and other services
 SERVICES = {
     'dss': clients.LocalDSSClient(),
-    #'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
     'lims': clients.MxLIVEClient('http://localhost:8000'),
     'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
     'messenger': clients.Messenger('cmcf.lightsource.ca', realm=CONFIG['name'])

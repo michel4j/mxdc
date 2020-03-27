@@ -9,7 +9,7 @@ from IPython.terminal.embed import InteractiveShellEmbed
 from traitlets.config import Config
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gio, GLib, GObject
+from gi.repository import Gtk, Gio, GLib
 from twisted.internet import gtk3reactor
 gtk3reactor.install()
 
@@ -19,7 +19,7 @@ from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs, textviewer
 from mxdc.controllers import scanplot, common
-from mxdc.beamlines.mx import MXBeamline
+from mxdc.beamlines import build_beamline
 from twisted.internet import reactor
 
 USE_TWISTED = True
@@ -46,7 +46,7 @@ class Application(Gtk.Application):
         self.ipshell = None
         self.shell_config = Config()
         # initialize beamline
-        self.beamline = MXBeamline()
+        self.beamline = build_beamline(console=True)
 
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
