@@ -8,10 +8,8 @@
 .settings
 .idea
 .project
-Xrec_check.txt
-etc/*_local.py
 mxdc/VERSION
-docs-src/_build/latex
-docs-src/_build/doctrees
+docs-src/_build
 fakegir
-venvetc/
+venv
+etc/
