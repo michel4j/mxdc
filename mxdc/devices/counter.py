@@ -1,15 +1,13 @@
-import os
+
 import random
 import time
 
 import numpy
-
 from zope.interface import implementer
 
 from mxdc import Signal, Device
 from mxdc.utils import decorators
 from mxdc.utils.log import get_module_logger
-
 from .interfaces import ICounter
 
 # setup module logger with a default do-nothing handler
@@ -118,8 +116,7 @@ class Counter(BaseCounter):
 
 
 def gen_sim_data():
-    delta = 0.025
-    x = y = numpy.arange(-3.0, 3.0, delta)
+    x = y = numpy.linspace(-3.0, 3.0, 100)
     X, Y = numpy.meshgrid(x, y)
     Z1 = numpy.exp(-X ** 2 - Y ** 2)
     Z2 = numpy.exp(-(X - 1) ** 2 - (Y - 1) ** 2)
@@ -133,7 +130,6 @@ class SimCounter(BaseCounter):
     """
 
     SIM_COUNTER_DATA = gen_sim_data()
-    print(SIM_COUNTER_DATA.shape)
 
     def __init__(self, name, zero=12345):
         super().__init__()
@@ -141,7 +137,7 @@ class SimCounter(BaseCounter):
         self.zero = float(zero)
         self.name = name
         self.stopped = True
-        self.value = SimPositioner('PV', self.zero, '', noise=50)
+        self.value = SimPositioner('PV', self.zero, '', noise=2)
         self.set_state(active=True, health=(0, '', ''))
         self.value.connect('changed', self.on_value)
         self.counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0] ** 2)
@@ -149,8 +145,9 @@ class SimCounter(BaseCounter):
 
     def fetch_value(self):
         i, j = divmod(self.counter_position, self.SIM_COUNTER_DATA.shape[0])
+        i %= self.SIM_COUNTER_DATA.shape[0]
         self.counter_position += 1
-        value = self.SIM_COUNTER_DATA[i,j]
+        value = self.SIM_COUNTER_DATA[i,j] * (1-random.random()*0.02)  # 2% noise
         self.prev_value = value
         return value
 

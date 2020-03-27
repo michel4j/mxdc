@@ -56,7 +56,7 @@ class PositionerBase(Device):
 
 
 class SimPositioner(PositionerBase):
-    def __init__(self, name, pos=0.0, units="", active=True, delay=True, noise=0):
+    def __init__(self, name, pos=0.0, units="", active=True, delay=True, noise=2):
         super().__init__()
         self.name = name
         self._pos = pos
@@ -85,7 +85,7 @@ class SimPositioner(PositionerBase):
         return self._fbk
 
     def _drive(self):
-        self._fbk += numpy.random.normal(0, self._noise)
+        self._fbk *= (1 - numpy.random.normal(0, 1)*self._noise/100)
         return True
 
 

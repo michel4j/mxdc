@@ -3,6 +3,7 @@ import scipy
 from scipy import optimize, interpolate
 from scipy.special import erf
 
+
 # Peak Function
 # 0 = H - Height of peak
 # 1 = L - FWHM of Voigt profile (Wertheim et al)
@@ -13,25 +14,27 @@ from scipy.special import erf
 def step_func(x, coeffs):
     H, L, P = coeffs[:3]
     d = coeffs[3]
-    sigma = L/2.35482
+    sigma = L / 2.35482
     y = 0.5 * H * (0.5 + (1.0 / numpy.pi) * scipy.arctan((x - P) / (0.5 * L))) + d
     return y
 
 
 def step(x, coeffs):
     H, W, P = coeffs[:3]
-    return H * 0.5 * ( 1 + erf( (x - P)/(W * numpy.sqrt(2)) ))
+    return H * 0.5 * (1 + erf((x - P) / (W * numpy.sqrt(2))))
+
 
 def step_response(x, coeffs):
     H, L, P = coeffs[:3]
     p = 1
     mu = 6
     y = numpy.zeros_like(x)
-    xc = (x - P)/L
-    xe = xc[xc>=0.1]
-    theta = numpy.pi/3
-    y[xc>=0.1] = (H * (1 - numpy.exp(-p*(xe))*numpy.sin(mu*(xe) + theta)/numpy.sin(theta))/numpy.sqrt(2))
+    xc = (x - P) / L
+    xe = xc[xc >= 0.1]
+    theta = numpy.pi / 3
+    y[xc >= 0.1] = (H * (1 - numpy.exp(-p * (xe)) * numpy.sin(mu * (xe) + theta) / numpy.sin(theta)) / numpy.sqrt(2))
     return y
+
 
 def multi_peak(x, coeffs, target='gaussian', fraction=0.5):
     y = numpy.zeros(len(x))
@@ -42,6 +45,7 @@ def multi_peak(x, coeffs, target='gaussian', fraction=0.5):
         pars = [a, fwhm, pos, off, n]
         y += TARGET_FUNC[target](x, pars)
     return y
+
 
 def multi_peak_simple(x, coeffs):
     y = numpy.zeros(len(x))
@@ -203,7 +207,7 @@ def histogram_fit(xo, yo):
     xpeak = x[i_max]
     fwhm_x_left = x[i_start]
     fwhm_x_right = x[i_end]
-    cema = sum(x * y) / sum(y)
+    cema = (x * y).sum() / y.sum()
 
     return [ymax, fwhm, xpeak, fwhm_x_left, fwhm_x_right, cema], True
 

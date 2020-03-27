@@ -55,8 +55,8 @@ class SimHumidifier(Device):
     def __init__(self):
         super(SimHumidifier, self).__init__()
         self.name = 'Sim Humidifier'
-        self.humidity = SimPositioner('Humidity', pos=73.4, units='%', delay=True, noise=0.05)
-        self.temperature = SimPositioner('Temperature', pos=293, units='K', noise=0.1)
+        self.humidity = SimPositioner('Humidity', pos=73.4, units='%', delay=True, noise=5)
+        self.temperature = SimPositioner('Temperature', pos=293, units='K', noise=2)
         self.dew_point = SimPositioner('Dew Point', pos=287.68, units='K')
 
         self.drop_size = SimPositioner('Drop Size', pos=150, units='px')

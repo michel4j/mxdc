@@ -41,7 +41,8 @@ class BasicScan(Engine):
         self.data_ids = {}
         self.data_type = {}
         self.data_scale = []
-
+        self.extending = False
+        
         self.plotter = Registry.get_utility(IScanPlotter)
         if self.plotter:
             self.plotter.link_scan(self)
@@ -101,6 +102,7 @@ class BasicScan(Engine):
             'data_type': self.data_type,
             'data_scale': self.data_scale,
             'units': self.data_units,
+            'extension': self.extending,
         }
 
     def finalize(self):
@@ -110,8 +112,14 @@ class BasicScan(Engine):
         """
         self.data = numpy.array(self.raw_data, self.data_type)
 
-    def extend(self, steps):
-        logger.error('Scan can not be extended.')
+    def extend(self, amount):
+        """
+        Extend the scan by the given amount.
+        :param amount: amount to extend scan by
+        :return:
+        """
+        self.extending = True
+        self.start()
 
     def start(self):
         """
@@ -126,12 +134,18 @@ class BasicScan(Engine):
         method is called.
         """
 
-        self.config.update(start_time=datetime.now(tz=pytz.utc))
+        if not self.extending:
+            self.config.update(start_time=datetime.now(tz=pytz.utc))
+            self.raw_data = []
+            self.data_row = [numpy.nan] * len(self.data_type['names'])
+            self.data_row[-1] = 1.0  # make sure last column default (i0) is 1.0
+
         self.set_state(busy=True, message='Scan in progress', started=self.get_specs())
         self.scan()
         self.config.update(end_time=datetime.now(tz=pytz.utc))
         self.finalize()
         self.set_state(busy=False, done=self.config, message='Scan complete!')
+        self.extending = False
 
     def scan(self):
         """
@@ -216,7 +230,6 @@ class SlewScan(BasicScan):
 
     def on_data(self, device, value, channel):
         self.data_row[channel] = value
-
         # When i0 is specified, add scaled value of first channel, last channel is i0
         if self.config.i0 and channel == self.config.start_channel and len(self.raw_data):
             self.data_row[1] = value * self.raw_data[0][-1] / self.data_row[-1]
@@ -226,6 +239,12 @@ class SlewScan(BasicScan):
         progress = abs((self.data_row[0] - self.config.p1)/(self.config.p2 - self.config.p1))
         self.set_state(new_point=(row,), progress=(progress, ''))
         self.last_update = time.time()
+
+    def extend(self, amount):
+        direction = numpy.sign(self.config.p2 - self.config.p1)
+        self.config.p1 = self.config.p2
+        self.config.p2 += direction * abs(amount)
+        super().extend(amount)
 
     def stop(self):
         self.config.m1.stop()
@@ -238,10 +257,7 @@ class SlewScan(BasicScan):
         self.config.m1.configure(speed=self.config.speed)
 
         # initialize row connect devices
-        self.data_row = [numpy.nan] * len(self.data_type['names'])
-        self.data_row[-1] = 1.0  # make sure default i0 is 1.0
         self.data_row[0] = self.config.m1.get_position()
-        self.raw_data = []
 
         # register data monitor to gather data points
         self.data_ids[self.config.m1] = self.config.m1.connect('changed', self.on_data, 0)
@@ -297,20 +313,16 @@ class AbsScan(BasicScan):
             step_size=(positions[1]-positions[2])
         )
         self.setup((self.config.m1,), counters, i0)
-        self.data_size = (self.config.steps,)
-        self.append = False
+        self.extending = False
 
     def extend(self, steps):
-        self.append = True
         self.config.position = self.config.steps
         self.config.p2 = steps + self.config.step_size * steps
         self.config.steps += steps
         self.config.positions = numpy.linspace(self.config.p1, self.config.p2, self.config.steps)
+        super().extend(steps)
 
     def scan(self):
-        if not self.append:
-            self.raw_data = []
-
         ref_value = 1.0
         for i, x in enumerate(self.config.positions):
             if self.stopped:
@@ -332,8 +344,6 @@ class AbsScan(BasicScan):
             self.emit("new-point", row)
             self.emit("progress", (i + 1.0)/self.config.steps, "")
             time.sleep(0)
-
-        self.append = False
 
 
 class RelScan(AbsScan):
@@ -393,30 +403,24 @@ class AbsScan2(BasicScan):
             step_size_2=positions_2[1] - positions_2[0],
         )
         self.setup((self.config.m1, self.config.m2,), counters, i0)
-        self.data_size = (self.config.steps,)
-        self.append = False
 
     def extend(self, steps):
-        self.append = True
         self.config.position = self.config.steps
         self.config.p12 += self.config.step_size_1 * steps
         self.config.p22 += self.config.step_size_2 * steps
         self.config.steps += steps
-        self.data_size = (self.config.steps,)
-        self.config.positions1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
-        self.config.positions2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
+        self.config.positions_1 = numpy.linspace(self.config.p11, self.config.p12, self.config.steps)
+        self.config.positions_2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
+        super().extend(steps)
 
     def scan(self):
-        if not self.append:
-            self.raw_data = []
-
         ref_value = 1.0
-
         for i in range(self.config.steps):
             if self.stopped:
                 logger.info("Scan stopped!")
                 break
-            if i < self.config.position: continue
+            if i < self.config.position:
+                continue
             x1 = self.config.positions_1[i]
             x2 = self.config.positions_2[i]
             self.config.m1.move_to(x1)
@@ -435,8 +439,6 @@ class AbsScan2(BasicScan):
             self.emit("new-point", row)
             self.emit("progress", (i + 1.0) / self.config.steps, "")
             time.sleep(0)
-
-        self.append = False
 
 
 class RelScan2(AbsScan2):
@@ -510,18 +512,27 @@ class GridScan(BasicScan):
         specs['grid_snake'] = self.config.snake
         return specs
 
+    def extend(self, steps):
+        self.config.position = self.config.steps_2
+        self.config.p22 += self.config.step_size_2 * steps
+        self.config.steps_2 += steps
+        self.config.positions_2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps_2)
+        super().extend(steps)
+
     def scan(self):
-        self.raw_data = []
         total_points = self.config.steps_1 * self.config.steps_2
-        position = 0
         ref_value = 1.0
 
         for i, x2 in enumerate(self.config.positions_2):
-            if self.stopped: break
+            if i < self.config.position:
+                continue
+            if self.stopped:
+                break
             self.config.m2.move_to(x2, wait=True)
             x1_positions = self.config.positions_1 if not self.config.snake else reversed(self.config.positions_1)
             for j, x1 in enumerate(x1_positions):
-                if self.stopped: break
+                if self.stopped:
+                    break
                 self.config.m1.move_to(x1, wait=True)
 
                 counts = misc.multi_count(self.config.exposure, *self.config.counters)
@@ -530,7 +541,7 @@ class GridScan(BasicScan):
                         ref_value = counts[-1]
                     counts = (counts[0] * ref_value / counts[-1],) + counts
 
-                position += 1
+                position = j + i * self.config.steps_2
                 row = (x1, x2,) + counts
                 self.raw_data.append(row)
                 self.emit("new-point", row)
@@ -557,7 +568,6 @@ class SlewGridScan(BasicScan):
 
     def __init__(self, m1, p11, p12, m2, p21, p22, steps, exposure, *counters, i0=None):
         super().__init__()
-        positions = numpy.linspace(p21, p22, steps)
         self.configure(
             m1=IMotor(m1),
             p11=p11,
@@ -570,10 +580,9 @@ class SlewGridScan(BasicScan):
             exposure=exposure,
             i0=i0,
             position=0,
-            positions=positions,
+            positions=numpy.linspace(p21, p22, steps),
         )
         self.setup((self.config.m1, self.config.m2,), counters, i0)
-        self.total_lines = steps
         self.cur_count = 0
         self.cur_origin = 0
         self.last_update = time.time()
@@ -592,11 +601,18 @@ class SlewGridScan(BasicScan):
         self.raw_data.append(row)
 
         self.set_state(new_point=(row,))
-        outer_progress = self.cur_count / self.total_lines
-        inner_progress = abs((self.data_row[0] - self.cur_origin) / (self.config.p12 - self.config.p11))/self.total_lines
+        outer_progress = self.cur_count / self.steps
+        inner_progress = abs((self.data_row[0] - self.cur_origin) / (self.config.p12 - self.config.p11))/self.steps
         progress = outer_progress + inner_progress
         self.set_state(progress=(progress, ''))
         self.last_update = time.time()
+
+    def extend(self, steps):
+        self.config.position = self.config.steps_2
+        self.config.p22 += self.config.step_size_2 * steps
+        self.config.steps_2 += steps
+        self.config.positions_2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps_2)
+        super().extend(steps)
 
     def stop(self):
         self.stopped = True
@@ -605,10 +621,6 @@ class SlewGridScan(BasicScan):
 
     def scan(self):
         # initialize data
-        self.raw_data = []
-        self.data_row = [numpy.nan] * len(self.data_type['names'])
-        self.data_row[-1] = 1.0  # make sure default i0 is 1.0
-
         outer_channel = 1
         slew_channel = 0
 

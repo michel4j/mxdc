@@ -155,8 +155,8 @@ class SimCryoJet(CryoJetBase):
         self.nozzle = mxdc.devices.shutter.SimShutter('Sim Cryo Nozzle')
 
         self.temp_fbk = misc.SimPositioner('Cryo Temperature', pos=102.5, noise=3)
-        self.sample_fbk = misc.SimPositioner('Cryo Sample flow', pos=6.5, noise=0.2)
-        self.shield_fbk = misc.SimPositioner('Cryo Shield flow', pos=9.5, noise=0.2)
+        self.sample_fbk = misc.SimPositioner('Cryo Sample flow', pos=6.5, noise=1)
+        self.shield_fbk = misc.SimPositioner('Cryo Shield flow', pos=9.5, noise=1)
         self.level_fbk = misc.SimPositioner('Cryo Level', pos=35.5, noise=10)
 
         self.name = 'Sim CryoJet'
