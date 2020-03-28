@@ -50,12 +50,19 @@ class PBClient(BaseService):
         self.retrying = False
 
         if address is not None:
-            m = re.match('([\w.\-_]+):(\d+)', address)
+            m = re.match(r'([\w.\-_]+):(\d+)', address)
+
             if m:
+                try:
+                    addr = socket.gethostbyname(m.group(1))
+                except socket.gaierror as err:
+                    logger.error(err)
+                    addr = m.group(1)
+
                 data = {
                     'name': self.name,
                     'host': m.group(1),
-                    'address': socket.gethostbyname(m.group(1)),
+                    'address': addr,
                     'port': int(m.group(2)),
                 }
                 self.service_added(None, data)
