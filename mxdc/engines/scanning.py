@@ -312,14 +312,14 @@ class AbsScan(BasicScan):
             i0=i0,
             position=0,
             positions=positions,
-            step_size=(positions[1]-positions[2])
+            step_size=(positions[1]-positions[0])
         )
         self.setup((self.config.m1,), counters, i0)
         self.extending = False
 
     def extend(self, steps):
         self.config.position = self.config.steps
-        self.config.p2 = steps + self.config.step_size * steps
+        self.config.p2 += self.config.step_size * steps
         self.config.steps += steps
         self.config.positions = numpy.linspace(self.config.p1, self.config.p2, self.config.steps)
         super().extend(steps)
@@ -332,7 +332,7 @@ class AbsScan(BasicScan):
                 break
 
             # skip to current position
-            if i <= self.config.position: continue
+            if i < self.config.position: continue
 
             self.config.m1.move_to(x, wait=True)
             counts = misc.multi_count(self.config.exposure, *self.config.counters)
@@ -566,10 +566,12 @@ class SlewGridScan(BasicScan):
     :param exposure: count time at each point
     :param counters: one or more counters
     :param i0: reference counter
+    :param speed:  scan speed of m1
     """
 
-    def __init__(self, m1, p11, p12, m2, p21, p22, steps, exposure, *counters, i0=None):
+    def __init__(self, m1, p11, p12, m2, p21, p22, steps, exposure, *counters, i0=None, speed=None):
         super().__init__()
+        positions = numpy.linspace(p21, p22, steps)
         self.configure(
             m1=IMotor(m1),
             p11=p11,
@@ -582,7 +584,9 @@ class SlewGridScan(BasicScan):
             exposure=exposure,
             i0=i0,
             position=0,
-            positions=numpy.linspace(p21, p22, steps),
+            positions=positions,
+            step_size=positions[1] - positions[0],
+            speed=speed
         )
         self.setup((self.config.m1, self.config.m2,), counters, i0)
         self.cur_count = 0
@@ -610,10 +614,10 @@ class SlewGridScan(BasicScan):
         self.last_update = time.time()
 
     def extend(self, steps):
-        self.config.position = self.config.steps_2
-        self.config.p22 += self.config.step_size_2 * steps
-        self.config.steps_2 += steps
-        self.config.positions_2 = numpy.linspace(self.config.p21, self.config.p22, self.config.steps_2)
+        self.config.position = self.config.steps
+        self.config.p22 += self.config.step_size * steps
+        self.config.steps += steps
+        self.config.positions = numpy.linspace(self.config.p21, self.config.p22, self.config.steps)
         super().extend(steps)
 
     def stop(self):
@@ -635,6 +639,9 @@ class SlewGridScan(BasicScan):
 
         for i, x2 in enumerate(self.config.positions):
             self.cur_count = i
+
+            if i < self.config.position:
+                continue
 
             if self.stopped: break
             self.config.m2.move_to(x2, wait=True)

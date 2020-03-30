@@ -388,6 +388,10 @@ class VortexMCA(BasicMCA):
         return _crs
 
 
+SIM_XRF_TEMPLATE = os.path.join(conf.APP_DIR, 'share/data/simulated/xrf_{:03d}.raw')
+SIM_XRF_FILES = [1, 2, 3]
+
+
 class SimMultiChannelAnalyzer(BasicMCA):
     """Simulated single channel MCA detector."""
 
@@ -443,7 +447,7 @@ class SimMultiChannelAnalyzer(BasicMCA):
         self.aquiring = True
         time.sleep(t)
         self.acquiring = False
-        fname = os.path.join(conf.APP_DIR, 'test/scans/xrf_%03d.raw' % random.choice(list(range(1, 7))))
+        fname = SIM_XRF_TEMPLATE.format(random.choice(SIM_XRF_FILES))
         logger.debug('Simulated Spectrum: {}'.format(fname))
         self._raw_data = numpy.loadtxt(fname, comments="#")
         self._x_axis = self._raw_data[:, 0]

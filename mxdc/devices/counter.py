@@ -116,13 +116,19 @@ class Counter(BaseCounter):
 
 
 def gen_sim_data():
-    x = y = numpy.linspace(-3.0, 3.0, 100)
-    X, Y = numpy.meshgrid(x, y)
-    Z1 = numpy.exp(-X ** 2 - Y ** 2)
-    Z2 = numpy.exp(-(X - 1) ** 2 - (Y - 1) ** 2)
-    Z = (Z1 - Z2) * 2
-    Z = Z - Z.min() + 1
-    return Z
+    scheme = random.choice((1, 0))
+    if scheme == 1:
+        x = y = numpy.linspace(-3.0, 3.0, 100)
+        X, Y = numpy.meshgrid(x, y)
+        Z1 = numpy.exp(-X ** 2 - Y ** 2)
+        Z2 = numpy.exp(-(X - 1) ** 2 - (Y - 1) ** 2)
+        Z = (Z1 - Z2) * 2
+        z = Z - Z.min() + 1
+    else:
+        # Test data
+        x, y = numpy.mgrid[-5:5:0.05, -5:5:0.05]
+        z = 5 * (numpy.sqrt(x ** 2 + y ** 2) + numpy.sin(x ** 2 + y ** 2))
+    return z
 
 
 class SimCounter(BaseCounter):
@@ -161,6 +167,7 @@ class SimCounter(BaseCounter):
     @decorators.async_call
     def start(self):
         self.stopped = False
+        self.counter_position = 0
         while not self.stopped:
             val = self.value.get()
             self.set_state(count=val)

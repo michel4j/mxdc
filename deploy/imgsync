@@ -7,8 +7,9 @@
 #               detector data folder and user home directories.
 #
 # Source MXDC parameters
-. /cmcf_apps/profile.d/epics.sh
-. /cmcf_apps/profile.d/mxdc.sh
+
+#. /cmcf_apps/profile.d/epics.sh  - modify and uncomment to setup EPICS environment
+#. /cmcf_apps/profile.d/mxdc.sh - modify and uncomment to setup MxDC environment, MXDC_PATH, MXDC_CONFIG etc
 
 # Source function library.
 . /etc/rc.d/init.d/functions

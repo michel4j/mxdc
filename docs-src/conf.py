@@ -5,7 +5,7 @@ from pygments.lexers.web import PhpLexer
 
 
 project = u'MxDC'
-copyright = u'2006-17, Canadian Light Source, Inc'
+copyright = u'2006-20, Canadian Light Source, Inc'
 master_doc = 'index'
 templates_path = ['_templates']
 extensions = []

@@ -16,8 +16,9 @@ from matplotlib.ticker import FormatStrFormatter, OldScalarFormatter
 from mxdc.utils import misc
 from mxdc.widgets import dialogs
 
-rcParams['legend.loc'] = 'best'
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+GRID_COLORMAP = 'viridis'
+GRID_INTERPOLATION = 'nearest'  # nearest
 
 
 class PlotterToolbar(NavigationToolbar):
@@ -347,8 +348,9 @@ class Plotter(Gtk.Alignment):
         if self.grid_image is None:
             default = self.axis.get('default')
             self.grid_image = default.imshow(
-                self.grid_specs['counts'], cmap=cm.get_cmap('viridis'), origin='lower',
-                norm=self.grid_norm, extent=extent, aspect='auto'
+                self.grid_specs['counts'], cmap=cm.get_cmap(GRID_COLORMAP), origin='lower',
+                norm=self.grid_norm, extent=extent, aspect='auto',
+                interpolation=GRID_INTERPOLATION,
             )
         else:
             self.grid_image.set_data(self.grid_specs['counts'])

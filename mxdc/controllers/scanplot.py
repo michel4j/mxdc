@@ -60,7 +60,7 @@ class Fit(object):
         fwhm_hist = abs(hm_left_hist - hm_right_hist)
 
         self.info = {
-            'ymax': ymax,
+            'ymax': yo.max(),
             'midp': midp,
             'fwhm': fwhm,
             'cema': cema,

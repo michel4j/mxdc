@@ -16,7 +16,7 @@ import numpy
 from gi.repository import GLib, GObject
 from scipy import interpolate
 from importlib import import_module
-
+from threading import Lock
 from mxdc.com import ca
 from . import decorators
 from . import ipaddress
@@ -316,6 +316,7 @@ class RecordArray(object):
 
     def __init__(self, dtype, size=10, loop=False, data=None):
         self.dtype = numpy.dtype(dtype)
+        self.lock = Lock()
         self.loop = loop
         self.length = 0
         self.size = size
@@ -371,7 +372,7 @@ class RecordArray(object):
         Increase the size of the storage by 50%
         """
         self.size = int(1.5 * self.size)
-        self._data = self._data.resize((self.size,))
+        self._data.resize((self.size,), refcheck=False)
 
     def append(self, rec):
         """
@@ -380,16 +381,17 @@ class RecordArray(object):
         :param rec: sequence of values to add to array
         """
 
-        if self.length == self.size:
-            if self.loop:
-                self._data[:-1] = self._data[1:]
-                self.length = self.size - 1
-            else:
-                self.resize()
+        with self.lock:
+            if self.length == self.size:
+                if self.loop:
+                    self._data[:-1] = self._data[1:]
+                    self.length = self.size - 1
+                else:
+                    self.resize()
 
-        self._data[self.length] = tuple(rec)
-        self.length += 1
-        self.update_funcs()
+            self._data[self.length] = tuple(rec)
+            self.length += 1
+            self.update_funcs()
 
     def extend(self, recs):
         for rec in recs:
