@@ -1,6 +1,6 @@
-=========================
-MxDC 2020.4 Release Notes
-=========================
+=============
+Release Notes
+=============
 
 
 Welcome to the New MxDC

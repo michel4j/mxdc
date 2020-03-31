@@ -16,7 +16,7 @@ from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
-from mxdc.libs.imageio import read_image
+from mxio import read_image
 from mxdc.utils import cmaps, colors
 from mxdc.utils.frames import line, bounding_box
 from mxdc.utils.gui import color_palette

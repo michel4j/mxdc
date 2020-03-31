@@ -3,6 +3,9 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 setup(
     name='mxdc',
     version='2020.4.1',
@@ -14,9 +17,18 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords='beamline data-acquisition crystallography MX',
-    packages=['distutils', 'distutils.command'],
-    install_requires=['gepics'],
-    scripts=['scripts/xmlproc_parse', 'scripts/xmlproc_val'],
+    include_package_data=True,
+    install_requires=requirements,
+    scripts=[
+        'bin/archiver',
+        'bin/blconsole',
+        'bin/hutchviewer',
+        'bin/imgview',
+        'bin/mxdc',
+        'bin/plotxdi',
+        'bin/sim-console',
+        'bin/sim-mxdc'
+    ],
     classifiers=[
         'Intended Audience :: Developers',
         "Programming Language :: Python :: 3",

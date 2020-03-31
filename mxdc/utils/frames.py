@@ -9,8 +9,8 @@ import json
 from queue import Queue
 
 from mxdc import Engine, Signal
-from mxdc.libs.imageio import read_image
-from mxdc.libs.imageio.formats import DataSet
+from mxio import read_image
+from mxio.formats import DataSet
 
 MAX_FILE_FREQUENCY = 5
 

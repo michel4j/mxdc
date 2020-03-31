@@ -19,3 +19,4 @@ zeroconf
 python-magic
 pytz
 ipython
+mxio

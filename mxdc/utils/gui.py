@@ -1,10 +1,9 @@
-import os
 from collections import OrderedDict
 from collections import namedtuple
+from enum import Enum
 
 import gi
 import numpy
-from enum import Enum
 
 gi.require_version('Gtk', '3.0')
 

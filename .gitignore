@@ -9,7 +9,7 @@
 .idea
 .project
 mxdc/VERSION
-docs-src/_build
+/docs/build/
 fakegir
-venv
+venv/
 etc/

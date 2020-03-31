@@ -1,19 +1,19 @@
 import copy
 import fnmatch
+import glob
 import os
 import re
-import glob
 import shutil
 import time
 from datetime import datetime
 from enum import Enum
 
+from mxio import read_header
 from zope.interface import implementer
 
 from mxdc import Signal, Device
 from mxdc.utils import decorators
 from mxdc.utils import frames
-from mxdc.libs.imageio import read_header
 from mxdc.utils.log import get_module_logger
 from .interfaces import IImagingDetector
 
