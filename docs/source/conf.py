@@ -31,6 +31,7 @@ release = subprocess.check_output(['git', 'describe', '--abbrev=0']).decode('utf
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+     'sphinx.ext.autodoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -56,11 +57,7 @@ html_sidebars = {
     ],
 }
 
-import guzzle_sphinx_theme
-
-extensions.append("guzzle_sphinx_theme")
-html_theme_path = guzzle_sphinx_theme.html_theme_path()
-html_theme = 'guzzle_sphinx_theme'
+html_theme = 'sphinx_rtd_theme'
 
 
 # Add any paths that contain custom static files (such as style sheets) here,

@@ -107,3 +107,5 @@ Documentation
     data
     scans
     analysis
+    beamline
+    developers
