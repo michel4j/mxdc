@@ -1,15 +1,10 @@
-========
 Scans
 ========
-
-.. contents:: Table of contents
-    :depth: 1
-    :local:
 
 The Scans View is the primary location for spectroscopic measurements such as MAD Scans, X-Ray fluorescence scans,
 and X-Ray Absorption spectroscopy Scans.
 
-.. figure:: scans.svg
+.. figure:: images/scans.svg
     :align: center
     :width: 100%
     :alt: MxDC Scans View
@@ -24,7 +19,7 @@ and results area may vary depending on the selected scan mode.
 Edge Selector
 -------------
 
-.. image:: edge-selector.png
+.. image:: images/edge-selector.png
     :align: center
     :alt: Edge Selector
 
@@ -37,7 +32,7 @@ Clicking on an available edge will select it and update the entry.
 Scan Plot
 ---------
 
-.. image:: scan-plot.png
+.. image:: images/scan-plot.png
     :align: center
     :alt: Scan Plot
 
@@ -48,7 +43,7 @@ to adjust or manipulate the plot.  You can also use the save button to save an i
 MAD Scans
 ---------
 
-.. image:: mad-scans.png
+.. image:: images/mad-scans.png
     :align: center
     :alt: MAD Scans
 
@@ -57,7 +52,7 @@ To perform a MAD scan, select the MAD Scan mode, select the desired absorption e
 the exposure time and attenuation as desired and click the start button to initiate the scan.  Once the scan is complete,
 it will be analyzed automatically using CHOOCH, and the results will be plotted and added to the results table.
 
-.. image:: mad-plots.png
+.. image:: images/mad-plots.png
     :align: center
     :alt: MAD Plots
 
@@ -69,7 +64,7 @@ data acquisition tool on the Data page.
 XRF Scans
 ---------
 
-.. image:: xrf-scans.png
+.. image:: images/xrf-scans.png
     :align: center
     :alt: XRF Scans
 
@@ -79,7 +74,7 @@ attenuation. The Excitation energy can also be set by selecting a desired absorp
 suitable value for the excitation energy will then be calculated. Click the start button to initiate the scan.
 Once the scan is complete, it will be analyzed automatically and results will be plotted and added to the results table.
 
-.. image:: xrf-plots.png
+.. image:: images/xrf-plots.png
     :align: center
     :alt: XRF Plots
 
@@ -91,7 +86,7 @@ table to toggle the annotations on the plot.
 XAS Scans
 ---------
 
-.. image:: xas-scans.png
+.. image:: images/xas-scans.png
     :align: center
     :alt: XAS Scan
 
@@ -99,6 +94,6 @@ To perform an X-ray Absorption Spectroscopy scan, select the XAS Scan mode, then
 the Edge Selector. Set the exposure time, attenuation, number of scans and k-max as desired, then click the start button
 to initiate the scan.  The scans will be added to the results table as each scan is completed.
 
-.. image:: xas-plots.png
+.. image:: images/xas-plots.png
     :align: center
     :alt: XAS Plots

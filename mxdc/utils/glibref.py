@@ -2,7 +2,6 @@ import ctypes
 import gi
 from ctypes import pythonapi
 
-
 class _PyGObject_Functions(ctypes.Structure):
     _fields_ = [
         ('pygobject_register_class',

@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 _version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 
-VERSION = "2017.10"
+VERSION = "2020.4"
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 
@@ -76,7 +76,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.scans = scans.ScanManager(self.builder)
         self.chat = chat.ChatController(self.builder)
         self.set_titlebar(self.builder.header_bar)
-        icon = GdkPixbuf.Pixbuf.new_from_resource('/org/mxdc/data/icon.png')
+        icon = GdkPixbuf.Pixbuf.new_from_resource('/org/mxdc/data/icon.svg')
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()

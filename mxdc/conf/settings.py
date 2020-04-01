@@ -65,7 +65,7 @@ def get_keys():
 def save_keys(keys):
     if not keys_exist():
         with open(_KEY_FILE, 'wb') as handle:
-            msgpack.dump(keys, handle, raw=True)
+            msgpack.dump(keys, handle)
 
 
 def get_session():

@@ -1,16 +1,11 @@
-=======
 Samples
 =======
-
-.. contents:: Table of contents
-    :depth: 1
-    :local:
 
 The Samples View allows users to view their list of samples, select and mount samples, center samples in the beam,
 perform diffraction cartography (rastering) and also control the sample environment, such as sample temperature
 and humidity. The features available will depend on specific capabilities of the beamline.
 
-.. figure:: samples.svg
+.. figure:: images/samples.svg
     :align: center
     :width: 100%
     :alt: MxDC Samples View
@@ -24,7 +19,7 @@ The cryo parameters are shown on the top-left hand corner of the Samples View. V
 set the annealing duration using the entry, and click the button to start annealing. The entry will countdown the number
 of seconds remain in the annealing operation.  The annealing operation can be stopped at any time using the same button.
 
-.. image:: cryo.png
+.. image:: images/cryo.png
     :align: center
     :alt: Cryo Tool
 
@@ -36,7 +31,7 @@ Sample Microscope
 -----------------
 The sample microscope provides a video display of the sample position.
 
-.. image:: sample-microscope.png
+.. image:: images/sample-microscope.png
     :align: center
     :alt: Sample Microscope
 
@@ -78,7 +73,7 @@ Sample List
 The sample list shows all on-site samples for the current user, as defined in the MxLIVE database. It allows you to
 manage mounting and dismounting of samples by name, and also allows selection of samples for automated data acquisition.
 
-.. image:: sample-list.png
+.. image:: images/sample-list.png
     :align: center
     :alt: Sample List
 
@@ -123,7 +118,7 @@ Automounter Tool
 The automounter tool shows a physical layout of containers loaded into the automounter, to allow selecting and
 mounting samples by automounter location.
 
-.. image:: automounter.png
+.. image:: images/automounter.png
     :align: center
     :alt: Automounter Tool
 
@@ -142,14 +137,14 @@ The Rastering tool allow users to perform diffraction cartography on mounted sam
 where the best diffraction can be obtained. The rastering tool is available once a grid has been defined within the
 sample microscope. The number of grid points is displayed at the top of the rastering tool.
 
-.. image:: rastering.png
+.. image:: images/rastering.png
     :align: center
     :alt: Rastering Tool
 
 To perform a run, update the exposure time and resolution settings, and click the start button.
 Results for each point of the raster scan are then displayed on the table, and are also overlaid on the sample miscroscope.
 
-.. image:: rastering-scores.png
+.. image:: images/rastering-scores.png
     :align: center
     :alt: Rastering Tool
 
@@ -157,7 +152,7 @@ Humidity Tool
 -------------
 The Humidity control tool enables controlled dehydration experiments on samples at room temperature.
 
-.. image:: humidity.png
+.. image:: images/humidity.png
     :align: center
     :alt: Humidity Tool.
 

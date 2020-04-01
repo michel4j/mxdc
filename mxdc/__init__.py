@@ -125,7 +125,7 @@ def _get_signal_ids(itype):
 def _get_signal_properties(itype):
     queries = (GObject.signal_query(sig_id) for sig_id in _get_signal_ids(itype))
     return {
-        query.signal_name: len(query.param_types)
+        query.signal_name: query.param_types
         for query in queries
     }
 
@@ -152,18 +152,16 @@ class ObjectType(GObjectMeta):
 
 class Object(GObject.GObject, metaclass=ObjectType):
     """
-    Base Class for all objects in MxDC which can emit signals.
+    Base Class for event-aware objects in MxDC which can emit signals and register
+    callbacks.
 
-    Signals are defined as follows:
+    Signals are defined through the `Signals` subclass as follows:
 
-    class Signals:
-        name = Signal('name', arg_types=(str,))
-        ready = Signal('ready', arg_types=(bool, str))
+    .. code-block:: python
 
-    object instances  can then emit signals as follows:
-
-    >>> obj.emit('name', 'My name is Foo Bar')
-    >>> obj.emit('ready', True, 'Ready to roll!')
+        class Signals:
+            name = Signal('name', arg_types=(str,))
+            ready = Signal('ready', arg_types=(bool, str))
 
     """
 
@@ -194,9 +192,9 @@ class Object(GObject.GObject, metaclass=ObjectType):
         except TypeError as e:
             logger.error("'{}': Invalid parameters for signal '{}': {}".format(self, signal, args))
 
-    # FOR diagnosis
-    def connect(self, signal:str, func, *args, **kwargs):
-        return super().connect(signal, check_call(func), *args, **kwargs)
+    # # FOR diagnosis
+    # def connect(self, signal:str, func, *args, **kwargs):
+    #     return super().connect(signal, check_call(func), *args, **kwargs)
 
     def emit(self, signal: str, *args):
         """

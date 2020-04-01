@@ -74,7 +74,7 @@ class AppWindow(Gtk.ApplicationWindow):
         self.chat = chat.ChatController(self.builder)
 
         self.set_titlebar(self.builder.header_bar)
-        icon = GdkPixbuf.Pixbuf.new_from_resource('/org/mxdc/data/icon.png')
+        icon = GdkPixbuf.Pixbuf.new_from_resource('/org/mxdc/data/icon.svg')
         self.set_icon(icon)
         self.add(self.builder.mxdc_main)
         self.show_all()

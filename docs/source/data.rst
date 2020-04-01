@@ -1,14 +1,9 @@
-========
 Data
-========
-
-.. contents:: Table of contents
-    :depth: 1
-    :local:
+====
 
 The Data View is the primary view used for both interactive and automated diffraction data acquisition.
 
-.. figure:: data.svg
+.. figure:: images/data.svg
     :align: center
     :width: 100%
     :alt: MxDC Data View
@@ -21,7 +16,7 @@ Interactive Data Acquisition
 The interactive data acquisition tool enables acquisition of one or more data sets using a variety of settings and
 strategies on a single sample.
 
-.. image:: interactive-data.png
+.. image:: images/interactive-data.png
     :align: center
 
 The interactive data acquisition tool combines a dataset run list with a dataset run editor. To create a new dataset run, click
@@ -41,7 +36,7 @@ save button to reset its state to pending.
 
 You will be prompted each time, if images exist that may be overwritten.
 
-.. image:: data-existing.png
+.. image:: images/data-existing.png
     :align: center
 
 This may result if an acquisition operation was stopped or if a run is being re-collected. If continuing a stopped run,
@@ -63,7 +58,7 @@ Automated Data Acquisition
 The automated data acquisition tool enables acquisition of datasets using the same set of parameters and strategy on
 multiple samples in an automated manner.
 
-.. image:: automated-data.png
+.. image:: images/automated-data.png
     :align: center
 
 The automated data acquisition tool combines a task sequence with a sample queue. To perform automated acquisition,
@@ -82,7 +77,7 @@ Automation can be paused, resumed or stopped using the control buttons below the
 
 Data Set Parameters
 -------------------
-.. image:: data-parameters.png
+.. image:: images/data-parameters.png
     :align: center
 
 Data set parameters can be configured using the dataset run editor for interactive data acquisition or through the
@@ -183,7 +178,7 @@ The diffraction image viewer is a full-featured viewer for diffraction images. A
 MxDC are displayed on the same viewer. This includes images from interactive and automated data acquisition, rastering
 and humidity control snapshots.
 
-.. image:: image-viewer.png
+.. image:: images/image-viewer.png
     :align: center
 
 It is divided into the image area, which forms the bulk of the viewer, and a toolbar below the image area which provides

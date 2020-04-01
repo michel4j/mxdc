@@ -10,10 +10,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+
+import os
+import sys
 import subprocess
+
+sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -32,7 +34,18 @@ release = subprocess.check_output(['git', 'describe', '--abbrev=0']).decode('utf
 # ones.
 extensions = [
      'sphinx.ext.autodoc',
+     'sphinx.ext.autosummary',
+     'sphinx.ext.intersphinx',
 ]
+
+intersphinx_mapping = {
+     'gtk': ('https://lazka.github.io/pgi-docs/Gtk-3.0', None),
+     'gobject': ('https://lazka.github.io/pgi-docs/GObject-2.0', None),
+     'glib': ('https://lazka.github.io/pgi-docs/GLib-2.0', None),
+     'gdk': ('https://lazka.github.io/pgi-docs/Gdk-3.0', None),
+     'gio': ('https://lazka.github.io/pgi-docs/Gio-2.0', None),
+     'python': ('https://docs.python.org/3', None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []
@@ -48,17 +61,9 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_show_sourcelink = True
-html_sidebars = {
-    '**': [
-        'logo-text.html',
-        'globaltoc.html',
-        'searchbox.html',
-    ],
-}
-
+html_show_sourcelink = False
 html_theme = 'sphinx_rtd_theme'
-
+html_show_sphinx = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

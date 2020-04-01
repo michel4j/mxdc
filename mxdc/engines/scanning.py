@@ -554,7 +554,7 @@ class GridScan(BasicScan):
 
 class SlewGridScan(BasicScan):
     """
-    Continuous Grid scan of two motors.
+    A Grid scan with Slewing of the inner motor (first).
 
     :param m1: first motor or positioner for slew scan
     :param p11: start position of first motor

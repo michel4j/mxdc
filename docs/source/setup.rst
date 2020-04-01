@@ -1,14 +1,9 @@
-=====
 Setup
 =====
 
-.. contents:: Table of contents
-    :depth: 1
-    :local:
-
 The Setup View allows users to view, adjust and diagnose general beamline parameters outside of the context of an experiment.
 
-.. figure:: setup.svg
+.. figure:: images/setup.svg
     :align: center
     :width: 100%
     :alt: MxDC Setup View
@@ -24,7 +19,7 @@ can be entered on the right.  A button allows the parameter to be applied. This 
 if it is a motor and feedback will be provided while it moves. The motion can also be stopped using the button.
 
 
-.. image:: parameters.png
+.. image:: images/parameters.png
     :align: center
     :alt: MxDC Setup View
 
@@ -40,7 +35,7 @@ Hutch Video
 The Hutch Video Feed is a Pan-Tilt-Zoom Camera inside the experimental enclosure (hutch). This alows the user
 to inspect the hutch remotely.
 
-.. image:: hutch-video.png
+.. image:: images/hutch-video.png
     :align: center
     :alt: Hutch Video
 
@@ -52,7 +47,7 @@ Beamline Status
 The beamline status shows the status of various essential components on the beamline and allows users to quickly
 diagnose problems on the beamline.
 
-.. image:: diagnostics.png
+.. image:: images/diagnostics.png
     :align: center
     :alt: Beamline Status
 
@@ -68,7 +63,7 @@ Beam Tuner
 The beam tuner shows the current beamline flux as a percentage of the current expected flux. On some beamlines, it
 also allows the beam tuning to be adjusted.
 
-.. image:: beam-tuner.png
+.. image:: images/beam-tuner.png
     :align: center
     :alt: Beam Tuner
 
@@ -81,7 +76,7 @@ Log
 ---
 The Log displays log messages from MxDC. The messages are color-coded based on importance.
 
-.. image:: log-viewer.png
+.. image:: images/log-viewer.png
     :align: center
     :alt: Log Viewer
 
@@ -92,7 +87,7 @@ Chat
 The Chat tool provides a simple mechanism for instant communication between users and staff, when staff are
 available on the beamline. This supplements rather than replaces existing email and phone methods of communication
 
-.. image:: chat.png
+.. image:: images/chat.png
     :align: center
     :alt: Chat tool.
 

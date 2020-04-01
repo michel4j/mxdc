@@ -1,23 +1,12 @@
-===============
 Getting Started
 ===============
 
-.. contents:: Table of contents
-    :depth: 2
-    :local:
-
 Starting MxDC
 -------------
-MxDC can be started either by double-clicking the application icon on the desktop titled "MX Data Collector", or by
-typing `mxdc` in a terminal.
+Based on how MxDC is installed in your environment, it can be started either by double-clicking the application icon
+or by typing `mxdc` in a terminal.
 
-If started from the desktop, a new terminal will be opened for printing console log messages.
-
-.. note::
-
-   Closing the terminal will terminate MxDC.
-
-Only one instance of MxDC can be run on a given network at a given moment. If another user is currently
+Only one instance of MxDC can be run on a given subnet at a given moment. If another user is currently
 using MxDC, the program will terminate after presenting a warning.
 
 
@@ -30,7 +19,7 @@ executed, or by using Ctrl-C.
 
 MxLIVE Integration
 ------------------
-MxDC relies on and uses MxLIVE for experiment planning and logging.  Although MxDC can operate without MxLIVE, it
+The MxDC Application relies on and uses MxLIVE for experiment planning and logging.  Although MxDC can operate without MxLIVE, it
 will be significantly limited in usability.
 
 Typically, users plan their experiment by organising their samples into *groups*, and giving each *sample* a unique
@@ -52,40 +41,40 @@ not to move data files from their saved locations.
 
 .. note::
 
-   For example:   A session directory might look like:  */users/fodje/CMCFBM-20171018*. Note that the name
-   the beamline acronym and the start date of the *session*.
+    For example:   A session directory might look like */users/fodje/CMCFBM-20171018* which includes the beamline
+    acronym and the start date of the *session*.
 
-MxDC now automatically organizes how directories are created for saving datasets and related output files within the
+MxDC automatically organizes how directories are created for saving datasets and related output files within the
 *session* directory. A single configuration parameter *Directory Template*, accesible through the Application
-Header Bar Menu, allows users to configure a preferred directory template. The parameter only needs to be set once
+Menu, allows users to configure a preferred directory template. The parameter only needs to be set once
 but there is no limit on how often it can be changed.
 
-.. topic:: Directory Template
+.. rubric:: Directory Template
 
-    All directories will be created within the top-level session directory
-    according to the specified template. You can use variables for substituting context-specific values.
+All directories will be created within the top-level session directory
+according to the specified template. You can use sample variables for substituting context-specific values.
 
-    Available variables: *{sample}, {group}, {container}, {position}, {port}, {date}, {activity}*.
+Available variables: *{sample}, {group}, {container}, {position}, {port}, {date}, {activity}*.
 
-    The default template is *"/{group}/{sample}/{activity}/"* which will produce the following directories structure
-    for a sample named **bchi-1** in a group named **bchi**:
+The default template is *"/{group}/{sample}/{activity}/"* which will produce the following directories structure
+for a sample named **bchi-1** in a group named **bchi**:
 
-    .. glossary::
-        MAD Scan output files
-            /users/fodje/CMCFBM-20171018/bchi/bchi-1/mad-scan/
+.. glossary::
 
-        Raster Scan files
-            /users/fodje/CMCFBM-20171018/bchi/bchi-1/raster/
+    MAD Scan output files
+        /users/fodje/CMCFBM-20171018/bchi/bchi-1/mad-scan/
 
-        Full Datasets
-            /users/fodje/CMCFBM-20171018/bchi/bchi-1/data/
+    Raster Scan files
+        /users/fodje/CMCFBM-20171018/bchi/bchi-1/raster/
 
-        Test Images
-            /users/fodje/CMCFBM-20171018/bchi/bchi-1/test/
+    Full Datasets
+        /users/fodje/CMCFBM-20171018/bchi/bchi-1/data/
 
+    Test Images
+        /users/fodje/CMCFBM-20171018/bchi/bchi-1/test/
 
-    Note that additional strings can be used in the template as well, and the sequence of template variables
-    is arbitrary. For example, the template *"/CONFIDENTIAL/{activity}/{group}/{sample}/"* will produce a
-    directory */users/fodje/CMCFBM-20171018/CONFIDENTIAL/data/bchi/bchi-1/* for the data activity.
+Note that additional strings can be used in the template as well, and the sequence of template variables
+is arbitrary. For example, the template *"/CONFIDENTIAL/{activity}/{group}/{sample}/"* will produce a
+directory */users/fodje/CMCFBM-20171018/CONFIDENTIAL/data/bchi/bchi-1/* for the data activity.
 
 

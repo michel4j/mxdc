@@ -1,16 +1,10 @@
-========
 Analysis
 ========
-
-.. contents:: Table of contents
-    :depth: 1
-    :local:
-
 
 The Analysis View is the primary location for viewing data analysis reports and for initiating new data analyses
 for acquired datasets.
 
-.. figure:: analysis.png
+.. figure:: images/analysis.png
     :align: center
     :width: 100%
     :alt: MxDC Analysis View
@@ -38,7 +32,6 @@ If a sample is associated with the current row of the table, selecting the row a
 be used for mounting the given sample. Similarly, if a calculated data acquisition strategy is available, say as the result
 of a screening analysis, clicking the row activates the *Use Strategy* button. Clicking this button will add an interactive
 data  acquisition run on the Data page.
-
 
 Report Viewer
 -------------
