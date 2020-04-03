@@ -7,7 +7,7 @@ from zope.interface import implementer
 
 from mxdc import Registry, Signal, Device
 from mxdc.com.ca import PV
-from mxdc.devices.motor import MotorBase
+from mxdc.devices.motor import BaseMotor
 from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
 from .interfaces import *
@@ -258,7 +258,7 @@ class SimLight(SimPositioner):
 
 
 @implementer(IMotor)
-class PositionerMotor(MotorBase):
+class PositionerMotor(BaseMotor):
     """Adapts a positioner so that it behaves like a Motor (ie, provides the
     `IMotor` interface.
     """

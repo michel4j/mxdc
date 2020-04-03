@@ -23,17 +23,19 @@ session = requests.Session()
 
 
 class VideoSrc(Device):
+    """
+    Base class for all Video Sources. Maintains a list of listenners (sinks)
+    and updates each one when the video frame changes.
+
+    :param name: Camera Name (str)
+    :param maxfps: Max frames per second (float)
+    """
     class Signals:
         resized = Signal("resized", arg_types=(int,int))
 
     def __init__(self, name="Basic Camera", maxfps=5.0):
-        """
-        Base class for all Video Sources. Maintains a list of listenners (sinks)
-        and updates each one when the video frame changes.
-        :param name: Camera Name (str)
-        :param maxfps: Max frames per second (float)
-        """
-        Device.__init__(self)
+
+        super().__init__()
         self.frame = None
         self.name = name
         self.size = (768, 576)
@@ -48,7 +50,7 @@ class VideoSrc(Device):
 
     def configure(self, **kwargs):
         """
-        Configure the camera
+        Configure the camera. Keyword arguments are device dependent.
         """
         pass
 
@@ -120,7 +122,9 @@ class VideoSrc(Device):
 
 @implementer(ICamera)
 class SimCamera(VideoSrc):
-
+    """
+    Simulated Camera
+    """
     def __init__(self, name="Camera Simulator", ):
         super().__init__(name=name)
         self.size = (1280, 960)
@@ -137,7 +141,9 @@ class SimCamera(VideoSrc):
 
 @implementer(IPTZCameraController)
 class SimPTZCamera(SimCamera):
-
+    """
+    Simulated PTZ Camera
+    """
     def __init__(self):
         super().__init__(name='Sim PTZ Camera')
 
@@ -151,13 +157,15 @@ class SimPTZCamera(SimCamera):
         pass
 
     def get_presets(self):
-        presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
+        presets = ["Hutch", "Detector", "Robot", "BaseGoniometer", "Sample", "Panel"]
         return presets
 
 
 @implementer(ICamera)
 class MJPGCamera(VideoSrc):
-
+    """
+    MJPG Camera
+    """
     def __init__(self, url, size=(768, 576), name='MJPG Camera'):
         VideoSrc.__init__(self, name, maxfps=10.0)
         self.size = size
@@ -195,7 +203,9 @@ class MJPGCamera(VideoSrc):
 
 @implementer(ICamera)
 class JPGCamera(VideoSrc):
-
+    """
+    JPG Camera
+    """
     def __init__(self, url, size=(768, 576), name='JPG Camera'):
         VideoSrc.__init__(self, name, maxfps=10.0)
         self.size = size
@@ -215,7 +225,9 @@ class JPGCamera(VideoSrc):
 
 @implementer(ICamera)
 class REDISCamera(VideoSrc):
-    # Camera Attributes
+    """
+    REDIS Camera
+    """
     ATTRS = {
         'gain': 'GainRaw',
         'exposure': 'ExposureTimeAbs'
@@ -269,7 +281,9 @@ class REDISCamera(VideoSrc):
 
 @implementer(ICamera)
 class AxisCamera(JPGCamera):
-
+    """
+    Axis JPG Camera
+    """
     def __init__(self, hostname, idx=None, name='Axis Camera'):
         if idx is None:
             url = 'http://%s/jpg/image.jpg' % hostname
@@ -303,7 +317,9 @@ class ZoomableCamera(object):
 
 @implementer(IPTZCameraController)
 class AxisPTZCamera(AxisCamera):
-
+    """
+    Axis PTZ Camera
+    """
     def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
         AxisCamera.__init__(self, hostname, idx, name)
         self.url_root = 'http://{}/axis-cgi/com/ptz.cgi'.format(hostname)

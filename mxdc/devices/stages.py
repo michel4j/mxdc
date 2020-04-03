@@ -48,37 +48,84 @@ class ISampleStage(IDevice):
 
 
 @implementer(ISampleStage)
-class SampleStageBase(Device):
+class BaseSampleStage(Device):
+    """
+    Base class for sample alignment stages
+
+    Signals:
+        - **changed**: (object,) stage information
+    """
     class Signals:
         changed = Signal("changed", arg_types=(object,))
 
     def xyz_to_xvw(self, x, y, z):
+        """
+        Convert 3D x, y, z coordinates to horizontal, vertical and angle coordinates
+
+        :param x: x-position
+        :param y: y-position
+        :param z: z-position
+        :return: (x, v, w) ie (horizontal, vertical, omega angle)
+        """
         return x, numpy.hypot(y, z), numpy.arctan2(z, y)
 
     def xvw_to_xyz(self, x, v, w):
+        """
+        Convert 3D horizontal, vertical, omega coordinates to  x, y, z coordinates
+
+        :param x: horizontal position
+        :param v: vertical position
+        :param w: omega angle position
+        :return: (x, y, z)
+        """
         return x, v * numpy.cos(w), v * numpy.sin(w)
 
     def xvw_to_screen(self, x, v, w):
+        """
+        Convert 3D horizontal, vertical, omega coordinates to screen coordinates
+
+        :param x: horizontal position
+        :param v: vertical position
+        :param w: omega angle position
+        :return: (x, y, z) screen coordinates
+        """
         theta = self.get_omega() - w
         return x, v * numpy.cos(theta), v * numpy.sin(theta)
 
     def xyz_to_screen(self, x, y, z):
+        """
+        Convert 3D horizontal, x, y, z to screen coordinates
+
+        :param x: x-position
+        :param y: y-position
+        :param z: z-position
+        :return: (x, y, z) screen coordinates
+        """
         x, v, w = self.xyz_to_xvw(x, y, z)
         return self.xvw_to_screen(x, v, w)
 
     def screen_to_xyz(self, x, y, z):
+        """
+        Convert screen coordiantes to x, y, z
+
+        :param x: x-position
+        :param y: y-position
+        :param z: z-position
+        :return: (x, y, z) screen coordinates
+        """
         phi = self.get_omega() - numpy.arctan2(z, y)
         h = numpy.hypot(z, y)
         return x, h * numpy.cos(phi), h * numpy.sin(phi)
 
     def get_omega(self):
+        """
+        Get the angle position
+        """
         return numpy.radians(self.omega.get_position() - self.offset)
 
-    def is_busy(self):
-        raise NotImplementedError('Sub classes must implement "is_busy"')
-
     def wait(self, start=False, stop=True):
-        """Wait for the busy state to change.
+        """
+        Wait for the busy state to change.
 
         Kwargs:
             - `start` (bool): Wait for the motor to start moving.
@@ -105,10 +152,21 @@ class SampleStageBase(Device):
                 return False
 
 
-class SampleStage(SampleStageBase):
+class SampleStage(BaseSampleStage):
+    """
+    Sample stage based based on x, y1, y2 and omega motors. Y1 and Y2 motors are at 90 degrees.
+
+    :param x: x axis motor
+    :param y1: y1 axis motor
+    :param y2:  y2 axis motor (at 90 degrees from y1)
+    :param omega: omega rotation motor
+    :param name:  name of stage
+    :param offset: offset angle, default 0.0
+    :param linked: bool, if True, motors can't move simultaneously
+    """
 
     def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False):
-        SampleStageBase.__init__(self)
+        super().__init__()
         self.name = name
         self.x = x
         self.y1 = y1

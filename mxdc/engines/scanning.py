@@ -21,6 +21,14 @@ MIN_CNTSCAN_UPDATE = 0.01  # minimum time between updates for continuous scans
 
 @implementer(IScan)
 class BasicScan(Engine):
+    """
+    Base Class for all Scan engines.
+
+    Signals:
+        - new-point: (object,) new scan point
+        - new-row: (int,) new scan row for multi-row scans
+        - message: (str,) messages
+    """
     name = 'Basic Scan'
 
     class Signals:
@@ -50,6 +58,7 @@ class BasicScan(Engine):
     def configure(self, **kwargs):
         """
         Set configuration parameters
+
         :param kwargs: keyword, value pairs to add to configuration
         :return: config object, fields are dictionary keywords
         """
@@ -59,6 +68,7 @@ class BasicScan(Engine):
     def setup(self, motors, counters, i0=None):
         """
         Setup scan data configuration
+
         :param motors: sequence of motors
         :param counters: sequence of counters
         :param i0: reference counter
@@ -108,6 +118,7 @@ class BasicScan(Engine):
     def finalize(self):
         """
         Convert the data after the scan is complete and finalize before wrapping up
+
         :param data: a list of tuples representing the acquired data
         """
         self.data = numpy.array(self.raw_data, self.data_type)
@@ -118,7 +129,6 @@ class BasicScan(Engine):
         base class extend() method since this method will start the scan.
 
         :param amount: amount to extend scan by
-        :return:
         """
         self.extending = True
         self.start()
@@ -132,8 +142,9 @@ class BasicScan(Engine):
 
     def run(self):
         """
-        Run the scan in the current execution loop. Normally executed in a thread by when the start
-        method is called.
+        Run the scan in the current execution loop. Normally executed in a thread when the start
+        method is called. Sub-classes are discouraged from re-implementing this method. Instead override
+        the :func:`scan` method.
         """
 
         if not self.extending:
@@ -158,6 +169,7 @@ class BasicScan(Engine):
     def prepare_xdi(self):
         """
         Prepare XDI file for saving
+
         :return: xdi_data object
         """
         comments = inspect.getdoc(self)
@@ -173,7 +185,7 @@ class BasicScan(Engine):
         if 'sample' in self.config:
             xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
             xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
-            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
+            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature.get(), 'K')
             xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
 
         for i, name in enumerate(self.data_type['names']):
@@ -182,6 +194,12 @@ class BasicScan(Engine):
         return xdi_data
 
     def save(self, filename=None):
+        """
+        Save the scan data.
+
+        :param filename: full path to data file. If None, a file name will be generated.
+        :return: the file name of the saved file
+        """
         if filename is None:
             # save in ~/Scans/YYYY/Mmm/HHMMSS.xdi.gz
             directory = self.config.get(

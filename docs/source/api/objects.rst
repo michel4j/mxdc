@@ -9,11 +9,6 @@ all other features supported by `GObject.Object`.
 Signals are a system for creating named events and registering callbacks to them. :class:`mxdc.Signal` is an alias for
 :class:`GObject.Signal`
 
-.. autoclass:: mxdc.Object
-
-.. seealso:: :class:`GObject.Signal`
-
-
 .. rubric:: Example
 
 The following is an example of an object supporting two signals with different
@@ -21,8 +16,8 @@ numbers of arguments, how to connect to callbacks and trigger events.
 
 .. note::
 
-    An appropriate main-loop is required required. These examples can be tried out using an ipython shell with the
-    `Gtk3` main loop active.  This can be activated using the IPython magic command `%gui gtk3`.
+    An appropriate main-loop is required. These examples can be tried out using an ipython shell with the
+    `Gtk3` main loop active.  This can be activated using the IPython magic command ``%gui gtk3``.
 
 
 .. code-block:: python
@@ -67,5 +62,8 @@ numbers of arguments, how to connect to callbacks and trigger events.
     >>> door.get_state('locked')
     (True, "access forbidden")
 
+.. rubric:: API Details
 
+.. autoclass:: mxdc.Object
+    :members:
 

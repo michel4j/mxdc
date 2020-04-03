@@ -2,7 +2,7 @@ import time
 
 from enum import Enum
 from zope.interface import implementer
-from gi.repository import GObject
+from gi.repository import GObject, GLib
 
 from mxdc import Device
 from mxdc.devices.interfaces import IAutomounter
@@ -21,7 +21,17 @@ def set_object_properties(obj, kwargs):
 
 @implementer(IAutomounter)
 class AutoMounter(Device):
+    """
+    Base class for all Sample Automounters.
 
+    Properties:
+        - **layout**: container layout dictionary
+        - **sample**: mounted sample
+        - **next_port**: next port to mount
+        - **containers**: container meta-data
+        - **status**: automounter status
+        - **failure**: failure meta-data
+    """
 
     layout = GObject.Property(type=object)
     sample = GObject.Property(type=object)
@@ -32,7 +42,7 @@ class AutoMounter(Device):
     failure = GObject.Property(type=object)
 
     def __init__(self):
-        super(AutoMounter, self).__init__()
+        super().__init__()
         self.name = 'Automounter'
         self.state_history = set()
         self.props.layout = {}
@@ -43,8 +53,13 @@ class AutoMounter(Device):
         self.state_link = self.connect('notify::status', self._record_state)
         self.connect('notify::status', self._emit_state)
 
-    def configure(self,**kwargs):
-        GObject.idle_add(set_object_properties, self, kwargs)
+    def configure(self, **kwargs):
+        """
+        Configure the automounter
+
+        :param kwargs: Accepted kwargs are the same as the device properties.
+        """
+        GLib.idle_add(set_object_properties, self, kwargs)
 
     def _emit_state(self, *args, **kwargs):
         self.set_state(busy=(self.props.status == State.BUSY))
@@ -72,24 +87,22 @@ class AutoMounter(Device):
         """
         Recover from a specific failure type
 
-        :param failure:
-        :return:
+        :param failure:  Failure type
         """
         logger.error('Recovery procedure {} not implemented'.format(failure))
 
     def prefetch(self, port, wait=False):
         """
         For automounters which support pre-fetching. Prefetch the next sample for mounting
+
         :param port: next port to mount
         :param wait: boolean, wait for prefetch to complete
-        :return:
         """
         pass
 
     def prepare(self):
         """
-        Get ready to start
-        :return:
+        Get ready to start.
         """
         if self.is_ready() or self.is_preparing():
             self.configure(status=State.PREPARING)
@@ -100,7 +113,6 @@ class AutoMounter(Device):
     def cancel(self):
         """
         Cancel Standby state
-        :return:
         """
         if self.is_preparing():
             self.configure(status=State.IDLE)
@@ -112,6 +124,7 @@ class AutoMounter(Device):
         """
         Mount the sample at the given port. Must take care of preparing the end station
         and dismounting any mounted samples before mounting
+
         :param port: str, the port to mount
         :param wait: bool, whether to block until operation is completed
         :return: bool, True if successful
@@ -130,13 +143,13 @@ class AutoMounter(Device):
     def abort(self):
         """
         Abort current operation
-        :return:
         """
         raise NotImplementedError('Sub-classes must implement dismount method')
 
     def wait(self, states=(State.IDLE,), timeout=60):
         """
         Wait for the given state to be attained
+
         :param states: requested state to wait for or a list of states
         :param timeout: maximum time to wait
         :return: bool, True if state was attained or False if timeout was exhausted
@@ -163,6 +176,7 @@ class AutoMounter(Device):
     def is_mountable(self, port):
         """
         Check if the specified port can be mounted successfully
+
         :param port: str representation of the port
         :return: bool, True if it is mounted
         """
@@ -171,6 +185,7 @@ class AutoMounter(Device):
     def is_valid(self, port):
         """
         Check if the specified port is a valid port designation for this automounter
+
         :param port: str representation of the port
         :return: bool, True if it is valid
         """
@@ -190,13 +205,11 @@ class AutoMounter(Device):
     def is_ready(self):
         """
         Check if the automounter is ready for an operation
-        :return:
         """
         return (self.status in [State.IDLE] and self.is_active() and not self.is_busy())
 
     def is_preparing(self):
         """
         Check if the automounter is preparing to start
-        :return:
         """
         return (self.status == State.PREPARING)

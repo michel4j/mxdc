@@ -45,6 +45,12 @@ class CATSMessages(object):
 
 
 class CATS(AutoMounter):
+    """
+    An abstraction fot the IRELEC CATS Auto Mounter
+
+    :param root:  Root name of device process variables
+    """
+
     PUCKS = [
         '',
         'L1A', 'L2A', 'L3A', 'L1B', 'L2B', 'L3B', 'L1C', 'L2C', 'L3C',

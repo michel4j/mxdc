@@ -10,7 +10,11 @@ logger = get_module_logger(__name__)
 
 @implementer(IHumidifier)
 class Humidifier(Device):
+    """
+    Humidity Controller
 
+    :param root_name: root process variable name of device
+    """
     def __init__(self, root_name):
         Device.__init__(self)
         self.name = 'Humidity Controller'
@@ -51,6 +55,9 @@ class Humidifier(Device):
 
 @implementer(IHumidifier)
 class SimHumidifier(Device):
+    """
+    Simulated Humidity Controller
+    """
 
     def __init__(self):
         super(SimHumidifier, self).__init__()

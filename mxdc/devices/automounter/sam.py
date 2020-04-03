@@ -28,6 +28,12 @@ SAM_DEWAR = {
 }
 
 class SAM(AutoMounter):
+    """
+    Auto mounter Device based on the old EPICS/DCSS/Blu-ICE driver .
+
+    :param root: Root name of EPICS process variables
+    """
+
     StateCodes = {
         '0': Port.EMPTY,
         '1': Port.GOOD,
@@ -45,7 +51,7 @@ class SAM(AutoMounter):
     }
 
     def __init__(self, root):
-        super(SAM, self).__init__()
+        super().__init__()
         self.name = 'SAM Automounter'
 
         # Status
@@ -255,6 +261,12 @@ class SAM(AutoMounter):
 
 
 class UncleSAM(AutoMounter):
+    """
+    Auto mounter Device based on the UncleSAM EPICS driver without Blu-ICE.
+
+    :param root: Root name of EPICS process variables
+    """
+
     StateCodes = {
         '0': Port.EMPTY,
         '1': Port.GOOD,
@@ -272,7 +284,7 @@ class UncleSAM(AutoMounter):
     }
 
     def __init__(self, root):
-        super(UncleSAM, self).__init__()
+        super().__init__()
         self.name = 'SAM Automounter'
 
         # Status
@@ -298,7 +310,6 @@ class UncleSAM(AutoMounter):
         self.sample_fbk.connect('changed', self.on_sample_changed)
         self.prefetched_fbk.connect('changed', self.on_prefetch_changed)
         self.message_fbk.connect('changed', self.on_messages)
-
 
         status_pvs = [self.warning_fbk, self.status_fbk, self.health_fbk, self.enabled_fbk]
         for pv in status_pvs:

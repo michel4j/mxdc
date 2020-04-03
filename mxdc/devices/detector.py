@@ -38,7 +38,10 @@ class BaseDetector(Device):
     """
     Base class for all imaging detector classes
 
-    :param monitor:  Dataset monitor instance
+    Signals:
+        - **state**: (object,), Detector state
+        - **new-image**: (object,), New image recorded
+        - **progress**:  (float, str), Progress fraction and message
 
     """
     FRAME_DIGITS = 4
@@ -54,9 +57,7 @@ class BaseDetector(Device):
         """
         Initialize the detector
         :param wait: if True, wait for the detector to complete initialization
-        @return:
         """
-        pass
 
     def process_frame(self, data):
         """
@@ -68,7 +69,7 @@ class BaseDetector(Device):
 
     def get_template(self, prefix):
         """
-        Given a file name template, generate the file name template for the dataset.  This should be
+        Given a file name prefix, generate the file name template for the dataset.  This should be
         a format string specification which takes a single parameter `number` representing the file number, or
         no parameter at all, for archive formats like hdf5
 
@@ -91,7 +92,7 @@ class BaseDetector(Device):
 
         :param states: states to check for. Attaining any of the states will terminate the wait
         :param timeout: Maximum time in seconds to wait
-        @return: True if state was attained, False if timeout was reached.
+        :return: True if state was attained, False if timeout was reached.
         """
 
         states = states if len(states) else self.BUSY_STATES
@@ -118,7 +119,7 @@ class BaseDetector(Device):
 
         :param state: states to check for. Attaining a state other than any of the states will terminate the wait
         :param timeout: Maximum time in seconds to wait
-        @return: True if state was attained, False if timeout was reached.
+        :return: True if state was attained, False if timeout was reached.
         """
 
         states = states if len(states) else self.BUSY_STATES
@@ -142,7 +143,7 @@ class BaseDetector(Device):
         """
         Wait while the detector is busy.
 
-        @return: True if detector became idle or False if wait timed-out.
+        :return: True if detector became idle or False if wait timed-out.
         """
         return self.wait_while()
 
@@ -165,14 +166,13 @@ class BaseDetector(Device):
 
     def check(self, directory, prefix, first=1):
         """
-        Check the a dataset in a given directory and prefix.
+        Check the dataset in a given directory and prefix.
 
         :param directory: Directory in which to check files
         :param prefix:  file name prefix
         :param first: first frame number, defaults to 1
-        :return: tuple with the following sequence of values
-            list - list of existing frame numbers
-            bool - True if dataset can be resumed, False otherwise
+        :return: tuple with the following sequence of values (list, bool), list of existing frame numbers
+            True if dataset can be resumed, False otherwise
         """
 
         file_path = os.path.join(directory, self.get_template(prefix).format(first))
@@ -184,12 +184,20 @@ class BaseDetector(Device):
     def is_shutterless(self):
         """
         Check if the detector supports shutterless mode
-        :return: True if capable
         """
         return self.SHUTTERLESS
 
 
 class SimDetector(BaseDetector):
+    """
+    Simulated Detector.
+
+    :param name: device name
+    :param size: detector size tuple in pixels
+    :param pixel_size: pixel width in microns
+    :param images: directory to look for images
+    :param detector_type: string representing the detector type, e.g. 'MX300HE'
+    """
 
     def __init__(self, name, size, pixel_size=0.073242, images='/tmp', detector_type="MX300"):
         super().__init__()
@@ -282,6 +290,15 @@ class SimDetector(BaseDetector):
 
 
 class RayonixDetector(BaseDetector):
+    """
+    Rayonix Detector devices controlled through the AreaDetector MarCCD EPICS driver.
+
+    :param name: Root process variable name
+    :param size: detector size tuple in pixels
+    :param detector_type: string representing the detector type, e.g. 'MX300HE'
+    :param desc: String description of detector
+    """
+
     SHUTTERLESS = False
 
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
@@ -404,6 +421,15 @@ class RayonixDetector(BaseDetector):
 
 
 class ADSCDetector(BaseDetector):
+    """
+    ADSC Detector devices for the AreaDetector EPICS driver.
+
+    :param name: Root process variable name
+    :param size: detector size tuple in pixels
+    :param detector_type: detector type string e.g. 'Q315r',
+    :param pixel_size': width of a pixel in microns,
+    :param desc: String description of detector
+    """
 
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
         super().__init__()
@@ -526,14 +552,21 @@ class ADSCDetector(BaseDetector):
                 self.settings[k].put(v, wait=True)
 
 
-@implementer(IImagingDetector)
 class PilatusDetector(BaseDetector):
+    """
+    Pilatus Detector devices from DECTRIS controlled through the AreaDetector Pilaltus EPICS driver.
+
+    :param name: Root process variable name
+    :param size: detector size tuple in pixels
+    :param detector_type: string representing the detector type, e.g. 'PILATUS 6M'
+    :param description: String escription of detector
+    """
 
     SHUTTERLESS = True
-    detector_type='PILATUS 6M'
 
-    def __init__(self, name, size=(2463, 2527), description='PILATUS Detector'):
+    def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
+        self.detector_type = detector_type
         self.monitor = frames.FileMonitor(self)
 
         self.size = size
@@ -665,6 +698,15 @@ class PilatusDetector(BaseDetector):
 
 
 class EigerDetector(BaseDetector):
+    """
+    Eiger Detector devices from DECTRIS controlled through the AreaDetector EPICS driver.
+
+    :param name: Root process variable name
+    :param stream: address of the ZMQ stream API
+    :param size: detector size tuple in pixels
+    :param description: String description of detector
+    """
+
     SHUTTERLESS = True
     detector_type = 'Eiger'
 
@@ -750,8 +792,8 @@ class EigerDetector(BaseDetector):
         master_file = self.get_template(prefix)
         data_glob = re.sub(r'master', 'data_*', master_file)
         dataset_files = [
-            os.path.join(directory, master_file)
-        ] + glob.glob(os.path.join(directory, data_glob))
+                            os.path.join(directory, master_file)
+                        ] + glob.glob(os.path.join(directory, data_glob))
         for file_path in dataset_files:
             if os.path.exists(file_path):
                 try:
@@ -805,5 +847,6 @@ class EigerDetector(BaseDetector):
         :param message:  text message
         """
         self.set_state(progress=(fraction, message))
+
 
 __all__ = ['SimDetector', 'PilatusDetector', 'RayonixDetector', 'ADSCDetector', 'EigerDetector']

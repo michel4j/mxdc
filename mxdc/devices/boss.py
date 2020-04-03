@@ -13,7 +13,9 @@ logger = get_module_logger(__name__)
 
 
 class IBeamTuner(Interface):
-    """A Beam Tuner object."""
+    """
+    A Beam Tuner object.
+    """
 
     tunable = Attribute('True or False, determines if the tuning is allowed or not')
 
@@ -44,6 +46,16 @@ class IBeamTuner(Interface):
 
 @implementer(IBeamTuner)
 class BaseTuner(Device):
+    """
+    Base device for all Beam Tuners.  A beam tuner links to a beam intensity monitor and reports
+    the percentage intensity compared to the expected value for the intensity monitor.  It also allows
+    tweak the beam up or down. Optionally it can be an abstraction for a device which performs automated
+    optimization of the beam.
+
+    Signals:
+        - *changed* (float,): emitted with the current value of the tuner
+        - *percent* (float,): percentage of current value compared to expected
+    """
     class Signals:
         changed = Signal("changed", arg_types=(float,))
         percent = Signal("percent", arg_types=(float,))
@@ -55,38 +67,67 @@ class BaseTuner(Device):
     def is_tunable(self):
         """
         Check if Tuner is actually tunable, or just a dummy tuner.
-
-        :return: True if tunable
         """
         return self.tunable
 
     def tune_up(self):
+        """
+        Tweak the beam up.
+        """
         pass
 
     def tune_down(self):
-        pass
+        """
+        Tweak the beam down.
+        """
 
     def get_value(self):
+        """
+        Return current value
+        """
         return 0.0
 
     def reset(self):
+        """
+        Reset the beam tuner
+        """
         pass
 
     def pause(self):
-        pass
+        """
+        Pause optimization.
+        """
 
     def resume(self):
-        pass
+        """
+        Pause optimization.
+        """
 
     def start(self):
-        pass
+        """
+        Start optimization.
+        """
 
     def stop(self):
-        pass
+        """
+        Stop optimization.
+        """
 
 
 class BOSSTuner(BaseTuner):
+    """
+    Beam Tuner abstraction for the original ELETTRA Beamline Optimisation and Stabilization System (BOSS).
+
+    :param name: Device name, i.e. root name for all process variables
+    :param picoameter: Picoameter Process variable name
+    :param current: Ring current process variable name
+    :param reference: Optional reference process variable
+    :param control: Optional process variable which indicates if control is enabled
+    :param off_value: If the picoameter goes below this value, pause optimization
+    :param pause_value: Set the threshold to this value when pausing.
+    """
     def __init__(self, name, picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e8):
+
         super().__init__()
         self.name = name
         self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
@@ -153,6 +194,16 @@ class BOSSTuner(BaseTuner):
 
 
 class MOSTABTuner(BaseTuner):
+    """
+    Beam Tuner abstraction for the D-MOSTAB beam stabilisation hardware.
+
+    :param name: Device name, i.e. root name for all process variables
+    :param picoameter: Picoameter Process variable name
+    :param current: Ring current process variable name
+    :param reference: Optional reference process variable
+    :param tune_step: step size to use for tune_up() and tune_down() methods.
+    """
+
     def __init__(self, name, picoameter, current, reference=None, tune_step=50):
         super().__init__()
         self.name = name
@@ -215,6 +266,11 @@ class MOSTABTuner(BaseTuner):
 
 
 class SimTuner(BaseTuner):
+    """
+    A Simulated Beam Tuner
+
+    :param name:  Name of device
+    """
     def __init__(self, name):
         super().__init__()
         self.set_state(active=True)

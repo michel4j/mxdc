@@ -6,7 +6,6 @@ import os
 from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
-from mxdc.conf import settings, PROPERTIES
 from mxdc.utils.misc import get_project_id, DotDict, import_string
 from mxdc.utils.log import get_module_logger
 
@@ -14,24 +13,30 @@ from mxdc.utils.log import get_module_logger
 @implementer(IBeamline)
 class Beamline(Object):
     """
-    Beamline objects
+    Base class for all Beamline objects
 
-    Initializes a Beamline object from a python configuration file.
+    Initializes a Beamline object from a python configuration file. The devices
+    defined in the configuration file can be accessed by name as attributes
+    of the beamline.
 
     :param console: if True, initialize console devices as well
 
     The configuration file is loaded as a python module and follows the
     following conventions:
 
-        - Optionally will also load a local module defined in the file
+        * Optionally will also load a local module defined in the file
           $(MXDC_CONFIG)_local.py for the above example.
-        - Global Variables:
-            CONFIG: A dictionary containing any other key value pairs
-                will be available as beamline.config
-            DEVICES: A dictionary mapping devices names to devices objects.
-                See SIMB.py for a standard set of names.
-            CONSOLE: Same as above but only available in the console
-            SERVICES: A dictionary mapping services names to services client objects
+        * Global Variables:
+
+            - CONFIG: A dictionary containing any other key value pairs
+              will be available as beamline.config
+            - DEVICES: A dictionary mapping devices names to devices objects.
+              See SIMB.py for a standard set of names.
+            - CONSOLE: Same as above but only available in the console
+            - SERVICES: A dictionary mapping services names to services client objects
+
+    Signals:
+        - ready: (bool,)
 
     """
 
@@ -42,6 +47,7 @@ class Beamline(Object):
     REQUIRED = {}  # Required device names in the DEVICES or SERVICES dictionary
 
     def __init__(self, console=False):
+        from mxdc.conf import settings
         super().__init__()
         self.console = console
         self.config_files = settings.get_configs()
@@ -70,7 +76,8 @@ class Beamline(Object):
 
     def load_config(self):
         """
-        Read the configuration file and register all devices
+        Read the configuration file and register all devices. You should not need to call
+        this method directly.
         """
         global_file, local_file = self.config_files
         global_module = os.path.splitext(os.path.basename(global_file))[0]
@@ -168,7 +175,9 @@ def build_beamline(console=False):
     :param console: Whether to instantiate console devices.
     :return: beamline object
     """
-
+    from mxdc.conf import PROPERTIES
     beamline_class_name = PROPERTIES.get('type', 'mxdc.beamlines.mx.MXBeamline')
     BeamlineClass = import_string(beamline_class_name)
     return BeamlineClass(console=console)
+
+__all__ = ['Beamline', 'IBeamline', 'build_beamline']

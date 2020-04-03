@@ -1,17 +1,18 @@
+from enum import Enum
 from gi.repository import GObject
 from zope.interface import implementer
 
 import mxdc.devices.shutter
 from mxdc.devices import misc
-from mxdc import Device
+from mxdc import Device, Signal
 from mxdc.utils.log import get_module_logger
 
-from .interfaces import ICryojet
+from .interfaces import ICryostat
 
 logger = get_module_logger(__name__)
 
 
-class CryoJetNozzle(mxdc.devices.shutter.BasicShutter):
+class CryoJetNozzle(mxdc.devices.shutter.EPICSShutter):
     """
     A specialized in-out actuator for pneumatic Cryojet nozzles.
 
@@ -22,15 +23,60 @@ class CryoJetNozzle(mxdc.devices.shutter.BasicShutter):
         open_name = "%s:opr:open" % name
         close_name = "%s:opr:close" % name
         state_name = "%s:out" % name
-        mxdc.devices.shutter.BasicShutter.__init__(self, open_name, close_name, state_name)
+        mxdc.devices.shutter.EPICSShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Restoring', 'Retracting']
         self._name = 'Cryojet Nozzle'
 
 
-@implementer(ICryojet)
+@implementer(ICryostat)
+class CryostatBase(Device):
+    """
+    Base class for all cryostat devices.  A cryostat maintains low temperatures at the sample position.
+
+    Signals:
+        - temp (float,): Sample temperature
+        - level (float,): Cryogen level
+        - sample (float,): Cryogen flow-rate
+        - shield (float,): Shield flow-rate
+    """
+
+    class Positions(Enum):
+        IN, OUT = range(2)
+
+    class Signals:
+        temp = Signal('temp', arg_types=(float,))
+        level = Signal('level', arg_types=(float,))
+        sample = Signal('sample', arg_types=(float,))
+        shield = Signal('shield', arg_types=(float,))
+        pos = Signal('position', arg_types=(object,))
+
+    def configure(self, temp=None, sample=None, shield=None, position=None):
+        """
+        Configure the Cryostat.
+
+        :param temp: Set the target sample temperature
+        :param sample: Set the sample flow rate
+        :param shield: Set the shield flow rate
+        :param position: If the cryostat set the position. Should be one of Positions.IN, Positions.OUT
+        """
+
+    def stop(self):
+        """
+        Stop the cryostat
+        """
+
+    def start(self):
+        """
+        Start the cryostat
+        """
+
+
+
+@implementer(ICryostat)
 class CryoJetBase(Device):
     """
     Cryogenic Nozzle Jet Device
+
     """
 
     temperature = GObject.Property(type=float, default=0.0)
@@ -39,7 +85,7 @@ class CryoJetBase(Device):
     level = GObject.Property(type=float, default=0.0)
 
     def __init__(self, *args, **kwargs):
-        Device.__init__(self)
+        super().__init__()
         self.name = 'Cryojet'
         self._previous_flow = 7.0
         self.setup(*args, **kwargs)

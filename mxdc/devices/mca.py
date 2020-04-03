@@ -17,9 +17,12 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IMultiChannelAnalyzer)
-class BasicMCA(Device):
+class BaseMCA(Device):
     """
     Base class for single and multi-element fluorescence MCA detector objects.
+
+    Signals:
+        - **deadtime**: float, dead time
 
     :param args: All arguments and key-worded arguments are passed to :func:`custom_setup`
         but before that, the following key-worded arguments are used if available.
@@ -50,7 +53,8 @@ class BasicMCA(Device):
         self._command_sent = False
 
     def custom_setup(self, *args, **kwargs):
-        """This is where all the custom setup for derived classes is performed. 
+        """
+        This is where all the custom setup for derived classes is performed.
         Must be overridden for derived classes. Care must be taken to make sure 
         call signatures of derived classes are compatible if using explicitly
         named ordered arguments. 
@@ -80,7 +84,7 @@ class BasicMCA(Device):
         """
         Configure the detector for data acquisition.
         
-        :param Kwargs:
+        Kwargs:
             - `roi` (tuple(int, int)): bounding channels enclosing region of interest.
             - `energy` (float): an energy value in keV around which to construct
               a region of interest. The ROI is calculated as a 150 eV window around
@@ -110,7 +114,12 @@ class BasicMCA(Device):
                     self.nozzle.off()
 
     def get_roi(self, energy):
-        return [energy - self.half_roi_width, energy + self.half_roi_width]
+        """
+        Get region of interest tuple for the given energy
+
+        :param energy: Energy
+        """
+        return (energy - self.half_roi_width, energy + self.half_roi_width)
 
     def _monitor_state(self, obj, state):
         if state == 1:
@@ -131,17 +140,17 @@ class BasicMCA(Device):
         self.offset = self._offset.get()
         return self.slope * channel + self.offset
 
-    def energy_to_channel(self, e):
+    def energy_to_channel(self, energy):
         """
         Convert a an energy to a channel number using the detectors
         calibration tables.
 
-        :param e: (float), Energy in keV.
+        :param energy: (float), Energy in keV.
         :return:  (int), channel number
         """
         self.slope = self._slope.get()
         self.offset = self._offset.get()
-        return int((e - self.offset) / self.slope)
+        return int((energy - self.offset) / self.slope)
 
     def get_roi_counts(self):
         """
@@ -166,34 +175,34 @@ class BasicMCA(Device):
         """
         return [(-1, -1)]*self.elements
 
-    def count(self, t):
+    def count(self, duration):
         """
         Integrate the detector for the specified amount of time. This method
         blocks.
         
-        :param t: (float), integrating time in seconds.
+        :param duration: (float), integrating time in seconds.
         :returns: float. The total integrated count from the region of interest of
             all detector elements. If individual counts for each element are
             desired, they can be obtained using :func:`get_roi_counts`.            
         """
-        self._acquire_data(t)
+        self._acquire_data(duration)
         # use only the last column to integrate region of interest 
         # should contain corrected sum for multichannel devices
         values = self.get_roi_counts()
         return values[0]
 
-    def acquire(self, t=1.0):
+    def acquire(self, duration=1.0):
         """
         Integrate the detector for the specified amount of time and return
         the raw data from all elements without any ROI manipulation. This method 
         blocks.
         
-        :param t: (float), integrating time in seconds.
+        :param duration: (float), integrating time in seconds.
         :returns: Array(float). An MxN array of counts from each channel of each
             element. Where M is the number of elements and N is the number of
             channels in the detector.            
         """
-        self._acquire_data(t)
+        self._acquire_data(duration)
         return self.data
 
     def stop(self):
@@ -253,7 +262,7 @@ class BasicMCA(Device):
         return True
 
 
-class XFlashMCA(BasicMCA):
+class XFlashMCA(BaseMCA):
     """
     mcaRecord based single element fluorescence detector object.
 
@@ -263,7 +272,7 @@ class XFlashMCA(BasicMCA):
     """
 
     def __init__(self, name, channels=4096, nozzle=None):
-        BasicMCA.__init__(self, name, elements=1, channels=channels)
+        BaseMCA.__init__(self, name, elements=1, channels=channels)
         self.name = 'XFlash MCA'
         self.nozzle = nozzle
 
@@ -321,7 +330,7 @@ class XFlashMCA(BasicMCA):
                         time.sleep(0.2)
                 else:
                     self._set_temp(v)
-        BasicMCA.configure(self, **kwargs)
+        BaseMCA.configure(self, **kwargs)
 
     def _set_temp(self, on):
         if on:
@@ -340,11 +349,13 @@ class XFlashMCA(BasicMCA):
         return [(-1, -1)]
 
 
-class VortexMCA(BasicMCA):
-    """EPICS based 4-element Vortex ME4 detector object."""
+class VortexMCA(BaseMCA):
+    """
+    EPICS based 4-element Vortex ME4 detector object.
+    """
 
     def __init__(self, name, channels=2048, nozzle=None):
-        BasicMCA.__init__(self, name, elements=4, channels=channels)
+        BaseMCA.__init__(self, name, elements=4, channels=channels)
         self.name = 'Vortex MCA'
         self.nozzle = nozzle
 
@@ -392,8 +403,10 @@ SIM_XRF_TEMPLATE = os.path.join(conf.APP_DIR, 'share/data/simulated/xrf_{:03d}.r
 SIM_XRF_FILES = [1, 2, 3]
 
 
-class SimMultiChannelAnalyzer(BasicMCA):
-    """Simulated single channel MCA detector."""
+class SimMCA(BaseMCA):
+    """
+    Simulated MCA detector.
+    """
 
     def __init__(self, name, energy=None, channels=4096, nozzle=None):
         self.energy = energy
@@ -434,18 +447,18 @@ class SimMultiChannelAnalyzer(BasicMCA):
     def energy_to_channel(self, y):
         return int((y - self.offset) / self.slope)
 
-    def count(self, t):
+    def count(self, duration):
         self.aquiring = True
-        time.sleep(t)
+        time.sleep(duration)
         self.acquiring = False
-        val = t * self.count_source(self.energy.get_position())
+        val = duration * self.count_source(self.energy.get_position())
         self.roi_counts = [self.scales[i] * val for i in range(self.elements)]
         self.set_state(deadtime=random.random() * 51.0)
         return sum(self.roi_counts)
 
-    def acquire(self, t=1.0):
+    def acquire(self, duration=1.0):
         self.aquiring = True
-        time.sleep(t)
+        time.sleep(duration)
         self.acquiring = False
         fname = SIM_XRF_TEMPLATE.format(random.choice(SIM_XRF_FILES))
         logger.debug('Simulated Spectrum: {}'.format(fname))
@@ -475,4 +488,4 @@ class SimMultiChannelAnalyzer(BasicMCA):
         time.sleep(0.5)
 
 
-__all__ = ['XFlashMCA', 'VortexMCA', 'SimMultiChannelAnalyzer']
+__all__ = ['XFlashMCA', 'VortexMCA', 'SimMCA']

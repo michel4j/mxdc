@@ -70,6 +70,11 @@ class ISARAMessages(object):
 
 
 class AuntISARA(AutoMounter):
+    """
+    Auto mounter Device for the IRELEC ISARA based on the newer AunISARA python-based EPICS driver.
+
+    :param root: Root name of EPICS process variables
+    """
     PUCKS = [
         '',
         '1A', '2A', '3A', '4A', '5A',
@@ -81,7 +86,7 @@ class AuntISARA(AutoMounter):
     ]
 
     def __init__(self, root):
-        super(AuntISARA, self).__init__()
+        super().__init__()
         self.name = 'ISARA Auto Mounter'
         self.configure(layout=ISARA_DEWAR)
 
@@ -383,6 +388,12 @@ class AuntISARA(AutoMounter):
 
 
 class ISARA(AutoMounter):
+    """
+    Auto mounter Device for the IRELEC ISARA based on the original EPICS driver.
+
+    :param root: Root name of EPICS process variables
+    """
+
     PUCKS = [
         '',
         '1A', '2A', '3A', '4A', '5A',
@@ -394,7 +405,7 @@ class ISARA(AutoMounter):
     ]
 
     def __init__(self, root):
-        super(ISARA, self).__init__()
+        super().__init__()
         self.name = 'ISARA Auto Mounter'
         self.configure(layout=ISARA_DEWAR)
 

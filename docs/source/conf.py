@@ -25,7 +25,7 @@ author = 'Michel Fodje'
 
 # The full version, including alpha/beta/rc tags
 release = subprocess.check_output(['git', 'describe', '--abbrev=0']).decode('utf-8')
-
+version = release
 
 # -- General configuration ---------------------------------------------------
 
@@ -36,6 +36,7 @@ extensions = [
      'sphinx.ext.autodoc',
      'sphinx.ext.autosummary',
      'sphinx.ext.intersphinx',
+     'sphinx.ext.napoleon'
 ]
 
 intersphinx_mapping = {
@@ -68,4 +69,8 @@ html_show_sphinx = False
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['_static']
+
+html_style = 'styles.css'
+
+napoleon_custom_sections = ['signals', 'properties', 'attributes']

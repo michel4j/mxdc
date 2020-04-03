@@ -21,17 +21,17 @@ class MotorError(Exception):
 
 
 @implementer(IMotor)
-class MotorBase(Device):
+class BaseMotor(Device):
     """
     Base class for motors.
     
     Signals:
-        changed: float, Emitted everytime the position of the motor changes.
+        - **changed**: float, Emitted everytime the position of the motor changes.
           Data contains the current position of the motor.
-        target: float, Emitted everytime the requested position of the motor changes.
+        - **target**: float, Emitted everytime the requested position of the motor changes.
           Data is a tuple containing the previous set point and the current one.
           Data is a 2-tuple with the current position and the timestamp of the last change.
-        starting: bool, Emitted when this a command to move has been accepted by this instance of the motor.
+        - **starting**: bool, Emitted when this a command to move has been accepted by this instance of the motor.
     """
 
     # Motor signals
@@ -151,11 +151,7 @@ class MotorBase(Device):
         raise NotImplementedError('Sub-classes must implement this method!')
 
     def do_busy(self, busy):
-        """
-        Busy closure
-
-        :param state: busy state
-        """
+        # busy closure
         if self.is_starting() and busy:
             self.target_master = True
             self.set_state(starting=False)
@@ -305,8 +301,18 @@ class MotorBase(Device):
 
 
 @implementer(IMotor)
-class SimMotor(MotorBase):
+class SimMotor(BaseMotor):
+    """
+    Simulated Motor
 
+    :param name: name of motor
+    :param pos: initial position
+    :param units: unitis
+    :param speed: speed
+    :param active: initial active state
+    :param precision: precision
+    :param health: initial health tuple
+    """
     def __init__(self, name, pos=0, units='mm', speed=5.0, active=True, precision=3, health=(0, '', '')):
         super().__init__(name, precision=precision, units=units)
 
@@ -361,8 +367,10 @@ class SimMotor(MotorBase):
 
 
 @implementer(IMotor)
-class Motor(MotorBase):
-    """Base Motor object for EPICS based motor records."""
+class Motor(BaseMotor):
+    """
+    Base Motor object for EPICS based motor records.
+    """
 
     def __init__(self, name, *args, **kwargs):
         name_parts = name.split(':')
@@ -418,7 +426,12 @@ class Motor(MotorBase):
 
 
 class VMEMotor(Motor):
-    """CLS "vme" type motors."""
+    """
+    CLS "vme" type motors.
+
+    :param name: root PV name of motor (including units)
+    :param encoded: bool, whether motor has an encoder or not
+    """
 
     def __init__(self, name, encoded=False, *args, **kwargs):
         self.use_encoder = encoded
@@ -461,7 +474,9 @@ class VMEMotor(Motor):
 
 
 class APSMotor(VMEMotor):
-    """"APS" type motor records."""
+    """
+    APS type motor records.
+    """
 
     def setup(self):
         self.moving_value = 0
@@ -486,7 +501,9 @@ class APSMotor(VMEMotor):
 
 
 class CLSMotor(VMEMotor):
-    """Ancient CLS type motor records."""
+    """
+    Ancient CLS type motor records.
+    """
 
     def setup(self):
         self.moving_value = 4
@@ -506,7 +523,9 @@ class CLSMotor(VMEMotor):
 
 
 class PseudoMotor(VMEMotor):
-    """CLS Pseudo Motor."""
+    """
+    CLS Pseudo Motor.
+    """
 
     def __init__(self, name, version=2, *args, **kwargs):
         self.version = version
@@ -549,16 +568,15 @@ class PseudoMotor(VMEMotor):
 
 
 class BraggEnergyMotor(VMEMotor):
+    """
+    VME Motor for Bragg based Energy
 
+    :param name: PV name
+    :param encoder: external encoder if not using internal encoder
+    :param mono_unit_cell: Si-111 unit cell parameter
+    """
     def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, fixed_lo=2.0, fixed_hi=2.1, fixed_value=8.157,
                  **kwargs):
-        """
-        VME Motor for Bragg based Energy
-
-        :param name: PV name
-        :param encoder: external encoder if not using internal encoder
-        :param mono_unit_cell: Si-111 unit cell parameter
-        """
         self.encoder = encoder
         self.mono_unit_cell = mono_unit_cell
         self.fixed_lo, self.fixed_hi = fixed_lo, fixed_hi
@@ -587,7 +605,14 @@ class BraggEnergyMotor(VMEMotor):
         self.pos_tgt.put(bragg_target)
 
 
-class ResolutionMotor(MotorBase):
+class ResolutionMotor(BaseMotor):
+    """
+    Detector Resolution PseudoMotor
+
+    :param energy: energy device
+    :param distance: distance device
+    :param detector_size: detector size in mm
+    """
     def __init__(self, energy, distance, detector_size):
         super().__init__('Resolution')
         self.description = 'Max Detector Resolution'

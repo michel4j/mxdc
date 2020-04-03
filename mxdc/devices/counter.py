@@ -17,29 +17,31 @@ logger = get_module_logger(__name__)
 @implementer(ICounter)
 class BaseCounter(Device):
     """
+
     Base class for all counter devices
 
     Signals:
-        changed: arg_types=(object,), value has changed
-        count: arg_types=(float,), result of asynchronous
+        - changed (object,): value has changed
+        - count (float,): result of asynchronous
+
     """
 
     class Signals:
         changed = Signal("changed", arg_types=(object,))
         count = Signal("count", arg_types=(float,))
 
-    def count(self, t):
+    def count(self, duration):
         """
-        Averaging of the value for the specified amount of time. Blocks while counting
+        Integrate of the value for the specified amount of time. Blocks while counting
 
-        :param t: total time to count
-        :return: average accumulated value
+        :param duration: total time duration in seconds to count
+        :return: accumulated value
         """
         raise NotImplementedError('Subclasses must implement this method')
 
     def start(self):
         """
-        Start counting as fast as possible until stopped. Values should be emitted as the count signal
+        Start counting as fast as possible until stopped. Values are be emitted as the "count" signal.
         """
 
     def stop(self):
@@ -86,20 +88,20 @@ class Counter(BaseCounter):
     def on_value(self, pv, val):
         self.set_state(changed=val)
     
-    def count(self, t):
-        if t <= 0.0:
+    def count(self, duration):
+        if duration <= 0.0:
             return self.value.get() - self.zero
             
-        logger.debug('Averaging detector (%s) for %0.2f sec.' % (self.name, t) )
+        logger.debug('Averaging detector (%s) for %0.2f sec.' % (self.name, duration))
         interval=0.01
         values = []
-        time_left = t
+        time_left = duration
         while time_left > 0.0:
             values.append( self.value.get() )
             time.sleep(interval)
             time_left -= interval
-        total = (sum(values, 0.0)/len(values)) - self.zero
-        logger.debug('(%s) Returning average of %d values for %0.2f sec.' % (self.name, len(values), t) )
+        total = (duration / interval) * (sum(values, 0.0) / len(values)) - self.zero
+        logger.debug('(%s) Returning integrated values for %0.2f sec.' % (self.name, len(values), duration))
         self.set_state(count=total)
         return total
 
@@ -158,8 +160,8 @@ class SimCounter(BaseCounter):
         self.prev_value = value
         return value
 
-    def count(self, t):
-        time.sleep(t)
+    def count(self, duration):
+        time.sleep(duration)
         value = self.fetch_value()
         self.set_state(count=value)
         return value

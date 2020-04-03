@@ -88,7 +88,7 @@ class RestoreBeam(Script):
 
 
 class DeiceGonio(Script):
-    description = 'Deice Goniometer'
+    description = 'Deice BaseGoniometer'
 
     def run(self):
         if 'deicer' in self.beamline.registry:

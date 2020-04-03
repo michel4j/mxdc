@@ -56,7 +56,7 @@ DEVICES = {
     'dcm_pitch': motor.SimMotor('DCM Pitch', 0.0, 'deg'),
     'beam_tuner': boss.SimTuner('Simulated Beam Tuner'),
 
-    # Goniometer/goniometer head devices
+    # BaseGoniometer/goniometer head devices
     'manager': manager.SimModeManager(),
     'goniometer': goniometer.SimGonio(),
     'omega': motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3),
@@ -106,8 +106,8 @@ DEVICES = {
     'automounter': sim.SimSAM(),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
-    'mca': mca.SimMultiChannelAnalyzer('Simulated MCA', energy=tmp2),
-    'multi_mca': mca.SimMultiChannelAnalyzer('Simulated MCA', energy=tmp2),
+    'mca': mca.SimMCA('Simulated MCA', energy=tmp2),
+    'multi_mca': mca.SimMCA('Simulated MCA', energy=tmp2),
 
     # disk space monitor
     'disk_space': misc.DiskSpaceMonitor('Disk Space', '/home', warn=0.2, critical=0.1, freq=30),

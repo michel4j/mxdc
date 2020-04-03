@@ -14,7 +14,15 @@ logger = get_module_logger(__name__)
 
 @implementer(IModeManager)
 class BaseManager(Device):
-    """Base class for goniometer."""
+    """
+    Base Mode Manager. A device to manage beamline modes
+
+    Signals:
+        - **mode**: beamline mode
+
+    Properties:
+        - **mode**: beamline mode
+    """
 
     class ModeType(Enum):
         MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = list(range(6))
@@ -33,6 +41,7 @@ class BaseManager(Device):
     def wait(self, start=True, stop=True, timeout=30, *modes):
         """
         Wait for the one of specified modes.
+
         :param modes: a list of Mode ENUMS or strings to wait for
         :param start: (bool), Wait for the manager to become busy.
         :param stop: (bool), Wait for the manager to become idle.
@@ -78,6 +87,7 @@ class BaseManager(Device):
     def mount(self, wait=False):
         """
         Switch to Mount mode
+
         :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "mount"')
@@ -85,6 +95,7 @@ class BaseManager(Device):
     def center(self, wait=False):
         """
         Switch to Center mode
+
         :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "center"')
@@ -92,6 +103,7 @@ class BaseManager(Device):
     def collect(self, wait=False):
         """
         Switch to Collect mode
+
         :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "collect"')
@@ -99,6 +111,7 @@ class BaseManager(Device):
     def align(self, wait=False):
         """
         Switch to Align mode
+
         :param wait: wait for switch to complete
         """
         raise NotImplementedError('Sub-classes must implement "align"')
@@ -162,6 +175,7 @@ class SimModeManager(BaseManager):
     def align(self, wait=False):
         """
         Switch to Mount mode
+
         :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.ALIGN)

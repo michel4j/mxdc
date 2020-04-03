@@ -67,12 +67,30 @@ class ICounter(IDevice):
     value = Attribute("""Process Variable.""")
 
     def count(time):
-        """Integrate the counter for a specified duration and returns total count."""
+        """
+        Integrate the counter for a specified duration and returns total count.
+        """
+
+    def start():
+        """
+        Start acquiring as fast as possible asynchronously
+        """
+
+    def stop():
+        """
+        Stop acquisition counting
+        """
+
+    def count_async(time):
+        """
+        Asynchronous version of count()
+        """
+
 
 
 class IGoniometer(IDevice):
     """A goniometer devices object."""
-    omega = Attribute("""Goniometer omega motor.""")
+    omega = Attribute("""BaseGoniometer omega motor.""")
 
     def configure(time=1.0, delta=1.0, angle=0.0):
         """Configure the goniometer scan parameters."""
@@ -240,8 +258,8 @@ class IPTZCameraController(IDevice):
         """Move the Camera to a preset position."""
 
 
-class ICryojet(IDevice):
-    """A CryoJet devices object."""
+class ICryostat(IDevice):
+    """A CryoStat devices object."""
 
     sample_flow = Attribute("""Sample flow rate.""")
     shield_flow = Attribute("""Shield flow rate.""")
@@ -249,11 +267,11 @@ class ICryojet(IDevice):
     level = Attribute("""Cryogen level.""")
     nozzle = Attribute("""Device, controlling nozzle gap.""")
 
-    def stop_sample_flow():
-        """Stop sample flow."""
+    def stop():
+        """Stop cooling."""
 
-    def resume_sample_flow():
-        """Stop sample flow."""
+    def resume():
+        """Resume."""
 
 
 class IDiagnostic(Interface):

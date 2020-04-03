@@ -15,13 +15,13 @@ class BaseStorageRing(Device):
     Base class for storage ring devices
 
     Signals:
-        ready: arg_types=(bool,), beam available state
+        - **ready**: arg_types=(bool,), beam available state
 
     Properties:
-        current: float, stored current
-        mode:  int, operational mode
-        state: int, storage ring state
-        message: str, storage ring message
+        - **current**: float, stored current
+        - **mode**:  int, operational mode
+        - **state**: int, storage ring state
+        - **message**: str, storage ring message
     """
 
     class Signals:
@@ -42,9 +42,17 @@ class BaseStorageRing(Device):
         return True
 
     def beam_available(self):
+        """
+        Check beam availability
+        """
         return self.get_state('ready')
 
     def wait_for_beam(self, timeout=60):
+        """
+        Wait for beam to become available
+
+        :param timeout: timeout period
+        """
         while not self.get_state('ready') and timeout > 0:
             time.sleep(0.05)
             timeout -= 0.05
@@ -52,6 +60,14 @@ class BaseStorageRing(Device):
 
 
 class StorageRing(BaseStorageRing):
+    """
+    EPICS Storage Ring Device
+
+    :param current_pv: Ring current PV name
+    :param mode_pv:  Ring mode PV name
+    :param state_pv: Ring Status PV name
+    """
+
     def __init__(self, current_pv, mode_pv, state_pv):
         super().__init__()
         self.name = "CLS Storage Ring"
@@ -87,6 +103,10 @@ class StorageRing(BaseStorageRing):
 
 
 class SimStorageRing(BaseStorageRing):
+    """
+    Simulated Storage Ring.
+    """
+
     def __init__(self, name):
         super().__init__()
         self.name = name

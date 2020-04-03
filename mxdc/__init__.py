@@ -155,7 +155,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
     Base Class for event-aware objects in MxDC which can emit signals and register
     callbacks.
 
-    Signals are defined through the `Signals` subclass as follows:
+    Signals are defined through the `Signals` attribute class as follows:
 
     .. code-block:: python
 
@@ -198,7 +198,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
 
     def emit(self, signal: str, *args):
         """
-        Emit the signal in a thread save manner
+        Emit the signal. Signal emissions are thread safe and will be handled in the main thread.
 
         :param signal: Signal name
         :param args: list of signal parameters
@@ -226,6 +226,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
     def get_state(self, item: str):
         """
         Get a specific state by key. The key is transformed so that underscores are replaced with hyphens
+        (i.e, 'event_name' is translated to 'event-name')
 
         :param item: state key
         """
@@ -236,7 +237,6 @@ class Object(GObject.GObject, metaclass=ObjectType):
         Obtain a copy of the internal state dictionary. The return dictionary is not neccessarily usable as kwargs
         for set_state due to the '_' to '-' transformation of the keys.
 
-        :return: a dictionary copy of the internal signal state
         """
         return self.__state__.copy()
 
@@ -245,8 +245,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
         Set the state of the object and emit the corresponding signal.
 
         :param args: list of strings corresponding to non-value signal names
-        :param kwargs: name, value pairs corresponding to signal name and signal arguments. signal names are processed
-        to convert underscores to hyphens
+        :param kwargs: name, value pairs corresponding to signal name and signal arguments.
         """
 
         for signal in args:
@@ -264,20 +263,18 @@ class Device(Object):
     Base device object. All devices should be derived from this class.
 
     Signals:
-        active: arg_types=(bool,), True when device is ready to be controlled
-        busy: arg_types=(bool,), True when device is busy
-        enabled: arg_types=(bool,), True when device is enabled for control
-        health: arg_types=(severity: int, context: str, message: str), represents the health state of the device
-            severity values:
-                0 : OK
-                1 : MINOR, no impact to devices functionality.
-                2 : MARGINAL, no immediate impact. Attention may soon be needed.
-                4 : SERIOUS, functionality impacted but recovery is possible.
-                8 : CRITICAL, functionality broken, recovery is not possible.
-                16: DISABLED, devices has been manually disabled.
-            health events within a given context can cancel previous values in the same context but do not
-            affect other contexts. The overall health of the device is dependent on all contexts and is usually
-            emitted with an empty string.
+
+        * "active": arg_types=(bool,), True when device is ready to be controlled
+        * "busy": arg_types=(bool,), True when device is busy
+        * "enabled": arg_types=(bool,), True when device is enabled for control
+        * "health": arg_types=(severity: int, context: str, message: str), represents the health state of the device the severity levels are
+
+            - 0: OK,
+            - 1: MINOR,
+            - 2: MARGINAL,
+            - 4: SERIOUS,
+            - 8: CRITICAL,
+            - 16: DISABLED
 
     """
 
@@ -302,11 +299,14 @@ class Device(Object):
             msg = '[{:d}] inactive variables.'.format(len(inactive_devs))
             logger.debug("'{}' {}".format(self.name, msg))
 
+    def configure(self, **kwargs):
+        """
+        Configure the device.  Keyword arguments and implementation details are device specific.
+        """
+
     def is_healthy(self):
         """
         Check if all health flags are clear
-
-        :return: True if healthy, False otherwise
         """
         try:
             severity, context, message = self.get_state('health')
@@ -318,24 +318,18 @@ class Device(Object):
     def is_active(self):
         """
         Check if the device is active and ready for commands
-
-        :return: True if active, False otherwise
         """
         return self.get_state("active")
 
     def is_busy(self):
         """
         Check if the device is busy/moving
-
-        :return: True if busy, False otherwise
         """
         return self.get_state("busy")
 
     def is_enabled(self):
         """
         Check if the device is enabled/disabled
-
-        :return: True if enabled, False if disabled
         """
         return self.get_state("enabled")
 
@@ -387,9 +381,7 @@ class Device(Object):
 
     def get_pending(self):
         """
-        Get pending components
-
-        :return: list of pending inactive components
+        Get a list of pending/inactive components
         """
 
         return self.__pending
@@ -493,13 +485,16 @@ class Engine(Object):
     of the activity
 
     Signals:
-        started: arg_types=(data: object,)
-        stopped: arg_types=(data: object,)
-        busy: arg_types=(bool,)
-        done: arg_types=(data: object,)
-        error: arg_types=(str,)
-        paused: arg_types=(paused: bool, reason: str)
-        progress: arg_types=(fraction: float, message: str)
+        - **started**: arg_types=(data: object,)
+        - **stopped**: arg_types=(data: object,)
+        - **busy**: arg_types=(bool,)
+        - **done**: arg_types=(data: object,)
+        - **error**: arg_types=(str,)
+        - **paused**: arg_types=(paused: bool, reason: str)
+        - **progress**: arg_types=(fraction: float, message: str)
+
+    Attributes:
+        - **beamline**: Beamline Object
     """
 
     class Signals:
@@ -527,22 +522,18 @@ class Engine(Object):
     def is_stopped(self):
         """
         Check if the engine is stopped
-        :return: True if stopped
         """
         return self.stopped
 
     def is_paused(self):
         """
         Check if the engine is paused
-        :return: True if paused
         """
         return self.paused
 
     def is_busy(self):
         """
         Check if the engine is busy
-
-        :Returns: True if busy, False otherwise
         """
         return self.get_state("busy")
 

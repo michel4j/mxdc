@@ -19,6 +19,12 @@ logger = get_module_logger(__name__)
 
 @implementer(IDataCollector)
 class DataCollector(Engine):
+    """
+    Diffraction data collection Engine
+
+    Signals:
+        - message: (str,) messages
+    """
 
     class Signals:
         message = Signal('message', arg_types=(str,))
@@ -45,9 +51,17 @@ class DataCollector(Engine):
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
 
-    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False, first=False):
+    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False):
+        """
+        Configure the data collection engine
+
+        :param run_data: information about the data runs to collect
+        :param take_snapshots: bool, whether to take sample snapshot images or not
+        :param existing: existing frames
+        :param analysis: bool, whether to run analysis after acquiring frames
+        :param anomalous: bool, enable analysis mode for data analysis
+        """
         self.config['analysis'] = analysis
-        self.config['first'] = first
         self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
@@ -103,7 +117,7 @@ class DataCollector(Engine):
             metadata = self.save(dataset)
             self.results.append(metadata)
             if metadata and self.config['analysis']:
-                self.analyse(metadata, dataset['sample'], first=self.config.get('first', False))
+                self.analyse(metadata, dataset['sample'])
 
         return self.results
 
@@ -284,7 +298,6 @@ class DataCollector(Engine):
             return reply
 
     def analyse(self, metadata, sample, first=False):
-
         if self.config['analysis'] is None:
             return
 

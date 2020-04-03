@@ -15,14 +15,31 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IGoniometer)
-class Goniometer(Device):
-    """Base class for goniometer."""
+class BaseGoniometer(Device):
+    """
+    Base class for all goniometers.
+    """
 
     def __init__(self, name='Diffractometer'):
         super().__init__()
         self.name = name
         self.stopped = True
         self.default_timeout = 180
+
+    def configure(self, **kwargs):
+        """
+        Configure the goniometer in preparation for scanning.
+
+        :param kwargs: Keyword arguments may vary based on the goniometer type. However,
+        the following keywords are implemented at a minimum.
+
+        kwargs:
+            - time: exposure time per frame
+            - delta: delta angle per frame
+            - angle: start angle of data set
+            - num_frames: total number of frames
+
+        """
 
     def wait(self, start=True, stop=True, timeout=None):
         """
@@ -62,15 +79,17 @@ class Goniometer(Device):
         self.stopped = True
 
     def scan(self, wait=True, timeout=None):
-        """Perform and data collection Scan"""
+        """
+        Perform and data collection Scan
+        """
         raise NotImplementedError('Sub-classes must implement "scan" method')
 
 
-class ParkerGonio(Goniometer):
+class ParkerGonio(BaseGoniometer):
     """
-    EPICS based Parker-type Goniometer at the CLS 08ID-1.
+    EPICS based Parker-type BaseGoniometer at the CLS 08ID-1.
 
-    :param root: (str): PV name of goniometer EPICS record.
+    :param root: (str), PV name of goniometer EPICS record.
     """
 
     def __init__(self, root):
@@ -120,9 +139,9 @@ class ParkerGonio(Goniometer):
         self.stop_cmd.put(1)
 
 
-class MD2Gonio(Goniometer):
+class MD2Gonio(BaseGoniometer):
     """
-    MD2-type Goniometer. New Arinax Java Interface
+    MD2-type BaseGoniometer. New Arinax Java Interface
 
     :param root: Server PV name
     """
@@ -195,7 +214,10 @@ class MD2Gonio(Goniometer):
         self.abort_cmd.put(self.NULL_VALUE)
 
 
-class SimGonio(Goniometer):
+class SimGonio(BaseGoniometer):
+    """
+    Simulated BaseGoniometer.
+    """
     def __init__(self):
         super().__init__('SIM Diffractometer')
         self.settings = {}
@@ -242,9 +264,9 @@ class SimGonio(Goniometer):
         bl.omega.stop()
 
 
-class GalilGonio(Goniometer):
+class GalilGonio(BaseGoniometer):
     """
-    EPICS based Parker-type Goniometer at the CLS 08ID-1.
+    EPICS based Galil BaseGoniometer.
 
     :param root: (str): PV name of goniometer EPICS record.
     """
@@ -289,9 +311,9 @@ class GalilGonio(Goniometer):
         self.stopped = True
 
 
-class OldMD2Gonio(Goniometer):
+class OldMD2Gonio(BaseGoniometer):
     """
-    MD2-type Goniometer. Old Maatel Socket Interface
+    MD2-type BaseGoniometer. Old Maatel Socket Interface
 
     :param root: Server PV name
     """

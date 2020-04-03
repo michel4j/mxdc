@@ -8,6 +8,11 @@ from .sam import SAM_DEWAR
 
 
 class SimSAM(AutoMounter):
+    """
+    Simulated Auto mounter Device which emulates a SAM automounter.
+
+    """
+
     StateCodes = {
         '0': Port.EMPTY,
         '1': Port.GOOD,
@@ -163,7 +168,6 @@ class SimSAM(AutoMounter):
         self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample mounted")
         #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
-
 
     def _sim_dismount_done(self, dry=True):
         port = self.sample['port']
