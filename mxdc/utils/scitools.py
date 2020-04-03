@@ -7,6 +7,8 @@ from mxdc.utils import converter
 from scipy import interpolate, optimize, signal
 from mxdc.utils import fitting
 
+from mxdc.conf import SHARE_DIR
+
 SPACE_GROUP_NAMES = {
     1: 'P1', 3: 'P2', 4: 'P2(1)', 5: 'C2', 16: 'P222',
     17: 'P222(1)', 18: 'P2(1)2(1)2',
@@ -29,10 +31,10 @@ PEAK_FWHM = 0.1
 # Data was compiled from the NIST database
 # Emission rates were compiled using the PyMCA tables
 
-with open(os.path.join(os.path.dirname(__file__), 'data', 'emissions.json'), 'r') as handle:
+with open(os.path.join(SHARE_DIR, 'data', 'emissions.json'), 'r') as handle:
     EMISSIONS_DATA = json.load(handle)
 
-with open(os.path.join(os.path.dirname(__file__), 'data', 'periodictable.json'), 'r') as handle:
+with open(os.path.join(SHARE_DIR, 'data', 'periodictable.json'), 'r') as handle:
     PERIODIC_TABLE = json.load(handle)
 
 

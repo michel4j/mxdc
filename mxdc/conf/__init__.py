@@ -13,14 +13,10 @@ from mxdc.utils.log import get_module_logger, log_to_console
 
 logger = get_module_logger(__name__)
 
-APP_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHARE_DIR = os.path.join(APP_DIR, 'share')
 CONFIG_DIR = os.environ.get('MXDC_CONFIG', os.path.join(APP_DIR, 'etc'))
 DOCS_DIR = os.path.join(APP_DIR, 'docs/html')
-LIBS_DIR = os.path.join(APP_DIR, 'mxdc/libs')
-
-# Add external libs directory to path
-sys.path.append(os.environ.get('MXDC_EXT_LIBS', LIBS_DIR))
 
 
 APP_CACHE_DIR = ''

@@ -13,3 +13,7 @@ mxdc/VERSION
 fakegir
 venv/
 etc/
+build/
+dist/
+/*.egg-info
+/*.egg

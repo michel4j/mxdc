@@ -30,9 +30,6 @@ class BaseGoniometer(Device):
         """
         Configure the goniometer in preparation for scanning.
 
-        :param kwargs: Keyword arguments may vary based on the goniometer type. However,
-        the following keywords are implemented at a minimum.
-
         kwargs:
             - time: exposure time per frame
             - delta: delta angle per frame

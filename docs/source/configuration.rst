@@ -1,4 +1,0 @@
-Configuration
-=============
-
-Configuration of MxDC

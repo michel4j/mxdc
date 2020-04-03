@@ -6,8 +6,6 @@
 # Config files are read in pairs  XXXX.py, XXXX_local.py
 #   * XXXX.py       - main config file, usually closely guarded
 #   * XXXX_local.py - local config file, overrides entries in the main config file, customizations can be allowed
-#
-# By default MXDC_CONFIG will use the "etc" subdirectory of the install location if the environment variable is not set
 
 
 import mxdc.devices.shutter

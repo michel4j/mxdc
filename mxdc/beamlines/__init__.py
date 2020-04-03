@@ -28,16 +28,13 @@ class Beamline(Object):
           $(MXDC_CONFIG)_local.py for the above example.
         * Global Variables:
 
-            - CONFIG: A dictionary containing any other key value pairs
-              will be available as beamline.config
-            - DEVICES: A dictionary mapping devices names to devices objects.
-              See SIMB.py for a standard set of names.
-            - CONSOLE: Same as above but only available in the console
-            - SERVICES: A dictionary mapping services names to services client objects
-
     Signals:
         - ready: (bool,)
 
+    Attributes:
+        - DEFAULTS: dict, default config values for the beamline
+        - REQUIRED: list of required device names. All devices on this list must be
+          defined in the config file.
     """
 
     class Signals:

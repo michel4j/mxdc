@@ -28,8 +28,8 @@ How to Use This Documentation
 -----------------------------
 This documentation is divided into three sections targeted at different audiences.  For MX beamline users
 primarily interested in using the MxDC GUI for data acquisition, it is recommended to start with the  :doc:`overview`
-section which describes the user interface. For beamline staff interested in installing and configuring MxDC for their beamlines, start with the :doc:`installation`
-and :doc:`configuration` sections.  Develpers interested in re-using or extending the MxDC framework should
+section which describes the user interface. For beamline staff interested in installing and configuring MxDC for their
+beamlines, start with the :doc:`installation` section.  Develpers interested in re-using or extending the MxDC framework should
 consult the :doc:`api/purpose` section.
 
 
@@ -53,7 +53,6 @@ Index
     :maxdepth: 1
 
     installation
-    configuration
     hutch
     console
 

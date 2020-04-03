@@ -17,8 +17,9 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IPositioner)
-class PositionerBase(Device):
-    """Base class for a simple positioning devices.
+class BasePositioner(Device):
+    """
+    Base class for a simple positioning devices.
     
     Signals:
         - `changed` : Data is the new value of the devices.
@@ -35,27 +36,43 @@ class PositionerBase(Device):
         self.set_state(changed=self.get())
 
     def set(self, value):
-        """Set the value.
-        Args:
-            - `value` : New value to set.
+        """
+        Set the value of the positioner
+
+        :param value: new value
         """
         raise NotImplementedError('Derived class must implement this method')
 
     def set_position(self, value):
+        """
+        Alias for the :func:`set` method.
+        """
         return self.set(value)
 
     def get(self):
         """
-        Returns:
-            - The current value.
+        Get the current position
         """
         raise NotImplementedError('Derived class must implement this method')
 
     def get_position(self):
+        """
+        Alias for the :func:`get` method.
+        """
         return self.get()
 
 
-class SimPositioner(PositionerBase):
+class SimPositioner(BasePositioner):
+    """
+    Simulated positioner
+
+    :param name: name of device
+    :param pos: initial position
+    :param units: units
+    :param active: initial active state
+    :param delay: bool, delay position signal
+    :param noise: simulated noise level
+    """
     def __init__(self, name, pos=0.0, units="", active=True, delay=True, noise=2):
         super().__init__()
         self.name = name
@@ -89,20 +106,20 @@ class SimPositioner(PositionerBase):
         return True
 
 
-class Positioner(PositionerBase):
-    """Simple EPICS based positioning devices.
+class Positioner(BasePositioner):
+    """
+    Simple EPICS based positioning devices.
+
+    :param name: process variable name
+
+    Kwargs:
+        - `fbk_name` (str): optional Name of PV for getting current value. If not
+          provided, the same PV will be used to both set and get.
+        - `scale` (float): A percentage to scale the set and get values by.
+        - `units` (str): The units of the value.
     """
 
     def __init__(self, name, fbk_name=None, scale=100, units="", wait_time=0):
-        """Args:
-            - `name` (str): Name of positioner PV for setting the value
-        
-        Kwargs:
-            - `fbk_name` (str): Name of PV for getting current value. If not 
-              provided, the same PV will be used to both set and get.
-            - `scale` (float): A percentage to scale the set and get values by.
-            - `units` (str): The units of the value.
-        """
         super().__init__()
         self.set_pv = self.add_pv(name)
         self.scale = scale
@@ -122,12 +139,6 @@ class Positioner(PositionerBase):
         if val != '':
             self.name = val
 
-    def __repr__(self):
-        return '<%s:%s, target:%s, feedback:%s>' % (self.__class__.__name__,
-                                                    self.name,
-                                                    self.set_pv.name,
-                                                    self.fbk_pv.name)
-
     def set(self, pos, wait=False):
         if self.scale is None:
             self.set_pv.put(pos)
@@ -145,7 +156,16 @@ class Positioner(PositionerBase):
             return val
 
 
-class ChoicePositioner(PositionerBase):
+class ChoicePositioner(BasePositioner):
+    """
+    An Enumerated EPICS choice positioner
+
+    :param pv: name of process variable
+
+    kwargs:
+        - choices: tuple of values to translate to
+        - units: device units
+    """
     def __init__(self, pv, choices=(), units=""):
         super().__init__()
         self.units = units
@@ -169,7 +189,17 @@ class ChoicePositioner(PositionerBase):
             self.dev.put(value)
 
 
-class SimChoicePositioner(PositionerBase):
+class SimChoicePositioner(BasePositioner):
+    """
+    Simulated choice positioner
+
+    :param pv: name of process variable
+    :param value: initial value of positioner
+
+    kwargs:
+        - choices: tuple of values to translate to
+        - units: device units
+    """
     def __init__(self, name, value, choices=(), units="", active=True):
         self.name = name
         super().__init__()
@@ -192,28 +222,70 @@ class SimChoicePositioner(PositionerBase):
 
 @implementer(IOnOff)
 class SampleLight(Positioner):
+    """
+    Illumination controller device. This device is a Positioner that can in addition be turned On and Off.
+
+    :param set_name: name of PV for setting illumination level
+    :param fbk_name: name of PV for getting the illumination level
+    :param onoff_name: name of PV for toggling the light on or off
+
+    kwargs:
+        - scale: scale value for illumination level
+        - units: units of the device
+
+    """
 
     def __init__(self, set_name, fbk_name, onoff_name, scale=100, units=""):
         super().__init__(set_name, fbk_name, scale, units)
         self.onoff_cmd = self.add_pv(onoff_name)
 
     def set_on(self):
+        """
+        Turn on the device
+        """
         self.onoff_cmd.put(1)
 
-    on = set_on
+    def on(self):
+        """
+        Alias for :func:`set_on`
+
+        """
+        self.set_on()
 
     def set_off(self):
+        """
+        Turn off the device
+        """
         self.onoff_cmd.put(0)
 
-    off = set_off
+    def off(self):
+        """
+        Alias for :func:`set_off`
+
+        """
+        self.set_off()
 
     def is_on(self):
+        """
+        Check if the light is on or off
+        """
         return self.onoff_cmd.get() == 1
 
 
 @implementer(IOnOff)
 class OnOffToggle(Device):
+    """
+    A Device that can be toggled on/off.
 
+    Signals:
+        - changed: (bool,) state of the device
+
+    :param pv_name: process variable name
+
+    kwargs:
+        - values: tuple of values representing (on value, off value) for the PV.
+
+    """
     class Signals:
         changed = Signal("changed", arg_types=(bool,))
 
@@ -224,16 +296,35 @@ class OnOffToggle(Device):
         self.onoff_cmd.connect('changed', self.on_changed)
 
     def set_on(self):
-        self.onoff_cmd.put(self.on_value)
+        """
+        Turn on the device
+        """
+        self.onoff_cmd.put(1)
 
-    on = set_on
+    def on(self):
+        """
+        Alias for :func:`set_on`
+
+        """
+        self.set_on()
 
     def set_off(self):
-        self.onoff_cmd.put(self.off_value)
+        """
+        Turn off the device
+        """
+        self.onoff_cmd.put(0)
 
-    off = set_off
+    def off(self):
+        """
+        Alias for :func:`set_off`
+
+        """
+        self.set_off()
 
     def is_on(self):
+        """
+        Check if the light is on or off
+        """
         return self.is_changed()
 
     def on_changed(self, obj, val):
@@ -242,7 +333,16 @@ class OnOffToggle(Device):
 
 @implementer(IOnOff)
 class SimLight(SimPositioner):
+    """
+    Simulated Illumination Device
 
+    :param name: name of device
+    :param pos: initial illumination level
+
+    kwargs:
+        - units: device units
+        - active: initial active state
+    """
     def __init__(self, name, pos=0, units="", active=True):
         super().__init__(name, pos, units, active)
         self._on = 0
@@ -259,26 +359,26 @@ class SimLight(SimPositioner):
 
 @implementer(IMotor)
 class PositionerMotor(BaseMotor):
-    """Adapts a positioner so that it behaves like a Motor (ie, provides the
+    """
+    Adapts a positioner so that it behaves like a Motor (ie, provides the
     `IMotor` interface.
+
+    :param positioner:  Positioner device
+
     """
     __used_for__ = IPositioner
 
     def __init__(self, positioner):
-        """
-        Args:
-            - `positioner` (:class:`PositionerBase`)
-        """
         super().__init__('Positioner Motor')
         self.positioner = positioner
         self.name = positioner.name
         self.units = positioner.units
         self.positioner.connect('changed', self.on_change)
 
-    def move_to(self, pos, wait=False):
+    def move_to(self, pos, wait=False, force=False):
         self.positioner.set(pos, wait)
 
-    def move_by(self, val, wait=False):
+    def move_by(self, val, wait=False, force=False):
         self.positioner.set(self.positioner.get() + val, wait)
 
     def stop(self):
@@ -288,13 +388,20 @@ class PositionerMotor(BaseMotor):
         return self.positioner.get()
 
     def wait(self, **kwargs):
-        time.sleep(0.02)
+        pass
 
 
 Registry.add_adapter([IPositioner], IMotor, '', PositionerMotor)
 
 
-class Attenuator(PositionerBase):
+class Attenuator(BasePositioner):
+    """
+    A positioner for EPICS XIA attenuator boxes
+
+    :param bitname: root name of attenuator PV
+    :param energy: energy process variable name
+
+    """
     def __init__(self, bitname, energy):
         super().__init__()
         fname = bitname[:-1]
@@ -372,6 +479,14 @@ class Attenuator(PositionerBase):
 
 
 class Attenuator2(Attenuator):
+    """
+    Second generation XIA attenuator EPICS device
+
+    :param bitname: root name of attenuator PV
+    :param energy: energy process variable name
+
+    """
+
     def __init__(self, bitname, energy):
         super().__init__(bitname=bitname, energy=energy)
         fname = bitname[:-1]
@@ -412,16 +527,17 @@ class Attenuator2(Attenuator):
 
 
 class DiskSpaceMonitor(Device):
-    """An object which periodically monitors a given path for available space."""
+    """
+    A device which periodically monitors a given path for available space.
+
+    :param descr: Description
+    :param path: Path to monitor
+    :param warn: Warn if Fraction of available space goes below
+    :param critical: Raise alarm if Fraction of available space goes below
+    :param freq: Frequency in minutes to check space
+    """
 
     def __init__(self, descr, path, warn=0.05, critical=0.025, freq=5.0):
-        """
-        :param descr: Description
-        :param path: Path to monitor
-        :param warn: Warn if Fraction of available space goes below
-        :param critical: Raise alarm if Fraction of available space goes below
-        :param freq: Frequency in minutes to check space
-        """
         super().__init__()
         self.name = descr
         self.path = path
@@ -448,7 +564,6 @@ class DiskSpaceMonitor(Device):
     def check_space(self):
         """
         Check disk space and emit health signals accordingly
-        :return:
         """
         try:
             fs_stat = os.statvfs(self.path)
@@ -471,6 +586,11 @@ class DiskSpaceMonitor(Device):
 
 
 class Enclosures(Device):
+    """
+    A device for monitoring beamline enclosures
+
+    :params kwargs: name, pv_name pairs each representing one beamline enclosure to monitor
+    """
     def __init__(self, **kwargs):
         super().__init__()
         self.name = "Beamline Enclosures"
@@ -482,6 +602,9 @@ class Enclosures(Device):
             p.connect('changed', self.handle_change)
 
     def get_messages(self):
+        """
+        Generate and return messages indicating the status of the enclosures
+        """
         if self.ready:
             return "All secure"
         else:
@@ -497,6 +620,11 @@ class Enclosures(Device):
 
 
 class SimEnclosures(Device):
+    """
+    Simulated Enclusures
+
+    :param name: Name of device
+    """
     def __init__(self, name):
         super().__init__()
         self.name = name
@@ -506,7 +634,16 @@ class SimEnclosures(Device):
         return "All secure"
 
 
-class CamScaleFromZoom(PositionerBase):
+class CamScaleFromZoom(BasePositioner):
+    """
+    A positioner for converting camera zoom values to pixel size for the sample microscope video.
+
+    :param zoom: zoom device
+
+    kwargs:
+        - width: width of camera video.
+
+    """
     def __init__(self, zoom, width=1360.0):
         super().__init__()
         self.name = 'Sample Camera Scale'

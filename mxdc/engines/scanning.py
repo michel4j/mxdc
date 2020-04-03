@@ -185,7 +185,7 @@ class BasicScan(Engine):
         if 'sample' in self.config:
             xdi_data['Sample.name'] = self.config['sample'].get('name', 'unknown')
             xdi_data['Sample.id'] = self.config['sample'].get('sample_id', 'unknown')
-            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature.get(), 'K')
+            xdi_data['Sample.temperature'] = (self.beamline.cryojet.temperature, 'K')
             xdi_data['Sample.group'] = self.config['sample'].get('group', 'unknown')
 
         for i, name in enumerate(self.data_type['names']):

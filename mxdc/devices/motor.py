@@ -32,6 +32,7 @@ class BaseMotor(Device):
           Data is a tuple containing the previous set point and the current one.
           Data is a 2-tuple with the current position and the timestamp of the last change.
         - **starting**: bool, Emitted when this a command to move has been accepted by this instance of the motor.
+
     """
 
     # Motor signals
@@ -90,9 +91,7 @@ class BaseMotor(Device):
 
     def get_config(self):
         """
-        Get the current configuration of the motor. that can be used with the
-        configure method like self.configure(**config)
-        :return: A dictionary containing the following keys {'speed': ..., 'accel': ...}
+        Get the current configuration of the motor as a dictionary.
         """
         return {'speed': None, 'accel': None}
 

@@ -43,8 +43,6 @@ The following objects and classes are available in the default environment once 
 .. currentmodule:: mxdc.engines.scanning
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     AbsScan
     RelScan

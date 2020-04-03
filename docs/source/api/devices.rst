@@ -31,8 +31,6 @@ Auto mounters provide abstractions for robotic sample mounting systems for loadi
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     sam.UncleSAM
     sam.SAM
@@ -51,12 +49,10 @@ Beam Tuners
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     BOSSTuner
     MOSTABTuner
-    SIMTuner
+    SimTuner
 
 Counters
 --------
@@ -71,8 +67,6 @@ vacuum pressure, etc. Counters provide mechanisms for averaging or integrating t
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimCounter
     Counter
@@ -89,8 +83,6 @@ In the context of MxDC, detectors are 2D imaging detector/cameras the acquire se
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimDetector
     RayonixDetector
@@ -111,8 +103,6 @@ acquiring data.
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimGonio
     ParkerGonio
@@ -130,8 +120,6 @@ Motors
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimMotor
     Motor
@@ -154,8 +142,6 @@ Abstractions for configuring and acquiring data from a multichannel analyzers
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimMCA
     XFlashMCA
@@ -180,12 +166,50 @@ of the sample environment suitable for a specific type of activity. Examples of 
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimModeManager
     MD2Manager
     ModeManager
+
+Miscellaneous Devices
+---------------------
+
+.. py:currentmodule:: mxdc.devices.misc
+
+.. autoclass:: BasePositioner
+    :members:
+
+.. autoclass:: Positioner
+    :members:
+
+.. autoclass:: ChoicePositioner
+    :members:
+
+.. autoclass:: PositionerMotor
+    :members:
+
+.. autosummary::
+
+    SimPositioner
+    SimChoicePositioner
+    Attenuator
+    Attenuator2
+    SimEnclosures
+
+.. autoclass:: OnOffToggle
+    :members:
+
+.. autoclass:: SampleLight
+    :members:
+
+.. autoclass:: DiskSpaceMonitor
+    :members:
+
+.. autoclass:: Enclosures
+    :members:
+
+.. autoclass:: CamScaleFromZoom
+    :members:
 
 
 Shutters
@@ -198,8 +222,6 @@ Shutters
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimShutter
     EPICSShutter
@@ -218,8 +240,6 @@ Stages
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SampleStage
 
@@ -234,8 +254,6 @@ Storage Ring
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     StorageRing
 
@@ -250,8 +268,6 @@ Video
 .. rubric:: Sub-classes
 
 .. autosummary::
-    :toctree: generated
-    :nosignatures:
 
     SimCamera
     SimPTZCamera
@@ -260,3 +276,4 @@ Video
     REDISCamera
     AxisCamera
     AxisPTZCamera
+

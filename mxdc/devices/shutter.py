@@ -217,6 +217,10 @@ class SimShutter(BaseShutter):
 
 
 class Shutter(EPICSShutter):
+    """
+    CLS EPICS Shutter
+    """
+
     def __init__(self, name):
         open_name = "{}:opr:open".format(name)
         close_name = "{}:opr:close".format(name)
