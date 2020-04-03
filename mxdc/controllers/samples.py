@@ -1,5 +1,5 @@
 from gi.repository import GObject
-from mxdc import Registry, IBeamline
+from mxdc import Registry, IBeamline, Object
 
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
 from mxdc.utils.log import get_module_logger
@@ -9,9 +9,9 @@ from . import cryo
 logger = get_module_logger(__name__)
 
 
-class SamplesController(GObject.GObject):
+class SamplesController(Object):
     def __init__(self, widget):
-        super(SamplesController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.microscope = microscope.Microscope(self.widget)
@@ -36,12 +36,12 @@ class SamplesController(GObject.GObject):
             self.widget.samples_control_box.pack_start(entries[key], False, True, 0)
 
 
-class HutchSamplesController(GObject.GObject):
+class HutchSamplesController(Object):
     ports = GObject.Property(type=object)
     containers = GObject.Property(type=object)
 
     def __init__(self, widget):
-        super(HutchSamplesController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.props.ports = {}
         self.props.containers = {}

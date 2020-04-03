@@ -70,7 +70,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
 
 class DiagnosticsController(object):
     def __init__(self, app_window, container):
-        super(DiagnosticsController, self).__init__()
+        super().__init__()
         self.app = app_window
         self.container = container
         self.box = Gtk.FlowBox(column_spacing=12, row_spacing=6)

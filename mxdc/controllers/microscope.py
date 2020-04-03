@@ -4,7 +4,7 @@ import os
 import numpy
 from gi.repository import Gtk, Gdk, GObject
 from matplotlib.path import Path
-from mxdc import Registry, IBeamline
+from mxdc import Registry, IBeamline, Object
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.conf import save_cache, load_cache
@@ -38,7 +38,7 @@ class IMicroscope(Interface):
 
 
 @implementer(IMicroscope)
-class Microscope(GObject.GObject):
+class Microscope(Object):
     class GridState:
         PENDING, COMPLETE = list(range(2))
 
@@ -57,7 +57,7 @@ class Microscope(GObject.GObject):
     mode = GObject.Property(type=object)
 
     def __init__(self, widget):
-        super(Microscope, self).__init__()
+        super().__init__()
         self.timeout_id = None
         self.max_fps = 20
         self.fps_update = 0

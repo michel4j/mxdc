@@ -3,7 +3,7 @@ import gi
 import numpy
 
 gi.require_version('WebKit2', '4.0')
-from gi.repository import GObject, WebKit2, Gtk, Gdk
+from gi.repository import GLib, WebKit2, Gtk, Gdk
 from mxdc import conf
 from mxdc.conf import settings
 from mxdc.utils import gui
@@ -16,8 +16,9 @@ class Browser(gui.Builder):
     gui_roots = {
         'data/browser': ['browser']
     }
+
     def __init__(self, parent):
-        super(Browser, self).__init__()
+        super().__init__()
         self.view = WebKit2.WebView()
         self.options = {}
         self.setup()
@@ -51,7 +52,7 @@ class Browser(gui.Builder):
     def on_realized(self, *args, **kwargs):
         uri = 'file://{}?v={}'.format(DOCS_PATH, numpy.random.rand())
         print(uri)
-        GObject.idle_add(self.view.load_uri, uri)
+        GLib.idle_add(self.view.load_uri, uri)
 
     def close_window(self, button, disable=False):
         self.browser.destroy()

@@ -6,7 +6,7 @@ from enum import Enum
 
 gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gdk
-from mxdc import Registry, IBeamline
+from mxdc import Registry, IBeamline, Object
 
 from mxdc.conf import settings
 from mxdc.utils import colors, misc
@@ -109,9 +109,9 @@ class ReportManager(TreeManager):
             renderer.set_property("foreground-rgba", None)
 
 
-class AnalysisController(GObject.GObject):
+class AnalysisController(Object):
     def __init__(self, widget):
-        super(AnalysisController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = None

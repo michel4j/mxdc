@@ -2,13 +2,14 @@ import glob
 import os
 import sys
 import gi
+import ipaddress
 
 gi.require_version('Gio', '2.0')
 
 import msgpack
 from gi.repository import Gio
 
-from mxdc.utils import misc, ipaddress
+from mxdc.utils import misc
 from mxdc.utils.log import get_module_logger, log_to_console
 
 logger = get_module_logger(__name__)

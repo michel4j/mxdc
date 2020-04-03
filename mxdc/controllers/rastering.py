@@ -6,7 +6,7 @@ from datetime import datetime
 
 from enum import Enum
 from gi.repository import Gtk, GObject
-from mxdc import Registry, IBeamline
+from mxdc import Registry, IBeamline, Object
 
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.rastering import RasterCollector
@@ -42,7 +42,7 @@ class RasterResultsManager(TreeManager):
     parent = Data.NAME
 
 
-class RasterController(GObject.GObject):
+class RasterController(Object):
     class StateType:
         READY, ACTIVE, PAUSED = list(range(3))
 
@@ -55,7 +55,7 @@ class RasterController(GObject.GObject):
     config = GObject.Property(type=object)
 
     def __init__(self, view, widget):
-        super(RasterController, self).__init__()
+        super().__init__()
         self.view = view
         self.widget = widget
 

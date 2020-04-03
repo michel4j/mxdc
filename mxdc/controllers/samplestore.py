@@ -24,13 +24,13 @@ class ISampleStore(Interface):
         pass
 
 
-class GroupItem(GObject.GObject):
+class GroupItem(Object):
     selected = GObject.Property(type=bool, default=False)
     name = GObject.Property(type=str, default="")
     changed = GObject.Property(type=object)
 
     def __init__(self, name, sample_model, items=()):
-        super(GroupItem, self).__init__()
+        super().__init__()
         self.props.name = name
         self.sample_model = sample_model
         self.items = {path: False for path in items}
@@ -550,7 +550,7 @@ class SampleStore(Object):
             auto.auto_dismount(self.beamline)
 
 
-class SampleQueue(GObject.GObject):
+class SampleQueue(Object):
     Column = OrderedDict([
         (SampleStore.Data.STATE, ''),
         (SampleStore.Data.NAME, 'Name'),
@@ -560,7 +560,7 @@ class SampleQueue(GObject.GObject):
     ])
 
     def __init__(self, view):
-        super(SampleQueue, self).__init__()
+        super().__init__()
         self.view = view
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = Registry.get_utility(ISampleStore)

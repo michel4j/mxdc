@@ -1,5 +1,5 @@
-from gi.repository import GObject, GdkPixbuf, Gtk
-from mxdc import Registry, IBeamline
+from gi.repository import GObject, GdkPixbuf, Gtk, GLib
+from mxdc import Registry, IBeamline, Object
 
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -8,12 +8,12 @@ from . import common
 logger = get_module_logger(__name__)
 
 
-class CryoController(GObject.GObject):
+class CryoController(Object):
     anneal_active = GObject.Property(type=bool, default=False)
     anneal_time = GObject.Property(type=float, default=0.0)
 
     def __init__(self, widget):
-        super(CryoController, self).__init__()
+        super().__init__()
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.cryojet = self.beamline.cryojet
@@ -102,7 +102,7 @@ class CryoController(GObject.GObject):
                 self.stopped = False
                 self.props.anneal_active = True
                 duration = 100
-                GObject.timeout_add(duration, self.monitor_annealing, duration)
+                GLib.timeout_add(duration, self.monitor_annealing, duration)
                 self.cryojet.stop_flow()
 
     def stop_annealing(self):

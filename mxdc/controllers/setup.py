@@ -1,6 +1,5 @@
 import logging
 
-from gi.repository import GObject
 from mxdc import Registry, IBeamline
 
 from mxdc.controllers.diagnostics import DiagnosticsController

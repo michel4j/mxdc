@@ -36,7 +36,6 @@ class StatusPanel(object):
         self.setup()
 
     def setup(self):
-
         self.monitors = [
             common.DeviceMonitor(self.beamline.i0, self.widget.status_i0_fbk, format='{:0.3e}'),
             common.DeviceMonitor(self.beamline.i1, self.widget.status_i1_fbk, format='{:0.3e}'),

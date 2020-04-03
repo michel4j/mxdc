@@ -1,13 +1,15 @@
 from gi.repository import Gio, GObject, Gtk
 from mxdc.conf import settings
 from mxdc.utils import gui
+from mxdc import Object
 import re
 
 
 TEMPLATE_VARIABLES = {'sample', 'group', 'container', 'position', 'port', 'date', 'activity'}
 SCREENING_VARIABLES = {'autoprocess', 'mosflm'}
 
-class Setting(GObject.GObject):
+
+class Setting(Object):
     name = GObject.Property(type=str, default='')
     key = GObject.Property(type=str, default='')
     icon = GObject.Property(type=str, default='')
@@ -15,7 +17,7 @@ class Setting(GObject.GObject):
     value = GObject.Property(type=str, default='')
 
     def __init__(self, key, icon, validator, kind='string'):
-        super(Setting, self).__init__()
+        super().__init__()
         self.props.icon = icon
         self.props.key = key
         self.kind = kind

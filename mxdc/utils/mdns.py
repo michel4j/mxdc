@@ -1,16 +1,14 @@
-# -----------------------------------------------------------------------------
-# mdns.py - Simple Multicast DNS Interface
-# heavily modified from Dirk Meyer's mdns.py in Freevo but removing references to kaa
-# by Michel Fodje
+import atexit
+import ipaddress
+import random
+import socket
+from typing import cast
 
-from mxdc.utils.log import get_module_logger
 from gi.repository import GObject
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo
-import ipaddress
-import socket
-import atexit
-import random
-from typing import cast
+
+from mxdc import Object, Signal
+from mxdc.utils.log import get_module_logger
 
 # get logging object
 log = get_module_logger(__name__)
@@ -18,18 +16,32 @@ log = get_module_logger(__name__)
 ZCONF = Zeroconf()
 
 
-class Provider(GObject.GObject):
+class Provider(Object):
     """
-    Provide a multicast DNS services with the given name and type listening on the given
+    Multi-cast DNS Service Provider
+
+    Provide a multicast DNS service with the given name and type listening on the given
     port with additional information in the data record.
+
+    Signals:
+        - running: No arguments, emitted when the service is running
+        - collision: No arguments, emitted if there is a collision
+
+    :param name: Name of service
+    :param service_type: Service Type string
+    :param port: Service port
+
+    Kwargs:
+        - data: Additional data to make available to clients
+        - unique: bool, only one permitted, collisoin if more than one
     """
-    __gsignals__ = {
-        'running': (GObject.SignalFlags.RUN_FIRST, None, []),
-        'collision': (GObject.SignalFlags.RUN_FIRST, None, []),
-    }
+
+    class Signals:
+        running = Signal('running', arg_types=())
+        collision = Signal('collision', arg_types=())
 
     def __init__(self, name, service_type, port, data=None, unique=False):
-        GObject.GObject.__init__(self)
+        super().__init__()
         properties = {} if not data else data
         self.info = ServiceInfo(
             service_type,
@@ -42,7 +54,7 @@ class Provider(GObject.GObject):
 
     def add_service(self, unique=False):
         """
-        Add a services with the given parameters.
+        Add a the service
         """
         try:
             ZCONF.register_service(self.info, allow_name_change=not unique)
@@ -55,14 +67,26 @@ class Provider(GObject.GObject):
         ZCONF.unregister_service(self.info)
 
 
-class Browser(GObject.GObject):
-    __gsignals__ = {
-        'added': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-        'removed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
-    }
+class Browser(Object):
+    """
+    Multi-cast DNS Service Browser
+
+    Browse the network for a named service and notify when services of the specified type are
+    added or removed.
+
+    Signals:
+        - added: dict, Service added
+        - removed: dict, Service removed
+
+    :param service_type:  str, type of service to browse.
+    """
+
+    class Signals:
+        added = Signal('added', arg_types=(object,))
+        removed = Signal('removed', arg_types=(object,))
 
     def __init__(self, service_type):
-        GObject.GObject.__init__(self)
+        super().__init__()
         self.service_type = service_type
         self.services = {}
         self.browser = ServiceBrowser(ZCONF, self.service_type, handlers=[self.on_service_state_change])
@@ -109,6 +133,7 @@ class Browser(GObject.GObject):
 
 def cleanup_zeroconf():
     ZCONF.close()
+
 
 atexit.register(cleanup_zeroconf)
 

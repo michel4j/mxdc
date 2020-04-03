@@ -11,15 +11,15 @@ import subprocess
 import threading
 import time
 import uuid
-
+import ipaddress
 import numpy
-from gi.repository import GLib, GObject
+
+from gi.repository import GLib
 from scipy import interpolate
 from importlib import import_module
 from threading import Lock
 from mxdc.com import ca
 from . import decorators
-from . import ipaddress
 from . import log
 
 logger = log.get_module_logger(__name__)
@@ -75,7 +75,7 @@ def wait_for_signal(obj, signal, timeout=10):
     while not sw.activated and timeout > 0:
         time.sleep(0.05)
         timeout -= 0.05
-    GObject.source_remove(_id)
+    GLib.source_remove(_id)
     return sw.data
 
 
