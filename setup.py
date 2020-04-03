@@ -27,7 +27,7 @@ setup(
             'share/gschemas.compiled',
             'share/mxdc.*.xml',
             'share/mxdc.gresource',
-            'styles.less'
+            'share/styles.less'
         ]
     },
     install_requires=requirements,
