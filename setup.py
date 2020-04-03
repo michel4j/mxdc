@@ -18,8 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords='beamline data-acquisition crystallography MX',
     include_package_data=True,
-    packages=['mxdc'],
-    package_dir={'mxdc': 'mxdc'},
+    packages=find_packages(),
     package_data={
         'mxdc': [
             'share/data/simulated/*.raw',
@@ -27,6 +26,7 @@ setup(
             'share/gtk/*.*',
             'share/gschemas.compiled',
             'share/mxdc.*.xml',
+            'share/mxdc.gresource',
             'styles.less'
         ]
     },

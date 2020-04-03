@@ -9,7 +9,7 @@ matplotlib
 msgpack
 opencv-python
 pillow
-pygobject-stubs
+PyGObject
 pyyaml
 redis
 requests

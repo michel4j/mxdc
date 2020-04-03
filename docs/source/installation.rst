@@ -98,3 +98,23 @@ names. Services will also accesible as attributes of the beamline objects.
 Similar to **DEVICES** except devices specified here will only be available within the beamline console
 application.
 
+
+Available Commands
+==================
+
+The following scripts and commands are provided with MxDC.
+
+* ``mxdc``, ``sim-mxdc``:  Launch the main MxDC GUI application or the simulated variant.
+* ``archiver``:  A script for synchronizing files between a file system and a portable drive.
+
+    .. code-block:: bash
+
+        usage: archiver <source directory>  <destination directory>
+
+
+* ``blconsole``, ``sim-console``: Launch the beamline console application or the simulated variant. See :doc:`console`.
+* ``hutchviewer``: Launch the hutch viewer application. See :doc:`hutch`.
+* ``imgview``: A stand alone image viewer for diffraction images.
+* ``plotxdi``: An application for plotting saved data in XDI format.
+
+
