@@ -79,9 +79,10 @@ class BaseGoniometer(Device):
         """
         self.stopped = True
 
-    def scan(self, wait=True, timeout=None, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
         """
         Configure and perform the scan
+        :keyword type: Scan type (str), one of ('simple', 'shutterless', 'vector', 'raster')
         :keyword wait:
         :keyword timeout:
         """
@@ -115,7 +116,7 @@ class ParkerGonio(BaseGoniometer):
     def on_busy(self, obj, st):
         self.set_state(busy=(self.scan_fbk.get() == 1))
 
-    def scan(self, wait=True, timeout=None, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
         self.configure(**kwargs)
         self.set_state(message='Scanning ...')
         self.wait(start=False, stop=True, timeout=timeout)
@@ -178,13 +179,12 @@ class MD2Gonio(BaseGoniometer):
             'start_x': self.add_pv('{}:startScan4DEx:start_y'.format(root)),
             'start_y': self.add_pv('{}:startScan4DEx:start_cx'.format(root)),
             'start_z': self.add_pv('{}:startScan4DEx:start_cz'.format(root)),
-            'start_az': self.add_pv('{}:startScan4DEx:start_z'.format(root)),
+
 
             # Stop position
-            'stop_x': self.add_pv('{}:startScan4DEx:start_y'.format(root)),
-            'stop_y': self.add_pv('{}:startScan4DEx:start_cx'.format(root)),
-            'stop_z': self.add_pv('{}:startScan4DEx:start_cz'.format(root)),
-            'stop_az': self.add_pv('{}:startScan4DEx:start_z'.format(root)),
+            'stop_x': self.add_pv('{}:startScan4DEx:stop_y'.format(root)),
+            'stop_y': self.add_pv('{}:startScan4DEx:stop_cx'.format(root)),
+            'stop_z': self.add_pv('{}:startScan4DEx:stop_cz'.format(root)),
         }
 
         self.raster_settings = {
@@ -194,15 +194,27 @@ class MD2Gonio(BaseGoniometer):
             'lines': self.add_pv("{}:startRasterScanEx:number_of_lines".format(root)),
             'line_range': self.add_pv("{}:startRasterScanEx:line_range".format(root)),
             'turn_range': self.add_pv("{}:startRasterScanEx:total_uturn_range".format(root)),
-
             'start_x': self.add_pv('{}:startRasterScanEx:start_y'.format(root)),
             'start_y': self.add_pv('{}:startRasterScanEx:start_cx'.format(root)),
             'start_z': self.add_pv('{}:startRasterScanEx:start_cz'.format(root)),
-            'start_az': self.add_pv('{}:startRasterScanEx:start_z'.format(root)),
+        }
 
+        # semi constant but need to be re-applied each scan
+        self.extra_settings = {
             'shutterless': self.add_pv('{}:startRasterScanEx:shutterless'.format(root)),
             'snake': self.add_pv("{}:startRasterScanEx:invert_direction".format(root)),
             'use_table': self.add_pv("{}:startRasterScanEx:use_centring_table".format(root)),
+            'align_z1': self.add_pv('{}:startScan4DEx:stop_z'.format(root)),
+            'align_z2': self.add_pv('{}:startScan4DEx:start_z'.format(root)),
+            'align_z3': self.add_pv('{}:startRasterScanEx:start_z'.format(root)),
+        }
+        self.extra_values = {
+            'shutterless': 1,
+            'snake': 1,
+            'use_table': 1,
+            'align_z1': 0,
+            'align_z2': 0,
+            'align_z3': 0,
         }
 
     def on_state_changed(self, *args, **kwargs):
@@ -220,7 +232,7 @@ class MD2Gonio(BaseGoniometer):
             self.save_pos_cmd.put(self.NULL_VALUE)
         self.prev_state = state
 
-    def scan(self, wait=True, timeout=None, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
         """
         Perform a data collection scan
 
@@ -281,7 +293,7 @@ class SimGonio(BaseGoniometer):
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 
-    def scan(self, wait=True, timeout=None, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
         """
         :param wait:
         :param timeout:
@@ -334,7 +346,7 @@ class GalilGonio(BaseGoniometer):
         else:
             self.set_state(busy=False)
 
-    def scan(self, wait=True, timeout=180, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=180, **kwargs):
         self.configure(**kwargs)
         self.set_state(message='Scanning ...')
         self.wait(start=False, stop=True, timeout=timeout)

@@ -97,7 +97,7 @@ class DataCollector(Engine):
                 if self.beamline.detector.is_shutterless():
                     self.run_shutterless()
                 else:
-                    self.run_default()
+                    self.run_simple()
             finally:
                 self.beamline.fast_shutter.close()
             self.config['end_time'] = datetime.now(tz=pytz.utc)
@@ -121,7 +121,7 @@ class DataCollector(Engine):
 
         return self.results
 
-    def run_default(self):
+    def run_simple(self):
         is_first_frame = True
 
         for wedge in self.config['wedges']:
@@ -154,6 +154,7 @@ class DataCollector(Engine):
                 self.beamline.detector.configure(**detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
                 self.beamline.goniometer.scan(
+                    type='simple',
                     time=frame['exposure'],
                     delta=frame['delta'],
                     angle=frame['start'],
@@ -204,6 +205,7 @@ class DataCollector(Engine):
 
             logger.debug('Starting scan ...')
             self.beamline.goniometer.scan(
+                type='shutterless',
                 time=wedge['exposure'] * wedge['num_frames'],
                 delta=wedge['delta'] * wedge['num_frames'],
                 angle=wedge['start'],

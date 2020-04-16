@@ -666,3 +666,29 @@ class CamScaleFromZoom(BasePositioner):
 
     def on_active(self, obj, active):
         self.set_state(active=active)
+
+
+class PositionerCollection(BasePositioner):
+    def __init__(self, *components):
+        super().__init__()
+        self.name = ','.join(dev.name for dev in components)
+        self.components = components
+        self.add_components(components)
+        for dev in self.components:
+            dev.connect('changed', self.on_changed)
+
+    def on_changed(self, obj, value):
+        self.emit('changed', self.get())
+
+    def put(self, *values):
+        for dev, value in zip(self.components, values):
+            dev.put(value, wait=True)
+
+    def get(self):
+        return tuple(dev.get() for dev in self.components)
+
+    def get_position(self):
+        return self.get()
+
+    def set_position(self, *values):
+        self.put(*values)
