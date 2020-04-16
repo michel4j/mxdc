@@ -178,7 +178,11 @@ class Object(GObject.GObject, metaclass=ObjectType):
         )
 
     def __repr__(self):
-        state_info = '\n'.join(f'    {name}: {obj_repr.repr(value)}' for name, value in sorted(self.get_states().items()) if value is not None)
+        state_info = '\n'.join(
+            f'    {name}: {obj_repr.repr(value)}'
+            for name, value in sorted(self.get_states().items())
+            if value is not None
+        )
         obj_id = hex(id(self))
         return (
             f"<{self.__class__.__name__} | {self.name} | {obj_id}\n"
@@ -234,9 +238,8 @@ class Object(GObject.GObject, metaclass=ObjectType):
 
     def get_states(self):
         """
-        Obtain a copy of the internal state dictionary. The return dictionary is not neccessarily usable as kwargs
-        for set_state due to the '_' to '-' transformation of the keys.
-
+        Obtain a copy of the internal state dictionary. The returned dictionary is not
+        neccessarily usable as kwargs for set_state due to the '_' to '-' transformation of the keys.
         """
         return self.__state__.copy()
 

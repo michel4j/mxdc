@@ -1,7 +1,7 @@
-from gi.repository import Gio, GObject, Gtk
+from gi.repository import Gio, Gtk
 from mxdc.conf import settings
 from mxdc.utils import gui
-from mxdc import Object
+from mxdc import Object, Property
 import re
 
 
@@ -10,11 +10,11 @@ SCREENING_VARIABLES = {'autoprocess', 'mosflm'}
 
 
 class Setting(Object):
-    name = GObject.Property(type=str, default='')
-    key = GObject.Property(type=str, default='')
-    icon = GObject.Property(type=str, default='')
-    info = GObject.Property(type=object)
-    value = GObject.Property(type=str, default='')
+    name = Property(type=str, default='')
+    key = Property(type=str, default='')
+    icon = Property(type=str, default='')
+    info = Property(type=object)
+    value = Property(type=str, default='')
 
     def __init__(self, key, icon, validator, kind='string'):
         super().__init__()

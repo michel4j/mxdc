@@ -32,7 +32,6 @@ class IRasterCollector(Interface):
 @implementer(IRasterCollector)
 class RasterCollector(Engine):
     class Signals:
-        image = Signal('new-image', arg_types=(str,))
         result = Signal('result', arg_types=(int, object))
 
     def __init__(self):
@@ -46,8 +45,6 @@ class RasterCollector(Engine):
         self.count = 0
 
         self.analyst = Registry.get_utility(IAnalyst)
-        self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
-        self.unwatch_frames()
         Registry.add_utility(IRasterCollector, self)
 
     def configure(self, grid, parameters):
@@ -111,7 +108,6 @@ class RasterCollector(Engine):
         self.count = 0
         self.prepare(self.config['params'])
 
-        self.watch_frames()
         logger.debug('Acquiring {} rastering frames ... '.format(len(self.config['frames'])))
         for frame in self.config['frames']:
             if self.paused:
@@ -140,15 +136,17 @@ class RasterCollector(Engine):
             # move to grid point
             self.beamline.sample_stage.move_xyz(*frame['point'])
 
-            # prepare goniometer for scan
-            self.beamline.goniometer.configure(
-                time=frame['exposure'], delta=frame['delta'], angle=frame['start']
-            )
-
+            # perform scan
             if self.stopped or self.paused: break
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 20)
+            self.beamlinegoniometer.scan(
+                time=frame['exposure'],
+                delta=frame['delta'],
+                angle=frame['start'],
+                wait=True,
+                timeout=frame['exposure'] * 20
+            )
             self.beamline.detector.save()
 
             self.count += 1
@@ -158,23 +156,10 @@ class RasterCollector(Engine):
             is_first_frame = False
             time.sleep(0)
 
-        GObject.timeout_add(5000, self.unwatch_frames)
-
         while self.pending_results:
             time.sleep(0.5)
         self.save_metadata()
         self.collecting = False
-
-    def watch_frames(self):
-        self.beamline.detector.handler_unblock(self.frame_link)
-
-    def unwatch_frames(self):
-        self.beamline.detector.handler_block(self.frame_link)
-
-
-    def on_new_image(self, obj, file_path):
-        self.emit('new-image', file_path)
-        self.analyse_frame(file_path)
 
     @inlineCallbacks
     def analyse_frame(self, file_path):

@@ -817,7 +817,6 @@ class EigerDetector(BaseDetector):
 
         for k, v in list(params.items()):
             if k in self.settings:
-                time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
 
     def on_state_change(self, obj, value):

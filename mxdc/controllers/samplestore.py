@@ -4,7 +4,7 @@ from collections import defaultdict
 from copy import copy
 
 from gi.repository import Gio, Gtk, Gdk, Pango, GObject, GLib
-from mxdc import Registry, Signal, Object, IBeamline
+from mxdc import Registry, Signal, Object, IBeamline, Property
 from zope.interface import Interface, implementer
 
 from mxdc.conf import load_cache, save_cache
@@ -25,9 +25,9 @@ class ISampleStore(Interface):
 
 
 class GroupItem(Object):
-    selected = GObject.Property(type=bool, default=False)
-    name = GObject.Property(type=str, default="")
-    changed = GObject.Property(type=object)
+    selected = Property(type=bool, default=False)
+    name = Property(type=str, default="")
+    changed = Property(type=object)
 
     def __init__(self, name, sample_model, items=()):
         super().__init__()
@@ -99,11 +99,11 @@ class SampleStore(Object):
         updated = Signal("updated", arg_types=())
 
     # properties
-    cache = GObject.Property(type=object)
-    current_sample = GObject.Property(type=object)
-    next_sample = GObject.Property(type=object)
-    ports = GObject.Property(type=object)
-    containers = GObject.Property(type=object)
+    cache = Property(type=object)
+    current_sample = Property(type=object)
+    next_sample = Property(type=object)
+    ports = Property(type=object)
+    containers = Property(type=object)
 
     def __init__(self, view, widget):
         super().__init__()

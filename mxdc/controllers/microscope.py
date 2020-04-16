@@ -4,7 +4,7 @@ import os
 import numpy
 from gi.repository import Gtk, Gdk, GObject
 from matplotlib.path import Path
-from mxdc import Registry, IBeamline, Object
+from mxdc import Registry, IBeamline, Object, Property
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.conf import save_cache, load_cache
@@ -45,16 +45,16 @@ class Microscope(Object):
     class ToolState(object):
         DEFAULT, CENTERING, GRID, MEASUREMENT = list(range(4))
 
-    grid = GObject.Property(type=object)
-    grid_xyz = GObject.Property(type=object)
-    grid_state = GObject.Property(type=int, default=GridState.PENDING)
-    grid_params = GObject.Property(type=object)
-    grid_scores = GObject.Property(type=object)
-    grid_cmap = GObject.Property(type=object)
-    points = GObject.Property(type=object)
-    polygon = GObject.Property(type=object)
-    tool = GObject.Property(type=int, default=ToolState.DEFAULT)
-    mode = GObject.Property(type=object)
+    grid = Property(type=object)
+    grid_xyz = Property(type=object)
+    grid_state = Property(type=int, default=GridState.PENDING)
+    grid_params = Property(type=object)
+    grid_scores = Property(type=object)
+    grid_cmap = Property(type=object)
+    points = Property(type=object)
+    polygon = Property(type=object)
+    tool = Property(type=int, default=ToolState.DEFAULT)
+    mode = Property(type=object)
 
     def __init__(self, widget):
         super().__init__()

@@ -1,23 +1,36 @@
-from zope.interface import Interface, Attribute, invariant
+from zope.interface import Interface, Attribute
 
 
 class IDevice(Interface):
-    """A generic devices interface."""
-    name = Attribute("""Name or description of devices.""")
-    pending_devs = Attribute("""List of inactive devices.""")
-    health_manager = Attribute("""Health manager object.""")
+    """
+    A generic devices interface.
+    """
+    name = Attribute("Name or description of devices.")
+    health_manager = Attribute("Health manager object.")
 
-    def get_state():
-        """Return the state dictionary."""
+    def configure(**kwargs):
+        """Device configuration"""
 
-    def set_state(kwargs):
-        """Set the state of the devices"""
+    def is_health():
+        """Check health state"""
+
+    def is_active():
+        """Check active state"""
+
+    def is_busy():
+        """Check busy state"""
+
+    def is_enabled():
+        """Check enabled state"""
 
     def add_pv(kwargs):
         """Add a process variable"""
 
-    def add_device(devices):
+    def add_components(*components):
         """Add one or more child devices"""
+
+    def get_pending():
+        """Get list of pending components"""
 
 
 class IAutomounter(IDevice):
@@ -85,7 +98,6 @@ class ICounter(IDevice):
         """
         Asynchronous version of count()
         """
-
 
 
 class IGoniometer(IDevice):
@@ -298,40 +310,80 @@ class IImagingDetector(IDevice):
     resolution = Attribute("""Pixel resolution in mm.""")
     mm_size = Attribute("""Minimum detector size in mm""")
 
-    def initialize():
-        """Reset and initialize the detector."""
+    def initialize(wait=True):
+        """
+        Initialize the detector
+        :param wait: if True, wait for the detector to complete initialization
+        """
 
-    def start():
-        """Start acquiring."""
+    def process_frame(data):
+        """
+        Process the frame data from a monitor helper
 
-    def save(props):
-        """Stop acquiring and save the image.
+        :param data: Dataset object to be processed
+        """
 
-        Arguments:
-        props    -- a dictionary of property name, value pairs to set
-        valid keys for props are:
-            delta       -- rotation range in degrees for this frame
-            distance    -- diffractometer distance for this frame
-            time        -- exposure time for this frame
-            angle       -- starting angle position for this frame
-            index       -- frame number
-            energy      -- beam energy for this frame
-            prefix      -- file name prefix
-            filename    -- name of image file to save
-            directory   -- directory to save image
+    def get_template(prefix):
+        """
+        Given a file name prefix, generate the file name template for the dataset.  This should be
+        a format string specification which takes a single parameter `number` representing the file number, or
+        no parameter at all, for archive formats like hdf5
+
+        :param prefix: file name prefix
+        :return: format string
+        """
+
+    def wait_until(*states, timeout=20.0):
+        """
+        Wait for a maximum amount of time until the detector state is one of the specified states, or busy
+        if no states are specified.
+
+        :param states: states to check for. Attaining any of the states will terminate the wait
+        :param timeout: Maximum time in seconds to wait
+        :return: True if state was attained, False if timeout was reached.
+        """
+
+    def wait_while(*states, timeout=20.0):
+        """
+        Wait for a maximum amount of time while the detector state is one of the specified states, or not busy
+        if no states are specified.
+
+        :param state: states to check for. Attaining a state other than any of the states will terminate the wait
+        :param timeout: Maximum time in seconds to wait
+        :return: True if state was attained, False if timeout was reached.
         """
 
     def wait():
-        """Wait for detector to become idle."""
+        """
+        Wait while the detector is busy.
 
-    def stop():
-        """Terminate all detector operations."""
+        :return: True if detector became idle or False if wait timed-out.
+        """
 
-    def get_origin():
-        """Return the current x,y position of the beam on the detector as a tuple"""
+    def delete(directory, prefix, frames=()):
+        """
+        Delete dataset frames given a file name prefix and directory
 
-    def configure(**kwargs):
-        """Update the devices parameters."""
+        :param directory: Directory in which to delete files
+        :param prefix:  file name prefix
+        :param frames: list of frame numbers.
+        """
+
+    def check(directory, prefix, first=1):
+        """
+        Check the dataset in a given directory and prefix.
+
+        :param directory: Directory in which to check files
+        :param prefix:  file name prefix
+        :param first: first frame number, defaults to 1
+        :return: tuple with the following sequence of values (list, bool), list of existing frame numbers
+            True if dataset can be resumed, False otherwise
+        """
+
+    def is_shutterless(self):
+        """
+        Check if the detector supports shutterless mode
+        """
 
 
 class IModeManager(IDevice):

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from enum import Enum
 from gi.repository import Gtk, GObject
-from mxdc import Registry, Object, IBeamline
+from mxdc import Registry, Object, IBeamline, Property
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.spectroscopy import XRFScan, MADScan, XASScan
 from mxdc.utils import colors, datatools, misc, scitools
@@ -60,8 +60,8 @@ class ScanController(Object):
     class StateType:
         READY, ACTIVE, PAUSED = list(range(3))
 
-    state = GObject.Property(type=int, default=StateType.READY)
-    config = GObject.Property(type=object)
+    state = Property(type=int, default=StateType.READY)
+    config = Property(type=object)
     desc = 'MAD Scan'
     result_class = None
     ConfigSpec = None
@@ -318,9 +318,9 @@ class MADResultsManager(TreeManager):
         (Data.FPP, 'f"', ColumnType.NUMBER, '{:0.1f}', True),
     )
     parent = Data.NAME
-    run_info = GObject.Property(type=object)
-    run_name = GObject.Property(type=str, default='')
-    directory = GObject.Property(type=str, default='')
+    run_info = Property(type=object)
+    run_name = Property(type=str, default='')
+    directory = Property(type=str, default='')
 
     def selection_changed(self, model, itr):
         if itr:
@@ -351,7 +351,7 @@ class XRFResultsManager(TreeManager):
         (Data.SELECTED, '', ColumnType.TOGGLE, '{}', False),
     )
     flat = True
-    directory = GObject.Property(type=str, default='')
+    directory = Property(type=str, default='')
 
     def format_cell(self, column, renderer, model, itr, spec):
         super(XRFResultsManager, self).format_cell(column, renderer, model, itr, spec)
@@ -377,7 +377,7 @@ class XASResultsManager(TreeManager):
         (Data.Y_PEAK, 'Y-Peak', ColumnType.NUMBER, '{:0.1f}', True),
     )
     parent = Data.NAME
-    directory = GObject.Property(type=str, default='')
+    directory = Property(type=str, default='')
 
     def make_parent(self, row):
         parent_row = super(XASResultsManager, self).make_parent(row)

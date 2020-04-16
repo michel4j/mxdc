@@ -1,15 +1,15 @@
-from mxdc import Registry, IBeamline, Object
+from mxdc import Registry, IBeamline, Object, Property
 from datetime import datetime
-from gi.repository  import GObject, Gtk, Gio, Gdk
+from gi.repository import Gtk, Gio, Gdk
 
 from mxdc.utils import gui, misc, colors
 
 
 class Message(Object):
 
-    user = GObject.Property(type=str, default='')
-    message = GObject.Property(type=str, default='')
-    date = GObject.Property(type=str, default='')
+    user = Property(type=str, default='')
+    message = Property(type=str, default='')
+    date = Property(type=str, default='')
 
     def __init__(self, user, message, date):
         super().__init__()

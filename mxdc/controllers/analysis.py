@@ -6,7 +6,7 @@ from enum import Enum
 
 gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gdk
-from mxdc import Registry, IBeamline, Object
+from mxdc import Registry, IBeamline, Object, Property
 
 from mxdc.conf import settings
 from mxdc.utils import colors, misc
@@ -54,9 +54,9 @@ class ReportManager(TreeManager):
     select_multiple = True
     single_click = True
 
-    directory = GObject.Property(type=str, default='')
-    sample = GObject.Property(type=object)
-    strategy = GObject.Property(type=object)
+    directory = Property(type=str, default='')
+    sample = Property(type=object)
+    strategy = Property(type=object)
 
     def update_item(self, item_id, report=None, error=None, title='????'):
         itr = self.model.get_iter_first()

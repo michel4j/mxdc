@@ -1,6 +1,6 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject, Gdk
+from gi.repository import Gtk, GObject
 
 ARROW_WIDTH = 8
 ARROW_HEIGHT = 28
@@ -12,7 +12,7 @@ class ArrowFrame(Gtk.Frame):
     offset = GObject.Property(type=float)
 
     def __init__(self):
-        super(ArrowFrame, self).__init__()
+        super().__init__()
         self.task_row = None
         self._style = self.get_style_context()
         self._style.add_class('arrow-frame')

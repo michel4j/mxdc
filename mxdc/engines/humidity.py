@@ -2,9 +2,9 @@ import os
 import re
 import threading
 
-from gi.repository import GObject
+from gi.repository import GLib
 from twisted.internet.defer import returnValue, inlineCallbacks
-from mxdc import Registry, IBeamline
+from mxdc import Registry, Signal, Engine
 
 from mxdc.com import ca
 from mxdc.engines.interfaces import IAnalyst
@@ -15,34 +15,25 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-class SingleCollector(GObject.GObject):
-    __gsignals__ = {
-        'new-image': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'result': (GObject.SIGNAL_RUN_LAST, None, (object,)),
-        'done': (GObject.SIGNAL_RUN_LAST, None, []),
-        'started': (GObject.SIGNAL_RUN_LAST, None, []),
-        'error': (GObject.SIGNAL_RUN_LAST, None, (str,))
-    }
+class SingleCollector(Engine):
+    class Signals:
+        result = Signal('result', arg_types=(object,))
+
+    name = "Data Collector"
 
     def __init__(self):
-        GObject.GObject.__init__(self)
-        self.paused = False
-        self.stopped = True
-        self.collecting = False
+        super().__init__()
+
         self.pending_results = set()
         self.runs = []
         self.results = {}
         self.config = {}
         self.total_frames = 0
         self.count = 0
-
-        self.beamline = Registry.get_utility(IBeamline)
         self.analyst = Registry.get_utility(IAnalyst)
-        self.frame_link = self.beamline.detector.connect('new-image', self.on_new_image)
-        self.unwatch_frames()
 
     def configure(self, parameters):
-        frame_template = datatools.make_file_template(parameters['name'])
+        frame_template = self.beamline.detector.get_template(parameters['name'])
         self.config['params'] = parameters
         self.config['frame'] = {
             'dataset': parameters['name'],
@@ -60,11 +51,6 @@ class SingleCollector(GObject.GObject):
             'directory': parameters['directory'],
         }
 
-    def start(self):
-        worker_thread = threading.Thread(target=self.run)
-        worker_thread.setDaemon(True)
-        worker_thread.setName('Single Frame Collector')
-        worker_thread.start()
 
     def prepare(self, params):
         # setup folder for
@@ -82,9 +68,6 @@ class SingleCollector(GObject.GObject):
         self.beamline.manager.collect(wait=True)
 
     def run(self):
-        self.paused = False
-        self.stopped = False
-        ca.threads_init()
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
         self.total_frames = 1
@@ -125,24 +108,20 @@ class SingleCollector(GObject.GObject):
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
         }
 
-        # prepare goniometer for scan
-        self.beamline.goniometer.configure(time=frame['exposure'], delta=frame['delta'], angle=frame['start'])
-
+        # perform scan
         self.beamline.detector.configure(**detector_parameters)
         self.beamline.detector.start(first=True)
-        self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 4)
+        self.beamline.goniometer.scan(
+            time=frame['exposure'],
+            delta=frame['delta'],
+            angle=frame['start'],
+            wait=True,
+            timeout=frame['exposure'] * 4
+        )
         self.beamline.detector.save()
-        GObject.timeout_add(5000, self.unwatch_frames)
+        file_path = os.path.join(frame['directory'], self.config['frame_name'])
 
-    def watch_frames(self):
-        self.beamline.detector.handler_unblock(self.frame_link)
-
-    def unwatch_frames(self):
-        self.beamline.detector.handler_block(self.frame_link)
-
-    def on_new_image(self, obj, file_path):
-        self.emit('new-image', file_path)
-        self.analyse_frame(file_path)
+        GLib.timeout_add(1000, self.analyse_frame, file_path)
 
     @inlineCallbacks
     def analyse_frame(self, file_path):

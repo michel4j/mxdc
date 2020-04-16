@@ -117,13 +117,53 @@ def update_for_sample(info, sample=None, overwrite=True):
     params['sample'] = sample
     return params
 
+class NameManager(object):
+    """
+    An object which keeps track of dataset names in a run list and makes sure
+    unique names are generated
+    """
 
-def fix_name(name, names, index=0):
-    test_name = name if not index else '{}{}'.format(name, index)
-    if not test_name in names:
-        return test_name
+    def __init__(self):
+        self.names = set()
+        self.history = defaultdict(int)
+
+    def fix(self, name):
+        new_name = name
+        m = re.match(r'(.+)(\d+)', name)
+        if m:
+            root = m.group(1)
+            index = int(m.group(2))
+            if name in self.names:
+                new_name = "{}{}".format(root, self.history[root])
+            self.history[root] += 1
+        elif name in self.names:
+            new_name = "{}{}".format(name, self.history[name])
+            self.history[name] += 1
+        else:
+            self.history[name] += 1
+            new_name = name
+        return new_name
+
+    def __call__(self, name):
+        new_name = self.fix(name)
+        self.names.add(new_name)
+        return new_name
+
+
+def fix_name(name, names, index):
+
+    if not names:
+        new_name = name
+    elif name in names:
+        m = re.match(r'(.+)(\d+)', name)
+        if m:
+            new_name = "{}{}".format(m.group(1), int(m.group(2))+1)
+        else:
+            new_name = "{}{}".format(name, 1)
     else:
-        return fix_name(name, names, index=index + 1)
+        new_name = name
+
+    return new_name
 
 
 def add_framsets(run):

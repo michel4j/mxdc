@@ -12,7 +12,7 @@ class MXBeamline(Beamline):
         'goniometer', 'omega', 'sample_x', 'sample_y1', 'sample_y2',
         'aperture', 'distance', 'two_theta',
 
-        'detector', 'beamstop_z', 'sample_zoom', 'camera_scale',
+        'detector', 'beamstop_z', 'sample_zoom',
         'cryojet', 'sample_camera', 'sample_backlight', 'sample_frontlight',
         'hutch_video', 'synchrotron', 'fast_shutter', 'enclosures',
         'automounter', 'attenuator', 'mca', 'i0',

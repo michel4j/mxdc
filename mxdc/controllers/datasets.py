@@ -1,10 +1,10 @@
 import copy
-import os
 import time
+from collections import defaultdict
 
-from gi.repository import GObject, Gio, Gtk
+from gi.repository import Gio, Gtk
 
-from mxdc import Object, Signal, IBeamline
+from mxdc import Object, Signal, IBeamline, Property
 from mxdc import Registry
 from zope.interface import Interface
 
@@ -71,7 +71,7 @@ class AutomationController(Object):
     class StateType:
         STOPPED, PAUSED, ACTIVE, PENDING = list(range(4))
 
-    state = GObject.Property(type=int, default=0)
+    state = Property(type=int, default=0)
 
     def __init__(self, widget):
         super().__init__()
@@ -432,10 +432,12 @@ class DatasetsController(Object):
         position = row.get_index()
         item = self.run_store.get_item(position)
         num_items = self.run_store.get_n_items()
+
+        # add a new run
         if item.state == item.StateType.ADD and num_items < 8:
             if position > 0:
                 prev = self.run_store.get_item(position - 1)
-                config = prev.info
+                config = prev.info.copy()
             else:
                 config = self.run_editor.get_default()
                 energy = self.beamline.bragg_energy.get_position()
@@ -456,6 +458,8 @@ class DatasetsController(Object):
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
             self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
             self.check_run_store()
+
+        # switch focus
         self.run_editor.set_item(item)
 
     def on_runs_changed(self, model, position, removed, added):
@@ -533,13 +537,15 @@ class DatasetsController(Object):
     def check_run_store(self):
         count = 0
         item = self.run_store.get_item(count)
-        names = set()
+        fix_names = datatools.NameManager()
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
-                item.info['name'] = datatools.fix_name(item.info['name'], names)
-                item.props.info = item.info
+                info = item.info.copy()
+                new_name = fix_names(info['name'])
+                info['name'] = new_name
+                item.props.info = info
                 item.props.position = count
-                names.add(item.info['name'])
+
             count += 1
             item = self.run_store.get_item(count)
         self.widget.datasets_collect_btn.set_sensitive(count > 1)

@@ -1,5 +1,4 @@
-from gi.repository import GObject
-from mxdc import Registry, IBeamline, Object
+from mxdc import Registry, IBeamline, Object, Property
 
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
 from mxdc.utils.log import get_module_logger
@@ -37,8 +36,8 @@ class SamplesController(Object):
 
 
 class HutchSamplesController(Object):
-    ports = GObject.Property(type=object)
-    containers = GObject.Property(type=object)
+    ports = Property(type=object)
+    containers = Property(type=object)
 
     def __init__(self, widget):
         super().__init__()

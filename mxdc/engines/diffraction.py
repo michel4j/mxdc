@@ -2,11 +2,11 @@ import os
 import time
 from datetime import datetime
 import pytz
-from gi.repository import GObject, GLib
+from gi.repository import GLib
 from zope.interface import implementer
 
-from mxdc import Registry, Signal, Object, Engine
-from mxdc.com import ca
+from mxdc import Registry, Signal, Engine
+
 from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc
@@ -147,18 +147,20 @@ class DataCollector(Engine):
                     'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
                 }
 
-                # prepare goniometer for scan
-                self.beamline.goniometer.configure(
-                    time=frame['exposure'], delta=frame['delta'], angle=frame['start'],
-                    num_frames=1
-                )
-
                 if self.stopped or self.paused:
                     break
 
+                # perform scan
                 self.beamline.detector.configure(**detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
-                self.beamline.goniometer.scan(wait=True, timeout=frame['exposure'] * 20)
+                self.beamline.goniometer.scan(
+                    time=frame['exposure'],
+                    delta=frame['delta'],
+                    angle=frame['start'],
+                    num_frames=1,
+                    wait=True,
+                    timeout=frame['exposure'] * 20
+                )
                 self.beamline.detector.save()
 
                 # calculate progress
@@ -191,23 +193,24 @@ class DataCollector(Engine):
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
             }
 
-            # prepare goniometer for scan
-            logger.info("Collecting {} frames for dataset {}...".format(wedge['num_frames'], wedge['dataset']))
-            self.beamline.goniometer.configure(
-                time=wedge['exposure']*wedge['num_frames'], delta=wedge['delta']*wedge['num_frames'],
-                angle=wedge['start'], num_frames=wedge['num_frames']
-            )
-
             if self.stopped or self.paused:
                 break
 
             # Perform scan
+            logger.info("Collecting {} frames for dataset {}...".format(wedge['num_frames'], wedge['dataset']))
             logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
 
             logger.debug('Starting scan ...')
-            self.beamline.goniometer.scan(wait=True, timeout=wedge['exposure'] * wedge['num_frames'] * 1.2)
+            self.beamline.goniometer.scan(
+                time=wedge['exposure'] * wedge['num_frames'],
+                delta=wedge['delta'] * wedge['num_frames'],
+                angle=wedge['start'],
+                num_frames=wedge['num_frames'],
+                wait=True,
+                timeout=wedge['exposure'] * wedge['num_frames'] * 1.2
+            )
             self.beamline.detector.save()
             is_first_frame = False
             time.sleep(0)

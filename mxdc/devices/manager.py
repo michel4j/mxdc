@@ -1,10 +1,10 @@
 import time
 
 from enum import Enum
-from gi.repository import GObject
+from gi.repository import GLib
 from zope.interface import implementer
 
-from mxdc import Signal, Device
+from mxdc import Signal, Device, Property
 from mxdc.utils.log import get_module_logger
 from .interfaces import IModeManager
 
@@ -31,14 +31,14 @@ class BaseManager(Device):
         mode = Signal("mode", arg_types=(object,))
 
     # Properties
-    mode = GObject.property(type=object)
+    mode = Property(type=object)
 
     def __init__(self, name='Beamline Modes'):
         super().__init__()
         self.name = name
         self.mode = self.ModeType.UNKNOWN
 
-    def wait(self, start=True, stop=True, timeout=30, *modes):
+    def wait(self, *modes, start=True, stop=True, timeout=30):
         """
         Wait for the one of specified modes.
 
@@ -140,7 +140,7 @@ class SimModeManager(BaseManager):
 
     def _switch_mode(self, mode):
         self.set_state(busy=True, mode=self.ModeType.BUSY, message='Switching mode ...')
-        GObject.timeout_add(self.mode_delay[mode] * 1000, self._notify_mode, mode)
+        GLib.timeout_add(self.mode_delay[mode] * 1000, self._notify_mode, mode)
 
     def _notify_mode(self, mode):
         self.set_state(busy=False, mode=mode)

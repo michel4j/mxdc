@@ -4,7 +4,7 @@ from zope.interface import implementer
 
 import mxdc.devices.shutter
 from mxdc.devices import misc
-from mxdc import Device, Signal
+from mxdc import Device, Signal, Property
 from mxdc.utils.log import get_module_logger
 
 from .interfaces import ICryostat
@@ -50,6 +50,12 @@ class CryostatBase(Device):
         shield = Signal('shield', arg_types=(float,))
         pos = Signal('position', arg_types=(object,))
 
+    # Properties
+    temperature = Property(type=float, default=0.0)
+    shield = Property(type=float, default=0.0)
+    sample = Property(type=float, default=0.0)
+    level = Property(type=float, default=0.0)
+
     def configure(self, temp=None, sample=None, shield=None, position=None):
         """
         Configure the Cryostat.
@@ -79,10 +85,10 @@ class CryoJetBase(Device):
 
     """
 
-    temperature = GObject.Property(type=float, default=0.0)
-    shield = GObject.Property(type=float, default=0.0)
-    sample = GObject.Property(type=float, default=0.0)
-    level = GObject.Property(type=float, default=0.0)
+    temperature = Property(type=float, default=0.0)
+    shield = Property(type=float, default=0.0)
+    sample = Property(type=float, default=0.0)
+    level = Property(type=float, default=0.0)
 
     def __init__(self, *args, **kwargs):
         super().__init__()

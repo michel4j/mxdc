@@ -1,8 +1,8 @@
 import time
 import uuid
 
-from gi.repository import Gtk, Gdk, GObject, Gio
-from mxdc import Registry, IBeamline
+from gi.repository import Gtk, Gdk, Gio
+from mxdc import Registry, IBeamline, Property, Object
 
 from mxdc.utils import gui, converter, datatools, glibref, misc
 from mxdc.utils.datatools import StrategyType, Strategy, Validator
@@ -35,21 +35,21 @@ def calculate_skip(strategy, total_range, delta, first):
         )
 
 
-class RunItem(GObject.GObject):
+class RunItem(Object):
 
     class StateType:
         (ADD, DRAFT, ACTIVE, ERROR, COMPLETE) = list(range(5))
 
-    state = GObject.Property(type=int, default=StateType.DRAFT)
-    position = GObject.Property(type=int, default=0)
-    size = GObject.Property(type=int, default=0)
-    info = GObject.Property(type=object)
-    uuid = GObject.Property(type=str, default="")
-    progress = GObject.Property(type=float, default=0.0)
-    warning = GObject.Property(type=str, default="")
-    title = GObject.Property(type=str, default="Add run ...")
-    subtitle = GObject.Property(type=str, default="")
-    created = GObject.Property(type=float, default=0.0)
+    state = Property(type=int, default=StateType.DRAFT)
+    position = Property(type=int, default=0)
+    size = Property(type=int, default=0)
+    info = Property(type=object)
+    uuid = Property(type=str, default="")
+    progress = Property(type=float, default=0.0)
+    warning = Property(type=str, default="")
+    title = Property(type=str, default="Add run ...")
+    subtitle = Property(type=str, default="")
+    created = Property(type=float, default=0.0)
 
     def __init__(self, info=None, state=StateType.DRAFT, uid=None, created=None):
         super(RunItem, self).__init__()

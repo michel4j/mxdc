@@ -7,7 +7,7 @@ from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 
-from mxdc import Registry, Object, IBeamline
+from mxdc import Registry, Object, Property, Signal, IBeamline
 
 logger = get_module_logger(__name__)
 
@@ -15,11 +15,11 @@ logger = get_module_logger(__name__)
 class DewarController(Object):
 
     class Signals:
-        selected = GObject.Signal("selected", arg_types=(str,))
+        selected = Signal("selected", arg_types=(str,))
 
-    layout = GObject.Property(type=object)
-    ports = GObject.Property(type=object)
-    containers = GObject.Property(type=object)
+    layout = Property(type=object)
+    ports = Property(type=object)
+    containers = Property(type=object)
 
     def __init__(self, widget, store):
         super().__init__()
@@ -69,7 +69,6 @@ class DewarController(Object):
 
     def on_layout_changed(self, *args, **kwargs):
         self.props.layout = self.beamline.automounter.layout
-
         robot_ports = self.beamline.automounter.ports
         robot_containers = self.beamline.automounter.containers
         user_ports = self.store.ports

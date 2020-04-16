@@ -12,6 +12,13 @@ from mxdc.utils import colors
 
 
 class GUIFile(object):
+    """
+    GUI Resource File object
+
+    :param name: Resource name (without the extension)
+    :param root: top-level (root)
+    """
+
     def __init__(self, name, root=None):
         self.name = name
         self.root = root
@@ -23,29 +30,13 @@ class GUIFile(object):
             self.wTree.add_from_resource(self.ui_path)
 
     def get_object(self, name):
+        """
+        Get a widget by name from the resource file.
+
+        :param name: widget name
+        :return: widget
+        """
         return self.wTree.get_object(name)
-
-
-def make_icon_label(txt, stock_id=None):
-    aln = Gtk.Alignment(xalign=0.5, yalign=0.5, xscale=1, yscale=1)
-    aln.set_padding(0, 0, 6, 6)
-    box = Gtk.Box(False, 2, orientation=Gtk.Orientation.HORIZONTAL)
-    aln.label = Gtk.Label(label=txt)
-    aln.label.set_use_markup(True)
-    box.pack_end(aln.label, False, False, 0)
-    aln.icon = Gtk.Image()
-    box.pack_start(aln.icon, False, False, 0)
-    if stock_id is not None:
-        aln.icon.set_from_stock(stock_id, Gtk.IconSize.MENU)
-    aln.add(box)
-    aln.show_all()
-    return aln
-
-
-def make_tab_label(txt):
-    label = Gtk.Label(label=txt)
-    label.set_padding(6, 0)
-    return label
 
 
 class BuilderMixin(object):
@@ -54,6 +45,10 @@ class BuilderMixin(object):
     }
 
     def setup_gui(self):
+        """
+        Initial setup of the GUI based on the class attribute (gui_roots)
+        :return:
+        """
         self.gui_objects = {
             root: GUIFile(path, root)
             for path, roots in list(self.gui_roots.items()) for root in roots
@@ -63,6 +58,9 @@ class BuilderMixin(object):
         pass
 
     def clone(self):
+        """
+        Make a copy of the Widget
+        """
         if self.gui_objects:
             builder = Builder({
                 root: GUIFile(path, root)

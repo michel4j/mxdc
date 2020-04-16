@@ -1,6 +1,6 @@
 from enum import Enum
 from gi.repository import GObject
-from mxdc import Registry
+from mxdc import Registry, Property, Object
 from zope.interface import implementer
 
 from mxdc.utils.log import get_module_logger
@@ -11,7 +11,7 @@ logger = get_module_logger(__name__)
 
 
 @implementer(IDiagnostic)
-class Diagnostic(GObject.GObject):
+class Diagnostic(Object):
     """
     Base class for diagnostics.
     """
@@ -19,8 +19,8 @@ class Diagnostic(GObject.GObject):
     class State(Enum):
         GOOD, WARN, BAD, UNKNOWN, DISABLED = list(range(5))
 
-    state = GObject.property(type=object)
-    message = GObject.property(type=str, default='')
+    state = Property(type=object)
+    message = Property(type=str, default='')
 
     def __init__(self, descr):
         super(Diagnostic, self).__init__()

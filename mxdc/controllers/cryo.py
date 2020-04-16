@@ -1,5 +1,5 @@
 from gi.repository import GObject, GdkPixbuf, Gtk, GLib
-from mxdc import Registry, IBeamline, Object
+from mxdc import Registry, IBeamline, Object, Property
 
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -9,8 +9,8 @@ logger = get_module_logger(__name__)
 
 
 class CryoController(Object):
-    anneal_active = GObject.Property(type=bool, default=False)
-    anneal_time = GObject.Property(type=float, default=0.0)
+    anneal_active = Property(type=bool, default=False)
+    anneal_time = Property(type=float, default=0.0)
 
     def __init__(self, widget):
         super().__init__()

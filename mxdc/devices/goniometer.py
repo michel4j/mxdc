@@ -25,6 +25,7 @@ class BaseGoniometer(Device):
         self.name = name
         self.stopped = True
         self.default_timeout = 180
+        self.settings = {}
 
     def configure(self, **kwargs):
         """
@@ -37,6 +38,9 @@ class BaseGoniometer(Device):
             - num_frames: total number of frames
 
         """
+        for key, value in kwargs.items():
+            if key in self.settings and value is not None:
+                self.settings[key].put(kwargs[key], wait=True)
 
     def wait(self, start=True, stop=True, timeout=None):
         """
@@ -75,9 +79,11 @@ class BaseGoniometer(Device):
         """
         self.stopped = True
 
-    def scan(self, wait=True, timeout=None):
+    def scan(self, wait=True, timeout=None, **kwargs):
         """
-        Perform and data collection Scan
+        Configure and perform the scan
+        :keyword wait:
+        :keyword timeout:
         """
         raise NotImplementedError('Sub-classes must implement "scan" method')
 
@@ -106,22 +112,11 @@ class ParkerGonio(BaseGoniometer):
             'angle': self.add_pv("{}:openSHPos".format(root), monitor=False),
         }
 
-    def check_state(self, *args, **kwargs):
-        if self.scan_fbk.get() == 1:
-            self.set_state(busy=True)
-
     def on_busy(self, obj, st):
-        if self.scan_fbk.get() == 1:
-            self.set_state(busy=True)
-        else:
-            self.set_state(busy=False)
-        self.check_state()
+        self.set_state(busy=(self.scan_fbk.get() == 1))
 
-    def configure(self, **kwargs):
-        for key in list(kwargs.keys()):
-            self.settings[key].put(kwargs[key])
-
-    def scan(self, wait=True, timeout=None):
+    def scan(self, wait=True, timeout=None, **kwargs):
+        self.configure(**kwargs)
         self.set_state(message='Scanning ...')
         self.wait(start=False, stop=True, timeout=timeout)
         self.scan_cmd.put(1)
@@ -156,23 +151,59 @@ class MD2Gonio(BaseGoniometer):
         self.state_fbk = self.add_pv("{}:State".format(root))
         self.phase_fbk = self.add_pv("{}:CurrentPhase".format(root))
         self.log_fbk = self.add_pv('{}:Status'.format(root))
-        self.prev_state = 0
+        self.gon_z_fbk = self.add_pv('{}:AlignmentZPosition'.format(root))
 
-        # parameters
-        self.settings = {
-            'time': self.add_pv("{}:ScanExposureTime".format(root)),
-            'delta': self.add_pv("{}:ScanRange".format(root)),
-            'angle': self.add_pv("{}:ScanStartAngle".format(root)),
-            'passes': self.add_pv("{}:ScanNumberOfPasses".format(root)),
-            'num_frames': self.add_pv('{}:ScanNumberOfFrames'.format(root))
-        }
+        self.prev_state = 0
 
         # signal handlers
         self.state_fbk.connect('changed', self.on_state_changed)
 
-    def configure(self, **kwargs):
-        for key in list(kwargs.keys()):
-            self.settings[key].put(kwargs[key])
+        # config parameters
+        self.settings = {
+            # Normal Scans
+            'time': self.add_pv("{}:ScanExposureTime".format(root)),
+            'delta': self.add_pv("{}:ScanRange".format(root)),
+            'angle': self.add_pv("{}:ScanStartAngle".format(root)),
+            'passes': self.add_pv("{}:ScanNumberOfPasses".format(root)),
+            'num_frames': self.add_pv('{}:ScanNumberOfFrames'.format(root)),
+        }
+
+        self.helix_settings = {
+            'time': self.add_pv("{}:startScan4DEx:exposure_time".format(root)),
+            'range': self.add_pv("{}:startScan4DEx:scan_range".format(root)),
+            'angle': self.add_pv("{}:startScan4DEx:start_angle".format(root)),
+            'frames': self.add_pv("{}startScan4DEx:ScanNumberOfFrames".format(root)),
+
+            # Start position
+            'start_x': self.add_pv('{}:startScan4DEx:start_y'.format(root)),
+            'start_y': self.add_pv('{}:startScan4DEx:start_cx'.format(root)),
+            'start_z': self.add_pv('{}:startScan4DEx:start_cz'.format(root)),
+            'start_az': self.add_pv('{}:startScan4DEx:start_z'.format(root)),
+
+            # Stop position
+            'stop_x': self.add_pv('{}:startScan4DEx:start_y'.format(root)),
+            'stop_y': self.add_pv('{}:startScan4DEx:start_cx'.format(root)),
+            'stop_z': self.add_pv('{}:startScan4DEx:start_cz'.format(root)),
+            'stop_az': self.add_pv('{}:startScan4DEx:start_z'.format(root)),
+        }
+
+        self.raster_settings = {
+            'time': self.add_pv("{}:tartRasterScanEx:exposure_time".format(root)),
+            'angle': self.add_pv("{}:startRasterScanEx:start_omega".format(root)),
+            'frames': self.add_pv("{}:startRasterScanEx:frames_per_lines".format(root)),
+            'lines': self.add_pv("{}:startRasterScanEx:number_of_lines".format(root)),
+            'line_range': self.add_pv("{}:startRasterScanEx:line_range".format(root)),
+            'turn_range': self.add_pv("{}:startRasterScanEx:total_uturn_range".format(root)),
+
+            'start_x': self.add_pv('{}:startRasterScanEx:start_y'.format(root)),
+            'start_y': self.add_pv('{}:startRasterScanEx:start_cx'.format(root)),
+            'start_z': self.add_pv('{}:startRasterScanEx:start_cz'.format(root)),
+            'start_az': self.add_pv('{}:startRasterScanEx:start_z'.format(root)),
+
+            'shutterless': self.add_pv('{}:startRasterScanEx:shutterless'.format(root)),
+            'snake': self.add_pv("{}:startRasterScanEx:invert_direction".format(root)),
+            'use_table': self.add_pv("{}:startRasterScanEx:use_centring_table".format(root)),
+        }
 
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
@@ -189,13 +220,15 @@ class MD2Gonio(BaseGoniometer):
             self.save_pos_cmd.put(self.NULL_VALUE)
         self.prev_state = state
 
-    def scan(self, wait=True, timeout=None):
+    def scan(self, wait=True, timeout=None, **kwargs):
         """
         Perform a data collection scan
 
         :param wait: Whether to wait for scan to complete
         :param timeout: maximum time to wait
         """
+
+        self.configure(**kwargs)
         self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)
         self.scan_cmd.put(self.NULL_VALUE)
@@ -234,7 +267,7 @@ class SimGonio(BaseGoniometer):
         with self._lock:
             self._scanning = True
             bl = Registry.get_utility(IBeamline)
-            bl.omega.configure(speed=bl.omega.default_speed)
+            config = bl.omega.get_config()
             logger.debug('Starting scan at: %s' % datetime.now().isoformat())
             logger.debug('Moving to scan starting position')
             bl.fast_shutter.open()
@@ -243,12 +276,23 @@ class SimGonio(BaseGoniometer):
             bl.omega.configure(speed=scan_speed)
             bl.omega.move_to(self.settings['angle'] + self.settings['delta'] + 0.05, wait=True)
             bl.fast_shutter.close()
-            bl.omega.configure(speed=bl.omega.default_speed)
+            bl.omega.configure(speed=config['speed'])
             logger.debug('Scan done at: %s' % datetime.now().isoformat())
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 
-    def scan(self, wait=True, timeout=None):
+    def scan(self, wait=True, timeout=None, **kwargs):
+        """
+        :param wait:
+        :param timeout:
+        :param kwargs:
+        :keyword time: Exposure time per frame
+        :keyword delta: angle range per frame
+        :keyword start: Start angle for frame
+        """
+        # settings
+        self.settings = kwargs
+
         if wait:
             self._scan_sync()
         else:
@@ -290,11 +334,8 @@ class GalilGonio(BaseGoniometer):
         else:
             self.set_state(busy=False)
 
-    def configure(self, **kwargs):
-        for key in list(kwargs.keys()):
-            self.settings[key].put(kwargs[key])
-
-    def scan(self, wait=True, timeout=180):
+    def scan(self, wait=True, timeout=180, **kwargs):
+        self.configure(**kwargs)
         self.set_state(message='Scanning ...')
         self.wait(start=False, stop=True, timeout=timeout)
         self.scan_cmd.put(1)
@@ -308,71 +349,4 @@ class GalilGonio(BaseGoniometer):
         self.stopped = True
 
 
-class OldMD2Gonio(BaseGoniometer):
-    """
-    MD2-type BaseGoniometer. Old Maatel Socket Interface
-
-    :param root: Server PV name
-    """
-    NULL_VALUE = '__EMPTY__'
-
-    def __init__(self, root):
-        super().__init__('MD2 Diffractometer')
-
-        # initialize process variables
-        self.scan_cmd = self.add_pv("{}:S:StartScan".format(root), monitor=False)
-        self.abort_cmd = self.add_pv("{}:S:AbortScan".format(root), monitor=False)
-        self.fluor_cmd = self.add_pv("{}:S:MoveFluoDetFront".format(root), monitor=False)
-        self.save_pos_cmd = self.add_pv("{}:S:ManCentCmpltd".format(root), monitor=False)
-
-        self.state_fbk = self.add_pv("{}:G:MachAppState".format(root))
-        self.log_fbk = self.add_pv('{}:G:StatusMsg'.format(root))
-
-        # parameters
-        self.settings = {
-            'time': self.add_pv("{}:S:ScanExposureTime".format(root)),
-            'delta': self.add_pv("{}:S:ScanRange".format(root)),
-            'angle': self.add_pv("{}:S:ScanStartAngle".format(root)),
-            'passes': self.add_pv("{}:S:ScanNumOfPasses".format(root)),
-        }
-
-        # signal handlers
-        self.state_fbk.connect('changed', self.on_state_changed)
-
-    def configure(self, **kwargs):
-        for key in list(kwargs.keys()):
-            self.settings[key].put(kwargs[key])
-
-    def on_state_changed(self, *args, **kwargs):
-        state = self.state_fbk.get()
-        if state in [5, 6, 7, 8]:
-            self.set_state(health=(0, 'faults', ''), busy=True)
-        elif state in [11, 12, 13, 14]:
-            msg = self.log_fbk.get()
-            self.set_state(health=(2, 'faults', msg), busy=False)
-        else:
-            self.set_state(busy=False, health=(0, 'faults', ''))
-
-    def scan(self, wait=True, timeout=None):
-        """
-        Perform a data collection scan
-
-        :param wait: Whether to wait for scan to complete
-        :param timeout: maximum time to wait
-        """
-        self.set_state(message='Scanning ...')
-        self.wait(stop=True, start=False, timeout=timeout)
-        self.scan_cmd.toggle(1, 0)
-        self.wait(start=True, stop=wait, timeout=timeout)
-        if wait:
-            self.set_state(message='Scan complete!')
-
-    def stop(self):
-        """
-        Stop and abort the current scan if any.
-        """
-        self.stopped = True
-        self.abort_cmd.toggle(1, 0)
-
-
-__all__ = ['ParkerGonio', 'MD2Gonio', 'OldMD2Gonio', 'SimGonio', 'GalilGonio']
+__all__ = ['ParkerGonio', 'MD2Gonio', 'SimGonio', 'GalilGonio']

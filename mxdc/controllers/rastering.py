@@ -5,8 +5,8 @@ import uuid
 from datetime import datetime
 
 from enum import Enum
-from gi.repository import Gtk, GObject
-from mxdc import Registry, IBeamline, Object
+from gi.repository import Gtk
+from mxdc import Registry, IBeamline, Object, Property
 
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.rastering import RasterCollector
@@ -51,8 +51,8 @@ class RasterController(Object):
         'resolution': ['entry', '{:0.3g}', float, 50.0],
     }
 
-    state = GObject.Property(type=int, default=StateType.READY)
-    config = GObject.Property(type=object)
+    state = Property(type=int, default=StateType.READY)
+    config = Property(type=object)
 
     def __init__(self, view, widget):
         super().__init__()
@@ -75,7 +75,7 @@ class RasterController(Object):
         self.microscope.connect('notify::grid-xyz', self.on_grid_changed)
         self.connect('notify::state', self.on_state_changed)
         self.collector.connect('done', self.on_done)
-        self.collector.connect('new-image', self.on_new_image)
+        #self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('paused', self.on_pause)
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
@@ -286,11 +286,11 @@ class RasterController(Object):
         self.widget.raster_pbar.set_fraction(fraction)
         self.widget.raster_progress_lbl.set_text(message)
 
-    def on_new_image(self, obj, file_path):
-        image_viewer = Registry.get_utility(IImageViewer)
-        frame = os.path.splitext(os.path.basename(file_path))[0]
-        image_viewer.open_frame(file_path)
-        logger.info('Frame acquired: {}'.format(frame))
+    # def on_new_image(self, obj, file_path):
+    #     image_viewer = Registry.get_utility(IImageViewer)
+    #     frame = os.path.splitext(os.path.basename(file_path))[0]
+    #     image_viewer.open_frame(file_path)
+    #     logger.info('Frame acquired: {}'.format(frame))
 
     def on_results(self, collector, cell, results):
         config = collector.config['params']

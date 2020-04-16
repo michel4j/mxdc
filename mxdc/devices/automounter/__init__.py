@@ -2,9 +2,9 @@ import time
 
 from enum import Enum
 from zope.interface import implementer
-from gi.repository import GObject, GLib
+from gi.repository import GLib
 
-from mxdc import Device
+from mxdc import Device, Property
 from mxdc.devices.interfaces import IAutomounter
 from mxdc.utils.log import get_module_logger
 
@@ -33,13 +33,13 @@ class AutoMounter(Device):
         - **failure**: failure meta-data
     """
 
-    layout = GObject.Property(type=object)
-    sample = GObject.Property(type=object)
-    next_port = GObject.Property(type=str)
-    ports = GObject.Property(type=object)
-    containers = GObject.Property(type=object)
-    status = GObject.Property(type=object)
-    failure = GObject.Property(type=object)
+    layout = Property(type=object)
+    sample = Property(type=object)
+    next_port = Property(type=str)
+    ports = Property(type=object)
+    containers = Property(type=object)
+    status = Property(type=object)
+    failure = Property(type=object)
 
     def __init__(self):
         super().__init__()
