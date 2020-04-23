@@ -13,18 +13,20 @@
 
 import os
 import sys
-import subprocess
+from datetime import date
 
 sys.path.insert(0, os.path.abspath('../..'))
+
+from mxdc.version import get_version
 
 # -- Project information -----------------------------------------------------
 
 project = 'MxDC'
-copyright = '2006-2020, Canadian Light Source, Inc'
+copyright = '2006-{}, Canadian Light Source, Inc'.format(date.today().year)
 author = 'Michel Fodje'
 
 # The full version, including alpha/beta/rc tags
-release = subprocess.check_output(['git', 'describe', '--abbrev=0']).decode('utf-8')
+release = get_version()
 version = release
 
 # -- General configuration ---------------------------------------------------
