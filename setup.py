@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from mxdc.version import get_version
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -8,7 +9,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='mxdc',
-    version='2020.4.1',
+    version=get_version(),
     url="https://github.com/michel4j/mxdc",
     license='MIT',
     author='Michel Fodje',

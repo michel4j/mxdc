@@ -244,11 +244,11 @@ class ContextMessenger(object):
         self.exit_message = msg2
 
     def __enter__(self):
-        GObject.idle_add(self.device.emit, 'message', self.enter_message)
+        GLib.idle_add(self.device.emit, 'message', self.enter_message)
         return self
 
     def __exit__(self, type, value, traceback):
-        GObject.idle_add(self.device.emit, 'message', self.exit_message)
+        GLib.idle_add(self.device.emit, 'message', self.exit_message)
         return False
 
 
@@ -451,3 +451,20 @@ def import_string(dotted_path):
         raise ImportError(
             'Module "{}" does not define a "{}" attribute/class'.format(module_path, class_name)
         ) from err
+
+
+def set_settings(settings, **kwargs):
+    """
+    Apply keyword values to PVs in a dictionary if available
+    :param settings: dictionary of process variables to set
+    :param kwargs: key value pairs for the process variables, keys with value None are ignored
+    :return: list of keys actually set
+    """
+    changed = []
+    for key, value in kwargs.items():
+        if key in settings and value is not None:
+            settings[key].put(kwargs[key], wait=True)
+            changed.append(key)
+    return changed
+
+

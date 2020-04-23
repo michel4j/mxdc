@@ -1,8 +1,10 @@
 import math
 import os
 
-import numpy
+
 from gi.repository import Gtk, Gdk, GObject
+import numpy
+import cairo
 from matplotlib.path import Path
 from mxdc import Registry, IBeamline, Object, Property
 from zope.interface import Interface, Attribute, implementer
@@ -62,6 +64,9 @@ class Microscope(Object):
         self.max_fps = 20
         self.fps_update = 0
         self.video_ready = False
+        self.queue_overlay()
+        self.overlay_surface = None
+        self.overlay_ctx = None
 
         self.props.grid = None
         self.props.grid_xyz = None
@@ -111,8 +116,9 @@ class Microscope(Object):
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
 
         self.beamline.manager.connect('mode', self.on_gonio_mode)
-        self.beamline.sample_stage.connect('changed', self.update_grid)
+        self.beamline.goniometer.stage.connect('changed', self.update_grid)
         self.beamline.sample_zoom.connect('changed', self.update_grid)
+        self.beamline.aperture.connect('changed', self.update_grid)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -302,12 +308,13 @@ class Microscope(Object):
             cr.save()
             mm_scale = self.video.mm_scale()
             radius = 0.5e-3 * self.beamline.aperture.get() / (16 * mm_scale)
-            cur_point = numpy.array(self.beamline.sample_stage.get_xyz())
+            cur_point = numpy.array(self.beamline.goniometer.stage.get_xyz())
             center = numpy.array(self.video.get_size()) / 2
             points = numpy.array(self.props.points) - cur_point
             xyz = numpy.zeros_like(points)
-            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1],
-                                                                                       points[:, 2])
+            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
+                points[:, 0], points[:, 1], points[:, 2]
+            )
             xyz /= mm_scale
             radii = (4.0 - (xyz[:, 2] / (center[1] * 0.25))) * radius
             xyz[:, :2] += center
@@ -329,6 +336,7 @@ class Microscope(Object):
         if self.tool == self.ToolState.GRID:
             self.change_tool(self.ToolState.CENTERING)
         self.widget.microscope_grid_btn.set_active(False)
+        self.queue_overlay()
 
     def make_grid(self, *args, **kwargs):
         if self.widget.microscope_grid_btn.get_active():
@@ -336,6 +344,7 @@ class Microscope(Object):
             self.props.polygon = []
         else:
             self.change_tool()
+        self.queue_overlay()
 
     def bbox_grid(self, bbox):
         step_size = 0.75 * 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
@@ -345,8 +354,8 @@ class Microscope(Object):
         nX = max(3, numpy.ceil(nX))
         nY = max(3, numpy.ceil(numpy.sqrt(2) * nY))
 
-        xi = numpy.linspace(bbox[0][0], bbox[1][0], nX)
-        yi = numpy.linspace(bbox[0][1], bbox[1][1], nY)
+        xi = numpy.linspace(bbox[0][0], bbox[1][0], int(nX))
+        yi = numpy.linspace(bbox[0][1], bbox[1][1], int(nY))
         x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False, indexing='ij')
         radius = step_size * 0.5
         return numpy.array([
@@ -364,7 +373,8 @@ class Microscope(Object):
         self.add_polygon_point(pol[0][0], pol[0][1])
 
     def add_point(self, *args, **kwargs):
-        self.props.points = self.props.points + [self.beamline.sample_stage.get_xyz()]
+        self.props.points = self.props.points + [self.beamline.goniometer.stage.get_xyz()]
+        self.queue_overlay()
 
     def configure_grid(self, params):
         for k, v in list(params.items()):
@@ -404,9 +414,9 @@ class Microscope(Object):
             grid = full_grid[poly.contains_points(full_grid[:, :2], radius=radius * grow)]
 
         xmm, ymm = self.video.screen_to_mm(grid[:, 0], grid[:, 1])[2:]
-        ox, oy, oz = self.beamline.sample_stage.get_xyz()
-        angle = self.beamline.omega.get_position()
-        gx, gy, gz = self.beamline.sample_stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
+        ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        angle = self.beamline.goniometer.omega.get_position()
+        gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
 
         return {
@@ -441,26 +451,43 @@ class Microscope(Object):
     def center_pixel(self, x, y):
         if self.tool == self.ToolState.CENTERING:
             ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
-            if not self.beamline.sample_stage.is_busy():
-                self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+            if not self.beamline.goniometer.stage.is_busy():
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+
+    def create_overlay_surface(self):
+        self.overlay_surface = cairo.ImageSurface(
+            cairo.FORMAT_ARGB32, self.video.display_width, self.video.display_height
+        )
+        self.overlay_ctx = cairo.Context(self.overlay_surface)
 
     def overlay_function(self, cr):
-        # FIXME: For performance and efficiency, use overlay surface and only recreate it if objects have changed
-        self.draw_beam(cr)
-        self.draw_measurement(cr)
-        self.draw_grid(cr)
-        self.draw_polygon(cr)
-        self.draw_points(cr)
+        self.update_overlay()
+        cr.set_source_surface(self.overlay_surface, 0, 0)
+        cr.paint()
+
+    def queue_overlay(self):
+        self.overlay_dirty = True
+
+    def update_overlay(self):
+        if self.overlay_dirty or self.overlay_surface is None:
+            self.create_overlay_surface()
+            self.draw_beam(self.overlay_ctx)
+            self.draw_measurement(self.overlay_ctx)
+            self.draw_grid(self.overlay_ctx)
+            self.draw_polygon(self.overlay_ctx)
+            self.draw_points(self.overlay_ctx)
+            self.overlay_dirty = False
 
     # callbacks
-
     def update_grid(self, *args, **kwargs):
+        self.queue_overlay()
         if self.props.grid_xyz is not None:
             center = numpy.array(self.video.get_size()) * 0.5
-            points = self.grid_xyz - numpy.array(self.beamline.sample_stage.get_xyz())
+            points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
             xyz = numpy.empty_like(points)
-            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.sample_stage.xyz_to_screen(points[:, 0], points[:, 1],
-                                                                                       points[:, 2])
+            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
+                points[:, 0], points[:, 1],  points[:, 2]
+            )
             xyz /= self.video.mm_scale()
             xyz[:, :2] += center
             self.props.grid = xyz
@@ -476,6 +503,7 @@ class Microscope(Object):
             window.set_cursor(self.tool_cursors[self.props.tool])
 
     def on_camera_scale(self, obj, value):
+        self.queue_overlay()
         self.video.set_pixel_size(value)
 
     def on_gonio_mode(self, obj, mode):
@@ -519,10 +547,10 @@ class Microscope(Object):
         self.camera.zoom(position)
 
     def on_rotate(self, widget, angle):
-        cur_omega = int(self.beamline.omega.get_position())
+        cur_omega = int(self.beamline.goniometer.omega.get_position())
         target = (cur_omega + angle)
         target = (target > 360) and (target % 360) or target
-        self.beamline.omega.move_to(target)
+        self.beamline.goniometer.omega.move_to(target)
 
     def on_mouse_scroll(self, widget, event):
         if 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['CENTER', 'ALIGN']:
@@ -542,10 +570,12 @@ class Microscope(Object):
         )
         if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
             self.measurement[1] = (x, y)
+            self.queue_overlay()
         elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['COLLECT']:
             self.change_tool(tool=self.ToolState.CENTERING)
         elif self.tool == self.ToolState.MEASUREMENT:
             self.change_tool()
+            self.queue_overlay()
         elif self.tool == self.ToolState.CENTERING and self.mode.name in ['COLLECT']:
             self.change_tool()
 
@@ -553,6 +583,7 @@ class Microscope(Object):
         if event.button == 1:
             if self.tool == self.ToolState.GRID:
                 self.add_polygon_point(event.x, event.y)
+                self.queue_overlay()
             else:
                 self.center_pixel(event.x, event.y)
         elif event.button == 2:

@@ -123,7 +123,7 @@ class PBClient(BaseService):
 
 class DPSClient(PBClient):
     NAME = 'Data Analysis Server'
-    CODE = '_dpm_rpc._tcp.local.'
+    CODE = '_autoprocess._tcp.local.'
 
     def process_mx(self, *args, **kwargs):
         return self.service.callRemote('process_mx', *args, **kwargs)
@@ -231,7 +231,8 @@ class MxLIVEClient(BaseService):
         try:
             reply = self.get(path)
         except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable to fetch Samples from MxLIVE: {}'.format(e))
+            logger.error('Unable to fetch Samples from MxLIVE')
+            logger.debug(e)
             reply = {'error': 'Unable to fetch Samples from MxLIVE'}
         return reply
 
@@ -248,15 +249,19 @@ class MxLIVEClient(BaseService):
                 try:
                     reply = self.post(path)
                 except requests.HTTPError as err:
-                    logger.error('Unable to Open MxLIVE Session: {}'.format(err))
+                    logger.error('Unable to Open MxLIVE Session')
+                    logger.debug(err)
                 else:
                     logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
+                    self.set_state(active=True)
             else:
                 self.session_active = (beamline, session)
-                logger.error('Unable to Open MxLIVE Session: {}'.format(e))
+                logger.error('Unable to Open MxLIVE Session')
+                logger.debug(e)
         else:
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
+            self.set_state(active=True)
 
     def close_session(self, beamline, session):
         logger.debug('Closing MxLIVE session ...')
@@ -264,7 +269,8 @@ class MxLIVEClient(BaseService):
         try:
             reply = self.post(path)
         except (IOError, ValueError, requests.ConnectionError, requests.HTTPError) as e:
-            logger.error('Unable to close MxLIVE Session: {}'.format(e))
+            logger.error('Unable to close MxLIVE Session')
+            logger.debug(e)
         else:
             self.session_active = None
             logger.info('Leaving session {session} after {duration}.'.format(**reply))
@@ -326,6 +332,25 @@ class Messenger(Object):
         self.sender.publish(self.key, message)
 
 
+class SimMessenger(Object):
+    class Signals:
+        message = Signal('message', arg_types=(str, str))
+
+    def __init__(self, realm=None):
+        super().__init__()
+        self.realm = realm or 'SIM'
+        self.channel = '{}:MESSAGES:{{}}'.format(self.realm)
+        self.key = self.channel.format(misc.get_project_name())
+
+    def get_message(self, message):
+        user = (message['channel']).decode().split(':')[-1]
+        text = (message['data']).decode()
+        self.emit('message', user, text)
+
+    def send(self, message):
+        self.emit('message', misc.get_project_name(), message)
+
+
 def MxDCClientFactory(code):
     class Client(PBClient):
         NAME = 'Remote MxDC'
@@ -351,4 +376,4 @@ class LocalDSSClient(BaseService):
         return True
 
 
-__all__ = ['DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger']
+__all__ = ['DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger', SimMessenger]

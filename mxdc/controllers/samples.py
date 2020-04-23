@@ -28,7 +28,7 @@ class SamplesController(Object):
     def setup(self):
         # create and pack devices into settings frame
         entries = {
-            'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
+            'omega': misc.MotorEntry(self.beamline.goniometer.omega, 'Gonio Omega', fmt="%0.2f"),
             'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
         }
         for key in ['omega', 'beam_size']:

@@ -247,12 +247,11 @@ class DataCollector(Engine):
         if abs(self.beamline.distance.get_position() - wedge['distance']) >= 0.1:
             self.beamline.distance.move_to(wedge['distance'], wait=True)
 
-        if abs(self.beamline.attenuator.get() - wedge['attenuation']) >= 25:
-            self.beamline.attenuator.set(wedge['attenuation'], wait=True)
+        self.beamline.attenuator.set(wedge['attenuation'], wait=True)
 
         if wedge.get('point') is not None:
-            x, y, z  = wedge['point']
-            self.beamline.sample_stage.move_xyz(x, y, z, wait=True)
+            x, y, z = wedge['point']
+            self.beamline.goniometer.stage.move_xyz(x, y, z, wait=True)
         logger.debug('Ready for acquisition.')
 
     def save(self, params):

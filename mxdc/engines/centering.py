@@ -62,10 +62,10 @@ class Centering(Engine):
     def loop_face(self, down=False):
         heights = []
         self.beamline.goniometer.wait(start=False, stop=True)
-        cur = self.beamline.omega.get_position()
-        self.beamline.omega.wait(start=True, stop=False)
+        cur = self.beamline.goniometer.omega.get_position()
+        self.beamline.goniometer.omega.wait(start=True, stop=False)
         for angle in numpy.arange(0, 80, 20):
-            self.beamline.omega.move_to(angle + cur, wait=True)
+            self.beamline.goniometer.omega.move_to(angle + cur, wait=True)
             img = self.beamline.sample_video.get_frame()
             height = imgproc.mid_height(img)
             heights.append((angle + cur, height))
@@ -73,7 +73,7 @@ class Centering(Engine):
         best = values[numpy.argmax(values[:, 1]), 0]
         if down:
             best -= 90.0
-        self.beamline.omega.move_to(best, wait=True)
+        self.beamline.goniometer.omega.move_to(best, wait=True)
 
     def get_video_frame(self):
         self.beamline.goniometer.wait(start=False, stop=True)
@@ -81,7 +81,7 @@ class Centering(Engine):
         return cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
 
     def get_features(self):
-        angle = self.beamline.omega.get_position()
+        angle = self.beamline.goniometer.omega.get_position()
         frame = self.get_video_frame()
         scale = 256. / frame.shape[1]
         info = imgproc.get_loop_features(frame, scale=scale, orientation=self.beamline.config['orientation'])
@@ -129,13 +129,13 @@ class Centering(Engine):
                 if reliability > 0.75:
                     logger.debug('... tip found at {}, {}'.format(x, y))
                     xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                     logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
                 # final 90 rotation not needed
                 if trial_count < max_trials:
-                    cur_pos = self.beamline.omega.get_position()
-                    self.beamline.omega.move_to((90 + cur_pos) % 360, wait=True)
+                    cur_pos = self.beamline.goniometer.omega.get_position()
+                    self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
         self.score = numpy.mean(scores)
 
@@ -163,7 +163,7 @@ class Centering(Engine):
                         logger.warning('Attempting to translate into view')
                         x, y = info['x'], info['y']
                         xmm, ymm = self.screen_to_mm(x, y)
-                        self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                        self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                     else:
                         failed = True
                         break
@@ -171,13 +171,13 @@ class Centering(Engine):
                     x, y = info['x'], info['y']
                     logger.debug('... tip found at {}, {}'.format(x, y))
                     xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                     logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
                 # final 90 rotation not needed
                 if trial_count < max_trials:
-                    cur_pos = self.beamline.omega.get_position()
-                    self.beamline.omega.move_to((90 + cur_pos) % 360, wait=True)
+                    cur_pos = self.beamline.goniometer.omega.get_position()
+                    self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
         # Center in loop on loop face
         if not failed:
@@ -187,7 +187,7 @@ class Centering(Engine):
                 logger.warning('Sample not found in field-of-view')
             else:
                 xmm, ymm = self.screen_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
-                self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
             scores.append(info.get('score', 0.0))
         else:
@@ -211,7 +211,7 @@ class Centering(Engine):
             raster_params = {}
             self.beamline.goniometer.wait(start=False)
             if step == 'face':
-                self.beamline.omega.move_by(-90, wait=True)
+                self.beamline.goniometer.omega.move_by(-90, wait=True)
 
             angle, info = self.get_features()
             if step == 'edge':
@@ -259,7 +259,7 @@ class Centering(Engine):
             index = int(grid_scores[best, 0])
             point = grid[index]
 
-            self.beamline.sample_stage.move_xyz(point[0], point[1], point[2], wait=True)
+            self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
             scores.append(grid_scores[best, 1])
         self.score = numpy.mean(scores)
 
@@ -272,8 +272,8 @@ class Centering(Engine):
         scores = []
         half_width = self.beamline.sample_video.size[0] // 2
         for j in range(8):
-            self.beamline.sample_stage.wait()
-            self.beamline.omega.move_by(90, wait=True)
+            self.beamline.goniometer.stage.wait()
+            self.beamline.goniometer.omega.move_by(90, wait=True)
             angle, info = self.get_features()
             if 'x' in info and 'y' in info:
                 x = info['x'] - half_width
@@ -282,8 +282,8 @@ class Centering(Engine):
                 if j > 4:
                     xmm = 0.0
 
-                if not self.beamline.sample_stage.is_busy():
-                    self.beamline.sample_stage.move_screen_by(-xmm, -ymm, 0.0)
+                if not self.beamline.goniometer.stage.is_busy():
+                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
                 scores.append(1.0)
             else:
                 scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
@@ -291,6 +291,6 @@ class Centering(Engine):
 
         # # final shift
         # xmm, ymm = self.screen_to_mm(half_width, 0)
-        # if not self.beamline.sample_stage.is_busy():
-        #     self.beamline.sample_stage.move_screen_by(xmm, 0.0, 0.0)
+        # if not self.beamline.goniometer.stage.is_busy():
+        #     self.beamline.goniometer.stage.move_screen_by(xmm, 0.0, 0.0)
         self.score = numpy.mean(scores)

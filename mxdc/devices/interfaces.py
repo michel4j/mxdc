@@ -102,16 +102,15 @@ class ICounter(IDevice):
 
 class IGoniometer(IDevice):
     """A goniometer devices object."""
-    omega = Attribute("""BaseGoniometer omega motor.""")
+
+    omega = Attribute("""Omega""")
+    stage = Attribute("""Sample XYZ Stage""")
 
     def configure(time=1.0, delta=1.0, angle=0.0):
         """Configure the goniometer scan parameters."""
 
-    def set_mode(mode):
-        """Set the goniometer mode"""
-
-    def scan():
-        """Start the scan operation."""
+    def scan(**kwargs):
+        """Start the scan operation. for given parameters"""
 
     def wait():
         """Wait for goniometer to become idle."""

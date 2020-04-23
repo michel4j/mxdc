@@ -63,7 +63,7 @@ class SetFreezeMode(Script):
             self.beamline.manager.mount(wait=True)
             self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=True)
             if 'kappa' in self.beamline.registry:
-                self.beamline.omega.move_to(32.5, wait=True)
+                self.beamline.goniometer.omega.move_to(32.5, wait=True)
                 self.beamline.chi.move_to(45)
 
 
@@ -92,7 +92,7 @@ class DeiceGonio(Script):
 
     def run(self):
         if 'deicer' in self.beamline.registry:
-            pos = self.beamline.omega.get_position()
+            pos = self.beamline.goniometer.omega.get_position()
             self.beamline.deicer.on()
             self.beamline.goniometer.scan(
                 delta=360,
@@ -100,7 +100,7 @@ class DeiceGonio(Script):
                 angle=pos,
                 wait=True
             )
-            self.beamline.omega.move_to(pos)
+            self.beamline.goniometer.omega.move_to(pos)
             self.beamline.deicer.off()
             self.beamline.manager.mount(wait=True)
         return

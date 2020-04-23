@@ -1,15 +1,11 @@
 #!/usr/bin/env python
-import os
-import sys
-import numpy
+
 import argparse
 import matplotlib
+
 matplotlib.use('Gtk3Agg')
 from matplotlib import colors, gridspec, rcParams
 from matplotlib import pyplot as plt
-
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 
 from mxdc.utils import xdi
 

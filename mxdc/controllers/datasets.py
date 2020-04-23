@@ -406,7 +406,7 @@ class DatasetsController(Object):
         self.editor_frame.set_row(first_row)
 
         labels = {
-            'omega': (self.beamline.omega, self.widget.dsets_omega_fbk, '{:0.1f}°'),
+            'omega': (self.beamline.goniometer.omega, self.widget.dsets_omega_fbk, '{:0.1f}°'),
             'energy': (self.beamline.energy, self.widget.dsets_energy_fbk, '{:0.3f} keV'),
             'attenuation': (self.beamline.attenuator, self.widget.dsets_attenuation_fbk, '{:0.0f} %'),
             'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} Å'),

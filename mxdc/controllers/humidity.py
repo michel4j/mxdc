@@ -122,7 +122,7 @@ class HumidityController(gui.Builder):
         params = self.get_parameters()
         save_cache(params, 'humidity')
 
-        params['angle'] = self.beamline.omega.get_position()
+        params['angle'] = self.beamline.goniometer.omega.get_position()
         params['energy'] = self.beamline.energy.get_position()
         params['distance'] = resol_to_dist(params['resolution'], self.beamline.detector.mm_size, params['energy'])
         params['attenuation'] = self.beamline.attenuator.get()

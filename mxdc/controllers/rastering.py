@@ -96,7 +96,7 @@ class RasterController(Object):
             'energy': (self.beamline.energy, self.widget.raster_energy_fbk, {'format': '{:0.3f} keV'}),
             'attenuation': (self.beamline.attenuator, self.widget.raster_attenuation_fbk, {'format': '{:0.0f} %'}),
             'aperture': (self.beamline.aperture, self.widget.raster_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
-            'omega': (self.beamline.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f}°'}),
+            'omega': (self.beamline.goniometer.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f}°'}),
             'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} \xc3\x85'}),
         }
         self.monitors = {
@@ -319,7 +319,7 @@ class RasterController(Object):
         item = self.manager.get_item(itr)
 
         if self.manager.model.iter_has_child(itr):
-            self.beamline.omega.move_to(item['angle'], wait=True)
+            self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
             grid = self.results[item['uuid']]
             self.microscope.load_grid(
                 grid['grid'],
@@ -329,7 +329,7 @@ class RasterController(Object):
             self.widget.raster_dir_fbk.set_text(grid['config']['directory'])
         else:
             image_viewer = Registry.get_utility(IImageViewer)
-            self.beamline.sample_stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
+            self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
             image_viewer.open_image(item['filename'])
 
     def on_grid_changed(self, obj, param):

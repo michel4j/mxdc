@@ -9,8 +9,7 @@ logger = get_module_logger(__name__)
 class MXBeamline(Beamline):
     REQUIRED = [
         'energy', 'bragg_energy', 'beam_tuner', 'manager',
-        'goniometer', 'omega', 'sample_x', 'sample_y1', 'sample_y2',
-        'aperture', 'distance', 'two_theta',
+        'goniometer',  'aperture', 'distance', 'two_theta',
 
         'detector', 'beamstop_z', 'sample_zoom',
         'cryojet', 'sample_camera', 'sample_backlight', 'sample_frontlight',
@@ -37,17 +36,11 @@ class MXBeamline(Beamline):
         'xrf_fwhm': 0.1,
         'xrf_energy_offset': 2.0,
         'shutter_sequence': [],
-        'linked_sample_stage': True,
         'orientation': 1,
         'centering_backlight': 65,
     }
 
     def setup(self):
-        # Create and register other/compound devices
-        self.registry['sample_stage'] = stages.SampleStage(
-            self.sample_x, self.sample_y1, self.sample_y2, self.omega,
-            linked=False
-        )
         # create sample_video Zoomable camera
         if not "camera_scale" in self.registry:
             self.registry['camera_scale'] = misc.CamScaleFromZoom(self.sample_zoom, width=self.sample_camera.size[0])

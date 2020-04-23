@@ -85,9 +85,9 @@ class SimPositioner(BasePositioner):
 
         self.units = units
         if active:
-            self.set_state(changed=self._pos, active=active, health=(0, '',''))
+            self.set_state(changed=self._pos, active=active, enabled=active, health=(0, '',''))
         else:
-            self.set_state(changed=self._pos, active=active, health=(16, 'disabled',''))
+            self.set_state(changed=self._pos, active=active, enabled=active, health=(16, 'disabled',''))
 
         if not isinstance(pos, (list, tuple)) and (self._noise > 0 or self._delay):
             GLib.timeout_add(50, self._drive)
@@ -207,9 +207,9 @@ class SimChoicePositioner(BasePositioner):
         self.choices = choices
         self._pos = value
         if active:
-            self.set_state(changed=self._pos, active=active, health=(0, '', ''))
+            self.set_state(changed=self._pos, active=active, enabled=active, health=(0, '', ''))
         else:
-            self.set_state(changed=self._pos, active=active, health=(16, 'disabled', ''))
+            self.set_state(changed=self._pos, active=active, enabled=active, health=(16, 'disabled', ''))
 
     def get(self):
         return self._pos
@@ -628,7 +628,7 @@ class SimEnclosures(Device):
     def __init__(self, name):
         super().__init__()
         self.name = name
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0, 'ready',self.get_messages()))
 
     def get_messages(self):
         return "All secure"

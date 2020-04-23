@@ -8,7 +8,9 @@ from zope.interface import implementer
 from mxdc import Registry, Device, IBeamline
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.decorators import async_call
+from mxdc.utils import misc
 from .interfaces import IGoniometer
+from mxdc.devices import motor, stages
 
 # setup module logger with a default handler
 logger = get_module_logger(__name__)
@@ -26,6 +28,18 @@ class BaseGoniometer(Device):
         self.stopped = True
         self.default_timeout = 180
         self.settings = {}
+        self.omega = None
+        self.phi = None
+        self.kappa = None
+        self.chi = None
+        self.stage = None
+        self.kappa_enabled = False
+
+    def has_kappa(self):
+        """
+        Check if Goniometer has Kappa capability
+        """
+        return self.kappa_enabled
 
     def configure(self, **kwargs):
         """
@@ -38,9 +52,7 @@ class BaseGoniometer(Device):
             - num_frames: total number of frames
 
         """
-        for key, value in kwargs.items():
-            if key in self.settings and value is not None:
-                self.settings[key].put(kwargs[key], wait=True)
+        misc.set_settings(self.settings, **kwargs)
 
     def wait(self, start=True, stop=True, timeout=None):
         """
@@ -82,7 +94,7 @@ class BaseGoniometer(Device):
     def scan(self, type='simple', wait=True, timeout=None, **kwargs):
         """
         Configure and perform the scan
-        :keyword type: Scan type (str), one of ('simple', 'shutterless', 'vector', 'raster')
+        :keyword type: Scan type (str), one of ('simple', 'shutterless', 'helical', 'vector', 'raster')
         :keyword wait:
         :keyword timeout:
         """
@@ -96,21 +108,30 @@ class ParkerGonio(BaseGoniometer):
     :param root: (str), PV name of goniometer EPICS record.
     """
 
-    def __init__(self, root):
+    def __init__(self, root, xname, y1name, y2name):
         super().__init__()
 
         # initialize process variables
-        self.scan_cmd = self.add_pv("{}:scanFrame.PROC".format(root))
-        self.stop_cmd = self.add_pv("{}:stop".format(root))
-        self.scan_fbk = self.add_pv("{}:scanFrame:status".format(root))
-
+        self.scan_cmd = self.add_pv(f"{root}:scanFrame.PROC")
+        self.stop_cmd = self.add_pv(f"{root}:stop")
+        self.scan_fbk = self.add_pv(f"{root}:scanFrame:status")
         self.scan_fbk.connect('changed', self.on_busy)
+
+        # create additional components
+        self.omega = motor.VMEMotor(f'{root}:deg')
+        self.sample_x = motor.VMEMotor(xname)
+        self.sample_y1 = motor.VMEMotor(y1name)
+        self.sample_y2 = motor.VMEMotor(y2name)
+        self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
+        self.stage = stages.SampleStage(
+            self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False
+        )
 
         # parameters
         self.settings = {
-            'time': self.add_pv("{}:expTime".format(root), monitor=False),
-            'delta': self.add_pv("{}:deltaOmega".format(root), monitor=False),
-            'angle': self.add_pv("{}:openSHPos".format(root), monitor=False),
+            'time': self.add_pv(f"{root}:expTime", monitor=False),
+            'delta': self.add_pv(f"{root}:deltaOmega", monitor=False),
+            'angle': self.add_pv(f"{root}:openSHPos", monitor=False),
         }
 
     def on_busy(self, obj, st):
@@ -140,81 +161,92 @@ class MD2Gonio(BaseGoniometer):
     """
     NULL_VALUE = '__EMPTY__'
 
-    def __init__(self, root):
+    def __init__(self, root, kappa_enabled=False):
         super().__init__('MD2 Diffractometer')
+        self.kappa_enabled = kappa_enabled
 
         # initialize process variables
-        self.scan_cmd = self.add_pv("{}:startScan".format(root))
-        self.abort_cmd = self.add_pv("{}:abort".format(root))
-        self.fluor_cmd = self.add_pv("{}:FluoDetectorIsBack".format(root))
-        self.save_pos_cmd = self.add_pv("{}:saveCentringPositions".format(root))
+        self.scan_cmd = self.add_pv(f"{root}:startScan")
+        self.abort_cmd = self.add_pv(f"{root}:abort")
+        self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
+        self.save_pos_cmd = self.add_pv(f"{root}:saveCentringPositions")
 
-        self.state_fbk = self.add_pv("{}:State".format(root))
-        self.phase_fbk = self.add_pv("{}:CurrentPhase".format(root))
-        self.log_fbk = self.add_pv('{}:Status'.format(root))
-        self.gon_z_fbk = self.add_pv('{}:AlignmentZPosition'.format(root))
-
-        self.prev_state = 0
+        self.state_fbk = self.add_pv(f"{root}:State")
+        self.phase_fbk = self.add_pv(f"{root}:CurrentPhase")
+        self.log_fbk = self.add_pv(f'{root}:Status')
+        self.gon_z_fbk = self.add_pv(f'{root}:AlignmentZPosition')
 
         # signal handlers
+        self.prev_state = 0
         self.state_fbk.connect('changed', self.on_state_changed)
+
+        # create additional components
+        self.omega =  motor.PseudoMotor(f'{root}:PMTR:omega:deg')
+        self.sample_x = motor.PseudoMotor(f'{root}:PMTR:gonX:mm')
+        self.sample_y1 = motor.PseudoMotor(f'{root}:PMTR:smplY:mm')
+        self.sample_y2 = motor.PseudoMotor(f'{root}:PMTR:smplZ:mm')
+        self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
+        if self.has_kappa():
+            self.phi = motor.PseudoMotor(f'{root}:PMTR:phi:deg')
+            self.chi = motor.PseudoMotor(f'{root}:chi:deg')
+            self.kappa = motor.PseudoMotor(f'{root}:PMTR:kappa:deg')
+            self.add_components(self.phi, self.chi, self.kappa)
+        self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)
 
         # config parameters
         self.settings = {
-            # Normal Scans
-            'time': self.add_pv("{}:ScanExposureTime".format(root)),
-            'delta': self.add_pv("{}:ScanRange".format(root)),
-            'angle': self.add_pv("{}:ScanStartAngle".format(root)),
-            'passes': self.add_pv("{}:ScanNumberOfPasses".format(root)),
-            'num_frames': self.add_pv('{}:ScanNumberOfFrames'.format(root)),
+            'time': self.add_pv(f"{root}:ScanExposureTime"),
+            'delta': self.add_pv(f"{root}:ScanRange"),
+            'angle': self.add_pv(f"{root}:ScanStartAngle"),
+            'passes': self.add_pv(f"{root}:ScanNumberOfPasses"),
+            'num_frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
         }
 
         self.helix_settings = {
-            'time': self.add_pv("{}:startScan4DEx:exposure_time".format(root)),
-            'range': self.add_pv("{}:startScan4DEx:scan_range".format(root)),
-            'angle': self.add_pv("{}:startScan4DEx:start_angle".format(root)),
-            'frames': self.add_pv("{}startScan4DEx:ScanNumberOfFrames".format(root)),
+            'time': self.add_pv(f"{root}:startScan4DEx:exposure_time"),
+            'range': self.add_pv(f"{root}:startScan4DEx:scan_range"),
+            'angle': self.add_pv(f"{root}:startScan4DEx:start_angle"),
+            'frames': self.add_pv(f"{root}startScan4DEx:ScanNumberOfFrames"),
 
             # Start position
-            'start_x': self.add_pv('{}:startScan4DEx:start_y'.format(root)),
-            'start_y': self.add_pv('{}:startScan4DEx:start_cx'.format(root)),
-            'start_z': self.add_pv('{}:startScan4DEx:start_cz'.format(root)),
-
+            'x0': self.add_pv(f'{root}:startScan4DEx:start_y'),
+            'y0': self.add_pv(f'{root}:startScan4DEx:start_cx'),
+            'z0': self.add_pv(f'{root}:startScan4DEx:start_cz'),
 
             # Stop position
-            'stop_x': self.add_pv('{}:startScan4DEx:stop_y'.format(root)),
-            'stop_y': self.add_pv('{}:startScan4DEx:stop_cx'.format(root)),
-            'stop_z': self.add_pv('{}:startScan4DEx:stop_cz'.format(root)),
+            'x1': self.add_pv(f'{root}:startScan4DEx:stop_y'),
+            'y1': self.add_pv(f'{root}:startScan4DEx:stop_cx'),
+            'z1': self.add_pv(f'{root}:startScan4DEx:stop_cz'),
         }
 
         self.raster_settings = {
-            'time': self.add_pv("{}:tartRasterScanEx:exposure_time".format(root)),
-            'angle': self.add_pv("{}:startRasterScanEx:start_omega".format(root)),
-            'frames': self.add_pv("{}:startRasterScanEx:frames_per_lines".format(root)),
-            'lines': self.add_pv("{}:startRasterScanEx:number_of_lines".format(root)),
-            'line_range': self.add_pv("{}:startRasterScanEx:line_range".format(root)),
-            'turn_range': self.add_pv("{}:startRasterScanEx:total_uturn_range".format(root)),
-            'start_x': self.add_pv('{}:startRasterScanEx:start_y'.format(root)),
-            'start_y': self.add_pv('{}:startRasterScanEx:start_cx'.format(root)),
-            'start_z': self.add_pv('{}:startRasterScanEx:start_cz'.format(root)),
+            'time': self.add_pv(f"{root}:tartRasterScanEx:exposure_time"),
+            'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
+            'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
+            'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
+            'line_range': self.add_pv(f"{root}:startRasterScanEx:line_range"),
+            'turn_range': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
+            'x0': self.add_pv(f'{root}:startRasterScanEx:start_y'),
+            'y0': self.add_pv(f'{root}:startRasterScanEx:start_cx'),
+            'z0': self.add_pv(f'{root}:startRasterScanEx:start_cz'),
         }
 
         # semi constant but need to be re-applied each scan
         self.extra_settings = {
-            'shutterless': self.add_pv('{}:startRasterScanEx:shutterless'.format(root)),
-            'snake': self.add_pv("{}:startRasterScanEx:invert_direction".format(root)),
-            'use_table': self.add_pv("{}:startRasterScanEx:use_centring_table".format(root)),
-            'align_z1': self.add_pv('{}:startScan4DEx:stop_z'.format(root)),
-            'align_z2': self.add_pv('{}:startScan4DEx:start_z'.format(root)),
-            'align_z3': self.add_pv('{}:startRasterScanEx:start_z'.format(root)),
+            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
+            'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
+            'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
+            'zA': self.add_pv(f'{root}:startScan4DEx:stop_z'),
+            'zB': self.add_pv(f'{root}:startScan4DEx:start_z'),
+            'zC': self.add_pv(f'{root}:startRasterScanEx:start_z'),
         }
         self.extra_values = {
             'shutterless': 1,
             'snake': 1,
             'use_table': 1,
-            'align_z1': 0,
-            'align_z2': 0,
-            'align_z3': 0,
+            'zA': None,
+            'zB': None,
+            'zC': None,
         }
 
     def on_state_changed(self, *args, **kwargs):
@@ -240,7 +272,17 @@ class MD2Gonio(BaseGoniometer):
         :param timeout: maximum time to wait
         """
 
-        self.configure(**kwargs)
+        # configure device
+        self.extra_values['zA'] = self.extra_values['zB'] = self.extra_values['zC'] = self.gon_z_fbk.get()
+        if type in ['simple', 'shutterless']:
+            misc.set_settings(self.settings, **kwargs)
+        elif type == 'helical':
+            misc.set_settings(self.helix_settings, **kwargs)
+            misc.set_settings(self.extra_settings, **self.extra_values)
+        elif type == 'raster':
+            misc.set_settings(self.raster_settings, **kwargs)
+            misc.set_settings(self.extra_settings, **self.extra_values)
+
         self.set_state(message='Scanning ...')
         self.wait(stop=True, start=False, timeout=timeout)
         self.scan_cmd.put(self.NULL_VALUE)
@@ -258,13 +300,27 @@ class MD2Gonio(BaseGoniometer):
 
 class SimGonio(BaseGoniometer):
     """
-    Simulated BaseGoniometer.
+    Simulated Goniometer.
     """
-    def __init__(self):
+    def __init__(self, kappa_enabled=False):
         super().__init__('SIM Diffractometer')
+        self.kappa_enabled = kappa_enabled
         self.settings = {}
         self._scanning = False
         self._lock = Lock()
+
+        self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3)
+        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.1)
+        self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.1)
+        self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.2)
+
+        self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)
+
+        if self.has_kappa():
+            self.kappa = motor.SimMotor('Kappa', 0.0, limits=(-1, 180), units='deg', speed=30)
+            self.chi = motor.SimMotor('Chi', 0.0, limits=(-1, 48), units='deg', speed=30)
+            self.phi = motor.SimMotor('Phi', 0.0, units='deg', speed=30)
+
         self.set_state(active=True, health=(0, '', ''))
 
     def configure(self, **kwargs):
@@ -279,16 +335,16 @@ class SimGonio(BaseGoniometer):
         with self._lock:
             self._scanning = True
             bl = Registry.get_utility(IBeamline)
-            config = bl.omega.get_config()
+            config = self.omega.get_config()
             logger.debug('Starting scan at: %s' % datetime.now().isoformat())
             logger.debug('Moving to scan starting position')
             bl.fast_shutter.open()
-            bl.omega.move_to(self.settings['angle'] - 0.05, wait=True)
+            self.omega.move_to(self.settings['angle'] - 0.05, wait=True)
             scan_speed = float(self.settings['delta']) / self.settings['time']
-            bl.omega.configure(speed=scan_speed)
-            bl.omega.move_to(self.settings['angle'] + self.settings['delta'] + 0.05, wait=True)
+            self.omega.configure(speed=scan_speed)
+            self.omega.move_to(self.settings['angle'] + self.settings['delta'] + 0.05, wait=True)
             bl.fast_shutter.close()
-            bl.omega.configure(speed=config['speed'])
+            self.omega.configure(speed=config['speed'])
             logger.debug('Scan done at: %s' % datetime.now().isoformat())
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
@@ -313,52 +369,7 @@ class SimGonio(BaseGoniometer):
     def stop(self):
         self.stopped = True
         self._scanning = False
-        bl = Registry.get_utility(IBeamline)
-        bl.omega.stop()
+        self.omega.stop()
 
 
-class GalilGonio(BaseGoniometer):
-    """
-    EPICS based Galil BaseGoniometer.
-
-    :param root: (str): PV name of goniometer EPICS record.
-    """
-
-    def __init__(self, root):
-        super().__init__()
-
-        # initialize process variables
-        self.scan_cmd = self.add_pv("{}:OSCEXEC_SP".format(root))
-        self.scan_fbk = self.add_pv("{}:OSCSTATE_MONITOR".format(root))
-
-        self.scan_fbk.connect('changed', self.on_busy)
-
-        # parameters
-        self.settings = {
-            'time': self.add_pv("{}:EXPOSURE_TIME_SP".format(root), monitor=False),
-            'delta': self.add_pv("{}:OSC_WDDTH_SP".format(root), monitor=False),
-            'angle': self.add_pv("{}:OSC_POS_SP".format(root), monitor=False),
-        }
-
-    def on_busy(self, obj, st):
-        if self.scan_fbk.get() == 1:
-            self.set_state(busy=True)
-        else:
-            self.set_state(busy=False)
-
-    def scan(self, type='simple', wait=True, timeout=180, **kwargs):
-        self.configure(**kwargs)
-        self.set_state(message='Scanning ...')
-        self.wait(start=False, stop=True, timeout=timeout)
-        self.scan_cmd.put(1)
-        self.wait(start=True, stop=wait, timeout=timeout)
-
-        if wait:
-            self.set_state(message='Scan complete!')
-
-    def stop(self):
-        logger.debug('Stopping goniometer ...')
-        self.stopped = True
-
-
-__all__ = ['ParkerGonio', 'MD2Gonio', 'SimGonio', 'GalilGonio']
+__all__ = ['ParkerGonio', 'MD2Gonio', 'SimGonio']

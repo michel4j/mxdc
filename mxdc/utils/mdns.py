@@ -3,8 +3,6 @@ import ipaddress
 import random
 import socket
 from typing import cast
-
-from gi.repository import GObject
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo
 
 from mxdc import Object, Signal

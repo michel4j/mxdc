@@ -32,9 +32,9 @@ def take_sample_snapshots(prefix, directory, angles=[None], decorate=False):
         results = []
         for angle in angles:
             if angle is not None:
-                beamline.omega.move_to(angle, wait=True)
+                beamline.goniometer.omega.move_to(angle, wait=True)
             else:
-                angle = beamline.omega.get_position()
+                angle = beamline.goniometer.omega.get_position()
             img = beamline.sample_video.get_frame()
             if img:
                 if decorate:

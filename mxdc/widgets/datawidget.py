@@ -396,10 +396,10 @@ class RunEditor(DataEditor):
         adjustment = Gtk.Adjustment(10, 2, 100, 1, 5, 0)
         self.data_vector_size_spin.set_adjustment(adjustment)
         self.data_end_point_pbox.bind_property(
-            'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda args: bool(args[1])
+            'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda *args: bool(args[1])
         )
         self.data_vector_size_spin.bind_property(
-            'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda args: not args[1]
+            'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda *args: not args[1]
         )
         for i, field_name in enumerate(['point', 'end_point']):
             field_name = 'data_{}_pbox'.format(field_name)
@@ -458,6 +458,7 @@ class RunEditor(DataEditor):
         num_points = len(self.points)
         self.data_vector_box.set_sensitive(num_points > 0)
         self.data_end_point_pbox.set_sensitive(num_points > 1)
+
 
 
 class DataDialog(DataEditor):

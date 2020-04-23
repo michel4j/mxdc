@@ -192,13 +192,13 @@ class VideoWidget(Gtk.DrawingArea):
             if img.mode != 'L':
                 img = img.convert('L')
             img.putpalette(self.palette)
+
         img = img.convert('RGB')
         self.surface = image_to_surface(img)
         GLib.idle_add(self.queue_draw)
         self.update_fps()
         if self.display_func is not None:
             self.display_func(img, scale=self.scale)
-
 
     def set_colorize(self, state=True):
         self.colorize = state

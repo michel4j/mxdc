@@ -1,5 +1,5 @@
 
-import pickle
+import os
 import re
 import threading
 import time
@@ -9,9 +9,10 @@ from io import BytesIO, StringIO
 import numpy
 import redis
 import requests
-from PIL import Image, GifImagePlugin
+from PIL import Image
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
 from mxdc import Signal, Device
+from mxdc import conf
 from mxdc.utils.log import get_module_logger
 
 from zope.interface import implementer
@@ -22,6 +23,7 @@ logger = get_module_logger(__name__)
 session = requests.Session()
 
 
+@implementer(ICamera)
 class VideoSrc(Device):
     """
     Base class for all Video Sources. Maintains a list of listenners (sinks)
@@ -120,12 +122,11 @@ class VideoSrc(Device):
         self.stop()
 
 
-@implementer(ICamera)
 class SimCamera(VideoSrc):
     """
     Simulated Camera
     """
-    def __init__(self, name="Camera Simulator", ):
+    def __init__(self, name="Camera Simulator"):
         super().__init__(name=name)
         self.size = (1280, 960)
         self.resolution = 5.34e-3 * numpy.exp(-0.18)
@@ -136,6 +137,28 @@ class SimCamera(VideoSrc):
     def get_frame(self):
         data = self._fsource.read(self._packet_size)
         self.frame = Image.frombytes('RGB', self.size, data)
+        return self.frame
+
+
+class SimGIFCamera(VideoSrc):
+    """
+    Simulated Camera
+    """
+    def __init__(self, name="GIF Camera Simulator"):
+        super().__init__(name=name)
+        self.src = Image.open(os.path.join(conf.APP_DIR, 'share/data/simulated/crystal.gif'))
+        self.index = 0
+        self.size = (1280, 960)
+        self.resolution = 5.34e-3 * numpy.exp(-0.18)
+        self.set_state(active=True, health=(0, '', ''))
+
+    def get_frame(self):
+        try:
+            self.src.seek(self.index)
+            self.index += 1
+            self.frame = self.src.resize(self.size, Image.NEAREST).convert('RGB')
+        except EOFError:
+            self.index = 0
         return self.frame
 
 
@@ -161,7 +184,6 @@ class SimPTZCamera(SimCamera):
         return presets
 
 
-@implementer(ICamera)
 class MJPGCamera(VideoSrc):
     """
     MJPG Camera
@@ -201,7 +223,6 @@ class MJPGCamera(VideoSrc):
         return self.frame
 
 
-@implementer(ICamera)
 class JPGCamera(VideoSrc):
     """
     JPG Camera
@@ -223,7 +244,6 @@ class JPGCamera(VideoSrc):
         return self.frame
 
 
-@implementer(ICamera)
 class REDISCamera(VideoSrc):
     """
     REDIS Camera
@@ -279,7 +299,6 @@ class REDISCamera(VideoSrc):
         return self.frame
 
 
-@implementer(ICamera)
 class AxisCamera(JPGCamera):
     """
     Axis JPG Camera

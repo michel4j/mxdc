@@ -312,13 +312,14 @@ class SimMotor(BaseMotor):
     :param precision: precision
     :param health: initial health tuple
     """
-    def __init__(self, name, pos=0, units='mm', speed=5.0, active=True, precision=3, health=(0, '', '')):
+    def __init__(self, name, pos=0, units='mm', speed=5.0, limits=None, active=True, precision=3, health=(0, '', '')):
         super().__init__(name, precision=precision, units=units)
 
         self.step_time = .01  # 100 steps per second
         self.speed = speed
         self.stopped = False
         self.lock = Lock()
+        self.limits = limits
 
         self.set_state(changed=pos, target=(None, pos), health=health)
         self.set_state(active=active, enabled=True)
@@ -349,6 +350,8 @@ class SimMotor(BaseMotor):
         with self.lock:
             self.set_state(busy=True)
             self.on_target(self, target)
+            if isinstance(self.limits, tuple):
+                target = min(max(target, self.limits[0]), self.limits[1])
             num_steps = int(abs(self.get_state('changed') - target) / self.step_size)
             targets = numpy.linspace(self.get_state('changed'), target, num_steps)
             for pos in targets:

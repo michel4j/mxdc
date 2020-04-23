@@ -38,18 +38,16 @@ class SetupController(object):
         entries = {
             'energy': misc.MotorEntry(self.beamline.energy, 'Energy', fmt="%0.3f"),
             'attenuation': misc.ActiveEntry(self.beamline.attenuator, 'Attenuation', fmt="%0.1f"),
-            'omega': misc.MotorEntry(self.beamline.omega, 'Gonio Omega', fmt="%0.2f"),
+            'omega': misc.MotorEntry(self.beamline.goniometer.omega, 'Gonio Omega', fmt="%0.2f"),
             'distance': misc.MotorEntry(self.beamline.distance, 'Detector Distance', fmt="%0.1f"),
             'beam_stop': misc.MotorEntry(self.beamline.beamstop_z, 'Beam-stop', fmt="%0.1f"),
             'two_theta': misc.MotorEntry(self.beamline.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
             'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
         }
-        if 'phi' in self.beamline.registry:
-            entries['phi'] = misc.MotorEntry(self.beamline.phi, 'Gonio Phi', fmt="%0.2f")
-        if 'chi' in self.beamline.registry:
-            entries['chi'] = misc.MotorEntry(self.beamline.chi, 'Gonio Chi', fmt="%0.2f")
-        if 'kappa' in self.beamline.registry:
-            entries['kappa'] = misc.MotorEntry(self.beamline.kappa, 'Gonio Kappa', fmt="%0.2f")
+        if self.beamline.goniometer.has_kappa():
+            entries['phi'] = misc.MotorEntry(self.beamline.goniometer.phi, 'Gonio Phi', fmt="%0.2f")
+            entries['chi'] = misc.MotorEntry(self.beamline.goniometer.chi, 'Gonio Chi', fmt="%0.2f")
+            entries['kappa'] = misc.MotorEntry(self.beamline.goniometer.kappa, 'Gonio Kappa', fmt="%0.2f")
 
         for i, key in enumerate(entry_list):
             if key in entries:

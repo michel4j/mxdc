@@ -465,4 +465,4 @@ class FilteredTreeManager(TreeManager):
 def color_palette(colormap):
     data = 255 * numpy.array(colormap.colors)
     data[-1] = [255, 255, 255]
-    return data.ravel().astype(int)
+    return data.ravel().astype(numpy.uint8)

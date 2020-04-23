@@ -72,14 +72,13 @@ class RasterCollector(Engine):
 
     def run(self):
         current_attenuation = self.beamline.attenuator.get()
-
         with self.beamline.lock:
             self.emit('started', None)
             try:
                 self.config['start_time'] = datetime.now(tz=pytz.utc)
                 self.acquire()
-                self.beamline.sample_stage.move_xyz(*self.config['params']['origin'], wait=True)
-                self.beamline.omega.move_to(self.config['params']['angle'], wait=True)
+                self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
+                self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
 
                 # take snapshot
                 self.beamline.manager.center(wait=True)
@@ -109,6 +108,7 @@ class RasterCollector(Engine):
         self.prepare(self.config['params'])
 
         logger.debug('Acquiring {} rastering frames ... '.format(len(self.config['frames'])))
+        template = self.beamline.detector.get_template(self.config['params']['name'])
         for frame in self.config['frames']:
             if self.paused:
                 self.emit('paused', True, '')
@@ -134,13 +134,13 @@ class RasterCollector(Engine):
             }
 
             # move to grid point
-            self.beamline.sample_stage.move_xyz(*frame['point'])
+            self.beamline.goniometer.stage.move_xyz(*frame['point'])
 
             # perform scan
             if self.stopped or self.paused: break
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
-            self.beamlinegoniometer.scan(
+            self.beamline.goniometer.scan(
                 time=frame['exposure'],
                 delta=frame['delta'],
                 angle=frame['start'],
@@ -152,9 +152,10 @@ class RasterCollector(Engine):
             self.count += 1
             msg = '{}: {} of {}'.format(self.config['params']['name'], self.count, self.total_frames)
             self.emit('progress', self.count / self.total_frames, msg)
-
             is_first_frame = False
             time.sleep(0)
+            file_path = os.path.join(frame['directory'], template.format(frame['first']))
+            self.analyse_frame(file_path, frame['first'])
 
         while self.pending_results:
             time.sleep(0.5)
@@ -162,28 +163,18 @@ class RasterCollector(Engine):
         self.collecting = False
 
     @inlineCallbacks
-    def analyse_frame(self, file_path):
+    def analyse_frame(self, file_path, index):
         frame = os.path.splitext(os.path.basename(file_path))[0]
-        file_pattern = re.compile(r'^{}_(\d{{3,}})$'.format(self.config['params']['name']))
-        m = file_pattern.match(frame)
-        if m:
-            params = self.config['params']
-            self.pending_results.add(file_path)
-            index = int(m.groups()[0])
-            logger.info("Analyzing frame: {}:{}".format(index, frame))
-            info = {
-                'name': params['name'],
-                'filename': file_path,
-                'type': 'RASTER',
-            }
-            try:
-                report = yield self.beamline.dps.analyse_frame(file_path, misc.get_project_name())
-            except Exception as e:
-                self.result_fail(e, index, file_path)
-                returnValue({})
-            else:
-                self.result_ready(report, index, file_path)
-                returnValue(report)
+        self.pending_results.add(file_path)
+        logger.info("Analyzing frame: {}".format(frame))
+        try:
+            report = yield self.beamline.dps.analyse_frame(file_path, misc.get_project_name())
+        except Exception as e:
+            self.result_fail(e, index, file_path)
+            returnValue({})
+        else:
+            self.result_ready(report, index, file_path)
+            returnValue(report)
 
     def result_ready(self, result, index=None, path=None):
         info = result
