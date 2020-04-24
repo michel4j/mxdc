@@ -1,13 +1,12 @@
 import os
 import time
 from datetime import datetime
+
 import pytz
 from gi.repository import GLib
 from zope.interface import implementer
 
 from mxdc import Registry, Signal, Engine
-
-from mxdc.engines import snapshot
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
@@ -112,7 +111,8 @@ class DataCollector(Engine):
         self.beamline.detector_cover.close()
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
-        time.sleep(5.0)
+        time.sleep(2.0)
+
         for dataset in self.config['datasets']:
             metadata = self.save(dataset)
             self.results.append(metadata)
@@ -223,14 +223,15 @@ class DataCollector(Engine):
             prefix = os.path.commonprefix([wedge['dataset'] for wedge in wedges]) or 'SNAPSHOT'
             wedge = wedges[0]
 
-            # setup folder for wedge
+            # setup folder
             self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
-            if not os.path.exists(os.path.join(wedge['directory'], '{}_{:0.0f}.png'.format(prefix, wedge['start']))):
-                logger.info('Taking snapshots of sample at {:0.0f}'.format(wedge['start']))
 
-                snapshot.take_sample_snapshots(
-                    prefix, os.path.join(wedge['directory']), [wedge['start']], decorate=True
-                )
+            # take snapshot
+            snapshot_file = os.path.join(wedge['directory'], f'{prefix}.png')
+            if not os.path.exists(snapshot_file):
+                logger.info('Taking snapshot ...')
+                img = self.beamline.sample_camera.get_frame()
+                img.save(snapshot_file)
 
     def prepare_for_wedge(self, wedge):
         logger.debug('Preparing for new dataset wedge ...')
@@ -304,13 +305,13 @@ class DataCollector(Engine):
     def analyse(self, metadata, sample, first=False):
         if self.config['analysis'] is None:
             return
-
+        print(metadata)
         flags = () if not self.config.get('anomalous') else ('anomalous',)
-        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_SCREEN'):
+        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'SCREEN'):
             self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'MX_DATA'):
+        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'DATA'):
             self.analyst.process_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD_DATA'):
+        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD'):
             flags = ('calibrate',) if first else ()
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 

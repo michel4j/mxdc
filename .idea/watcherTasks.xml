@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectTasksOptions" suppressed-tasks="Less">
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="$FileDir$" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="fileExtension" value="xml" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="GSettings" />
+      <option name="output" value="" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="false" />
+      <option name="program" value="glib-compile-schemas" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="GSettings Files" />
+      <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="" />
+      <envs />
+    </TaskOptions>
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="$FileName$" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ALWAYS" />
+      <option name="fileExtension" value="xml" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="GResources" />
+      <option name="output" value="" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="false" />
+      <option name="program" value="glib-compile-resources" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="GResource Files" />
+      <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="$FileDir$" />
+      <envs />
+    </TaskOptions>
+    <TaskOptions isEnabled="true">
+      <option name="arguments" value="mxdc.gresource.xml" />
+      <option name="checkSyntaxErrors" value="true" />
+      <option name="description" />
+      <option name="exitCodeBehavior" value="ALWAYS" />
+      <option name="fileExtension" value="*" />
+      <option name="immediateSync" value="true" />
+      <option name="name" value="UI Rebuild" />
+      <option name="output" value="" />
+      <option name="outputFilters">
+        <array />
+      </option>
+      <option name="outputFromStdout" value="false" />
+      <option name="program" value="glib-compile-resources" />
+      <option name="runOnExternalChanges" value="true" />
+      <option name="scopeName" value="Builder UI Files" />
+      <option name="trackOnlyRoot" value="false" />
+      <option name="workingDir" value="$FileDir$/.." />
+      <envs />
+    </TaskOptions>
+  </component>
+</project>

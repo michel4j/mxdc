@@ -101,6 +101,7 @@ class Browser(Object):
             self.update_service(zeroconf, name)
 
     def add_service(self, bus, name):
+
         info = bus.get_service_info(self.service_type, name)
         addresses = [socket.inet_ntoa(addr) for addr in info.addresses]
         address = random.choice(addresses)
@@ -125,8 +126,10 @@ class Browser(Object):
             self.emit('removed', self.services.pop(key))
 
     def update_service(self, bus, name):
-        self.remove_service(bus, name)
-        self.add_service(bus, name)
+        key = (bus, name)
+        if key in self.services:
+            self.remove_service(bus, name)
+            self.add_service(bus, name)
 
 
 def cleanup_zeroconf():

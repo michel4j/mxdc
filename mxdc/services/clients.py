@@ -48,8 +48,9 @@ class PBClient(BaseService):
         self.retry_count = 0
         self.max_retries = 8640
         self.retrying = False
+        self.browsing = not bool(address)
 
-        if address is not None:
+        if not self.browsing:
             m = re.match(r'([\w.\-_]+):(\d+)', address)
 
             if m:
@@ -73,12 +74,12 @@ class PBClient(BaseService):
         self.retry_count = 0
 
     def retry(self):
-        if not self.is_active():
+        self.retrying = True
+        if self.retry_count < self.max_retries and not self.is_active():
             logger.debug('Re-trying connection to {} [{host}:{port}]'.format(self.name, **self.service_data))
             self.service_added(None, self.service_data)
             self.retry_count += 1
-            self.retrying = self.retry_count < self.max_retries
-            return self.retrying
+            return True
         self.retrying = False
 
     def service_added(self, obj, data):
@@ -88,6 +89,12 @@ class PBClient(BaseService):
             self.factory.getRootObject().addCallback(self.on_connect).addErrback(self.on_failure)
             reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
 
+    def service_removed(self, obj):
+        self.set_state(active=False, health=(4,'connection', 'Disconnected'))
+        if not self.browsing:
+            logger.warning('Connection to {} disconnected'.format(self.name))
+            GLib.timeout_add(self.retry_delay, self.retry)
+
     def setup(self):
         """
         Discover connection details of the Server using mdns
@@ -95,6 +102,7 @@ class PBClient(BaseService):
         """
         self.browser = mdns.Browser(self.code)
         self.browser.connect('added', self.service_added)
+        self.browser.connect('removed', self.service_removed)
 
     def on_connect(self, perspective):
         """
@@ -105,19 +113,20 @@ class PBClient(BaseService):
         logger.info('{} {host}:{port} connected.'.format(self.name, **self.service_data))
         self.service = perspective
         self.service.notifyOnDisconnect(self.on_disconnect)
-        self.set_state(active=True)
+        self.set_state(active=True, health=(0,'',''))
         self.reset_retries()
 
     def on_disconnect(self, obj):
         """Used to detect disconnections if MDNS is not being used."""
-        self.set_state(active=False)
+        self.set_state(active=False, health=(4,'connection', 'Disconnected'))
         if not self.retrying:
             logger.warning('Connection to {} disconnected'.format(self.name))
             GLib.timeout_add(self.retry_delay, self.retry)
 
     def on_failure(self, reason):
-        if not self.retrying:
+        if not (self.retrying or self.browsing):
             logger.error('Connection to {} failed'.format(self.name))
+            logger.error(reason)
             GLib.timeout_add(self.retry_delay, self.retry)
 
 
@@ -189,6 +198,7 @@ class MxLIVEClient(BaseService):
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
+            logger.error(r.content.decode())
             r.raise_for_status()
 
     def upload(self, path, filename):

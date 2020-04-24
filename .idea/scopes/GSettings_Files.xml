@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="GSettings Files" pattern="file:mxdc/share/*.gschema.xml" />
+</component>

@@ -72,10 +72,8 @@ class RasterController(Object):
         self.manager = RasterResultsManager(self.view, colormap=self.microscope.props.grid_cmap)
 
         # signals
-        self.microscope.connect('notify::grid-xyz', self.on_grid_changed)
         self.connect('notify::state', self.on_state_changed)
         self.collector.connect('done', self.on_done)
-        #self.collector.connect('new-image', self.on_new_image)
         self.collector.connect('paused', self.on_pause)
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
@@ -95,9 +93,9 @@ class RasterController(Object):
         labels = {
             'energy': (self.beamline.energy, self.widget.raster_energy_fbk, {'format': '{:0.3f} keV'}),
             'attenuation': (self.beamline.attenuator, self.widget.raster_attenuation_fbk, {'format': '{:0.0f} %'}),
-            'aperture': (self.beamline.aperture, self.widget.raster_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
+            'aperture': (self.beamline.aperture, self.widget.raster_aperture_fbk, {'format': '{:0.0f} μm'}),
             'omega': (self.beamline.goniometer.omega, self.widget.raster_angle_fbk, {'format': '{:0.2f}°'}),
-            'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} \xc3\x85'}),
+            'maxres': (self.beamline.maxres, self.widget.raster_maxres_fbk, {'format': '{:0.2f} Å'}),
         }
         self.monitors = {
             name: common.DeviceMonitor(dev, lbl, **kw)
@@ -330,19 +328,19 @@ class RasterController(Object):
         else:
             image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
-            image_viewer.open_image(item['filename'])
+            image_viewer.open_frame(item['filename'])
 
-    def on_grid_changed(self, obj, param):
-        grid = self.microscope.props.grid_xyz
-        state = self.microscope.props.grid_state
-        raster_page = self.widget.samples_stack.get_child_by_name('rastering')
-        if grid is not None and state == self.microscope.GridState.PENDING:
-            self.widget.raster_grid_info.set_text('Defined grid has {} points'.format(len(grid)))
-            self.widget.raster_command_box.set_sensitive(True)
-            self.widget.samples_stack.set_visible_child_name('rastering')
-            # self.widget.samples_stack.child_set(raster_page, needs_attention=True)
-        else:
-            msg = 'Please define a new grid using the sample viewer!'
-            self.widget.raster_grid_info.set_text(msg)
-            self.widget.raster_command_box.set_sensitive(False)
-            self.widget.samples_stack.child_set(raster_page, needs_attention=False)
+    # def on_grid_changed(self, obj, param):
+    #     grid = self.microscope.props.grid_xyz
+    #     state = self.microscope.props.grid_state
+    #     raster_page = self.widget.samples_stack.get_child_by_name('rastering')
+    #     if grid is not None and state == self.microscope.GridState.PENDING:
+    #         self.widget.raster_grid_info.set_text('Defined grid has {} points'.format(len(grid)))
+    #         self.widget.raster_command_box.set_sensitive(True)
+    #         self.widget.samples_stack.set_visible_child_name('rastering')
+    #         # self.widget.samples_stack.child_set(raster_page, needs_attention=True)
+    #     else:
+    #         msg = 'Please define a new grid using the sample viewer!'
+    #         self.widget.raster_grid_info.set_text(msg)
+    #         self.widget.raster_command_box.set_sensitive(False)
+    #         self.widget.samples_stack.child_set(raster_page, needs_attention=False)

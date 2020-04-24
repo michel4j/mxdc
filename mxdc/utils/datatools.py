@@ -423,7 +423,7 @@ def dataset_from_files(directory, file_glob):
             os.path.getmtime(os.path.join(directory, data_files[0])), tz=pytz.utc
         )
 
-    full_set = [int(m.group(1)) for f in data_files for m in [file_pattern.match(f)] if m]
+    full_set = [int(m.group(1)) for f in data_files for m in [file_pattern.search(f)] if m]
     return {
         'start_time': start_time,
         'frames':summarize_list(full_set),

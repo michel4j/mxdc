@@ -1,16 +1,12 @@
 import os
-import re
-import threading
 import time
 from datetime import datetime
 
 import pytz
-from gi.repository import GObject
 from twisted.internet.defer import returnValue, inlineCallbacks
-from mxdc import Registry, Signal, Engine, IBeamline
 from zope.interface import Interface, implementer
 
-from mxdc.com import ca
+from mxdc import Registry, Signal, Engine
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength
@@ -95,6 +91,7 @@ class RasterCollector(Engine):
             self.emit('stopped', None)
         else:
             self.emit('done', None)
+            self.save_metadata()
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.beamline.detector_cover.close()
 
@@ -159,7 +156,7 @@ class RasterCollector(Engine):
 
         while self.pending_results:
             time.sleep(0.5)
-        self.save_metadata()
+
         self.collecting = False
 
     @inlineCallbacks
@@ -192,6 +189,7 @@ class RasterCollector(Engine):
         params = self.config['params']
         template = self.beamline.detector.get_template(params['name'])
         wild_card = datatools.template_to_glob(template)
+
         try:
             info = datatools.dataset_from_files(params['directory'], wild_card)
         except OSError as e:

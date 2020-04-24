@@ -94,8 +94,10 @@ def _hook(provided, obj):
     :param obj: object to adapt
     :return: adapted object
     """
+
     adapter = Registry.adapters.lookup1(providedBy(obj), provided, '')
-    return adapter(obj)
+    if adapter is not None:
+        return adapter(obj)
 
 
 def _del_hook():

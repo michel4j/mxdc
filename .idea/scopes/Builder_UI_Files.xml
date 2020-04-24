@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Builder UI Files" pattern="file:mxdc/share/*/*.ui" />
+</component>

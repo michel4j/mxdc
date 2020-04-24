@@ -421,7 +421,7 @@ class Microscope(Object):
 
         return {
             'grid_state': self.GridState.PENDING,
-            'grid_xyz': grid_xyz,
+            'grid_xyz': grid_xyz.round(4),
             'grid_params': {
                 'origin': (ox, oy, oz),
                 'angle': angle,

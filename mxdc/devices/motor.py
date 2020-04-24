@@ -335,13 +335,16 @@ class SimMotor(BaseMotor):
         return {
             'speed': self.speed,
             'accel': None,
+            'precision': 4,
         }
 
-    def configure(self, speed=None, accel=None):
+    def configure(self, speed=None, accel=None, precision=None):
         with self.lock:
             if speed is not None:
                 self.speed = speed  # speed
                 self.step_size = self.speed * self.step_time
+            if precision is not None:
+                self.precision = precision
 
     @async_call
     def move_operation(self, target):
@@ -400,14 +403,17 @@ class Motor(BaseMotor):
     def get_config(self):
         return {
             'speed': self.speed_fbk.get(),
-            'accel': self.accel_fbk.get()
+            'accel': self.accel_fbk.get(),
+            'precision': self.precision
         }
 
-    def configure(self, speed=None, accel=None):
+    def configure(self, speed=None, accel=None, precision=None):
         if speed is not None:
             self.speed_tgt.put(speed)
         if accel is not None:
             self.accel_tgt.put(accel)
+        if precision is not None:
+            self.prec_val.put(precision)
 
     def get_position(self):
         val = self.pos_fbk.get()
@@ -557,12 +563,13 @@ class PseudoMotor(VMEMotor):
     def get_config(self):
         return {
             'speed': None,
-            'accel': None
+            'accel': None,
+            'precision': self.precision
         }
 
-    def configure(self, speed=None, accel=None):
+    def configure(self, speed=None, accel=None, precision=None):
         # not relevant for pseudo motors
-        pass
+        self.prec_val.put(precision)
 
     def connect_monitors(self):
         super().connect_monitors()
