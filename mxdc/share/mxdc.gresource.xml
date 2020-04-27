@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
     <gresource prefix="/org/mxdc">
-        <file compressed="true">gtk/menus.ui</file>
+        <file compressed="true">data/menus.ui</file>
         <file compressed="true">data/active_entry.ui</file>
         <file compressed="true">data/active_menu.ui</file>
         <file compressed="true">data/chat-ltr.ui</file>
@@ -27,11 +27,13 @@
         <file>data/diffraction.png</file>
         <file>data/send.svg</file>
         <file>data/icon.svg</file>
+        <file>data/icon.png</file>
         <file>data/splash.png</file>
         <file>data/units-ang.svg</file>
         <file>data/units-deg.svg</file>
         <file>data/units-keV.svg</file>
         <file>data/units-mm.svg</file>
+        <file>data/units-um.svg</file>
         <file>data/units-ms.svg</file>
         <file>data/units-sec.svg</file>
         <file>data/units-%.svg</file>

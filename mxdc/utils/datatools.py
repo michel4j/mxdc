@@ -291,6 +291,27 @@ def get_frame_numbers(run):
     return frame_numbers - excluded
 
 
+def calc_num_frames(strategy, delta, range, skip=''):
+    """
+    Count the number of frames in a dataset
+
+    :param strategy: run strategy
+    :param delta: delta angle
+    :param range: angle range
+    :param skip: frames to skip
+    """
+
+    if strategy in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        size = max(1, range/delta)
+        total_range = ScreeningRange.get(strategy, range) + size * delta
+    else:
+        total_range = range
+
+    num_frames = max(1, int(total_range/delta))
+
+    excluded = len(frameset_to_list(skip))
+    return num_frames - excluded
+
 def generate_frame_names(run):
     # get the list of frame names for the given run
     valid_numbers = get_frame_numbers(run)
@@ -509,10 +530,8 @@ def _calc_points(start, end, steps):
         return numpy.array([None] * steps)
     elif not end:
         end = start
-    points = numpy.zeros((steps, 3))
-    for i in range(3):
-        points[:, i] = numpy.linspace(start[i], end[i], steps)
-    return points
+        return numpy.array([start] + [None] * (steps - 1))
+    return numpy.linspace(start, end, steps)
 
 
 def make_wedges(run):
@@ -567,20 +586,3 @@ def make_wedges(run):
     ]
 
 
-class Validator(object):
-    class Clip(object):
-        def __init__(self, dtype, lo, hi):
-            self.dtype = dtype
-            self.lo = lo
-            self.hi = hi
-
-        def __call__(self, val):
-            return min(max(self.lo, self.dtype(val)), self.hi)
-
-    class Length(object):
-        def __init__(self, dtype, max_length):
-            self.dtype = dtype
-            self.max_length = max_length
-
-        def __call__(self, val):
-            return val[:self.max_length]

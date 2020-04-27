@@ -100,7 +100,7 @@ class Automator(Engine):
 
                         self.collector.configure(
                             params, take_snapshots=True, analysis=params.get('analysis'),
-                            anomalous=params.get('anomalous', False), first=first
+                            anomalous=params.get('anomalous', False)
                         )
                         sample['results'] = self.collector.run()
 

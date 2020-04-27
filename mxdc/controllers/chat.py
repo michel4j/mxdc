@@ -90,12 +90,10 @@ class ChatController(object):
         )
         self.messages.append(item)
 
-        vis_page = self.widget.setup_status_stack.get_visible_child_name()
-        top_page = self.widget.main_stack.get_visible_child_name()
-        if top_page != 'Setup':
-            self.widget.notifier.notify('New Message from {}: {}'.format(user, message), duration=10)
+        vis_page = self.widget.main_stack.get_visible_child_name()
         if vis_page != 'Chat':
-            chat_page = self.widget.setup_status_stack.get_child_by_name('Chat')
+            self.widget.notifier.notify('New Message from {}: {}'.format(user, message), duration=10)
+            chat_page = self.widget.main_stack.get_child_by_name('Chat')
             self.widget.setup_status_stack.child_set(chat_page, needs_attention=True)
 
     def adjust_view(self, widget, event, data=None):

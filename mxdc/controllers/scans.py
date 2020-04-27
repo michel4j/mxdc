@@ -3,14 +3,14 @@ import os
 import time
 import uuid
 from datetime import datetime
-
 from enum import Enum
-from gi.repository import Gtk, GObject
+
+from gi.repository import Gtk
+
 from mxdc import Registry, Object, IBeamline, Property
-from mxdc.conf import load_cache, save_cache
 from mxdc.engines.spectroscopy import XRFScan, MADScan, XASScan
 from mxdc.utils import colors, datatools, misc, scitools
-from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
+from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType, FormManager, Validator, FieldSpec
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs, periodictable, plotter
 from . import common
@@ -66,12 +66,15 @@ class ScanController(Object):
     result_class = None
     ConfigSpec = None
     prefix = 'mad'
+    Fields = ()
+    disabled = ()
 
     def __init__(self, scanner, plotter, widget, edge_selector):
         super().__init__()
         self.widget = widget
         self.plotter = plotter
         self.scanner = scanner
+        self.form = FormManager(self.widget, fields=self.Fields, prefix=self.prefix, persist=True, disabled=self.disabled)
         self.edge_selector = edge_selector
         self.sample_store = Registry.get_utility(ISampleStore)
 
@@ -84,8 +87,7 @@ class ScanController(Object):
         self.setup()
 
     def setup(self):
-
-        self.connect('notify::config', self.on_config_changed)
+        #self.connect('notify::config', self.on_config_changed)
         self.scanner.connect('started', self.on_started)
         self.scanner.connect('new-point', self.on_new_point)
         self.scanner.connect('progress', self.on_progress)
@@ -101,13 +103,7 @@ class ScanController(Object):
         self.edge_btn.connect('toggled', self.prepare_ptable, self.edge_entry)
         self.edge_entry.connect('changed', self.hide_ptable)
         self.edge_entry.connect('changed', self.on_edge_changed)
-        self.import_from_cache()
         self.connect('notify::state', self.on_state_changed)
-
-    def import_from_cache(self):
-        config = load_cache('{}-params'.format(self.prefix))
-        if config:
-            self.configure(config)
 
     def update_directory(self, directory):
         home = misc.get_project_home()
@@ -131,7 +127,7 @@ class ScanController(Object):
             self.scanner.resume()
         elif self.props.state == self.StateType.READY:
             self.progress_lbl.set_text("Starting {} ...".format(self.desc))
-            params = self.get_parameters()
+            params = self.form.get_values()
             params['uuid'] = str(uuid.uuid4())
             params['name'] = datetime.now().strftime('%y%m%d-%H%M')
             params['activity'] = '{}-scan'.format(self.prefix)
@@ -143,67 +139,6 @@ class ScanController(Object):
     def stop(self, *args, **kwargs):
         self.progress_lbl.set_text("Stopping {} ...".format(self.desc))
         self.scanner.stop()
-
-    def configure(self, info, disable=()):
-        if not self.ConfigSpec: return
-        for name, details in list(self.ConfigSpec.items()):
-            field_type, fmt, conv, default = details
-            field_name = '{}_{}'.format(name, field_type)
-            value = info.get(name, default)
-            field = getattr(self, field_name, None)
-            if not field: continue
-            if field_type == 'entry':
-                field.set_text(fmt.format(value))
-            elif field_type == 'check':
-                field.set_active(value)
-            elif field_type == 'spin':
-                field.set_value(value)
-            elif field_type == 'cbox':
-                field.set_active_id(str(value))
-            elif field_type == 'pbox':
-                if value:
-                    name, point = value
-                    field.set_active_id(name)
-                else:
-                    field.set_active_id(None)
-            if name in disable:
-                field.set_sensitive(False)
-            try:
-                conv(value)
-                field.get_style_context().remove_class('error')
-            except (TypeError, ValueError):
-                field.get_style_context().add_class('error')
-
-    def get_parameters(self):
-        info = {}
-        if not self.ConfigSpec: return info
-        for name, details in list(self.ConfigSpec.items()):
-            field_type, fmt, conv, default = details
-            field_name = '{}_{}'.format(name, field_type)
-            field = getattr(self, field_name, None)
-            if not field: continue
-            raw_value = default
-            if field_type == 'entry':
-                raw_value = field.get_text()
-            elif field_type == 'switch':
-                raw_value = field.get_active()
-            elif field_type == 'cbox':
-                raw_value = field.get_active_id()
-            elif field_type == 'spin':
-                raw_value = field.get_value()
-            elif field_type == 'pbox':
-                point_name = field.get_active_id()
-                raw_value = self.get_point(point_name)
-                if not raw_value: continue
-            try:
-                value = conv(raw_value)
-            except (TypeError, ValueError):
-                value = default
-            info[name] = value
-        return info
-
-    def on_config_changed(self, *args, **kwargs):
-        save_cache(self.props.config, '{}-params'.format(self.prefix))
 
     def on_edge_changed(self, entry):
         edge = entry.get_text()
@@ -392,17 +327,17 @@ class XASResultsManager(TreeManager):
 
 
 class MADScanController(ScanController):
-    ConfigSpec = {
-        'edge': ['entry', '{}', str, 'Se-K'],
-        'exposure': ['entry', '{:0.3g}', float, 1.0],
-        'attenuation': ['entry', '{:0.3g}', float, 50.0],
-    }
+    Fields = (
+        FieldSpec('edge','entry', '{}', Validator.Slug(10, 'Se-K')),
+        FieldSpec('exposure','entry', '{:0.3g}', Validator.Float(.1, 20, 0.5)),
+        FieldSpec('attenuation','entry', '{:0.3g}', Validator.Float(0, 100, 50.0)),
+    )
     desc = 'MAD Scan'
     prefix = 'mad'
     result_class = MADResultsManager
 
     def setup(self):
-        super(MADScanController, self).setup()
+        super().setup()
         self.datasets = Registry.get_utility(IDatasets)
         self.widget.mad_runs_btn.connect('clicked', self.add_mad_runs)
         self.results.connect('notify::run-info', self.on_run_info)
@@ -477,12 +412,12 @@ class MADScanController(ScanController):
 
 
 class XRFScanController(ScanController):
-    ConfigSpec = {
-        'edge': ['entry', '{}', str, 'Se-K'],
-        'energy': ['entry', '{:0.3f}', float, 12.658],
-        'exposure': ['entry', '{:0.3g}', float, 0.5],
-        'attenuation': ['entry', '{:0.3g}', float, 50.0],
-    }
+    Fields = (
+        FieldSpec('edge','entry', '{}', Validator.Slug(10, 'Se-K')),
+        FieldSpec('energy','entry', '{:0.3f}', Validator.Float(4, 25., 12.658)),
+        FieldSpec('exposure','entry', '{:0.3g}', Validator.Float(.1, 20, 0.5)),
+        FieldSpec('attenuation','entry', '{:0.3g}', Validator.Float(0, 100, 50.0)),
+    )
     desc = 'XRF Scan'
     prefix = 'xrf'
     result_class = XRFResultsManager
@@ -581,13 +516,14 @@ class XRFScanController(ScanController):
 
 
 class XASScanController(ScanController):
-    ConfigSpec = {
-        'edge': ['entry', '{}', str, 'Se-K'],
-        'exposure': ['entry', '{:0.3g}', float, 1.0],
-        'attenuation': ['entry', '{:0.3g}', float, 50.0],
-        'kmax': ['spin', '{}', int, 10],
-        'scans': ['spin', '{}', int, 5],
-    }
+    Fields = (
+        FieldSpec('edge','entry', '{}', Validator.Slug(10, 'Se-K')),
+        FieldSpec('kmax','spin', '{}', Validator.Int(1, 16, 4)),
+        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(.1, 20, 0.5)),
+        FieldSpec('attenuation', 'entry', '{:0.3g}', Validator.Float(0, 100, 50.0)),
+        FieldSpec('scans', 'spin', '{}', Validator.Int(1, 100, 10))
+    )
+
     desc = 'XAS Scan'
     prefix = 'xas'
     result_class = XASResultsManager
@@ -595,8 +531,12 @@ class XASScanController(ScanController):
     def setup(self):
         super(XASScanController, self).setup()
         # fix adjustments
-        self.kmax_spin.set_adjustment(Gtk.Adjustment(8, 1, 16, 1, 1, 0))
-        self.scans_spin.set_adjustment(Gtk.Adjustment(4, 1, 128, 1, 10, 0))
+        self.kmax_spin.set_adjustment(
+            Gtk.Adjustment(value=8, lower=1, upper=16, step_increment=1, page_increment=1, page_size=0)
+        )
+        self.scans_spin.set_adjustment(
+            Gtk.Adjustment(value=4, lower=1, upper=128, step_increment=1, page_increment=10, page_size=0)
+        )
         self.scanner.connect('new-row', self.on_new_scan)
         self.results.connect('notify::directory', self.on_scan_selected)
 
@@ -609,9 +549,9 @@ class XASScanController(ScanController):
             self.widget.scans_dir_fbk.set_text(self.results.props.directory)
 
 
-class ScanManager(GObject.GObject):
+class ScanManager(Object):
     def __init__(self, widget):
-        super(ScanManager, self).__init__()
+        super().__init__()
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = Registry.get_utility(ISampleStore)
@@ -638,7 +578,7 @@ class ScanManager(GObject.GObject):
         labels = {
             'energy': (self.beamline.energy, self.widget.scans_energy_fbk, {'format': '{:0.3f} keV'}),
             'attenuation': (self.beamline.attenuator, self.widget.scans_attenuation_fbk, {'format': '{:0.0f} %'}),
-            'aperture': (self.beamline.aperture, self.widget.scans_aperture_fbk, {'format': '{:0.0f} \xc2\xb5m'}),
+            'aperture': (self.beamline.aperture, self.widget.scans_aperture_fbk, {'format': '{:0.0f} µm'}),
             'deadtime': (
                 self.beamline.mca, self.widget.scans_deadtime_fbk,
                 {'format': '{:0.0f} %', 'signal': 'deadtime', 'warning': 20.0, 'error': 40.0}

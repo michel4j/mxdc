@@ -60,6 +60,7 @@ class DataCollector(Engine):
         :param analysis: bool, whether to run analysis after acquiring frames
         :param anomalous: bool, enable analysis mode for data analysis
         """
+
         self.config['analysis'] = analysis
         self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots

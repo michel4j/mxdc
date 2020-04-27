@@ -29,6 +29,8 @@ class MXBeamline(Beamline):
         'default_attenuation': 90.0,
         'default_exposure': 0.5,
         'default_delta': 0.5,
+        'default_energy': 12.658,
+        'default_distance': 200,
         'default_beamstop': 25.0,
         'safe_beamstop': 25.0,
         'safe_distance': 700.0,

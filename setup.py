@@ -24,7 +24,6 @@ setup(
         'mxdc': [
             'share/data/simulated/*.raw',
             'share/data/*.*',
-            'share/gtk/*.*',
             'share/gschemas.compiled',
             'share/mxdc.*.xml',
             'share/mxdc.gresource',

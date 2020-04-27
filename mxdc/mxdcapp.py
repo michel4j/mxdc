@@ -3,15 +3,13 @@ import os
 import signal
 import sys
 import time
-import warnings
 from datetime import datetime
 
 import gi
 
-warnings.simplefilter("ignore")
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, Gio, GLib
+from gi.repository import Gtk, Gio, GLib, Gdk, GdkPixbuf
 from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
@@ -19,10 +17,10 @@ gtk3reactor.install()
 from mxdc import conf
 from mxdc.conf import settings
 from mxdc.services import server
-from mxdc.utils import mdns
+from mxdc.utils import mdns, gui
 from mxdc.utils.log import get_module_logger
+from mxdc.controllers import common, analysis, samples, setup, status, datasets, scans, chat
 
-from mxdc.widgets.AppWindow import AppWindow
 from mxdc.widgets import dialogs
 from mxdc.controllers.settings import SettingsDialog
 from mxdc.controllers.browser import Browser
@@ -31,13 +29,49 @@ from mxdc.beamlines import build_beamline
 from mxdc.services import clients
 from twisted.internet import reactor
 from twisted.spread import pb
+from . import version
 
 USE_TWISTED = True
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
-VERSION = "2020.02"
+
+VERSION = version.get_version()
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)
+
+
+class AppBuilder(gui.Builder):
+    gui_roots = {
+        'data/mxdc_main': [
+            'auto_groups_pop', 'scans_ptable_pop', 'app_window','main_menu'
+        ]
+    }
+
+    def __init__(self):
+        super(AppBuilder, self).__init__()
+        self.notifier = common.AppNotifier(
+            self.notification_lbl,
+            self.notification_revealer,
+            self.notification_btn
+        )
+        self.status_monitor = common.StatusMonitor(self)
+
+        for stack in [self.main_stack, self.setup_status_stack, self.samples_stack]:
+            stack.connect('notify::visible-child', self.on_page_switched)
+
+    def on_page_switched(self, stack, params):
+        stack.child_set(stack.props.visible_child, needs_attention=False)
+
+
+class AppMenu(Gio.Menu):
+    def __init__(self):
+        super().__init__()
+        self.append_section()
+        self.append("Preferences", "app.preferences")
+        self.append_section()
+        self.append("Help", "app.help")
+        self.append_section()
+        self.append("About MxDC", "app.about")
 
 
 class Application(Gtk.Application):
@@ -52,21 +86,12 @@ class Application(Gtk.Application):
 
     def do_startup(self, *args):
         Gtk.Application.do_startup(self, *args)
-        action = Gio.SimpleAction.new("about", None)
-        action.connect("activate", self.on_about)
-        self.add_action(action)
 
-        action = Gio.SimpleAction.new("quit", None)
-        action.connect("activate", self.on_quit)
-        self.add_action(action)
+        # build GUI
+        self.builder = AppBuilder()
+        menu = Gtk.Builder.new_from_resource('/org/mxdc/data/menus.ui')
 
-        action = Gio.SimpleAction.new("preferences", None)
-        action.connect("activate", self.on_preferences)
-        self.add_action(action)
-
-        action = Gio.SimpleAction.new("help", None)
-        action.connect("activate", self.on_help)
-        self.add_action(action)
+        self.builder.app_menu_btn.set_menu_model(menu.get_object('app-menu'))
 
         # initialize beamline
         self.beamline = build_beamline()
@@ -75,16 +100,48 @@ class Application(Gtk.Application):
             name='MxDC',
             emails=self.beamline.config['bug_report'], exit_function=self.quit
         )
-        self.hook.install()
+
+        #self.hook.install()
         self.broadcast_service()
 
     def do_activate(self, *args):
         # We only allow a single window and raise any existing ones
         if not self.window:
-            # Windows are associated with the application
-            self.window = AppWindow(application=self, title='MxDC')
+            self.window = self.builder.app_window
             self.window.connect('destroy', self.on_quit)
-            self.window.setup()
+
+            # create actions
+            actions = {
+                'about': self.on_about,
+                'quit': self.on_quit,
+                'preferences': self.on_preferences,
+                'help': self.on_help,
+            }
+            for name, callback in actions.items():
+                action = Gio.SimpleAction(name=name, parameter_type=None)
+                action.connect("activate", callback)
+                self.window.add_action(action)
+
+            app_settings = self.window.get_settings()
+            app_settings.props.gtk_enable_animations = True
+            css = Gtk.CssProvider()
+            with open(os.path.join(conf.SHARE_DIR, 'styles.less'), 'rb') as handle:
+                css_data = handle.read()
+                css.load_from_data(css_data)
+            style = self.window.get_style_context()
+            style.add_provider_for_screen(Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            dialogs.MAIN_WINDOW = self.window
+
+            # setup panels
+            self.analysis = analysis.AnalysisController(self.builder)
+            self.samples = samples.SamplesController(self.builder)
+            self.hutch_manager = setup.SetupController(self.builder)
+            self.status_panel = status.StatusPanel(self.builder)
+            self.datasets = datasets.DatasetsController(self.builder)
+            self.automation = datasets.AutomationController(self.builder)
+            self.scans = scans.ScanManager(self.builder)
+            self.chat = chat.ChatController(self.builder)
+            self.window.show_all()
 
         self.window.present()
         if settings.show_release_notes():
@@ -203,3 +260,5 @@ class MxDCApp(object):
             reactor.run()
         else:
             self.application.run(sys.argv)
+
+

@@ -1,9 +1,10 @@
 import logging
 import operator
 from collections import OrderedDict
+
 from gi.repository import Gtk, Gdk, Pango, GObject
 
-from mxdc.widgets import dialogs, timer
+from mxdc.widgets import timer
 
 
 def value_class(val, warning, error):
@@ -78,7 +79,7 @@ class ShutterSwitcher(object):
 
     def unwatch(self):
         self.switch.handler_block(self.sw_link)
-        
+
     def on_state_change(self, obj, state):
         self.unwatch()
         self.switch.set_state(operator.xor(state, self.reverse))
@@ -167,8 +168,8 @@ class AppNotifier(object):
         self.close_button.connect('clicked', self.on_notifier_closed)
         self.timer_shown = False
         self.timer = timer.Timer()
-        #self.box.pack_start(self.timer, False, False, 0)
-        #self.box.show_all()
+        # self.box.pack_start(self.timer, False, False, 0)
+        # self.box.show_all()
 
     def on_notifier_closed(self, button):
         self.close()
@@ -327,3 +328,5 @@ class Tuner(object):
 
     def cancel_tuning(self, *args, **kwargs):
         self.tune_func = None
+
+

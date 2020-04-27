@@ -1,13 +1,11 @@
 import copy
 import time
-from collections import defaultdict
 
 from gi.repository import Gio, Gtk
+from zope.interface import Interface
 
 from mxdc import Object, Signal, IBeamline, Property
 from mxdc import Registry
-from zope.interface import Interface
-
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
 from mxdc.engines.diffraction import DataCollector
@@ -485,11 +483,6 @@ class DatasetsController(Object):
                 self.frame_manager.update({
                     frame: item for frame in item.frames
                 })
-                # strip labels from prepare points to have just coordinates
-                for key in ['point', 'end_point']:
-                    point_info = run.pop(key, None)
-                    if point_info:
-                        run[key] = point_info[1]
                 item.collected = set()
             pos += 1
             item = self.run_store.get_item(pos)

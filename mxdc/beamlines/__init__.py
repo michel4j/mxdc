@@ -25,7 +25,7 @@ class Beamline(Object):
     following conventions:
 
         * Optionally will also load a local module defined in the file
-          $(MXDC_CONFIG)_local.py for the above example.
+          <config-module>_local.py for the above example.
         * Global Variables:
 
     Signals:

@@ -5,7 +5,8 @@ from gi.repository import Gtk, Gdk, Gio
 from mxdc import Registry, IBeamline, Property, Object
 
 from mxdc.utils import gui, converter, datatools, glibref, misc
-from mxdc.utils.datatools import StrategyType, Strategy, Validator
+from mxdc.utils.datatools import StrategyType, Strategy
+from mxdc.utils.gui import Validator
 
 
 def calculate_skip(strategy, total_range, delta, first):
@@ -139,37 +140,107 @@ STATE_PROPERTIES = {
 }
 
 
+class DataForm(gui.FormManager):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # update converters based on beamline configuration
+        self.beamline = Registry.get_utility(IBeamline)
+        self.fields['energy'].set_converter(
+            Validator.Float(*self.beamline.config['energy_range'], self.beamline.config['default_energy'])
+        )
+        self.fields['distance'].set_converter(
+            Validator.Float(*self.beamline.config['distance_limits'], self.beamline.config['default_distance'])
+        )
+
+        self.exposure_rate = 1.
+
+    def on_change(self, field, event, name):
+        super().on_change(field, event, name)
+        spec = self.fields[name]
+
+        if name == 'delta':
+            delta = self.get_value('delta')
+            exposure = delta/self.exposure_rate
+            self.set_value('exposure', exposure)
+        elif name == 'exposure':
+            exposure = self.get_value('exposure')
+            delta = self.get_value('delta')
+            self.exposure_rate = delta/exposure
+        elif name == 'energy':
+            # calculate resolution limits based on energy
+            energy = self.get_value('energy')
+            resolution = self.get_value('resolution')
+            min_res = converter.dist_to_resol(
+                self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, energy
+            )
+            max_res = converter.dist_to_resol(
+                self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, energy
+            )
+            self.set_value('resolution', min(max(resolution, min_res), max_res))
+            self.fields['resolution'].set_converter(
+                Validator.Float(min_res, max_res, default=2.0)
+            )
+
+        if name == 'strategy' and 'inverse' not in self.disabled:
+            strategy = self.get_value('strategy')
+            inverse_spec = self.fields['inverse']
+            inverse = inverse_spec.field_from(self.builder, self.prefix)
+            inverse.set_sensitive(strategy == StrategyType.FULL)
+            defaults = Strategy.get(strategy)
+            default_rate = self.beamline.config['default_delta'] / float(self.beamline.config['default_exposure'])
+            if 'delta' in defaults and 'exposure' not in defaults:
+                defaults['exposure'] = defaults['delta'] / default_rate
+            elif 'exposure' in defaults and 'delta' not in defaults:
+                defaults['delta'] = default_rate / defaults['exposure']
+                self.exposure_rate = default_rate
+            self.set_values(defaults)
+
+        if name in ['delta', 'strategy', 'range']:
+            range = self.get_value('range')
+            strategy = self.get_value('strategy')
+            delta = self.get_value('delta')
+            first = self.get_value('first')
+            skip = calculate_skip(strategy, range, delta, first)
+            frames = datatools.calc_num_frames(strategy, delta, range, skip=skip)
+            self.set_value('frames', frames)
+
+
+
 class DataEditor(gui.BuilderMixin):
     gui_roots = {
         'data/data_form': ['data_form']
     }
-    Specs = {
-        # field: ['field_type', format, type, range, default]
-        'resolution':   ['entry', '{:0.3g}', Validator.Clip(float, 0.5, 50), 2.0],
-        'delta':        ['entry', '{:0.3g}', Validator.Clip(float, 0.001, 720), None],
-        'range':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 10000), 1.],
-        'start':        ['entry', '{:0.4g}', Validator.Clip(float, -360., 360.), 0.],
-        'wedge':        ['entry', '{:0.4g}', Validator.Clip(float, 0.05, 720.), 360.],
-        'energy':       ['entry', '{:0.3f}', Validator.Clip(float, 1.0, 25.0), 12.658],
-        'distance':     ['entry', '{:0.1f}', float, 200],
-        'exposure':     ['entry', '{:0.3g}', Validator.Clip(float, 0.001, 720.), None],
-        'attenuation':  ['entry', '{:0.3g}', Validator.Clip(float, 0, 100), 0.0],
-        'first':        ['entry', '{}', Validator.Clip(int, 1, 10000), 1],
-        'frames':       ['entry', '{}', int, ''],
-        'name':         ['entry', '{}', Validator.Length(str, 30), ''],
-        'strategy':     ['cbox', '{}', int, StrategyType.SINGLE],
-        'inverse':      ['check', '{}', bool, False],
-        'point':        ['pbox', '{}', tuple, None],
-        'end_point':    ['pbox', '{}', tuple, None],
-        'vector_size':  ['spin', '{}', Validator.Clip(int, 2, 100), 10],
-    }
-    disabled = []
+    class Column:
+        ID, LABEL, VALUE = range(3)
+
+    Fields = (
+        gui.FieldSpec('resolution', 'entry', '{:0.3g}', Validator.Float(0.5, 50, 2.0)),
+        gui.FieldSpec('delta', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 1.)),
+        gui.FieldSpec('range', 'entry', '{:0.4g}', Validator.Float(0.05, 10000, 1.)),
+        gui.FieldSpec('start', 'entry', '{:0.4g}', Validator.Float(-360., 360., 0.)),
+        gui.FieldSpec('wedge', 'entry', '{:0.4g}', Validator.Float(0.05, 720., 360.)),
+        gui.FieldSpec('energy', 'entry', '{:0.3f}', Validator.Float(1.0, 25.0, 12.658)),
+        gui.FieldSpec('distance', 'entry', '{:0.1f}', Validator.Float(50., 1000., 200)),
+        gui.FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720., 0.5)),
+        gui.FieldSpec('attenuation', 'entry', '{:0.3g}', Validator.Float(0, 100, 0.0)),
+        gui.FieldSpec('first', 'entry', '{}', Validator.Int(1, 10000, 1)),
+        gui.FieldSpec('frames', 'entry', '{}', Validator.Int(1, 100000, 1)),
+        gui.FieldSpec('name', 'entry', '{}', Validator.Slug(30)),
+        gui.FieldSpec('strategy', 'cbox', '{}', Validator.Int(None, None, StrategyType.SINGLE)),
+        gui.FieldSpec('inverse', 'check', '{}', Validator.Bool(False)),
+        gui.FieldSpec('point', 'mbox', '{}', Validator.Int(None, None)),
+        gui.FieldSpec('end_point','mbox', '{}', Validator.Int(None, None)),
+        gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(2, 100, 10)),
+    )
+    disabled = ()
     use_dialog = False
 
     def __init__(self):
         self.setup_gui()
         self.beamline = Registry.get_utility(IBeamline)
-        self.points = Gtk.ListStore(str, object, int)
+        self.points = Gtk.ListStore(int, str, object)
+        self.form = DataForm(self, fields=self.Fields, prefix='data', persist=False, disabled=self.disabled)
         self.new_run = True
         self.run_index = 0
         self.item = None
@@ -193,81 +264,13 @@ class DataEditor(gui.BuilderMixin):
 
     def configure(self, info):
         info['frames'] = datatools.count_frames(info)
-        info['distance'] = round(
-            converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy']), 1
-        )
+        info['distance'] = converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy'])
         defaults = self.get_default(info['strategy'])
-
-        for name, details in list(self.Specs.items()):
-            field_type, fmt, conv, default = details
-            field_name = 'data_{}_{}'.format(name, field_type)
-            if default is None:
-                default = defaults.get(field_name)
-            value = info.get(name, default)
-            field = getattr(self, field_name, None)
-            if not field: continue
-            with field.handler_block(self.handlers[name]):
-                if field_type == 'entry':
-                    field.set_text(fmt.format(value))
-                elif field_type == 'check':
-                    field.set_active(value)
-                elif field_type == 'spin':
-                    field.set_value(value)
-                elif field_type == 'cbox':
-                    field.set_active_id(str(value))
-                elif field_type == 'pbox' and field.get_model():
-                    if value:
-                        point_name, point = value
-                        field.set_active_id(point_name)
-                    else:
-                        field.set_active_id(None)
-            if name in self.disabled:
-                field.set_sensitive(False)
-
-        if 'name' not in self.disabled:
-            name_valid = bool(info.get('name'))
-            if name_valid:
-                self.data_name_entry.get_style_context().remove_class('warning')
-            else:
-                self.data_name_entry.get_style_context().add_class('warning')
-
-        if info['strategy'] == StrategyType.FULL and 'inverse' not in self.disabled:
-            self.data_inverse_check.set_sensitive(True)
-        else:
-            self.data_inverse_check.set_sensitive(False)
-
-        self.exposure_rate = info['delta']/float(info['exposure'])
+        defaults.update(info)
+        self.form.set_values(info)
 
     def get_parameters(self):
-        info = {}
-        for name, details in list(self.Specs.items()):
-            field_type, fmt, conv, default = details
-            field_name = 'data_{}_{}'.format(name, field_type)
-            field = getattr(self, field_name, None)
-            if not field: continue
-            raw_value = default
-            if field_type == 'entry':
-                raw_value = field.get_text()
-            elif field_type in ['switch', 'check']:
-                raw_value = field.get_active()
-            elif field_type == 'cbox':
-                raw_value = field.get_active_id()
-            elif field_type == 'spin':
-                raw_value = field.get_value()
-            elif field_type == 'pbox':
-                point_name = field.get_active_id()
-                raw_value = self.get_point(point_name)
-            try:
-                value = conv(raw_value)
-            except (TypeError, ValueError):
-                value = default
-            info[name] = value
-
-        # Fill in defaults
-        defaults = self.get_default(info.get('strategy', 1))
-        for k,v in list(info.items()):
-            if v is None:
-                info[k] = defaults.get(k)
+        info = self.form.get_values()
 
         # Calculate skip,
         info.update({
@@ -276,18 +279,22 @@ class DataEditor(gui.BuilderMixin):
             'activity': Strategy[info['strategy']]['activity'],
         })
 
+        # convert points to coordinates and then
         # make sure point is not empty if end_point is set
-        if info.get('end_point') and not info.get('point'):
+        for name in ['point', 'end_point']:
+            if info.get(name) not in [-1, 0, None]:
+                info[name] = self.get_point(info[name])
+            elif name in info:
+                del info[name]
+        if 'end_point' in info and 'point' not in info:
             info['point'] = info.pop('end_point')
 
         return info
 
     def get_default(self, strategy_type=StrategyType.SINGLE):
-        default = {
-            name: details[-1] for name, details in list(self.Specs.items())
-        }
+        default = self.form.get_defaults()
         info = Strategy[strategy_type]
-        delta, exposure = self.beamline.config['default_delta'], self.beamline.config['default_delta']
+        delta, exposure = self.beamline.config['default_delta'], self.beamline.config['default_exposure']
         rate = delta/float(exposure)
         if 'delta' not in info:
             info['delta'] = delta
@@ -300,67 +307,24 @@ class DataEditor(gui.BuilderMixin):
         return default
 
     def build_gui(self):
-        for name, details in list(self.Specs.items()):
-            field_type, fmt, conv, default = details
-            field_name = 'data_{}_{}'.format(name, field_type)
-            field = getattr(self, field_name, None)
-            if not field: continue
-            if field_type in ['switch']:
-                self.handlers[name] = field.connect('activate', self.on_entry_changed, name)
-            elif field_type in ['cbox', 'pbox']:
-                self.handlers[name] = field.connect('changed', self.on_entry_changed, None, name)
-            elif field_type in ['spin']:
-                self.handlers[name] = field.connect('value-changed', self.on_entry_changed, None, name)
-            else:
-                self.handlers[name] = field.connect('activate', self.on_entry_changed, None, name)
-                field.connect('focus-out-event', self.on_entry_changed, name)
+        strategy_field = self.form.get_field('strategy')
         for id, params in list(Strategy.items()):
-            field_name = 'data_strategy_cbox'
-            field = getattr(self, field_name)
-            field.append(str(id), params['desc'])
+            strategy_field.append(str(id), params['desc'])
+
+    def set_points(self, points):
+        self.points.clear()
+        self.points.append([0, '', None])
+        for i, point in enumerate(points):
+            self.points.append([i, 'P{}'.format(i+1), points[i]])
+
+    def get_point(self, index):
+        for i, row in enumerate(self.points):
+            if i == index:
+                return row[self.Column.VALUE]
 
     def on_dir_template(self, btn):
         app = Gio.Application.get_default()
         app.activate_action('preferences')
-
-    def on_entry_changed(self, obj, event, field_name):
-        new_values = self.get_parameters()
-        if field_name == 'name':
-            new_values['name'] = misc.slugify(new_values['name'])
-        if field_name in ['resolution', 'energy']:
-            min_e, max_e = self.beamline.config['energy_range']
-            min_d, max_d = self.beamline.config['distance_limits']
-
-            # calculate resolution limits dynamically based on energy
-            min_res = converter.dist_to_resol(min_d, self.beamline.detector.mm_size, new_values['energy'])
-            max_res = converter.dist_to_resol(max_d, self.beamline.detector.mm_size, new_values['energy'])
-
-            new_values['resolution'] = max(min_res, min(max_res, new_values['resolution']))
-            new_values['energy'] = max(min_e, min(max_e, new_values['energy']))
-            new_values['distance'] = converter.resol_to_dist(
-                new_values['resolution'], self.beamline.detector.mm_size, new_values['energy']
-            )
-
-        elif field_name == 'strategy':
-            defaults = Strategy.get(new_values['strategy'])
-            default_rate = self.beamline.config['default_delta']/float(self.beamline.config['default_exposure'])
-            if 'delta' in defaults and 'exposure' not in defaults:
-                defaults['exposure'] = defaults['delta']/default_rate
-            elif 'exposure' in defaults and 'delta' not in defaults:
-                defaults['delta'] = default_rate/defaults['exposure']
-            new_values.update(defaults)
-            if new_values['strategy'] == StrategyType.FULL and 'strategy' not in self.disabled:
-                self.data_inverse_check.set_sensitive(True)
-            else:
-                self.data_inverse_check.set_sensitive(False)
-
-        elif field_name == 'delta':
-            new_values['exposure'] = new_values['delta']/self.exposure_rate
-
-        elif field_name == 'inverse':
-            new_values['inverse'] = new_values['inverse'] and new_values['strategy'] == StrategyType.FULL
-
-        self.configure(new_values)
 
     def update(self, *args, **kwargs):
         if self.item.props.state == RunItem.StateType.ADD:
@@ -385,80 +349,36 @@ class DataEditor(gui.BuilderMixin):
 
 
 class RunEditor(DataEditor):
-    class Column:
-        NAME, COORDS, CHOICE = list(range(3))
 
     def build_gui(self):
-        super(RunEditor, self).build_gui()
+        super().build_gui()
         self.points.connect('row-changed', self.on_points_updated)
         self.points.connect('row-deleted', self.on_points_updated)
         self.points.connect('row-inserted', self.on_points_updated)
+
         adjustment = Gtk.Adjustment(10, 2, 100, 1, 5, 0)
         self.data_vector_size_spin.set_adjustment(adjustment)
-        self.data_end_point_pbox.bind_property(
+        self.data_end_point_mbox.bind_property(
             'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda *args: bool(args[1])
         )
         self.data_vector_size_spin.bind_property(
             'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda *args: not args[1]
         )
-        for i, field_name in enumerate(['point', 'end_point']):
-            field_name = 'data_{}_pbox'.format(field_name)
-            field = getattr(self, field_name, None)
+        for i, name in enumerate(['point', 'end_point']):
+            field = self.form.get_field(name)
             if not field: continue
             renderer_text = Gtk.CellRendererText()
             field.pack_start(renderer_text, True)
-            field.add_attribute(renderer_text, "text", self.Column.NAME)
+            field.add_attribute(renderer_text, "text", self.Column.LABEL)
             choice_column = i + 1
             field.set_model(self.points)
-            field.set_id_column(self.Column.NAME)
-            field.connect('changed', self.sync_choices, choice_column)
-
-    def add_point(self, name, point):
-        if not len(self.points):
-            self.points.append([None, None, 0])
-        names = self.get_point_names()
-        if not name in names:
-            self.points.append([name, point,  0])
-
-    def set_points(self, points):
-        if not points:
-            self.clear_points()
-        else:
-            for i, point in enumerate(points):
-                self.add_point('P{}'.format(i+1), points[i])
-
-    def get_point(self, name):
-        value = None
-
-        if name:
-            for row in self.points:
-                if row[self.Column.NAME] == name:
-                    value = (name, row[self.Column.COORDS])
-                    break
-        return value
-
-    def get_point_names(self):
-        return {row[self.Column.NAME] for row in self.points}
-
-    def sync_choices(self, obj, column):
-        name = obj.get_active_id()
-        self.select_point(name, column)
-
-    def select_point(self, name, column):
-        for row in self.points:
-            if name and row[self.Column.NAME] == name:
-                row[2] = column
-            elif row[2] == column:
-                row[2] = 0
-
-    def clear_points(self):
-        self.points.clear()
+            field.set_id_column(self.Column.LABEL)
+            #field.connect('changed', self.sync_choices, choice_column)
 
     def on_points_updated(self, *args, **kwargs):
         num_points = len(self.points)
         self.data_vector_box.set_sensitive(num_points > 0)
-        self.data_end_point_pbox.set_sensitive(num_points > 1)
-
+        self.data_end_point_mbox.set_sensitive(num_points > 1)
 
 
 class DataDialog(DataEditor):
@@ -472,7 +392,7 @@ class DataDialog(DataEditor):
     def build_gui(self):
         self.popover = self.data_dialog
         self.content_box.pack_start(self.data_form_fields, True, True, 0)
-        super(DataDialog, self).build_gui()
+        super().build_gui()
         self.data_cancel_btn.connect('clicked', lambda x: self.popover.hide())
         self.data_save_btn.connect_after('clicked', lambda x: self.popover.hide())
 

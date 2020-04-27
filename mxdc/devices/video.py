@@ -180,7 +180,7 @@ class SimPTZCamera(SimCamera):
         pass
 
     def get_presets(self):
-        presets = ["Hutch", "Detector", "Robot", "BaseGoniometer", "Sample", "Panel"]
+        presets = ["Hutch", "Detector", "Robot", "Goniometer", "Sample", "Panel"]
         return presets
 
 

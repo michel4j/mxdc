@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkWindow">
     <property name="can_focus">False</property>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
     <child>
       <object class="GtkBox" id="humidity_box">
         <property name="visible">True</property>
@@ -48,7 +51,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkGrid" id="hc_control_grid">
+              <object class="GtkGrid" id="humidity_control_grid">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="row_spacing">12</property>
@@ -77,7 +80,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="hc_dewpoint_fbk">
+                      <object class="GtkEntry" id="humidity_dewpoint_fbk">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="editable">False</property>
@@ -127,7 +130,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkEntry" id="hc_exposure_entry">
+                          <object class="GtkEntry" id="humidity_exposure_entry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="tooltip_text" translatable="yes">Exposure Time</property>
@@ -149,7 +152,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkEntry" id="hc_resolution_entry">
+                          <object class="GtkEntry" id="humidity_resolution_entry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="tooltip_text" translatable="yes">Max Resolution</property>
@@ -169,14 +172,14 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton" id="hc_diff_btn">
+                          <object class="GtkButton" id="humidity_diff_btn">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="focus_on_click">False</property>
                             <property name="receives_default">True</property>
                             <property name="tooltip_text" translatable="yes">Acquire Snapshot</property>
                             <child>
-                              <object class="GtkImage" id="hc_diff_icon">
+                              <object class="GtkImage" id="humidity_diff_icon">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="icon_name">media-playback-start-symbolic</property>
@@ -224,7 +227,7 @@
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkButton" id="hc_freeze_btn">
+                  <object class="GtkButton" id="humidity_freeze_btn">
                     <property name="label" translatable="yes">Freeze</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -274,7 +277,7 @@
                     <property name="can_focus">False</property>
                     <property name="row_homogeneous">True</property>
                     <child>
-                      <object class="GtkRadioButton" id="hc_drop_option">
+                      <object class="GtkRadioButton" id="humidity_drop_option">
                         <property name="label" translatable="yes">Drop</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -282,7 +285,7 @@
                         <property name="halign">start</property>
                         <property name="active">True</property>
                         <property name="draw_indicator">True</property>
-                        <property name="group">hc_score_option</property>
+                        <property name="group">humidity_score_option</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -290,14 +293,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkRadioButton" id="hc_cell_option">
+                      <object class="GtkRadioButton" id="humidity_cell_option">
                         <property name="label" translatable="yes">Cell</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="halign">start</property>
                         <property name="draw_indicator">True</property>
-                        <property name="group">hc_drop_option</property>
+                        <property name="group">humidity_drop_option</property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
@@ -305,14 +308,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkRadioButton" id="hc_score_option">
+                      <object class="GtkRadioButton" id="humidity_score_option">
                         <property name="label" translatable="yes">Score</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="halign">start</property>
                         <property name="draw_indicator">True</property>
-                        <property name="group">hc_drop_option</property>
+                        <property name="group">humidity_drop_option</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -320,14 +323,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkRadioButton" id="hc_resolution_option">
+                      <object class="GtkRadioButton" id="humidity_resolution_option">
                         <property name="label" translatable="yes">Resolution</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="halign">start</property>
                         <property name="draw_indicator">True</property>
-                        <property name="group">hc_drop_option</property>
+                        <property name="group">humidity_drop_option</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -396,7 +399,7 @@
                 <property name="border_width">6</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkButton" id="hc_pause_btn">
+                  <object class="GtkButton" id="humidity_pause_btn">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -415,7 +418,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="hc_zoomout_btn">
+                  <object class="GtkButton" id="humidity_zoomout_btn">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -435,7 +438,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="hc_zoomin_btn">
+                  <object class="GtkButton" id="humidity_zoomin_btn">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -455,7 +458,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="hc_save_btn">
+                  <object class="GtkButton" id="humidity_save_btn">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
@@ -475,7 +478,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="hc_clear_btn">
+                  <object class="GtkButton" id="humidity_clear_btn">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>

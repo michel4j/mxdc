@@ -2,6 +2,7 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 from mxdc import conf
+from mxdc import version
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui
 from mxdc.controllers import common, status, chat
@@ -14,9 +15,8 @@ from datetime import datetime
 
 logger = get_module_logger(__name__)
 
-_version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
 
-VERSION = "2017.10"
+VERSION = version.get_version()
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 

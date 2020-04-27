@@ -1,3 +1,4 @@
+import atexit
 from collections import OrderedDict
 from collections import namedtuple
 from enum import Enum
@@ -9,6 +10,8 @@ gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk, GObject, Gdk, Pango
 from mxdc.utils import colors
+from mxdc.conf import load_cache, save_cache
+from mxdc.utils.misc import slugify
 
 
 class GUIFile(object):
@@ -54,6 +57,9 @@ class BuilderMixin(object):
             for path, roots in list(self.gui_roots.items()) for root in roots
         }
 
+    def get_builder(self):
+        return list(self.gui_objects.values())[0].wTree
+
     def build_gui(self):
         pass
 
@@ -74,6 +80,9 @@ class BuilderMixin(object):
         if self.gui_objects:
             for root in list(self.gui_objects.values()):
                 obj = root.get_object(item)
+                if obj:
+                    return obj
+                obj = root.get_object(item.replace('_', '-'))
                 if obj:
                     return obj
         raise AttributeError('{} does not have attribute: {}'.format(self, item))
@@ -462,7 +471,357 @@ class FilteredTreeManager(TreeManager):
         self.keys = [item.name.lower() for item in self.Data]
 
 
+class Validator(object):
+    """
+    Collection of Field Validation Converters
+    """
+    class Clip(object):
+        """
+        Convert a value to the specified type and clip it between the specified limits
+        """
+        def __init__(self, dtype, lo, hi, default=None):
+            self.dtype = dtype
+            self.lo = lo
+            self.hi = hi
+            self.default = self.lo if default is None else default
+
+        def __call__(self, val):
+            try:
+                if self.lo is None and self.hi is None:
+                    return self.dtype(val)
+                elif self.lo is None:
+                    return min(self.dtype(val), self.hi)
+                elif self.hi is None:
+                    return max(self.lo, self.dtype(val))
+                else:
+                    return min(max(self.lo, self.dtype(val)), self.hi)
+            except (TypeError, ValueError):
+                return self.default
+
+    class Float(Clip):
+        """
+        Convert a value to the specified type and clip it between the specified limits
+        """
+        def __init__(self, lo, hi, default=None):
+            super().__init__(float, lo, hi, default)
+
+    class Int(Clip):
+        """
+        Convert a value to the specified type and clip it between the specified limits
+        """
+        def __init__(self, lo, hi, default=None):
+            super().__init__(int, lo, hi, default)
+
+    class String(object):
+        """
+        Enforce maximum string length
+        """
+        def __init__(self, max_length, default=''):
+            self.max_length = max_length
+            self.default = default
+
+        def __call__(self, val):
+            return str(val)[:self.max_length]
+
+    class Slug(String):
+        def __init__(self, max_length, default=''):
+            super().__init__(max_length, default)
+
+        def __call__(self, val):
+            return slugify(str(val)[:self.max_length])
+
+    class Enum(object):
+        """
+        Make sure integer value is within the valid values for an emum type
+        """
+        def __init__(self, dtype, default=None):
+            self.dtype = dtype
+            if isinstance(default, self.dtype):
+                self.default = default.value
+            else:
+                try:
+                    self.default = self.dtype(default).value
+                except ValueError:
+                    self.default = list(self.dtype)[0].value
+
+        def __call__(self, val):
+            if isinstance(val, self.dtype):
+                return val.value
+            else:
+                try:
+                    return self.dtype(int(val)).value
+                except (TypeError, ValueError):
+                    return self.default
+
+    class Bool(object):
+        """
+        Convert a value to the specified type
+        """
+        def __init__(self, default=False):
+            self.default = default
+
+        def __call__(self, val):
+            try:
+                return bool(val)
+            except (TypeError, ValueError):
+                return self.default
+
+    class Value(object):
+        """
+        Convert a value to the specified type
+        """
+        def __init__(self, dtype, default=None):
+            self.dtype = dtype
+            self.default = default
+
+        def __call__(self, val):
+            try:
+                return self.dtype(val)
+            except (TypeError, ValueError):
+                return self.default
+
+    class Pass(object):
+        def __call__(self, val):
+            return val
+
+
+class FieldSpec(object):
+    """
+    Detailed Specification of a single config field in a GUI.
+    """
+
+    def __init__(self, name, suffix, text_format, converter=Validator.Pass):
+        """
+        :param name: field name
+        :param suffix: field suffix type
+        :param text_format: text format
+        :param converter: validator or converter
+        """
+        self.name = name
+        self.suffix = suffix
+        self.text_format = text_format
+        self.converter = converter
+
+    def set_converter(self, converter):
+        """
+        Change the converter of the field
+
+        :param converter:
+        """
+        self.converter = converter
+
+    def field_from(self, builder, prefix):
+        """
+        Get reference to GUI input widget referenced by the field spec.
+
+        :param builder: The GUI builder containing the widget
+        :param prefix: the prefix or the widget
+        """
+
+        field_name = f'{prefix}_{self.name}_{self.suffix}'
+        return getattr(builder, field_name, None)
+
+    def value_from(self, builder, prefix):
+        """
+        Get the value contained in the GUI input widget referenced by the field spec
+
+        :param builder: The GUI builder containing the widget
+        :param prefix: the prefix or the widget
+        """
+        field = self.field_from(builder, prefix)
+        if field:
+            if self.suffix == 'entry':
+                raw_value = field.get_text()
+            elif self.suffix in ['switch', 'check']:
+                raw_value = field.get_active()
+            elif self.suffix == 'cbox':
+                raw_value = field.get_active_id()
+            elif self.suffix == 'spin':
+                raw_value = field.get_value()
+            elif self.suffix == 'mbox' and field.get_model():
+                raw_value = field.get_active()
+            else:
+                raw_value = None
+            return self.converter(raw_value)
+
+    def update_to(self, builder, prefix, value):
+        """
+        Validate and Update the value contained in the GUI input widget referenced by the field spec
+
+        :param builder: The GUI builder containing the widget
+        :param prefix: the prefix or the widget
+        :param value:  New value to update to
+        """
+
+        field = self.field_from(builder, prefix)
+        new_value = self.converter(value)
+
+        if field:
+            if self.suffix == 'entry':
+                field.set_text(self.text_format.format(new_value))
+            elif self.suffix in ['switch', 'check']:
+                field.set_active(new_value)
+            elif self.suffix == 'cbox':
+                field.set_active_id(str(new_value))
+            elif self.suffix == 'spin':
+                field.set_value(new_value)
+            elif self.suffix == 'mbox' and field.get_model():
+                if new_value is not None:
+                    field.set_active(new_value)
+
+    def connect_to(self, builder, prefix, callback):
+        """
+        Connect the field to a given callback
+
+        :param builder: The GUI builder containing the widget
+        :param prefix: the prefix or the widget
+        :param callback: callback function
+        :return:  source id of connection
+        """
+
+        field = self.field_from(builder, prefix)
+        if field:
+            if self.suffix in ['switch']:
+                return field.connect('activate', callback, self.name)
+            elif self.suffix in ['cbox', 'mbox']:
+                return field.connect('changed', callback, None, self.name)
+            elif self.suffix == 'spin':
+                return field.connect('value-changed', callback, None, self.name)
+            else:
+                field.connect('focus-out-event', callback, self.name)
+                return field.connect('activate', callback, None, self.name)
+
+
+class FormManager(object):
+    """
+    A controller which manages a set of fields in a form within a user interface monitoring, validating inputs
+    and managing persistence between application instances.
+    """
+
+    def __init__(self, builder, fields=(), prefix='widget', disabled=(), persist=False):
+        """
+        :param builder: widget collection
+        :param fields: a list of FieldSpec objects
+        :param prefix: widget prefix
+        :param disabled: tuple of disabled field names
+        :param persist: Persist the configuration between instances
+        """
+
+        self.builder = builder
+        self.fields = {
+            spec.name: spec
+            for spec in fields
+        }
+        self.persist = persist
+        self.prefix = prefix
+        self.disabled = disabled
+        self.handlers = {}
+        for name, spec in self.fields.items():
+            field = spec.field_from(self.builder, self.prefix)
+            if field:
+                self.handlers[spec.name] = spec.connect_to(self.builder, self.prefix, self.on_change)
+            if name in self.disabled:
+                field.set_sensitive(False)
+
+        # see if values exist in cache
+        if self.persist:
+            info = load_cache(self.prefix)
+            if info:
+                self.set_values(info)
+
+    def set_value(self, name, value):
+        """
+        Set the value of a field by name
+
+        :param name: name of field
+        :param value: value to set
+        """
+
+        spec = self.fields[name]
+        field = spec.field_from(self.builder, self.prefix)
+        if field:
+            with field.handler_block(self.handlers[name]):
+                spec.update_to(self.builder, self.prefix, value)
+
+    def get_value(self, name):
+        """
+        Get the value of a field by name
+        :param name:
+        :return: value
+        """
+        spec = self.fields[name]
+        return spec.value_from(self.builder, self.prefix)
+
+    def set_values(self, info):
+        """
+        Set the values of the fields
+
+        :param info: Dictionary of name value pairs to set. Only pairs present are set
+        """
+        for name, value in info.items():
+            if name in self.fields:
+                self.set_value(name, value)
+
+    def get_values(self):
+        """
+        Get the dictionary of all name value pairs
+        """
+        return {
+            name: spec.value_from(self.builder, self.prefix)
+            for name, spec in self.fields.items()
+        }
+
+    def get_defaults(self):
+        """
+        Return default values
+        :return: dictionary
+        """
+
+        return {
+            name: spec.converter.default
+            for name, spec in self.fields.items()
+            if hasattr(spec.converter, 'default')
+        }
+
+    def on_change(self, field, event, name):
+        """
+        Handle the change event and validate the field, updating accordingly
+
+        :param field: the field that emitted the event
+        :param event: change event data or None
+        :param name: name of field
+        """
+        spec = self.fields.get(name)
+        if spec:
+            value = spec.value_from(self.builder, self.prefix)
+            with field.handler_block(self.handlers[name]):
+                spec.update_to(self.builder, self.prefix, value)
+            if self.persist:
+                self.save()
+
+    def get_field(self, name):
+        """
+        Fetch the field by name
+
+        :param name: name of field
+        :return: widget containing the field
+        """
+
+        spec = self.fields.get(name)
+        if spec:
+            return spec.field_from(self.builder, self.prefix)
+
+    def save(self):
+        """
+        Save the state of the Form
+        """
+        save_cache(self.get_values(), self.prefix)
+
+
 def color_palette(colormap):
     data = 255 * numpy.array(colormap.colors)
     data[-1] = [255, 255, 255]
     return data.ravel().astype(numpy.uint8)
+
+
+
