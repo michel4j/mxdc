@@ -60,10 +60,7 @@
               <object class="GtkBox" id="status_ribbon">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="margin_left">12</property>
-                <property name="margin_right">12</property>
-                <property name="margin_top">6</property>
-                <property name="margin_bottom">12</property>
+                <property name="border_width">6</property>
                 <property name="spacing">6</property>
                 <child>
                   <object class="GtkFrame">
@@ -503,12 +500,12 @@
                   <object class="GtkStack" id="main_stack">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="border_width">12</property>
+                    <property name="border_width">6</property>
                     <child>
                       <object class="GtkBox" id="setup_box">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="spacing">12</property>
+                        <property name="spacing">6</property>
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkBox">
@@ -517,21 +514,10 @@
                             <property name="orientation">vertical</property>
                             <property name="spacing">12</property>
                             <child>
-                              <object class="GtkFrame">
+                              <object class="GtkImage" id="setup_diagram">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="label_xalign">0</property>
-                                <property name="shadow_type">out</property>
-                                <child>
-                                  <object class="GtkImage" id="setup_diagram">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="pixbuf">diagram.png</property>
-                                  </object>
-                                </child>
-                                <child type="label_item">
-                                  <placeholder/>
-                                </child>
+                                <property name="pixbuf">diagram.png</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -841,7 +827,7 @@
                                   <object class="GtkFlowBox" id="setup_device_box">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="border_width">12</property>
+                                    <property name="border_width">36</property>
                                     <property name="homogeneous">True</property>
                                     <property name="column_spacing">6</property>
                                     <property name="row_spacing">6</property>
@@ -995,6 +981,7 @@
                       <object class="GtkBox" id="samples_box">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="spacing">6</property>
                         <child>
                           <object class="GtkBox">
                             <property name="visible">True</property>
@@ -1394,9 +1381,11 @@
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
                                     <property name="position">3</property>
                                   </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
                                 </child>
                               </object>
                               <packing>
@@ -2165,8 +2154,6 @@
                           <object class="GtkSeparator">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="margin_left">8</property>
-                            <property name="margin_right">8</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -2186,6 +2173,7 @@
                                 <property name="can_focus">False</property>
                                 <property name="halign">center</property>
                                 <property name="valign">center</property>
+                                <property name="margin_top">6</property>
                                 <property name="stack">samples_stack</property>
                               </object>
                               <packing>

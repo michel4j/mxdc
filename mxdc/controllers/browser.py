@@ -1,11 +1,11 @@
 import os
+
 import gi
 import numpy
 
 gi.require_version('WebKit2', '4.0')
-from gi.repository import GLib, WebKit2, Gdk
+from gi.repository import GLib, WebKit2
 from mxdc import conf
-from mxdc.conf import settings
 from mxdc.utils import gui
 
 
