@@ -285,8 +285,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.raw_img = obj.image
         self.frame_number = obj.header['frame_number']
         self.filename = obj.header['filename']
-        num_frames = int(obj.header.get('total_angle', 1) / obj.header['delta_angle'])
-        self.name = '{} [ {} / {} ]'.format(obj.header['name'], self.frame_number, num_frames)
+        self.name = '{} [ {} ]'.format(obj.header['name'], self.frame_number)
         self.image_size = obj.header['detector_size']
         self.create_surface()
         self.emit('image-loaded')

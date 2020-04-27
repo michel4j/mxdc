@@ -144,9 +144,6 @@ class Application(Gtk.Application):
             self.window.show_all()
 
         self.window.present()
-        if settings.show_release_notes():
-            Browser(self.window)
-
 
     def on_about(self, action, param):
         authors = [

@@ -12,7 +12,6 @@ if not CONFIGS:
     raise ImportError('Configuration system not initialized. Run conf.initialize() before importing settings')
 
 _KEY_FILE = os.path.join(os.path.dirname(APP_CACHE_DIR), 'keys.dsa')
-_NOTES_VIEWED = os.path.join(os.path.dirname(APP_CACHE_DIR), 'release')
 
 DEBUG = bool(os.environ.get('MXDC_DEBUG'))
 
@@ -27,15 +26,6 @@ def get_configs():
 
 def keys_exist():
     return os.path.exists(_KEY_FILE)
-
-
-def show_release_notes():
-    return not os.path.exists(_NOTES_VIEWED)
-
-
-def disable_release_notes():
-    with open(_NOTES_VIEWED, 'w') as handle:
-        handle.write(datetime.now().isoformat())
 
 
 def get_keys():

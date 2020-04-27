@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">window1</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -56,6 +56,7 @@
             <child>
               <object class="GtkToolButton" id="save_btn">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Save PNG</property>
                 <property name="use_underline">True</property>
@@ -254,7 +255,7 @@
     <property name="resizable">False</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">utility</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -301,7 +302,7 @@
     <property name="resizable">False</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">utility</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child>
@@ -350,7 +351,7 @@
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">dialog</property>
     <property name="deletable">False</property>
-    <child>
+    <child type="titlebar">
       <placeholder/>
     </child>
     <child internal-child="vbox">
@@ -392,7 +393,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="row_spacing">6</property>
-            <property name="column_spacing">12</property>
+            <property name="column_spacing">6</property>
             <property name="row_homogeneous">True</property>
             <property name="column_homogeneous">True</property>
             <child>
@@ -415,6 +416,9 @@
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -442,6 +446,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -469,6 +476,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -482,6 +492,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -495,6 +508,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -508,6 +524,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -521,6 +540,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -548,6 +570,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -575,6 +600,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -602,6 +630,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -629,6 +660,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -656,6 +690,9 @@
                 <property name="halign">start</property>
                 <property name="use_markup">True</property>
                 <property name="selectable">True</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -684,7 +721,9 @@
                 <property name="use_markup">True</property>
                 <property name="justify">center</property>
                 <property name="selectable">True</property>
-                <property name="width_chars">5</property>
+                <style>
+                  <class name="value-fbk"/>
+                </style>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -725,7 +764,7 @@
                 <property name="can_focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Mean Intensity:</property>
+                <property name="label" translatable="yes">Average:</property>
                 <property name="use_markup">True</property>
               </object>
               <packing>
@@ -739,7 +778,7 @@
                 <property name="can_focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
-                <property name="label" translatable="yes">Max Intensity:</property>
+                <property name="label" translatable="yes">Maximum:</property>
                 <property name="use_markup">True</property>
               </object>
               <packing>
@@ -768,37 +807,9 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkDrawingArea" id="histogram">
-            <property name="height_request">200</property>
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
             <property name="padding">6</property>
             <property name="position">4</property>
           </packing>
-        </child>
-        <child>
-          <placeholder/>
         </child>
       </object>
     </child>

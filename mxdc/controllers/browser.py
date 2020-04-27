@@ -3,7 +3,7 @@ import gi
 import numpy
 
 gi.require_version('WebKit2', '4.0')
-from gi.repository import GLib, WebKit2, Gtk, Gdk
+from gi.repository import GLib, WebKit2, Gdk
 from mxdc import conf
 from mxdc.conf import settings
 from mxdc.utils import gui
@@ -34,16 +34,8 @@ class Browser(gui.Builder):
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.view.set_settings(browser_settings)
+        self.browser.set_keep_above(False)
 
-        if settings.show_release_notes():
-            self.gotit_btn.set_sensitive(True)
-            self.gotit_btn.show()
-        else:
-            self.browser.set_decorated(True)
-            self.browser.set_type_hint(Gdk.WindowTypeHint.NORMAL)
-            self.browser.set_keep_above(False)
-        self.gotit_btn.connect('clicked', self.close_window, True)
-        self.close_btn.connect('clicked', self.close_window, False)
         self.back_btn.connect('clicked', self.go_back)
         self.forward_btn.connect('clicked', self.go_forward)
         self.view.connect('decide-policy', self.check_history)
@@ -51,13 +43,7 @@ class Browser(gui.Builder):
 
     def on_realized(self, *args, **kwargs):
         uri = 'file://{}?v={}'.format(DOCS_PATH, numpy.random.rand())
-        print(uri)
         GLib.idle_add(self.view.load_uri, uri)
-
-    def close_window(self, button, disable=False):
-        self.browser.destroy()
-        if disable:
-            settings.disable_release_notes()
 
     def go_back(self, btn):
         self.view.go_back()

@@ -40,7 +40,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'start_angle': '{:0.3g}°',
         'exposure_time': '{:0.2f} s',
         'distance': '{:0.1f} mm',
-        'pixel_size': '{:0.4f} μm',
+        'pixel_size': '{:0.4f} mm',
         'detector_size': '{}, {}',
         'beam_center': '{:0.0f}, {:0.0f}',
         'filename': '{}',
@@ -129,6 +129,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         if self.dataset.header.get('dataset'):
             self.directory = self.dataset.header['dataset']['directory']
 
+        self.save_btn.set_sensitive(True)
         self.back_btn.set_sensitive(True)
         self.zoom_fit_btn.set_sensitive(True)
         self.colorize_tbtn.set_sensitive(True)
@@ -139,20 +140,15 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.next_btn.set_sensitive(True)
 
         info = self.dataset.header
-
-        for name, format in list(self.Formats.items()):
+        for name, fmt in list(self.Formats.items()):
             field_name = '{}_lbl'.format(name)
             field = getattr(self, field_name, None)
             if field and name in info:
                 if isinstance(info[name], (tuple, list)):
-                    txt = '<span color="{}"><tt>{}</tt></span>'.format(
-                        color, format.format(*info[name])
-                    )
+                    txt = fmt.format(*info[name])
                 else:
-                    txt = '<span color="{}"><tt>{}</tt></span>'.format(
-                        color, format.format(info[name])
-                    )
-                field.set_markup(txt)
+                    txt = fmt.format(info[name])
+                field.set_text(txt)
         self.last_follow_time = time.time()
 
     def open_frame(self, filename):
