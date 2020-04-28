@@ -150,7 +150,8 @@ class Application(Gtk.Application):
             "Michel Fodje",
             "Kathryn Janzen",
             "Kevin Anderson",
-            "Cuylar Conly"
+            "Cuylar Conly",
+            "Avatar Icons by Pixel Perfect(www.flaticon.com)"
         ]
         name = 'Mx Data Collector (MxDC)'
         about = Gtk.AboutDialog(transient_for=self.window, modal=True)
@@ -162,7 +163,6 @@ class Application(Gtk.Application):
         about.set_authors(authors)
         about.set_logo(self.window.get_icon())
         about.present()
-        about.connect('response', lambda x,y: about.destroy())
 
     def on_preferences(self, action, param):
         if not self.settings_active:

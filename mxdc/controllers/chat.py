@@ -1,8 +1,10 @@
 from mxdc import Registry, IBeamline, Object, Property
 from datetime import datetime
-from gi.repository import Gtk, Gio, Gdk
+from gi.repository import Gtk, Gio, Gdk, GdkPixbuf
 
 from mxdc.utils import gui, misc, colors
+
+AVATAR_SIZE = 50
 
 
 class Message(Object):
@@ -10,21 +12,25 @@ class Message(Object):
     user = Property(type=str, default='')
     message = Property(type=str, default='')
     date = Property(type=str, default='')
+    avatar = Property(type=int, default=0)
 
-    def __init__(self, user, message, date):
+    def __init__(self, user, avatar, message, date):
         super().__init__()
         self.props.user = user
+        self.props.avatar = avatar
         self.props.message = message
         self.props.date = date
 
-    def update(self, user, message, date):
+    def update(self, user, avatar, message, date):
         self.props.user = user
+        self.props.avatar = avatar
         self.props.message = message
         self.props.date = date
 
     def get_info(self):
         return {
             'user': self.user,
+            'avatar': self.avatar,
             'message': self.message,
             'date': self.date,
         }
@@ -44,16 +50,23 @@ class ChatMessageLTR(gui.Builder):
 
     def set_item(self, item):
         self.item = item
-        for param in ['user', 'message', 'date']:
+        for param in ['user', 'avatar', 'message', 'date']:
             self.item.connect('notify::{}'.format(param), self.update)
 
     def update(self, *args, **kwargs):
-        col = Gdk.RGBA(alpha=0.5)
+        col = Gdk.RGBA(alpha=0.2)
         col.parse(colors.Category.CAT10[misc.NameToInt.get(self.item.props.user) % 10])
         self.chat_message.override_background_color(Gtk.StateType.NORMAL, col)
         self.user_lbl.set_text(self.item.props.user)
         self.message_lbl.set_text(self.item.props.message)
         self.date_lbl.set_text(self.item.props.date)
+
+        avatar = GdkPixbuf.Pixbuf.new_from_resource_at_scale(
+            AVATAR_SIZE, AVATAR_SIZE,
+            f'/org/mxdc/data/avatar/user-{self.item.props.avatar}.svg',
+            True,
+        )
+        self.user_icon.set_from_pixbuf(avatar)
 
 
 class ChatMessageRTL(ChatMessageLTR):
@@ -85,6 +98,7 @@ class ChatController(object):
     def show_message(self, client, user, message):
         item = Message(
             user,
+            0,
             message,
             datetime.now().strftime('%b/%d, %H:%M')
         )

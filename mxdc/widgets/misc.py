@@ -117,9 +117,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
     def set_feedback(self, val):
         text = self.number_format % val
-        if len(text) > self.width:
-            text = "##.##"
-        self.fbk_label.set_text('%8s' % (text,))
+        self.fbk_label.set_text(text)
 
     def set_target(self, val):
         text = self.number_format % val
