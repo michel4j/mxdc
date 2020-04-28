@@ -123,13 +123,14 @@ class NameManager(object):
     unique names are generated
     """
 
-    def __init__(self):
+    def __init__(self, sample):
+        self.sample = sample
         self.names = set()
         self.history = defaultdict(int)
 
     def fix(self, name):
         new_name = name
-        m = re.match(r'(.+)(\d+)', name)
+        m = re.match(rf'({self.sample}.+)(\d+)', name)
         if m:
             root = m.group(1)
             index = int(m.group(2))

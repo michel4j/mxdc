@@ -2,9 +2,9 @@ import time
 import uuid
 
 from gi.repository import Gtk, Gdk, Gio
-from mxdc import Registry, IBeamline, Property, Object
 
-from mxdc.utils import gui, converter, datatools, glibref, misc
+from mxdc import Registry, IBeamline, Property, Object
+from mxdc.utils import gui, converter, datatools, glibref
 from mxdc.utils.datatools import StrategyType, Strategy
 from mxdc.utils.gui import Validator
 
@@ -16,9 +16,9 @@ def calculate_skip(strategy, total_range, delta, first):
         return '{}-{},{}-{},{}-{}'.format(
             first + int(total_range / delta),
             first + int(90 / delta) - 1,
-            first + int((90+total_range) / delta),
+            first + int((90 + total_range) / delta),
             first + int(180 / delta) - 1,
-            first + int((180+total_range) / delta),
+            first + int((180 + total_range) / delta),
             first + int(270 / delta) - 1,
         )
 
@@ -26,7 +26,7 @@ def calculate_skip(strategy, total_range, delta, first):
         return '{}-{},{}-{}'.format(
             first + int(total_range / delta),
             first + int(45 / delta) - 1,
-            first + int((45+total_range) / delta),
+            first + int((45 + total_range) / delta),
             first + int(90 / delta) - 1,
         )
     elif strategy == StrategyType.SCREEN_2:
@@ -37,7 +37,6 @@ def calculate_skip(strategy, total_range, delta, first):
 
 
 class RunItem(Object):
-
     class StateType:
         (ADD, DRAFT, ACTIVE, ERROR, COMPLETE) = list(range(5))
 
@@ -53,7 +52,7 @@ class RunItem(Object):
     created = Property(type=float, default=0.0)
 
     def __init__(self, info=None, state=StateType.DRAFT, uid=None, created=None):
-        super(RunItem, self).__init__()
+        super().__init__()
         self.connect('notify::info', self.info_changed)
         self.frames = []
         self.props.created = created if created else time.time()
@@ -161,12 +160,12 @@ class DataForm(gui.FormManager):
 
         if name == 'delta':
             delta = self.get_value('delta')
-            exposure = delta/self.exposure_rate
+            exposure = delta / self.exposure_rate
             self.set_value('exposure', exposure)
         elif name == 'exposure':
             exposure = self.get_value('exposure')
             delta = self.get_value('delta')
-            self.exposure_rate = delta/exposure
+            self.exposure_rate = delta / exposure
         elif name == 'energy':
             # calculate resolution limits based on energy
             energy = self.get_value('energy')
@@ -206,11 +205,11 @@ class DataForm(gui.FormManager):
             self.set_value('frames', frames)
 
 
-
 class DataEditor(gui.BuilderMixin):
     gui_roots = {
         'data/data_form': ['data_form']
     }
+
     class Column:
         ID, LABEL, VALUE = range(3)
 
@@ -230,7 +229,7 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('strategy', 'cbox', '{}', Validator.Int(None, None, StrategyType.SINGLE)),
         gui.FieldSpec('inverse', 'check', '{}', Validator.Bool(False)),
         gui.FieldSpec('point', 'mbox', '{}', Validator.Int(None, None)),
-        gui.FieldSpec('end_point','mbox', '{}', Validator.Int(None, None)),
+        gui.FieldSpec('end_point', 'mbox', '{}', Validator.Int(None, None)),
         gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(2, 100, 10)),
     )
     disabled = ()
@@ -295,11 +294,11 @@ class DataEditor(gui.BuilderMixin):
         default = self.form.get_defaults()
         info = Strategy[strategy_type]
         delta, exposure = self.beamline.config['default_delta'], self.beamline.config['default_exposure']
-        rate = delta/float(exposure)
+        rate = delta / float(exposure)
         if 'delta' not in info:
             info['delta'] = delta
         if 'exposure' not in info:
-            info['exposure'] = info['delta']/rate
+            info['exposure'] = info['delta'] / rate
         default.update(info)
         default['skip'] = calculate_skip(strategy_type, default['range'], default['delta'], default['first'])
         default.update(Strategy[strategy_type])
@@ -315,7 +314,7 @@ class DataEditor(gui.BuilderMixin):
         self.points.clear()
         self.points.append([0, '', None])
         for i, point in enumerate(points):
-            self.points.append([i, 'P{}'.format(i+1), points[i]])
+            self.points.append([i, 'P{}'.format(i + 1), points[i]])
 
     def get_point(self, index):
         for i, row in enumerate(self.points):
@@ -373,7 +372,7 @@ class RunEditor(DataEditor):
             choice_column = i + 1
             field.set_model(self.points)
             field.set_id_column(self.Column.LABEL)
-            #field.connect('changed', self.sync_choices, choice_column)
+            # field.connect('changed', self.sync_choices, choice_column)
 
     def on_points_updated(self, *args, **kwargs):
         num_points = len(self.points)
@@ -429,10 +428,10 @@ class RunConfig(gui.Builder):
                 style_context.remove_class(style_class)
 
         if self.item.state == self.item.StateType.ADD:
+            self.data_header.set_text('')
             self.data_title.set_markup('Add run ...')
             self.data_subtitle.set_text('')
-            self.data_title_box.set_orientation(Gtk.Orientation.HORIZONTAL)
         else:
-            self.data_title.set_markup('{} [{}]'.format(self.item.title, self.item.info.get('strategy_desc', '')))
-            self.data_subtitle.set_text(self.item.subtitle)
-            self.data_title_box.set_orientation(Gtk.Orientation.VERTICAL)
+            self.data_header.set_text(self.item.info.get('strategy_desc', ''))
+            self.data_title.set_markup(f'<small><b>{self.item.title}</b></small>')
+            self.data_subtitle.set_markup(f'<small>{self.item.subtitle}</small>')

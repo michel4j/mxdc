@@ -350,7 +350,7 @@ class DatasetsController(Object):
         self.run_editor = datawidget.RunEditor()
         self.editor_frame = arrowframe.ArrowFrame()
         self.editor_frame.add(self.run_editor.data_form)
-        self.editor_frame.set_size_request(300, -1)
+        #self.editor_frame.set_size_request(300, -1)
         self.widget.datasets_overlay.add_overlay(self.editor_frame)
         self.run_store = Gio.ListStore(item_type=datawidget.RunItem)
         self.run_store.connect('items-changed', self.on_runs_changed)
@@ -530,7 +530,8 @@ class DatasetsController(Object):
     def check_run_store(self):
         count = 0
         item = self.run_store.get_item(count)
-        fix_names = datatools.NameManager()
+        sample = self.sample_store.get_current()
+        fix_names = datatools.NameManager(sample.get('name', ''))
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 info = item.info.copy()

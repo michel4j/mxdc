@@ -9,10 +9,9 @@
     </child>
     <child>
       <object class="GtkBox" id="saved_run_row">
-        <property name="height_request">50</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="border_width">6</property>
+        <property name="margin_left">12</property>
         <property name="spacing">12</property>
         <child>
           <object class="GtkImage" id="data_icon">
@@ -32,13 +31,15 @@
           <object class="GtkBox" id="data_title_box">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
             <child>
-              <object class="GtkLabel" id="data_title">
+              <object class="GtkLabel" id="data_header">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">Testing</property>
+                <property name="xalign">0</property>
+                <style>
+                  <class name="data-header"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -47,18 +48,37 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="data_subtitle">
+              <object class="GtkLabel" id="data_title">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="label" translatable="yes">Testing</property>
+                <property name="xalign">0</property>
                 <style>
-                  <class name="hint-text"/>
+                  <class name="data-title"/>
                 </style>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="data_subtitle">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="xalign">0</property>
+                <style>
+                  <class name="data-subtitle"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -289,8 +309,8 @@ than one point is provided.</property>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">10</property>
-            <property name="margin_right">10</property>
+            <property name="margin_left">6</property>
+            <property name="margin_right">6</property>
             <property name="margin_top">5</property>
             <property name="margin_bottom">5</property>
             <property name="spacing">10</property>
@@ -382,14 +402,16 @@ than one point is provided.</property>
           <object class="GtkBox" id="editor_content">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="border_width">10</property>
+            <property name="margin_left">10</property>
+            <property name="margin_right">10</property>
+            <property name="margin_top">5</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkGrid" id="data_form_fields">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="row_spacing">6</property>
-                <property name="column_spacing">6</property>
+                <property name="row_spacing">5</property>
+                <property name="column_spacing">5</property>
                 <property name="column_homogeneous">True</property>
                 <child>
                   <object class="GtkBox">

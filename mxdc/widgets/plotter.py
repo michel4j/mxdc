@@ -90,7 +90,7 @@ class Plotter(Gtk.Alignment):
         self.grid_norm = Normalize()
         self.grid_snake = False
 
-        self.fig = Figure(figsize=(12, 8), dpi=dpi, facecolor='w')
+        self.fig = Figure(figsize=(10, 6), dpi=dpi, facecolor='w')
         self.clear()
 
         self.canvas = FigureCanvas(self.fig)  # a Gtk.DrawingArea
