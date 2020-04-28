@@ -36,7 +36,7 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
         self.set(0.5, 0.5, 1, 1)
         self.setup_gui()
         self.diagnostic = diagnostic
-        self.label.set_markup("<span color='#444647'><b>{}</b></span>".format(self.diagnostic.description))
+        self.label.set_markup("<span color='#444647'>{}</span>".format(self.diagnostic.description))
 
         color = Gdk.RGBA()
         color.parse(ICON_COLORS[Diagnostic.State.UNKNOWN])
