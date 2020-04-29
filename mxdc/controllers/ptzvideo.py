@@ -77,9 +77,9 @@ class AxisController(object):
 
         # status, save, etc
         self.widget.hutch_save_btn.connect('clicked', self.on_save)
-        self.widget.hutch_bkg.override_background_color(
-            Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
-        )
+        # self.widget.hutch_bkg.override_background_color(
+        #     Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
+        # )
 
     def overlay_function(self, cr):
         self.widget.hutch_meas_lbl.set_markup("<small>%4.1f fps</small>" % self.video.fps)

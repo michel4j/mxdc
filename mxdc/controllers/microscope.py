@@ -174,9 +174,9 @@ class Microscope(Object):
         for btn in toolbar_btns:
             self.size_grp.add_widget(btn)
 
-        self.widget.microscope_bkg.override_background_color(
-            Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
-        )
+        # self.widget.microscope_bkg.override_background_color(
+        #     Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
+        # )
 
         # Connect Grid signals
         self.connect('notify::grid-xyz', self.update_grid)

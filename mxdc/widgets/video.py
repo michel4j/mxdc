@@ -70,7 +70,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.connect('realize', self.on_realized)
         self.connect("unrealize", self.on_destroy)
         self.connect('configure-event', self.on_configure_event)
-        self.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=1, blue=0, alpha=1))
+        #self.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=1, blue=0, alpha=1))
 
     def set_src(self, src):
         self.camera = src
