@@ -318,6 +318,10 @@ class BaseMessenger(Object):
         message = Signal('message', arg_types=(str, str))
         config = Signal('config', arg_types=(object,))
 
+    def __init__(self):
+        super().__init__()
+        self.configs = {}
+
 
 class Messenger(BaseMessenger):
     def __init__(self, host, realm=None):
@@ -333,6 +337,7 @@ class Messenger(BaseMessenger):
         self.watcher.psubscribe(**{self.channel.format('*'): self.get_message})
         self.watcher.psubscribe(**{self.conf.format('*'): self.get_configs})
         self.watch_thread = self.watcher.run_in_thread(sleep_time=0.001)
+        self.get_configs()
 
     def cleanup(self):
         logger.debug('Closing messenger ...')
@@ -342,21 +347,25 @@ class Messenger(BaseMessenger):
     def get_message(self, message):
         user = (message['channel']).decode().split(':')[-1]
         text = (message['data']).decode()
-        self.emit('message', user, text)
+        self.set_state(message=(user, text))
 
     def send(self, message):
         self.sender.publish(self.key, message)
 
-    def send_config(self, data):
-        key = self.conf.format(misc.get_project_name())
-        self.sender.publish(key, msgpack.dumps(data))
+    def set_config(self, status=None, avatar=None):
+        user = misc.get_project_name()
+        key = self.conf.format(user)
+        status = status if status is not None else 1
+        avatar = avatar if avatar is not None else self.configs.get(user, {}).get('avatar', 0)
+        self.configs[user] = {'status': status, 'avatar': avatar}
+        self.sender.publish(key, msgpack.dumps(self.configs))
 
     def get_configs(self, *args):
-        configs = {
+        self.configs = {
             key: msgpack.loads(data)
             for key, data in self.receiver.hscan_iter(self.conf.format('*'))
         }
-        self.emit('config', configs)
+        self.set_state(config=self.configs)
 
 
 class SimMessenger(BaseMessenger):
@@ -365,37 +374,31 @@ class SimMessenger(BaseMessenger):
         self.realm = realm or 'SIM'
         self.channel = 'CHAT:{}:MESSAGES:{{}}'.format(self.realm)
         self.key = self.channel.format(misc.get_project_name())
-        self.configs = {}
-        GLib.timeout_add(5000, self._switch_avatars)
-
-    def _switch_avatars(self):
         self.configs = {
             'xtalbot': {'status': 1, 'avatar': random.randint(0, 50)},
             misc.get_project_name(): {'status': 1, 'avatar': random.randint(0, 50)},
         }
-        self.emit('config', self.configs)
+        self.set_state(config=self.configs.copy())
 
     def get_message(self, message):
         user = (message['channel']).decode().split(':')[-1]
         text = (message['data']).decode()
-        self.emit('message', user, text)
+        self.set_state(message=(user, text))
 
     def send(self, message):
-        self.emit('message', misc.get_project_name(), message)
+        self.set_state(message=(misc.get_project_name(), message))
         GLib.timeout_add(random.randint(2000, 10000), self.bot_reply)
 
     def bot_reply(self):
-        self.emit('message', 'xtalbot', lorem.sentence())
+        self.set_state(message=('xtalbot', lorem.sentence()))
 
-    def get_configs(self, *args):
-        return self.configs
-
-    def send_config(self, data):
-        self.configs[misc.get_project_name()] = {
-            'status': 1,
-            'avatar': random.randint(0, 50)
-        }
-        self.emit('config', self.configs)
+    def set_config(self, status=None, avatar=None):
+        user = misc.get_project_name()
+        self.config = self.configs.copy()
+        status = status if status is not None else 1
+        avatar = avatar if avatar is not None else self.configs.get(user, {}).get('avatar', 0)
+        self.configs[user] = {'status': status, 'avatar': avatar}
+        self.set_state(config=self.configs.copy())
 
 
 def MxDCClientFactory(code):

@@ -43,7 +43,7 @@ logger = get_module_logger(__name__)
 class AppBuilder(gui.Builder):
     gui_roots = {
         'data/mxdc_main': [
-            'auto_groups_pop', 'scans_ptable_pop', 'app_window'
+            'auto_groups_pop', 'scans_ptable_pop', 'app_window', 'chat_avatars_pop'
         ]
     }
 

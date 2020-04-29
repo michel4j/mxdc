@@ -41,7 +41,7 @@ logger = get_module_logger(__name__)
 class AppBuilder(gui.Builder):
     gui_roots = {
         'data/mxdc_hutch': [
-            'app_window'
+            'app_window', 'chat_avatars_pop'
         ]
     }
 

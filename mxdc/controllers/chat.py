@@ -1,5 +1,5 @@
-
-from gi.repository import Gtk, Gio, Gdk
+import random
+from gi.repository import Gtk, Gio, Gdk, GLib
 
 from mxdc import Registry, IBeamline, Object, Property
 from datetime import datetime
@@ -62,7 +62,8 @@ class ChatMessageLTR(gui.Builder):
         self.user_lbl.set_text(self.item.props.user.upper())
         self.message_lbl.set_text(self.item.props.message)
         self.date_lbl.set_text(self.item.props.date)
-        avatar = gui.get_symbol(f'user-{self.item.props.avatar}.svg', 'avatars', size=(AVATAR_SIZE, AVATAR_SIZE))
+        number = (self.item.props.avatar % 50)
+        avatar = gui.get_symbol(f'user-{number}.svg', 'avatars', size=(AVATAR_SIZE, AVATAR_SIZE))
         if avatar:
             self.user_icon.set_from_pixbuf(avatar)
 
@@ -79,14 +80,22 @@ class ChatController(object):
         self.beamline = Registry.get_utility(IBeamline)
         self.messages = Gio.ListStore(item_type=Message)
         self.configs = {}
+        self.add_avatars()
         self.widget.chat_messages.bind_model(self.messages, self.create_message)
         self.widget.chat_user_fbk.set_text(misc.get_project_name().upper())
-        self.widget.chat_send_btn.connect('clicked', self.send_message)
+        self.widget.avatar_box.connect('child-activated', self.select_avatar)
+        self.widget.chat_config_btn.set_popover(self.widget.chat_avatars_pop)
         self.widget.chat_msg_entry.connect('activate', self.send_message)
         self.widget.chat_messages.connect('size-allocate', self.adjust_view)
         self.beamline.messenger.connect('message', self.show_message)
         self.beamline.messenger.connect('config', self.update_configs)
         self.configs = {}
+
+    def add_avatars(self):
+        for i in range(50):
+            avatar = gui.get_symbol(f'user-{i}.svg', 'avatars', size=(25, 25))
+            self.widget.avatar_box.insert(Gtk.Image.new_from_pixbuf(avatar), i)
+        self.widget.avatar_box.show_all()
 
     def create_message(self, item):
         if item.user == misc.get_project_name():
@@ -101,10 +110,20 @@ class ChatController(object):
         for msg in self.messages:
             msg.props.avatar = self.configs.get(msg.user, {}).get('avatar', 0)
 
+        user = misc.get_project_name()
+        current = self.configs.get(user, {}).get('avatar', 0)
+        child = self.widget.avatar_box.get_child_at_index(current)
+        self.widget.avatar_box.select_child(child)
+
+        # update button icon
+        specs = Gtk.IconSize.lookup(Gtk.IconSize.BUTTON)
+        size = (specs.width, specs.height)
+        self.widget.avatar_icon.set_from_pixbuf(gui.get_symbol(f'user-{current}.svg', 'avatars', size=size))
+
     def show_message(self, client, user, message):
         item = Message(
             user,
-            0,
+            self.configs.get(user, {}).get('avatar', 0),
             message,
             datetime.now().strftime('%b/%d, %H:%M')
         )
@@ -115,6 +134,11 @@ class ChatController(object):
             self.widget.notifier.notify('New Message from {}: {}'.format(user, message), duration=10)
             chat_page = self.widget.main_stack.get_child_by_name('Chat')
             self.widget.main_stack.child_set(chat_page, needs_attention=True)
+
+    def select_avatar(self, obj, child):
+        self.widget.chat_avatars_pop.popdown()
+        index = child.get_index()
+        self.beamline.messenger.set_config(status=1, avatar=index)
 
     def adjust_view(self, widget, event, data=None):
         adj = widget.get_adjustment()

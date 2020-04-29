@@ -222,7 +222,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
             value = args
 
         # Only emit signal if non-blank existing value is not the same as new value
-        if (signal not in self.__state__) or (current != value) or (value is None):
+        if (current != value) or (current is None) or signal not in self.__state__:
             self.__state__[signal] = value
             if GLib.main_context_get_thread_default():
                 self._emission(signal, *args)
