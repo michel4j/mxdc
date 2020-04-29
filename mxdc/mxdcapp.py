@@ -43,7 +43,7 @@ logger = get_module_logger(__name__)
 class AppBuilder(gui.Builder):
     gui_roots = {
         'data/mxdc_main': [
-            'auto_groups_pop', 'scans_ptable_pop', 'app_window','main_menu'
+            'auto_groups_pop', 'scans_ptable_pop', 'app_window'
         ]
     }
 
@@ -61,17 +61,6 @@ class AppBuilder(gui.Builder):
 
     def on_page_switched(self, stack, params):
         stack.child_set(stack.props.visible_child, needs_attention=False)
-
-
-class AppMenu(Gio.Menu):
-    def __init__(self):
-        super().__init__()
-        self.append_section()
-        self.append("Preferences", "app.preferences")
-        self.append_section()
-        self.append("Help", "app.help")
-        self.append_section()
-        self.append("About MxDC", "app.about")
 
 
 class Application(Gtk.Application):
@@ -163,6 +152,7 @@ class Application(Gtk.Application):
         about.set_authors(authors)
         about.set_logo(self.window.get_icon())
         about.present()
+        about.connect('response', lambda x,y: about.destroy())
 
     def on_preferences(self, action, param):
         if not self.settings_active:

@@ -3872,6 +3872,9 @@
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_pixbuf">units-sec.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -3917,6 +3920,9 @@
                                                 <property name="secondary_icon_pixbuf">units-um.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -3961,6 +3967,9 @@
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_pixbuf">units-ang.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4006,6 +4015,9 @@
                                                 <property name="secondary_icon_pixbuf">units-um.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4052,6 +4064,9 @@
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_pixbuf">units-um.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4095,6 +4110,9 @@
                                                 <property name="text" translatable="yes">10</property>
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4138,6 +4156,9 @@
                                                 <property name="text" translatable="yes">10</property>
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4185,6 +4206,9 @@
                                                 <property name="secondary_icon_pixbuf">units-deg.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4889,6 +4913,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4936,6 +4963,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -4982,6 +5012,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5029,6 +5062,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5271,6 +5307,9 @@
                                                 <property name="secondary_icon_pixbuf">units-sec.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5316,6 +5355,9 @@
                                                 <property name="secondary_icon_pixbuf">units-%.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5361,6 +5403,9 @@
                                                 <property name="secondary_icon_pixbuf">units-keV.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5410,6 +5455,9 @@
                                                     <property name="text" translatable="yes">Se-K</property>
                                                     <property name="xalign">0.5</property>
                                                     <property name="secondary_icon_activatable">False</property>
+                                                    <style>
+                                                      <class name="value-sp"/>
+                                                    </style>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">True</property>
@@ -5486,6 +5534,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5533,6 +5584,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5775,6 +5829,9 @@
                                                     <property name="text" translatable="yes">Se-K</property>
                                                     <property name="xalign">0.5</property>
                                                     <property name="secondary_icon_activatable">False</property>
+                                                    <style>
+                                                      <class name="value-sp"/>
+                                                    </style>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">True</property>
@@ -5844,6 +5901,9 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="invisible_char">*</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -5883,6 +5943,9 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="invisible_char">*</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -5930,6 +5993,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -5977,6 +6043,9 @@
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -6022,6 +6091,9 @@
                                                 <property name="secondary_icon_pixbuf">units-%.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -6067,6 +6139,9 @@
                                                 <property name="secondary_icon_pixbuf">units-sec.svg</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="secondary_icon_sensitive">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>

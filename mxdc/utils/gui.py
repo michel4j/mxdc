@@ -1,4 +1,6 @@
-import atexit
+import os
+import zipfile
+import json
 from collections import OrderedDict
 from collections import namedtuple
 from enum import Enum
@@ -8,10 +10,11 @@ import numpy
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, GObject, Gdk, Pango
+from gi.repository import Gtk, GObject, Gdk, Pango, Gio, GLib, GdkPixbuf
 from mxdc.utils import colors
 from mxdc.conf import load_cache, save_cache
 from mxdc.utils.misc import slugify
+from mxdc.conf import SHARE_DIR
 
 
 class GUIFile(object):
@@ -824,4 +827,17 @@ def color_palette(colormap):
     return data.ravel().astype(numpy.uint8)
 
 
-
+def get_symbol(name, catalog, size=None):
+    cat_file = os.path.join(SHARE_DIR, 'data', f'{catalog}.sym')
+    with zipfile.ZipFile(cat_file, 'r') as sym:
+        index = json.loads(sym.read('symbol.json'))
+        if name in index:
+            data = sym.read(name)
+            stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data))
+            if size is not None:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(
+                    stream, *size, True
+                )
+            else:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, None)
+            return pixbuf

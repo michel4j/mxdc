@@ -1,10 +1,12 @@
+
+from gi.repository import Gtk, Gio, Gdk
+
 from mxdc import Registry, IBeamline, Object, Property
 from datetime import datetime
-from gi.repository import Gtk, Gio, Gdk, GdkPixbuf
 
 from mxdc.utils import gui, misc, colors
 
-AVATAR_SIZE = 50
+AVATAR_SIZE = 45
 
 
 class Message(Object):
@@ -43,7 +45,6 @@ class ChatMessageLTR(gui.Builder):
 
     def get_widget(self):
         row = Gtk.ListBoxRow()
-        row.get_style_context().add_class('chat-row')
         row.add(self.message_row)
         self.update()
         return row
@@ -54,19 +55,16 @@ class ChatMessageLTR(gui.Builder):
             self.item.connect('notify::{}'.format(param), self.update)
 
     def update(self, *args, **kwargs):
-        col = Gdk.RGBA(alpha=0.2)
+        col = Gdk.RGBA()
         col.parse(colors.Category.CAT10[misc.NameToInt.get(self.item.props.user) % 10])
+        col.alpha = 0.3
         self.chat_message.override_background_color(Gtk.StateType.NORMAL, col)
-        self.user_lbl.set_text(self.item.props.user)
+        self.user_lbl.set_text(self.item.props.user.upper())
         self.message_lbl.set_text(self.item.props.message)
         self.date_lbl.set_text(self.item.props.date)
-
-        avatar = GdkPixbuf.Pixbuf.new_from_resource_at_scale(
-            AVATAR_SIZE, AVATAR_SIZE,
-            f'/org/mxdc/data/avatar/user-{self.item.props.avatar}.svg',
-            True,
-        )
-        self.user_icon.set_from_pixbuf(avatar)
+        avatar = gui.get_symbol(f'user-{self.item.props.avatar}.svg', 'avatars', size=(AVATAR_SIZE, AVATAR_SIZE))
+        if avatar:
+            self.user_icon.set_from_pixbuf(avatar)
 
 
 class ChatMessageRTL(ChatMessageLTR):
@@ -80,12 +78,15 @@ class ChatController(object):
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.messages = Gio.ListStore(item_type=Message)
+        self.configs = {}
         self.widget.chat_messages.bind_model(self.messages, self.create_message)
-        self.widget.chat_user_fbk.set_text(misc.get_project_name())
+        self.widget.chat_user_fbk.set_text(misc.get_project_name().upper())
         self.widget.chat_send_btn.connect('clicked', self.send_message)
         self.widget.chat_msg_entry.connect('activate', self.send_message)
         self.widget.chat_messages.connect('size-allocate', self.adjust_view)
         self.beamline.messenger.connect('message', self.show_message)
+        self.beamline.messenger.connect('config', self.update_configs)
+        self.configs = {}
 
     def create_message(self, item):
         if item.user == misc.get_project_name():
@@ -94,6 +95,11 @@ class ChatController(object):
             config = ChatMessageRTL()
         config.set_item(item)
         return config.get_widget()
+
+    def update_configs(self, client, configs):
+        self.configs = configs
+        for msg in self.messages:
+            msg.props.avatar = self.configs.get(msg.user, {}).get('avatar', 0)
 
     def show_message(self, client, user, message):
         item = Message(
@@ -108,7 +114,7 @@ class ChatController(object):
         if vis_page != 'Chat':
             self.widget.notifier.notify('New Message from {}: {}'.format(user, message), duration=10)
             chat_page = self.widget.main_stack.get_child_by_name('Chat')
-            self.widget.setup_status_stack.child_set(chat_page, needs_attention=True)
+            self.widget.main_stack.child_set(chat_page, needs_attention=True)
 
     def adjust_view(self, widget, event, data=None):
         adj = widget.get_adjustment()

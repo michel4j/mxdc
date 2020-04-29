@@ -1,10 +1,11 @@
 import os
 import re
 import socket
-
+import random
 import msgpack
 import redis
 import requests
+import lorem
 
 from gi.repository import GLib
 from mxdc.conf import settings
@@ -312,20 +313,25 @@ class Referenceable(pb.Referenceable, object):
     pass
 
 
-class Messenger(Object):
+class BaseMessenger(Object):
     class Signals:
         message = Signal('message', arg_types=(str, str))
+        config = Signal('config', arg_types=(object,))
 
+
+class Messenger(BaseMessenger):
     def __init__(self, host, realm=None):
         super().__init__()
         self.realm = realm or 'SIM-1'
-        self.channel = '{}:MESSAGES:{{}}'.format(self.realm)
+        self.channel = 'CHAT:{}:MSGS:{{}}'.format(self.realm)
+        self.conf = 'CHAT:CONFIG:{}'
         self.key = self.channel.format(misc.get_project_name())
         self.pool = redis.ConnectionPool(host=host)
         self.sender = redis.Redis(connection_pool=self.pool)
         self.receiver = redis.Redis(connection_pool=self.pool)
         self.watcher = self.receiver.pubsub()
         self.watcher.psubscribe(**{self.channel.format('*'): self.get_message})
+        self.watcher.psubscribe(**{self.conf.format('*'): self.get_configs})
         self.watch_thread = self.watcher.run_in_thread(sleep_time=0.001)
 
     def cleanup(self):
@@ -341,16 +347,33 @@ class Messenger(Object):
     def send(self, message):
         self.sender.publish(self.key, message)
 
+    def send_config(self, data):
+        key = self.conf.format(misc.get_project_name())
+        self.sender.publish(key, msgpack.dumps(data))
 
-class SimMessenger(Object):
-    class Signals:
-        message = Signal('message', arg_types=(str, str))
+    def get_configs(self, *args):
+        configs = {
+            key: msgpack.loads(data)
+            for key, data in self.receiver.hscan_iter(self.conf.format('*'))
+        }
+        self.emit('config', configs)
 
+
+class SimMessenger(BaseMessenger):
     def __init__(self, realm=None):
         super().__init__()
         self.realm = realm or 'SIM'
-        self.channel = '{}:MESSAGES:{{}}'.format(self.realm)
+        self.channel = 'CHAT:{}:MESSAGES:{{}}'.format(self.realm)
         self.key = self.channel.format(misc.get_project_name())
+        self.configs = {}
+        GLib.timeout_add(5000, self._switch_avatars)
+
+    def _switch_avatars(self):
+        self.configs = {
+            'xtalbot': {'status': 1, 'avatar': random.randint(0, 50)},
+            misc.get_project_name(): {'status': 1, 'avatar': random.randint(0, 50)},
+        }
+        self.emit('config', self.configs)
 
     def get_message(self, message):
         user = (message['channel']).decode().split(':')[-1]
@@ -359,6 +382,20 @@ class SimMessenger(Object):
 
     def send(self, message):
         self.emit('message', misc.get_project_name(), message)
+        GLib.timeout_add(random.randint(2000, 10000), self.bot_reply)
+
+    def bot_reply(self):
+        self.emit('message', 'xtalbot', lorem.sentence())
+
+    def get_configs(self, *args):
+        return self.configs
+
+    def send_config(self, data):
+        self.configs[misc.get_project_name()] = {
+            'status': 1,
+            'avatar': random.randint(0, 50)
+        }
+        self.emit('config', self.configs)
 
 
 def MxDCClientFactory(code):

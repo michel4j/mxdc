@@ -52,8 +52,6 @@ class HutchSamplesController(Object):
         self.sample_dewar.connect('selected', self.on_dewar_selected)
         self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
 
-        if hasattr(self.beamline, 'humidifier'):
-            self.humidity_controller = humidity.HumidityController(self.widget)
         self.setup()
 
     def setup(self):
