@@ -2252,7 +2252,6 @@
                                       <object class="GtkListBox" id="chat_messages">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="border_width">3</property>
                                         <property name="selection_mode">none</property>
                                         <property name="activate_on_single_click">False</property>
                                       </object>
