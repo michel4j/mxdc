@@ -506,7 +506,7 @@ def generate_grid_frames(grid, params):
             'dataset': params['name'],
             'uuid': params['uuid'],
             'saved': False,
-            'first': i,
+            'first': i+1,
             'frame_name': frame_template.format(i),
             'start': params['angle'],
             'delta': params['delta'],

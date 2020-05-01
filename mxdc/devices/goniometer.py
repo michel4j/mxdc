@@ -137,8 +137,13 @@ class ParkerGonio(BaseGoniometer):
     def on_busy(self, obj, st):
         self.set_state(busy=(self.scan_fbk.get() == 1))
 
-    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=None, start_pos=None, **kwargs):
         self.configure(**kwargs)
+
+        # move stage to starting point if provided
+        if start_pos is not None and len(start_pos) == 3:
+            self.stage.move_xyz(*start_pos, wait=True)
+
         self.set_state(message='Scanning ...')
         self.wait(start=False, stop=True, timeout=timeout)
         self.scan_cmd.put(1)
@@ -209,14 +214,18 @@ class MD2Gonio(BaseGoniometer):
             'frames': self.add_pv(f"{root}startScan4DEx:ScanNumberOfFrames"),
 
             # Start position
-            'x0': self.add_pv(f'{root}:startScan4DEx:start_y'),
-            'y0': self.add_pv(f'{root}:startScan4DEx:start_cx'),
-            'z0': self.add_pv(f'{root}:startScan4DEx:start_cz'),
+            'start_pos': (
+                self.add_pv(f'{root}:startScan4DEx:start_y'),
+                self.add_pv(f'{root}:startScan4DEx:start_cx'),
+                self.add_pv(f'{root}:startScan4DEx:start_cz'),
+            ),
 
             # Stop position
-            'x1': self.add_pv(f'{root}:startScan4DEx:stop_y'),
-            'y1': self.add_pv(f'{root}:startScan4DEx:stop_cx'),
-            'z1': self.add_pv(f'{root}:startScan4DEx:stop_cz'),
+            'end_pos': (
+                self.add_pv(f'{root}:startScan4DEx:stop_y'),
+                self.add_pv(f'{root}:startScan4DEx:stop_cx'),
+                self.add_pv(f'{root}:startScan4DEx:stop_cz')
+            ),
         }
 
         self.raster_settings = {
@@ -226,9 +235,11 @@ class MD2Gonio(BaseGoniometer):
             'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
             'line_range': self.add_pv(f"{root}:startRasterScanEx:line_range"),
             'turn_range': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
-            'x0': self.add_pv(f'{root}:startRasterScanEx:start_y'),
-            'y0': self.add_pv(f'{root}:startRasterScanEx:start_cx'),
-            'z0': self.add_pv(f'{root}:startRasterScanEx:start_cz'),
+            'start_pos': (
+                self.add_pv(f'{root}:startRasterScanEx:start_y'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cx'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cz'),
+            )
         }
 
         # semi constant but need to be re-applied each scan
@@ -236,17 +247,17 @@ class MD2Gonio(BaseGoniometer):
             'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
             'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
             'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
-            'zA': self.add_pv(f'{root}:startScan4DEx:stop_z'),
-            'zB': self.add_pv(f'{root}:startScan4DEx:start_z'),
-            'zC': self.add_pv(f'{root}:startRasterScanEx:start_z'),
+            'z_pos': (
+                self.add_pv(f'{root}:startScan4DEx:stop_z'),
+                self.add_pv(f'{root}:startScan4DEx:start_z'),
+                self.add_pv(f'{root}:startRasterScanEx:start_z'),
+            )
         }
         self.extra_values = {
             'shutterless': 1,
             'snake': 1,
             'use_table': 1,
-            'zA': None,
-            'zB': None,
-            'zC': None,
+            'z_pos': None,
         }
 
     def on_state_changed(self, *args, **kwargs):
@@ -273,7 +284,7 @@ class MD2Gonio(BaseGoniometer):
         """
 
         # configure device
-        self.extra_values['zA'] = self.extra_values['zB'] = self.extra_values['zC'] = self.gon_z_fbk.get()
+        self.extra_values['z_pos'] = (self.gon_z_fbk.get(),)*3
         if type in ['simple', 'shutterless']:
             misc.set_settings(self.settings, **kwargs)
         elif type == 'helical':
@@ -310,9 +321,9 @@ class SimGonio(BaseGoniometer):
         self._lock = Lock()
 
         self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3)
-        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.1)
-        self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.1)
-        self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.2)
+        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.5)
+        self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.5)
+        self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.5)
 
         self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)
 
@@ -349,17 +360,23 @@ class SimGonio(BaseGoniometer):
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 
-    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
+    def scan(self, type='simple', wait=True, timeout=None, start_pos=None, **kwargs):
         """
         :param wait:
         :param timeout:
+
         :param kwargs:
         :keyword time: Exposure time per frame
         :keyword delta: angle range per frame
         :keyword start: Start angle for frame
+        :keyword start_pos:  Stage position to start from.
         """
         # settings
         self.settings = kwargs
+
+        # move stage to starting point if provided
+        if start_pos is not None and len(start_pos) == 3:
+            self.stage.move_xyz(*start_pos, wait=True)
 
         if wait:
             self._scan_sync()

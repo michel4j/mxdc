@@ -192,6 +192,7 @@ class MxLIVEClient(BaseService):
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
+            logger.error(misc.html2text(r.content.decode()))
             r.raise_for_status()
 
     def post(self, path, **kwargs):
@@ -199,7 +200,7 @@ class MxLIVEClient(BaseService):
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
-            logger.error(r.content.decode())
+            logger.error(misc.html2text(r.content.decode()))
             r.raise_for_status()
 
     def upload(self, path, filename):

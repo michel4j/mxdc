@@ -131,10 +131,10 @@ class SimModeManager(BaseManager):
     def __init__(self):
         super().__init__(name='Beamline Modes')
         self.mode_delay = {
-            self.ModeType.MOUNT: 8,
-            self.ModeType.CENTER: 5,
-            self.ModeType.COLLECT: 7,
-            self.ModeType.ALIGN: 10,
+            self.ModeType.MOUNT: 4,
+            self.ModeType.CENTER: 3,
+            self.ModeType.COLLECT: 2,
+            self.ModeType.ALIGN: 8,
         }
         self.set_state(active=True, busy=False, health=(0, 'faults', ''), mode=self.ModeType.MOUNT)
 

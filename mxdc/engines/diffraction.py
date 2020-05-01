@@ -306,7 +306,7 @@ class DataCollector(Engine):
     def analyse(self, metadata, sample, first=False):
         if self.config['analysis'] is None:
             return
-        print(metadata)
+
         flags = () if not self.config.get('anomalous') else ('anomalous',)
         if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'SCREEN'):
             self.analyst.screen_dataset(metadata, flags=flags, sample=sample)

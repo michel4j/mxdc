@@ -230,7 +230,7 @@ class Centering(Engine):
                 logger.error('Unable to find loop edges')
                 return
 
-            grid_info = self.microscope.calc_polygon_grid(points, grow=0.5, scaled=False)
+            grid_info = self.microscope.make_grid(points=points, scaled=False)
             GLib.idle_add(self.microscope.configure_grid, grid_info)
             raster_params.update(grid_info['grid_params'])
             raster_params.update({

@@ -2,17 +2,16 @@ import math
 import os
 
 
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, Gdk
 import numpy
 import cairo
-from matplotlib.path import Path
 from mxdc import Registry, IBeamline, Object, Property
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
-from mxdc.utils import imgproc, colors
+from mxdc.utils import imgproc, colors, misc
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -53,8 +52,9 @@ class Microscope(Object):
     grid_params = Property(type=object)
     grid_scores = Property(type=object)
     grid_cmap = Property(type=object)
+    grid_bbox = Property(type=object)
     points = Property(type=object)
-    polygon = Property(type=object)
+
     tool = Property(type=int, default=ToolState.DEFAULT)
     mode = Property(type=object)
 
@@ -71,7 +71,7 @@ class Microscope(Object):
         self.props.grid = None
         self.props.grid_xyz = None
         self.props.points = []
-        self.props.polygon = []
+        self.props.grid_bbox = []
         self.props.grid_scores = {}
         self.props.grid_params = {}
         self.props.grid_state = self.GridState.PENDING
@@ -86,7 +86,7 @@ class Microscope(Object):
             self.ToolState.MEASUREMENT: Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'crosshair'),
         }
 
-        self.measurement = numpy.array([[0, 0], [0, 0]])
+        self.ruler_box = numpy.array([[0, 0], [0, 0]])
 
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
@@ -118,7 +118,7 @@ class Microscope(Object):
         self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.goniometer.stage.connect('changed', self.update_grid)
         self.beamline.sample_zoom.connect('changed', self.update_grid)
-        self.beamline.aperture.connect('changed', self.update_grid)
+        self.beamline.aperture.connect('changed', self.on_aperture)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -127,7 +127,7 @@ class Microscope(Object):
 
         # status, save, etc
         self.widget.microscope_save_btn.connect('clicked', self.on_save)
-        self.widget.microscope_grid_btn.connect('toggled', self.make_grid)
+        self.widget.microscope_grid_btn.connect('toggled', self.toggle_grid_mode)
         self.widget.microscope_colorize_tbtn.connect('toggled', self.colorize)
         self.widget.microscope_point_btn.connect('clicked', self.add_point)
         self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
@@ -157,7 +157,8 @@ class Microscope(Object):
 
         self.video.connect('motion-notify-event', self.on_mouse_motion)
         self.video.connect('scroll-event', self.on_mouse_scroll)
-        self.video.connect('button-press-event', self.on_image_click)
+        self.video.connect('button-press-event', self.on_mouse_press)
+        self.video.connect('button-release-event', self.on_mouse_release)
         self.video.set_overlay_func(self.overlay_function)
         self.video.connect('configure-event', self.setup_grid)
         self.scripts = get_scripts()
@@ -201,7 +202,7 @@ class Microscope(Object):
             'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.tolist(),
             'grid-params': self.props.grid_params,
             'grid-scores': self.props.grid_scores,
-            'grid-state': self.props.grid_state
+            'grid-state': self.props.grid_state,
         }
         save_cache(cache, 'microscope')
 
@@ -248,19 +249,46 @@ class Microscope(Object):
 
     def draw_measurement(self, cr):
         if self.tool == self.ToolState.MEASUREMENT:
-            cr.set_font_size(12)
-            (x1, y1), (x2, y2) = self.measurement
-            dist = self.video.mm_scale() * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0)
-            cr.set_source_rgba(0.0, 0.5, 0.5, 1.0)
-            cr.set_line_width(2.0)
+            cr.set_font_size(10)
+            (x1, y1), (x2, y2) = self.ruler_box
+            dist = 1000 * self.video.mm_scale() * math.sqrt((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0)
+            cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+            cr.set_line_width(1.0)
             cr.move_to(x1, y1)
             cr.line_to(x2, y2)
             cr.stroke()
-            label = '{:0.3f} mm'.format(dist)
+            label = '{:0.0f} µm'.format(dist)
             xb, yb, w, h = cr.text_extents(label)[:4]
-            cr.move_to(x2 + 2 * h, y2 + 2 * h)
+            cr.move_to(x1 - w*(int(x2>x1) + xb/w), y1 - h*(int(y2>y1) + yb/h))
             cr.show_text(label)
+
+    def draw_bbox(self, cr):
+        if self.tool == self.ToolState.GRID and len(self.props.grid_bbox):
+            cr.set_font_size(10)
+            cr.set_line_width(1.0)
+            cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+
+            # rectangle
+            (x1, y1), (x2, y2) = self.props.grid_bbox
+            cr.rectangle(x1, y1, x2-x1, y2-y1)
             cr.stroke()
+
+            # center
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+
+            # width
+            width = 1000 * self.video.mm_scale() * abs(x2 - x1)
+            w_label = '{:0.0f} µm'.format(width)
+            xb, yb, w, h = cr.text_extents(w_label)[:4]
+            cr.move_to(cx - w/2, y1 - h/2)
+            cr.show_text(w_label)
+
+            # height
+            height = 1000 * self.video.mm_scale() * abs(y2 - y1)
+            h_label = '{:0.0f} µm'.format(height)
+            cr.move_to(x2 + h/2, cy)
+            cr.show_text(h_label)
 
     def draw_grid(self, cr):
         if self.props.grid is not None:
@@ -268,40 +296,19 @@ class Microscope(Object):
             cr.set_line_width(1.0)
             cr.set_font_size(8)
             for i, (x, y, z) in enumerate(self.props.grid):
-                if i in self.props.grid_scores:
-                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i], alpha=0.5)
+                if i+1 in self.props.grid_scores:
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.5)
                     cr.set_source_rgba(*col)
                     cr.arc(x, y, radius, 0, 2.0 * 3.14)
                     cr.fill()
                 cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
                 cr.arc(x, y, radius, 0, 2.0 * 3.14)
                 cr.stroke()
-                name = '{}'.format(i)
+                name = '{}'.format(i+1)
                 xb, yb, w, h = cr.text_extents(name)[:4]
                 cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
                 cr.show_text(name)
                 cr.stroke()
-
-    def draw_polygon(self, cr):
-        if self.props.polygon:
-            cr.set_source_rgba(0.0, 0.5, 0.5, 1)
-            cr.set_line_width(1.0)
-            cr.move_to(*self.props.polygon[0])
-            for x, y in self.props.polygon[1:]:
-                cr.line_to(x, y)
-            cr.stroke()
-            cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
-            first = True
-            radius = 5
-            for x, y in self.props.polygon:
-                cr.arc(x, y, radius, 0, 2.0 * 3.14)
-                if first:
-                    cr.fill()
-                    cr.set_source_rgba(1.0, 1.0, 0.0, 0.5)
-                    radius = 2
-                    first = False
-                else:
-                    cr.stroke()
 
     def draw_points(self, cr):
         if self.props.points:
@@ -332,108 +339,79 @@ class Microscope(Object):
         self.props.grid_xyz = None
         self.props.grid_scores = {}
         self.props.points = []
-        self.props.polygon = []
+        self.props.grid_bbox = []
         if self.tool == self.ToolState.GRID:
             self.change_tool(self.ToolState.CENTERING)
         self.widget.microscope_grid_btn.set_active(False)
         self.queue_overlay()
 
-    def make_grid(self, *args, **kwargs):
+    def toggle_grid_mode(self, *args, **kwargs):
         if self.widget.microscope_grid_btn.get_active():
             self.change_tool(self.ToolState.GRID)
-            self.props.polygon = []
+            self.props.grid_bbox = []
         else:
+            self.widget.microscope_grid_btn.set_active(False)
             self.change_tool()
         self.queue_overlay()
 
-    def bbox_grid(self, bbox):
-        step_size = 0.75 * 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
-        grid_size = bbox[1] - bbox[0]
-
-        nX, nY = grid_size / step_size
-        nX = max(3, numpy.ceil(nX))
-        nY = max(3, numpy.ceil(numpy.sqrt(2) * nY))
-
-        xi = numpy.linspace(bbox[0][0], bbox[1][0], int(nX))
-        yi = numpy.linspace(bbox[0][1], bbox[1][1], int(nY))
-        x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False, indexing='ij')
-        radius = step_size * 0.5
-        return numpy.array([
-            (x_ij[i, j] + (j % 2) * radius, y_ij[i, j], 0.0)
-            for j in numpy.arange(nY).astype(int)
-            for i in numpy.arange(nX).astype(int)
-            if nX - i != j % 2
-        ])
-
     def auto_grid(self, *args, **kwargs):
         img = self.camera.get_frame()
-        pol = imgproc.find_profile(img, scale=0.25)
-        for point in pol:
-            self.add_polygon_point(point[0], point[1])
-        self.add_polygon_point(pol[0][0], pol[0][1])
+        polygon = imgproc.find_profile(img, scale=0.25)
+        points = numpy.array(polygon)
+        self.props.grid_bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
 
     def add_point(self, *args, **kwargs):
         self.props.points = self.props.points + [self.beamline.goniometer.stage.get_xyz()]
         self.queue_overlay()
 
-    def configure_grid(self, params):
-        for k, v in list(params.items()):
-            self.set_property(k, v)
-
-    def add_polygon_point(self, x, y):
-        radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
-        if not len(self.props.polygon):
-            self.props.polygon.append((x, y))
-        else:
-            d = numpy.sqrt((x - self.props.polygon[0][0]) ** 2 + (y - self.props.polygon[0][1]) ** 2)
-            if d > radius:
-                self.props.polygon.append((x, y))
-            else:
-                self.props.polygon.append(self.props.polygon[0])
-                self.make_polygon_grid()
-                self.widget.microscope_grid_btn.set_active(False)
-
-    def calc_polygon_grid(self, polygon, grow=1, scaled=True):
-        step_size = 0.75 * 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
-        factor = 1.0 if scaled else self.video.scale
-        if len(polygon) == 3:
-            points = numpy.array(polygon[:-1]) * factor
-            grid_size = points[1] - points[0]
-            shape = 1 + grid_size / step_size
-            n = max(3, numpy.ceil(numpy.sqrt((shape ** 2).sum())))
-            x = numpy.linspace(points[0][0], points[1][0], n)
-            y = numpy.linspace(points[0][1], points[1][1], n)
-            grid = numpy.dstack((x, y, numpy.zeros_like(y)))[0]
-
-        else:
-            points = numpy.array(polygon) * factor
+    def make_grid(self, bbox=None, points=None, scaled=True, center=True):
+        if points is not None:
+            points = numpy.array(points)
             bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
-            full_grid = self.bbox_grid(bbox)
-            poly = Path(points)
-            radius = orientation(poly) * step_size
-            grid = full_grid[poly.contains_points(full_grid[:, :2], radius=radius * grow)]
+        elif bbox is None:
+            bbox = self.props.grid_bbox
 
-        xmm, ymm = self.video.screen_to_mm(grid[:, 0], grid[:, 1])[2:]
-        ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        if not isinstance(bbox, numpy.ndarray):
+            bbox = numpy.array(bbox)
+
+        factor = 1.0 if scaled else self.video.scale
+        step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
+        w, h = 1000*numpy.abs(numpy.diff(bbox, axis=0).ravel() * self.video.mm_scale()).round(4)
+
+        # grid too small exit and clear
+        if max(w, h) < 2 * step_size:
+            self.props.grid_bbox = []
+            self.queue_overlay()
+            self.props.grid_params = {}
+            return
+
+        bounds = bbox * factor
+
+        grid = misc.grid_from_bounds(bounds, step_size, tight=False)
+        dx, dy = self.video.screen_to_mm(*bounds.mean(axis=0))[2:]
+
         angle = self.beamline.goniometer.omega.get_position()
+        ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        xmm, ymm = self.video.screen_to_mm(grid[:, 0], grid[:, 1])[2:]
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
 
-        return {
+        properties = {
             'grid_state': self.GridState.PENDING,
             'grid_xyz': grid_xyz.round(4),
+            'grid_bbox': [],
             'grid_params': {
-                'origin': (ox, oy, oz),
+                'width': w,
+                'height': h,
                 'angle': angle,
-                'scale': self.video.scale,
             },
             'grid_scores': {}
         }
 
-    def make_polygon_grid(self, grow=1):
-        info = self.calc_polygon_grid(self.props.polygon, grow=grow)
-        self.configure_grid(info)
-        self.props.polygon = []  # delete polygon after making grid
+        for k, v in properties.items():
+            self.set_property(k, v)
+        if center:
+            self.beamline.goniometer.stage.move_screen_by(-dx, -dy, 0.0)
 
     def add_grid_score(self, position, score):
         self.props.grid_scores[position] = score
@@ -448,8 +426,8 @@ class Microscope(Object):
         self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
 
     @async_call
-    def center_pixel(self, x, y):
-        if self.tool == self.ToolState.CENTERING:
+    def center_pixel(self, x, y, force=False):
+        if self.tool == self.ToolState.CENTERING or force:
             ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
             if not self.beamline.goniometer.stage.is_busy():
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
@@ -472,15 +450,14 @@ class Microscope(Object):
         if self.overlay_dirty or self.overlay_surface is None:
             self.create_overlay_surface()
             self.draw_beam(self.overlay_ctx)
-            self.draw_measurement(self.overlay_ctx)
             self.draw_grid(self.overlay_ctx)
-            self.draw_polygon(self.overlay_ctx)
+            self.draw_bbox(self.overlay_ctx)
             self.draw_points(self.overlay_ctx)
+            self.draw_measurement(self.overlay_ctx)
             self.overlay_dirty = False
 
     # callbacks
     def update_grid(self, *args, **kwargs):
-        self.queue_overlay()
         if self.props.grid_xyz is not None:
             center = numpy.array(self.video.get_size()) * 0.5
             points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
@@ -493,6 +470,7 @@ class Microscope(Object):
             self.props.grid = xyz
         else:
             self.props.grid = None
+        self.queue_overlay()
 
     def colorize(self, button):
         self.video.set_colorize(state=button.get_active())
@@ -546,6 +524,18 @@ class Microscope(Object):
     def on_zoom(self, widget, position):
         self.camera.zoom(position)
 
+    def on_aperture(self, obj, value):
+        if self.grid_xyz is not None:
+            center = numpy.array(self.video.get_size()) * 0.5
+            points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
+            xyz = numpy.empty_like(points)
+            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
+                points[:, 0], points[:, 1], points[:, 2]
+            )
+            xyz /= self.video.mm_scale()
+            xyz[:, :2] += center
+            self.make_grid(points=xyz[:, :2], center=False)
+
     def on_rotate(self, widget, angle):
         cur_omega = int(self.beamline.goniometer.omega.get_position())
         target = (cur_omega + angle)
@@ -566,27 +556,39 @@ class Microscope(Object):
             x, y = event.x, event.y
         ix, iy, xmm, ymm = self.video.screen_to_mm(x, y)
         self.widget.microscope_pos_lbl.set_markup(
-            "<small><tt>X:{:5.0f} {:6.3f} mm\nY:{:5.0f} {:6.3f} mm</tt></small>".format(ix, xmm, iy, ymm)
+            f"<small><tt>X:{ix:5.0f} {xmm:6.3f} mm\nY:{iy:5.0f} {ymm:6.3f} mm</tt></small>"
         )
-        if 'GDK_BUTTON2_MASK' in event.get_state().value_names:
-            self.measurement[1] = (x, y)
+
+        if Gdk.ModifierType.BUTTON2_MASK & event.state:
+            self.ruler_box[1] = (x, y)
             self.queue_overlay()
-        elif 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['COLLECT']:
+        elif Gdk.ModifierType.CONTROL_MASK & event.state and self.mode.name in ['COLLECT']:
             self.change_tool(tool=self.ToolState.CENTERING)
+        elif self.tool == self.ToolState.GRID and len(self.props.grid_bbox):
+            if Gdk.ModifierType.BUTTON1_MASK & event.state:
+                self.props.grid_bbox[-1] = (x, y)
+            self.queue_overlay()
         elif self.tool == self.ToolState.MEASUREMENT:
             self.change_tool()
             self.queue_overlay()
         elif self.tool == self.ToolState.CENTERING and self.mode.name in ['COLLECT']:
             self.change_tool()
 
-    def on_image_click(self, widget, event):
+    def on_mouse_press(self, widget, event):
         if event.button == 1:
             if self.tool == self.ToolState.GRID:
-                self.add_polygon_point(event.x, event.y)
+                self.props.grid_bbox = [(event.x, event.y), (event.x, event.y)]
                 self.queue_overlay()
             else:
                 self.center_pixel(event.x, event.y)
         elif event.button == 2:
             self.change_tool(self.ToolState.MEASUREMENT)
-            self.measurement[0] = (event.x, event.y)
-            self.measurement[1] = (event.x, event.y)
+            self.ruler_box[0] = (event.x, event.y)
+            self.ruler_box[1] = (event.x, event.y)
+            self.queue_overlay()
+
+    def on_mouse_release(self, widget, event):
+        if event.button == 1:
+            if self.tool == self.ToolState.GRID and self.grid_bbox:
+                self.make_grid()
+                self.toggle_grid_mode()

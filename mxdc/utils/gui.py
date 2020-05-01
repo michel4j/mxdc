@@ -732,12 +732,13 @@ class FormManager(object):
             if info:
                 self.set_values(info)
 
-    def set_value(self, name, value):
+    def set_value(self, name, value, propagate=False):
         """
         Set the value of a field by name
 
         :param name: name of field
         :param value: value to set
+        :param propagate: re-process the form data to update linked fields
         """
 
         spec = self.fields[name]
@@ -745,6 +746,8 @@ class FormManager(object):
         if field:
             with field.handler_block(self.handlers[name]):
                 spec.update_to(self.builder, self.prefix, value)
+            if propagate:
+                self.on_change(field, None, name)
 
     def get_value(self, name):
         """
@@ -755,15 +758,16 @@ class FormManager(object):
         spec = self.fields[name]
         return spec.value_from(self.builder, self.prefix)
 
-    def set_values(self, info):
+    def set_values(self, info, propagate=False):
         """
         Set the values of the fields
 
         :param info: Dictionary of name value pairs to set. Only pairs present are set
+        :param propagate: re-process the form data to update linked fields
         """
         for name, value in info.items():
             if name in self.fields:
-                self.set_value(name, value)
+                self.set_value(name, value, propagate=propagate)
 
     def get_values(self):
         """
@@ -794,6 +798,7 @@ class FormManager(object):
         :param event: change event data or None
         :param name: name of field
         """
+
         spec = self.fields.get(name)
         if spec:
             value = spec.value_from(self.builder, self.prefix)

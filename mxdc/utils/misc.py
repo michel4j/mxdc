@@ -14,6 +14,9 @@ import uuid
 import ipaddress
 import numpy
 
+from abc import ABC
+from html.parser import HTMLParser
+
 from gi.repository import GLib
 from scipy import interpolate
 from importlib import import_module
@@ -457,14 +460,117 @@ def set_settings(settings, **kwargs):
     """
     Apply keyword values to PVs in a dictionary if available
     :param settings: dictionary of process variables to set
-    :param kwargs: key value pairs for the process variables, keys with value None are ignored
+    :param kwargs: key value pairs for the process variables, keys with value None are ignored if key points to a tuple
+    of process variables, then the value should be a list or tuple of values to put to each.
     :return: list of keys actually set
     """
     changed = []
     for key, value in kwargs.items():
         if key in settings and value is not None:
-            settings[key].put(kwargs[key], wait=True)
+            if isinstance(settings[key], tuple):
+                if isinstance(value, (tuple, list)):
+                    for p, v in zip(settings[key], value):
+                        p.put(p, v, wait=True)
+            else:
+                settings[key].put(kwargs[key], wait=True)
             changed.append(key)
     return changed
 
 
+class HTMLFilter(HTMLParser, ABC):
+    """
+    A simple no deps HTML -> TEXT converter.
+    @see https://stackoverflow.com/a/55825140
+    """
+    text = ''
+
+    def handle_data(self, data):
+        self.text += data
+
+
+def html2text(data):
+    """
+    Convert HTML to plain text.
+
+    :param data: HTML data
+    :return: text str
+    """
+    f = HTMLFilter()
+    f.feed(data)
+    return f.text
+
+
+def grid_from_bounds(bbox, step_size, tight=True, snake=True):
+    """
+    Make a grid from a bounding box array
+    :param bbox: array of two points representing a 2D bounding box [(left, top), (right, bottom)]
+    :param step_size: step size
+    :param tight: bool, use tight layout
+    :param snake: bool, reverse order of alternae rows
+    :return: array of points on the grid in order
+    """
+
+    grid_size = numpy.abs(bbox[1] - bbox[0])
+    nX, nY = calc_grid_size(*grid_size, step_size, tight=tight)
+    radius = step_size / 2
+
+    xi = numpy.linspace(bbox[0][0], bbox[1][0], int(nX))
+    yi = numpy.linspace(bbox[0][1], bbox[1][1], int(nY))
+    x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
+
+    if snake:
+        x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip alternate rows
+
+    offset = radius if tight else 0.0
+    return numpy.array([
+        (x_ij[j, i] + (j % 2) * offset, y_ij[j, i], 0.0)
+        for j in numpy.arange(nY).astype(int)
+        for i in numpy.arange(nX).astype(int)
+    ])
+
+
+def grid_from_size(size: tuple, step_size: float, tight=True, snake=True):
+    """
+    Make a grid from shape
+    :param size: tuple (width, height) number of points in x and y directions
+    :param shape: tuple (width, height)
+    :param step_size: step size
+    :param tight: bool, use tight layout
+    :param snake: bool, reverse order of alternae rows
+    :return: array of points on the grid in order
+    """
+
+    nX, nY = size
+    radius = step_size/2
+
+    xi = (numpy.arange(0, nX) - (nX-1)/2) * step_size
+    yi = (numpy.arange(0, nY) - (nY-1)/2) * step_size
+    x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
+
+    if snake:
+        x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip alternate rows
+
+    offset = radius if tight else 0.0
+    return numpy.array([
+        (x_ij[j, i] + (j % 2) * offset, y_ij[j, i], 0.0)
+        for j in numpy.arange(nY).astype(int)
+        for i in numpy.arange(nX).astype(int)
+    ])
+
+
+def calc_grid_size(width, height, aperture, tight=True):
+    """
+    Calculate the size of the grid
+
+    :param width: width
+    :param height: height
+    :param aperture: step size
+    :param tight: bool, true if close fitting required
+    :return: tuple (x-size, y-size)
+    """
+    tightness = numpy.sqrt(2) if tight else 1.0
+    size = numpy.array([width, height])
+    nX, nY = size / aperture
+    nX = max(2, numpy.ceil(nX+1))
+    nY = max(2, numpy.ceil(tightness * numpy.ceil(nY+1)))
+    return int(nX), int(nY)

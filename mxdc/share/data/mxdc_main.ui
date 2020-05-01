@@ -3979,8 +3979,8 @@
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="left_attach">2</property>
-                                            <property name="top_attach">1</property>
+                                            <property name="left_attach">3</property>
+                                            <property name="top_attach">0</property>
                                           </packing>
                                         </child>
                                         <child>
@@ -4054,7 +4054,7 @@
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkEntry" id="raster_exposure_entry1">
+                                              <object class="GtkEntry" id="raster_aperture_entry">
                                                 <property name="visible">True</property>
                                                 <property name="sensitive">False</property>
                                                 <property name="can_focus">True</property>
@@ -4218,8 +4218,8 @@
                                             </child>
                                           </object>
                                           <packing>
-                                            <property name="left_attach">3</property>
-                                            <property name="top_attach">0</property>
+                                            <property name="left_attach">2</property>
+                                            <property name="top_attach">1</property>
                                           </packing>
                                         </child>
                                       </object>

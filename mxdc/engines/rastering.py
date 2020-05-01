@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import datetime
-
+import numpy
 import pytz
 from twisted.internet.defer import returnValue, inlineCallbacks
 from zope.interface import Interface, implementer
@@ -44,8 +44,8 @@ class RasterCollector(Engine):
         Registry.add_utility(IRasterCollector, self)
 
     def configure(self, grid, parameters):
-        self.config['grid'] = grid
         self.config['params'] = parameters
+        self.config['grid'] = grid
         self.config['frames'] = datatools.generate_grid_frames(grid, parameters)
 
     def prepare(self, params):
@@ -130,9 +130,6 @@ class RasterCollector(Engine):
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
             }
 
-            # move to grid point
-            self.beamline.goniometer.stage.move_xyz(*frame['point'])
-
             # perform scan
             if self.stopped or self.paused: break
             self.beamline.detector.configure(**detector_parameters)
@@ -141,6 +138,7 @@ class RasterCollector(Engine):
                 time=frame['exposure'],
                 delta=frame['delta'],
                 angle=frame['start'],
+                start_pos=frame['point'],
                 wait=True,
                 timeout=frame['exposure'] * 20
             )
