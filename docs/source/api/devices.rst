@@ -107,8 +107,6 @@ acquiring data.
     SimGonio
     ParkerGonio
     MD2Gonio
-    GalilGonio
-    OldMD2Gonio
 
 Motors
 ------

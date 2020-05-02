@@ -1,19 +1,25 @@
 import time
-import warnings
+from datetime import datetime
+from enum import Enum
 from threading import Lock
 
-warnings.simplefilter("ignore")
-from datetime import datetime
+import numpy
+from gi.repository import GLib
 from zope.interface import implementer
+
 from mxdc import Registry, Device, IBeamline
-from mxdc.utils.log import get_module_logger
-from mxdc.utils.decorators import async_call
-from mxdc.utils import misc
-from .interfaces import IGoniometer
 from mxdc.devices import motor, stages
+from mxdc.utils import misc
+from mxdc.utils.decorators import async_call
+from mxdc.utils.log import get_module_logger
+from .interfaces import IGoniometer
 
 # setup module logger with a default handler
 logger = get_module_logger(__name__)
+
+
+class GonioFeatures(Enum):
+    TRIGGERING, SCAN4D, RASTER4D, KAPPA = range(4)
 
 
 @implementer(IGoniometer)
@@ -33,13 +39,6 @@ class BaseGoniometer(Device):
         self.kappa = None
         self.chi = None
         self.stage = None
-        self.kappa_enabled = False
-
-    def has_kappa(self):
-        """
-        Check if Goniometer has Kappa capability
-        """
-        return self.kappa_enabled
 
     def configure(self, **kwargs):
         """
@@ -47,9 +46,9 @@ class BaseGoniometer(Device):
 
         kwargs:
             - time: exposure time per frame
-            - delta: delta angle per frame
+            - range: angle range
             - angle: start angle of data set
-            - num_frames: total number of frames
+            - frames: total number of frames
 
         """
         misc.set_settings(self.settings, **kwargs)
@@ -130,7 +129,7 @@ class ParkerGonio(BaseGoniometer):
         # parameters
         self.settings = {
             'time': self.add_pv(f"{root}:expTime", monitor=False),
-            'delta': self.add_pv(f"{root}:deltaOmega", monitor=False),
+            'range': self.add_pv(f"{root}:deltaOmega", monitor=False),
             'angle': self.add_pv(f"{root}:openSHPos", monitor=False),
         }
 
@@ -168,7 +167,8 @@ class MD2Gonio(BaseGoniometer):
 
     def __init__(self, root, kappa_enabled=False):
         super().__init__('MD2 Diffractometer')
-        self.kappa_enabled = kappa_enabled
+        if kappa_enabled:
+            self.add_features(GonioFeatures.KAPPA)
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
@@ -191,7 +191,7 @@ class MD2Gonio(BaseGoniometer):
         self.sample_y1 = motor.PseudoMotor(f'{root}:PMTR:smplY:mm')
         self.sample_y2 = motor.PseudoMotor(f'{root}:PMTR:smplZ:mm')
         self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
-        if self.has_kappa():
+        if self.supports(GonioFeatures.KAPPA):
             self.phi = motor.PseudoMotor(f'{root}:PMTR:phi:deg')
             self.chi = motor.PseudoMotor(f'{root}:chi:deg')
             self.kappa = motor.PseudoMotor(f'{root}:PMTR:kappa:deg')
@@ -201,10 +201,10 @@ class MD2Gonio(BaseGoniometer):
         # config parameters
         self.settings = {
             'time': self.add_pv(f"{root}:ScanExposureTime"),
-            'delta': self.add_pv(f"{root}:ScanRange"),
+            'range': self.add_pv(f"{root}:ScanRange"),
             'angle': self.add_pv(f"{root}:ScanStartAngle"),
             'passes': self.add_pv(f"{root}:ScanNumberOfPasses"),
-            'num_frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
+            'frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
         }
 
         self.helix_settings = {
@@ -233,8 +233,8 @@ class MD2Gonio(BaseGoniometer):
             'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
             'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
             'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
-            'line_range': self.add_pv(f"{root}:startRasterScanEx:line_range"),
-            'turn_range': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
+            'range': self.add_pv(f"{root}:startRasterScanEx:line_range"),
+            'uturn': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
             'start_pos': (
                 self.add_pv(f'{root}:startRasterScanEx:start_y'),
                 self.add_pv(f'{root}:startRasterScanEx:start_cx'),
@@ -313,9 +313,15 @@ class SimGonio(BaseGoniometer):
     """
     Simulated Goniometer.
     """
-    def __init__(self, kappa_enabled=False):
+    def __init__(self, kappa_enabled=False, trigger=None):
         super().__init__('SIM Diffractometer')
-        self.kappa_enabled = kappa_enabled
+        if kappa_enabled:
+            self.add_features(GonioFeatures.KAPPA)
+        if trigger is not None:
+            self.add_features(GonioFeatures.TRIGGERING)
+
+        self.trigger = trigger
+        self.trigger_positions = []
         self.settings = {}
         self._scanning = False
         self._lock = Lock()
@@ -327,7 +333,7 @@ class SimGonio(BaseGoniometer):
 
         self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)
 
-        if self.has_kappa():
+        if self.supports(GonioFeatures.KAPPA):
             self.kappa = motor.SimMotor('Kappa', 0.0, limits=(-1, 180), units='deg', speed=30)
             self.chi = motor.SimMotor('Chi', 0.0, limits=(-1, 48), units='deg', speed=30)
             self.phi = motor.SimMotor('Phi', 0.0, units='deg', speed=30)
@@ -336,6 +342,7 @@ class SimGonio(BaseGoniometer):
 
     def configure(self, **kwargs):
         self.settings = kwargs
+        self._frame_exposure = self.settings['time']/self.settings.get('frames', 1.)
 
     @async_call
     def _scan_async(self):
@@ -351,28 +358,44 @@ class SimGonio(BaseGoniometer):
             logger.debug('Moving to scan starting position')
             bl.fast_shutter.open()
             self.omega.move_to(self.settings['angle'] - 0.05, wait=True)
-            scan_speed = float(self.settings['delta']) / self.settings['time']
+            scan_speed = float(self.settings['range']) / self.settings['time']
             self.omega.configure(speed=scan_speed)
-            self.omega.move_to(self.settings['angle'] + self.settings['delta'] + 0.05, wait=True)
+            self.trigger_positions = numpy.arange(
+                self.settings['angle'],
+                self.settings['range'],
+                self.settings['range']/self.settings.get('frames', 1)
+            )
+            if self.supports(GonioFeatures.TRIGGERING):
+                GLib.idle_add(self.send_triggers)
+            self.omega.move_to(self.settings['angle'] + self.settings['range'] + 0.05, wait=True)
             bl.fast_shutter.close()
             self.omega.configure(speed=config['speed'])
             logger.debug('Scan done at: %s' % datetime.now().isoformat())
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 
-    def scan(self, type='simple', wait=True, timeout=None, start_pos=None, **kwargs):
-        """
-        :param wait:
-        :param timeout:
+    def send_triggers(self):
+        if len(self.trigger_positions):
+            if self.omega.get_position() >= self.trigger_positions[0]:
+                self.trigger.on(self._frame_exposure*0.9)
+                self.trigger_positions = self.trigger_positions[1:]
+            return True
+        else:
+            return False
 
-        :param kwargs:
+    def scan(self, type='simple', wait=True, timeout=0, start_pos:tuple=None, **kwargs):
+        """
+        :keyword type: type of scan
+        :keyword wait: whether to block until scan is complete
+        :keyword timeout: maximum wait time
         :keyword time: Exposure time per frame
-        :keyword delta: angle range per frame
+        :keyword range: angle range per frame
         :keyword start: Start angle for frame
         :keyword start_pos:  Stage position to start from.
         """
+
         # settings
-        self.settings = kwargs
+        self.configure(**kwargs)
 
         # move stage to starting point if provided
         if start_pos is not None and len(start_pos) == 3:

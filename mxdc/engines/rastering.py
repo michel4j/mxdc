@@ -8,6 +8,7 @@ from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Engine
 from mxdc.engines.interfaces import IAnalyst
+from mxdc.devices.goniometer import GonioFeatures
 from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
@@ -29,6 +30,7 @@ class IRasterCollector(Interface):
 class RasterCollector(Engine):
     class Signals:
         result = Signal('result', arg_types=(int, object))
+        grid = Signal('grid', arg_types=(object,))
 
     def __init__(self):
         super().__init__()
@@ -43,14 +45,25 @@ class RasterCollector(Engine):
         self.analyst = Registry.get_utility(IAnalyst)
         Registry.add_utility(IRasterCollector, self)
 
-    def configure(self, grid, parameters):
-        self.config['params'] = parameters
-        self.config['grid'] = grid
-        self.config['frames'] = datatools.generate_grid_frames(grid, parameters)
+    def configure(self, params):
+        self.config['params'] = params
+
+        # calculate grid from dimensions
+        grid = misc.grid_from_size(
+            (params['frames'], params['lines']), params['aperture'] * 1e-3, (0, 0), tight=False, snake=True
+        )
+        ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(
+            grid[:, 0], grid[:, 1], numpy.radians(params['angle'])
+        )
+        grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
+
+        # update microscope display
+        self.config['params']['grid'] = grid_xyz
 
     def prepare(self, params):
         self.beamline.detector_cover.open(wait=True)
-        self.total_frames = len(self.config['frames'])
+        self.total_frames = self.config['params']['frames'] * self.config['params']['lines']
         self.pending_results = set()
         self.results = {}
 
@@ -69,10 +82,13 @@ class RasterCollector(Engine):
     def run(self):
         current_attenuation = self.beamline.attenuator.get()
         with self.beamline.lock:
-            self.emit('started', None)
+            self.config['start_time'] = datetime.now(tz=pytz.utc)
+            self.emit('started', self.config['params'])
             try:
-                self.config['start_time'] = datetime.now(tz=pytz.utc)
-                self.acquire()
+                if self.beamline.goniometer.supports(GonioFeatures.RASTER4D, GonioFeatures.TRIGGERING):
+                    self.acquire_slew()
+                else:
+                    self.acquire_step()
                 self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
 
@@ -95,7 +111,7 @@ class RasterCollector(Engine):
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.beamline.detector_cover.close()
 
-    def acquire(self):
+    def acquire_step(self):
         self.paused = False
         self.stopped = False
 
@@ -104,9 +120,9 @@ class RasterCollector(Engine):
         self.count = 0
         self.prepare(self.config['params'])
 
-        logger.debug('Acquiring {} rastering frames ... '.format(len(self.config['frames'])))
+        logger.debug('Rastering ... ')
         template = self.beamline.detector.get_template(self.config['params']['name'])
-        for frame in self.config['frames']:
+        for frame in datatools.grid_frames(self.config['params']):
             if self.paused:
                 self.emit('paused', True, '')
                 while self.paused and not self.stopped:
@@ -136,7 +152,8 @@ class RasterCollector(Engine):
             self.beamline.detector.start(first=is_first_frame)
             self.beamline.goniometer.scan(
                 time=frame['exposure'],
-                delta=frame['delta'],
+                range=frame['delta'],
+                frames=1,
                 angle=frame['start'],
                 start_pos=frame['point'],
                 wait=True,
@@ -156,6 +173,65 @@ class RasterCollector(Engine):
             time.sleep(0.5)
 
         self.collecting = False
+
+    def acquire_slew(self):
+        self.paused = False
+        self.stopped = False
+
+        self.collecting = True
+        is_first_frame = True
+        self.count = 0
+        self.prepare(self.config['params'])
+
+        logger.debug('Setting up detector for rastering ... ')
+        template = self.beamline.detector.get_template(self.config['params']['name'])
+
+        # Prepare detector
+        params = self.config['params']
+        detector_parameters = {
+            'file_prefix': params['name'],
+            'start_frame': 1,
+            'directory': params['directory'],
+            'wavelength': energy_to_wavelength(params['energy']),
+            'energy': params['energy'],
+            'distance': params['distance'],
+            'exposure_time': params['exposure'],
+            'num_frames': self.total_frames,
+            'start_angle': params['angle'],
+            'delta_angle': params['delta'],
+            'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+        }
+
+        self.beamline.detector.configure(**detector_parameters)
+        self.beamline.detector.start()
+
+        logger.debug('Starting raster scan ...')
+        self.beamline.goniometer.scan(
+            type='raster',
+            time=params['exposure'] * params['frames'],
+            range=params['delta'] * params['frames'],
+            angle=params['angle'],
+            frames=params['frames'],
+            lines=params['lines'],
+            uturn=params['delta'],
+            start_pos=params['grid'][0],
+            wait=True,
+            timeout=params['exposure'] * self.total_frames * 1.2,
+        )
+
+        self.beamline.detector.save()
+        time.sleep(0)
+
+        template = self.beamline.detector.get_template(self.config['params']['name'])
+        for frame in datatools.grid_frames(self.config['params']):
+            file_path = os.path.join(frame['directory'], template.format(frame['first']))
+            self.analyse_frame(file_path, frame['first'])
+
+        while self.pending_results:
+            time.sleep(0.5)
+        self.collecting = False
+
+
 
     @inlineCallbacks
     def analyse_frame(self, file_path, index):
@@ -223,7 +299,7 @@ class RasterCollector(Engine):
                 'delta_angle': params['delta'],
                 'inverse_beam': params.get('inverse', False),
                 'grid_origin': params['origin'],
-                'grid_points': self.config['grid'].tolist(),
+                'grid_points': params['grid'].tolist(),
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
             misc.save_metadata(metadata, filename)

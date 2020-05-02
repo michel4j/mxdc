@@ -499,9 +499,9 @@ def template_to_glob(template):
     return re.sub(r'{[^{}]*}', '*', template)
 
 
-def generate_grid_frames(grid, params):
+def grid_frames(params):
     frame_template = make_file_template(params['name'])
-    return [
+    return (
         {
             'dataset': params['name'],
             'uuid': params['uuid'],
@@ -518,8 +518,8 @@ def generate_grid_frames(grid, params):
             'directory': params['directory'],
             'point': point,
         }
-        for i, point in enumerate(grid)
-    ]
+        for i, point in enumerate(params['grid'])
+    )
 
 
 def _split_wedge(a):

@@ -11,7 +11,9 @@ from enum import Enum
 from mxio import read_header
 from zope.interface import implementer
 
-from mxdc import Signal, Device
+from gi.repository import GLib
+
+from mxdc import Signal, Device, Object
 from mxdc.utils import decorators
 from mxdc.utils import frames
 from mxdc.utils.log import get_module_logger
@@ -33,6 +35,38 @@ class States(Enum):
     ERROR = 5  # Detector error
 
 
+class DetectorFeatures(Enum):
+    SHUTTERLESS, TRIGGERING = range(2)
+
+
+class Trigger(Object):
+    class Signals:
+        high = Signal('high', arg_types=(bool,))
+
+    def is_high(self):
+        """
+        Check if trigger is in high state
+        """
+        return self.get_state('high')
+
+    def on(self, duration=-1):
+        """
+        Activate trigger for given duration
+
+        :keyword duration: duration in milliseconds if negative or zero, stay on indefinitely
+        """
+        if not self.is_high():
+            self.set_state(high=True)
+            if duration > 0:
+                GLib.timeout_add(duration, self.off)
+
+    def off(self):
+        """
+        Turn off the trigger
+        """
+        self.set_state(high=False)
+
+
 @implementer(IImagingDetector)
 class BaseDetector(Device):
     """
@@ -46,12 +80,15 @@ class BaseDetector(Device):
     """
     FRAME_DIGITS = 4
     BUSY_STATES = (States.ACQUIRING, States.STANDBY,)  # list of states representing the busy state
-    SHUTTERLESS = False
 
     class Signals:
         state = Signal("state", arg_types=(object,))
         new_image = Signal("new-image", arg_types=(object,))
         progress = Signal("progress", arg_types=(float, str))
+
+    def __init__(self):
+        super().__init__()
+        self.file_extension = 'img'
 
     def initialize(self, wait=True):
         """
@@ -77,7 +114,7 @@ class BaseDetector(Device):
         :return: format string
         """
 
-        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.img'
+        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{self.file_extension}'
 
     def set_state(self, *args, **kwargs):
         # make sure device busy signal is consistent with busy states
@@ -181,12 +218,6 @@ class BaseDetector(Device):
             return [], False
         return [], False
 
-    def is_shutterless(self):
-        """
-        Check if the detector supports shutterless mode
-        """
-        return self.SHUTTERLESS
-
 
 class SimDetector(BaseDetector):
     """
@@ -196,19 +227,26 @@ class SimDetector(BaseDetector):
     :param size: detector size tuple in pixels
     :param pixel_size: pixel width in microns
     :param images: directory to look for images
-    :param detector_type: string representing the detector type, e.g. 'MX300HE'
-    """
+    :param trigger: trigger object shared with goniometer
 
-    def __init__(self, name, size, pixel_size=0.073242, images='/tmp', detector_type="MX300"):
+    """
+    DETECTOR_TYPES = {
+        'img': 'MX300',
+        'cbf': 'PILATUS 6M'
+    }
+
+    FRAME_DIGITS = 5
+
+    def __init__(self, name, size, pixel_size=0.073242, images='/tmp', extension='cbf', trigger=None):
         super().__init__()
         self.monitor = frames.FileMonitor(self)
 
-        self.size = int(size), int(size)
+        self.size = size
         self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
         self.name = name
-        self.detector_type = detector_type
-        self.file_extension = 'img'
+        self.detector_type = self.DETECTOR_TYPES.get(extension, 'MX300')
+        self.file_extension = extension
         self.set_state(active=True, health=(0, '', ''), state=States.IDLE)
         self.sim_images_src = images
         self._datasets = {}
@@ -217,10 +255,16 @@ class SimDetector(BaseDetector):
         self._state = 'idle'
         self._bg_taken = False
         self._stopped = False
+        self.trigger = trigger
+        self.trigger_count = 0
         self.prepare_datasets()
+        if trigger is not None:
+            self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS)
+            self.trigger.connect('high', self.on_trigger )
 
     def save(self, wait=False):
-        self._copy_frame()
+        if not self.supports(DetectorFeatures.TRIGGERING):
+            self._copy_frame()
         self.set_state(state=States.IDLE)
 
     def configure(self, **kwargs):
@@ -234,17 +278,22 @@ class SimDetector(BaseDetector):
         if first:
             self.initialize(True)
         time.sleep(0.1)
+        self.trigger_count = 0
         self.set_state(state=States.ACQUIRING)
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
         time.sleep(0.1)
 
-    def get_template(self, prefix):
-        return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{self.file_extension}'
-
     def get_origin(self):
         return self.size[0] // 2, self.size[0] // 2
+
+    def on_trigger(self, trigger, high):
+        if high and self.get_state('state') in [States.ACQUIRING, States.ARMED]:
+            logger.debug(f'Received trigger for frame: {self.trigger_count}')
+            self._copy_frame()
+        else:
+            self.trigger_count += 1
 
     def _select_dir(self, name='junk'):
         import hashlib
@@ -266,12 +315,13 @@ class SimDetector(BaseDetector):
 
     def _copy_frame(self):
         file_parms = copy.deepcopy(self.parameters)
-        logger.debug('Saving frame: %s' % datetime.now().isoformat())
-        src_img = self._src_template.format(1 + (file_parms['start_frame'] % self._num_frames))
-        file_name = '{}_{:04d}.img'.format(file_parms['file_prefix'], file_parms['start_frame'])
+        logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
+        frame_number = file_parms['start_frame'] + self.trigger_count
+        src_img = self._src_template.format(1 + (frame_number % self._num_frames))
+        file_name = '{}_{:05d}.{}'.format(file_parms['file_prefix'], frame_number, self.file_extension)
         file_path = os.path.join(file_parms['directory'], file_name)
         shutil.copyfile(src_img, file_path)
-        logger.debug('Frame saved: %s' % datetime.now().isoformat())
+        logger.debug('Frame saved: {}'.format(datetime.now().isoformat()))
         self.monitor.add(file_path)
 
     @decorators.async_call
@@ -279,10 +329,10 @@ class SimDetector(BaseDetector):
         self._datasets = {}
         for root, dir, files in os.walk(self.sim_images_src):
             if self._stopped: break
-            for file in fnmatch.filter(files, '*_001.img'):
+            for file in fnmatch.filter(files, f'*_00001.{self.file_extension}'):
                 if self._stopped: break
-                key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
-                data_root = file.replace('_001.', '_???.')
+                key = os.path.join(root, file.replace('_00001.', '_{:05d}.'))
+                data_root = file.replace('_00001.', '_?????.')
                 data_files = fnmatch.filter(files, data_root)
                 if len(data_files) >= 60:
                     self._datasets[key] = len(data_files)
@@ -299,10 +349,9 @@ class RayonixDetector(BaseDetector):
     :param desc: String description of detector
     """
 
-    SHUTTERLESS = False
-
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
         super().__init__()
+        self.file_extension = 'img'
         self.monitor = frames.FileMonitor(self)
 
         self.size = size, size
@@ -433,6 +482,7 @@ class ADSCDetector(BaseDetector):
 
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
         super().__init__()
+        self.file_extension = 'img'
         self.monitor = frames.FileMonitor(self)
 
         self.size = size, size
@@ -562,11 +612,10 @@ class PilatusDetector(BaseDetector):
     :param description: String escription of detector
     """
 
-    SHUTTERLESS = True
-
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
         self.detector_type = detector_type
+        self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
         self.monitor = frames.FileMonitor(self)
 
         self.size = size
@@ -707,11 +756,11 @@ class EigerDetector(BaseDetector):
     :param description: String description of detector
     """
 
-    SHUTTERLESS = True
     detector_type = 'Eiger'
 
     def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
         super().__init__()
+        self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
         self.monitor = frames.StreamMonitor(self, address=stream)
         self.monitor.connect('progress', self.on_data_progress)
 

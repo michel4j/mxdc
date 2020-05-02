@@ -292,7 +292,9 @@ class Device(Object):
 
     def __init__(self):
         super().__init__()
-        self.__pending = []                     # inactive child devices or process variables
+        self.__pending = []
+        self.__features = set()
+        # inactive child devices or process variables
         self.health_manager = HealthManager()   # manages the health states
         GLib.timeout_add(10000, self.check_inactive)
 
@@ -308,6 +310,23 @@ class Device(Object):
         """
         Configure the device.  Keyword arguments and implementation details are device specific.
         """
+
+    def supports(self, *features):
+        """
+        Check if device supports all of the features in specified
+
+        :param features: features to check
+        :return: bool
+        """
+        return all(feature in self.__features for feature in features)
+
+    def add_features(self, *features):
+        """
+        Flag the provided features as supported
+
+        :param features: features supported by device. Features can be any python object.
+        """
+        self.__features |= set(features)
 
     def is_healthy(self):
         """

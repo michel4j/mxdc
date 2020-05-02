@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
+import numpy
 from gi.repository import Gtk
 
 from mxdc import Registry, IBeamline, Object, Property
@@ -134,7 +135,7 @@ class RasterController(Object):
             })
 
             params = datatools.update_for_sample(params, self.sample_store.get_current())
-            self.collector.configure(self.microscope.grid_xyz, params)
+            self.collector.configure(params)
             self.collector.start()
 
     def stop_raster(self, *args, **kwargs):
@@ -174,14 +175,14 @@ class RasterController(Object):
             self.widget.raster_stop_btn.set_sensitive(False)
             self.view.set_sensitive(True)
 
-    def on_started(self, collector, data):
+    def on_started(self, collector, config):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
         logger.info("Rastering Started.")
-        config = collector.config['params']
+
+        self.microscope.props.grid_xyz = config['grid']
         self.results[config['uuid']] = {
             'config': copy.deepcopy(config),
-            'grid': self.microscope.grid_xyz,
             'scores': {}
         }
 

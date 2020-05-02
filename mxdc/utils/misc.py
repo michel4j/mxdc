@@ -529,22 +529,23 @@ def grid_from_bounds(bbox, step_size, tight=True, snake=True):
     ])
 
 
-def grid_from_size(size: tuple, step_size: float, tight=True, snake=True):
+def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=True):
     """
     Make a grid from shape
     :param size: tuple (width, height) number of points in x and y directions
-    :param shape: tuple (width, height)
-    :param step_size: step size
+    :param step: step size
+    :param center: center of grid in same units as step
     :param tight: bool, use tight layout
     :param snake: bool, reverse order of alternae rows
     :return: array of points on the grid in order
     """
 
+    cX, cY = center
     nX, nY = size
-    radius = step_size/2
+    radius = step / 2
 
-    xi = (numpy.arange(0, nX) - (nX-1)/2) * step_size
-    yi = (numpy.arange(0, nY) - (nY-1)/2) * step_size
+    xi = (numpy.arange(0, nX) - (nX-1)/2) * step + cX
+    yi = (numpy.arange(0, nY) - (nY-1)/2) * step + cY
     x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
 
     if snake:

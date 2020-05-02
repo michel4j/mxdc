@@ -7,6 +7,8 @@ from gi.repository import GLib
 from zope.interface import implementer
 
 from mxdc import Registry, Signal, Engine
+from mxdc.devices.detector import DetectorFeatures
+from mxdc.devices.goniometer import GonioFeatures
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
@@ -93,8 +95,12 @@ class DataCollector(Engine):
             self.beamline.manager.collect(wait=True)
             self.emit('started', None)
             self.config['start_time'] = datetime.now(tz=pytz.utc)
+            use_shutterless = (
+                self.beamline.detector.supports(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING) and
+                self.beamline.goniometer.supports(GonioFeatures.TRIGGERING)
+            )
             try:
-                if self.beamline.detector.is_shutterless():
+                if use_shutterless:
                     self.run_shutterless()
                 else:
                     self.run_simple()
@@ -126,6 +132,7 @@ class DataCollector(Engine):
         is_first_frame = True
 
         for wedge in self.config['wedges']:
+            self.emit('started', wedge)
             self.current_wedge = wedge
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
@@ -157,7 +164,7 @@ class DataCollector(Engine):
                 self.beamline.goniometer.scan(
                     type='simple',
                     time=frame['exposure'],
-                    delta=frame['delta'],
+                    range=frame['delta'],
                     angle=frame['start'],
                     num_frames=1,
                     wait=True,
@@ -173,8 +180,10 @@ class DataCollector(Engine):
 
     def run_shutterless(self):
         is_first_frame = True
+        # Perform scan
 
         for wedge in self.config['wedges']:
+            self.emit('started', wedge)
             self.current_wedge = wedge
             if self.stopped or self.paused:
                 break
@@ -199,7 +208,7 @@ class DataCollector(Engine):
                 break
 
             # Perform scan
-            logger.info("Collecting {} frames for dataset {}...".format(wedge['num_frames'], wedge['dataset']))
+            logger.info("Collecting Shutterless {} frames for dataset {}...".format(wedge['num_frames'], wedge['dataset']))
             logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
@@ -208,11 +217,13 @@ class DataCollector(Engine):
             self.beamline.goniometer.scan(
                 type='shutterless',
                 time=wedge['exposure'] * wedge['num_frames'],
-                delta=wedge['delta'] * wedge['num_frames'],
+                range=wedge['delta'] * wedge['num_frames'],
                 angle=wedge['start'],
-                num_frames=wedge['num_frames'],
+                frames=wedge['num_frames'],
                 wait=True,
-                timeout=wedge['exposure'] * wedge['num_frames'] * 1.2
+                start_pos=wedge.get('start_pos'),
+                end_pos=wedge.get('end_pos'),
+                timeout=wedge['exposure'] * wedge['num_frames'] * 1.2,
             )
             self.beamline.detector.save()
             is_first_frame = False
@@ -250,10 +261,6 @@ class DataCollector(Engine):
             self.beamline.distance.move_to(wedge['distance'], wait=True)
 
         self.beamline.attenuator.set(wedge['attenuation'], wait=True)
-
-        if wedge.get('point') is not None:
-            x, y, z = wedge['point']
-            self.beamline.goniometer.stage.move_xyz(x, y, z, wait=True)
         logger.debug('Ready for acquisition.')
 
     def save(self, params):

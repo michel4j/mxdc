@@ -364,6 +364,7 @@ class Microscope(Object):
         self.props.points = self.props.points + [self.beamline.goniometer.stage.get_xyz()]
         self.queue_overlay()
 
+
     def make_grid(self, bbox=None, points=None, scaled=True, center=True):
         if points is not None:
             points = numpy.array(points)

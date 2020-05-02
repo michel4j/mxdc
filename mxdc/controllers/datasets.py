@@ -697,12 +697,16 @@ class DatasetsController(Object):
         if changed:
             self.update_cache()
 
-    def on_started(self, obj, data):
-        self.start_time = time.time()
-        self.widget.datasets_collect_btn.set_sensitive(True)
-        self.widget.datasets_clean_btn.set_sensitive(False)
-        self.widget.datasets_overlay.set_sensitive(False)
-        logger.info("Acquiring images ...")
+    def on_started(self, obj, wedge):
+        if wedge is None:  # Overall start for all wedges
+            self.start_time = time.time()
+            self.widget.datasets_collect_btn.set_sensitive(True)
+            self.widget.datasets_clean_btn.set_sensitive(False)
+            self.widget.datasets_overlay.set_sensitive(False)
+            logger.info("Acquiring images ...")
+        else:
+            logger.info("Starting wedge {} ...".format(wedge['name']))
+            self.widget.dsets_dir_fbk.set_text(wedge['directory'])
 
     def on_new_image(self, obj, frame):
         self.image_viewer.show_frame(frame)

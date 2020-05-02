@@ -10,6 +10,7 @@ from mxdc.widgets.textviewer import GUIHandler
 from mxdc.widgets.ticker import ChartManager
 from .ptzvideo import AxisController
 from . import common
+from mxdc.devices.goniometer import GonioFeatures
 
 logger = get_module_logger(__name__)
 
@@ -44,7 +45,7 @@ class SetupController(object):
             'two_theta': misc.MotorEntry(self.beamline.two_theta, 'Detector 2-Theta', fmt="%0.1f"),
             'beam_size': misc.ActiveMenu(self.beamline.aperture, 'Beam Aperture', fmt="%0.0f"),
         }
-        if self.beamline.goniometer.has_kappa():
+        if self.beamline.goniometer.supports(GonioFeatures.KAPPA):
             entries['phi'] = misc.MotorEntry(self.beamline.goniometer.phi, 'Gonio Phi', fmt="%0.2f")
             entries['chi'] = misc.MotorEntry(self.beamline.goniometer.chi, 'Gonio Chi', fmt="%0.2f")
             entries['kappa'] = misc.MotorEntry(self.beamline.goniometer.kappa, 'Gonio Kappa', fmt="%0.2f")
