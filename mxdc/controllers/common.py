@@ -5,7 +5,7 @@ from collections import OrderedDict
 from gi.repository import Gtk, Gdk, Pango, GObject
 
 from mxdc.widgets import timer
-
+from mxdc.devices.manager import BaseManager
 
 def value_class(val, warning, error):
     if (val < warning < error) or (val > warning > error):
@@ -117,27 +117,6 @@ class ScaleMonitor(object):
         self.in_progress = False
 
 
-class ModeMonitor(object):
-    def __init__(self, device, box, color_map, value_map, signal="changed", markup="<small><b>{}</b></small>"):
-        self.box = box
-        self.device = device
-        self.color_map = color_map
-        self.value_map = value_map
-        self.markup = markup
-        self.label = Gtk.Label('')
-        self.box.add(self.label)
-        self.device.connect(signal, self.on_signal)
-
-    def on_signal(self, obj, state):
-        self.label.set_markup(self.markup.format(state.name))
-        color = Gdk.RGBA(alpha=1)
-        color.parse(self.color_map.get(self.value_map.get(state, state), '#708090'))
-        fg_color = Gdk.RGBA(alpha=1)
-        fg_color.parse('#ffffff')
-        self.box.override_background_color(Gtk.StateType.NORMAL, color)
-        self.label.override_color(Gtk.StateType.NORMAL, fg_color)
-
-
 class BoolMonitor(object):
     def __init__(self, device, entry, value_map, signal='changed', inverted=False):
         self.device = device
@@ -157,6 +136,34 @@ class BoolMonitor(object):
         else:
             style.remove_class('state-active')
             style.add_class('state-inactive')
+
+
+class ModeMonitor(object):
+    MODE_MAP = {
+        BaseManager.ModeType.MOUNT: 'mounting',
+        BaseManager.ModeType.CENTER: 'centering',
+        BaseManager.ModeType.COLLECT: 'collecting',
+        BaseManager.ModeType.ALIGN: 'aligning',
+        BaseManager.ModeType.UNKNOWN: 'unknown',
+    }
+
+    def __init__(self, device, entry, signal='changed'):
+        self.device = device
+        self.entry = entry
+        self.value_map = self.MODE_MAP
+        self.device.connect(signal, self.on_signal)
+
+    def on_signal(self, obj, state):
+        if state == BaseManager.ModeType.BUSY:
+            self.entry.set_text('BUSY')
+        else:
+            value = self.value_map.get(state, 'unknown')
+            self.entry.set_text(value.upper())
+            style = self.entry.get_style_context()
+
+            for name in self.value_map.values():
+                style.remove_class(f'mode-{name}')
+            style.add_class(f'mode-{value}')
 
 
 class AppNotifier(object):

@@ -8,23 +8,6 @@ from mxdc import Registry, IBeamline
 
 logger = get_module_logger(__name__)
 
-MODE_MAP = {
-    BaseManager.ModeType.MOUNT: 'blue',
-    BaseManager.ModeType.CENTER: 'orange',
-    BaseManager.ModeType.COLLECT: 'green',
-    BaseManager.ModeType.ALIGN: 'red',
-    BaseManager.ModeType.BUSY: 'gray',
-    BaseManager.ModeType.UNKNOWN: 'gray',
-}
-
-COLOR_MAP = {
-    'blue': '#6495ED',
-    'orange': '#DAA520',
-    'red': '#CD5C5C',
-    'green': '#8cd278',
-    'gray': '#708090',
-    'violet': '#9400D3',
-}
 
 
 class StatusPanel(object):
@@ -44,9 +27,7 @@ class StatusPanel(object):
             ),
             common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch, openonly=True),
             common.ShutterSwitcher(self.beamline.fast_shutter, self.widget.shutter_switch),
-            common.ModeMonitor(
-                self.beamline.manager, self.widget.mode_status_box, COLOR_MAP, MODE_MAP, signal='mode'
-            ),
+            common.ModeMonitor(self.beamline.manager, self.widget.mode_fbk, signal='mode'),
         ]
 
         align_msg = ("Are you sure? This procedure may damage \n"

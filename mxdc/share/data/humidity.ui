@@ -137,9 +137,9 @@
                             <property name="width_chars">7</property>
                             <property name="text" translatable="yes">5</property>
                             <property name="xalign">1</property>
-                            <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                            <property name="secondary_icon_name">units-sec-symbolic</property>
                             <property name="secondary_icon_activatable">False</property>
-                            <property name="secondary_icon_sensitive">False</property>
+                            <property name="primary_icon_sensitive">False</property>
                             <property name="input_purpose">number</property>
                             <style>
                               <class name="value-sp"/>
@@ -159,8 +159,10 @@
                             <property name="width_chars">6</property>
                             <property name="text" translatable="yes">2.0</property>
                             <property name="xalign">1</property>
-                            <property name="secondary_icon_pixbuf">units-ang.svg</property>
+                            <property name="secondary_icon_name">units-ang-symbolic</property>
+                            <property name="primary_icon_activatable">False</property>
                             <property name="secondary_icon_activatable">False</property>
+                            <property name="primary_icon_sensitive">False</property>
                             <style>
                               <class name="value-sp"/>
                             </style>

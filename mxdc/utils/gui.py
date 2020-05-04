@@ -857,3 +857,12 @@ def get_symbol(name, catalog, size=None):
             else:
                 pixbuf = GdkPixbuf.Pixbuf.new_from_stream(stream, None)
             return pixbuf
+
+
+
+def register_icons():
+    """
+    Register named icons
+    """
+    theme = Gtk.IconTheme.get_default()
+    theme.add_resource_path('/org/mxdc/data/icons')

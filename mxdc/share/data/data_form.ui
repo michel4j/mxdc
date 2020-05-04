@@ -535,9 +535,8 @@ starting from this.</property>
                         <property name="can_focus">True</property>
                         <property name="width_chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-deg.svg</property>
+                        <property name="secondary_icon_name">units-deg-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -584,9 +583,8 @@ starting from this.</property>
 each starting angle in the dataset</property>
                         <property name="width_chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-deg.svg</property>
+                        <property name="secondary_icon_name">units-deg-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -633,8 +631,7 @@ each starting angle in the dataset</property>
                         <property name="tooltip_text" translatable="yes">Also known as the "delta" angle</property>
                         <property name="width_chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-deg.svg</property>
-                        <property name="secondary_icon_sensitive">False</property>
+                        <property name="secondary_icon_name">units-deg-symbolic</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -682,9 +679,9 @@ of data. This is the inverse
 of the data collection rate.</property>
                         <property name="width_chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                        <property name="secondary_icon_name">units-sec-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
+                        <property name="primary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -730,9 +727,8 @@ of the data collection rate.</property>
                         <property name="tooltip_text" translatable="yes">The percentage of beam to block</property>
                         <property name="width_chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-%.svg</property>
+                        <property name="secondary_icon_name">units-pct-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -778,9 +774,8 @@ of the data collection rate.</property>
                         <property name="tooltip_text" translatable="yes">The beam energy.</property>
                         <property name="width_chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                        <property name="secondary_icon_name">units-kev-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -827,9 +822,8 @@ of the data collection rate.</property>
 360 if not using interleaved data collection.</property>
                         <property name="width_chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-deg.svg</property>
+                        <property name="secondary_icon_name">units-deg-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -879,9 +873,8 @@ beam 'Energy'.</property>
                         <property name="editable">False</property>
                         <property name="width_chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-mm.svg</property>
+                        <property name="secondary_icon_name">units-mm-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -928,9 +921,8 @@ beam 'Energy'.</property>
 resolution expected.</property>
                         <property name="width_chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_pixbuf">units-ang.svg</property>
+                        <property name="secondary_icon_name">units-ang-symbolic</property>
                         <property name="secondary_icon_activatable">False</property>
-                        <property name="secondary_icon_sensitive">False</property>
                         <property name="input_purpose">number</property>
                         <style>
                           <class name="value-sp"/>
@@ -1043,7 +1035,7 @@ resolution expected.</property>
                               <object class="GtkImage">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="pixbuf">folder-template.svg</property>
+                                <property name="icon_name">dir-template-symbolic</property>
                               </object>
                             </child>
                           </object>

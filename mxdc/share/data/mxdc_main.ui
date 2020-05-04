@@ -68,13 +68,16 @@
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">none</property>
                     <child>
-                      <object class="GtkEventBox" id="mode_status_box">
-                        <property name="width_request">100</property>
+                      <object class="GtkEntry" id="mode_fbk">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <child>
-                          <placeholder/>
-                        </child>
+                        <property name="app_paintable">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="editable">False</property>
+                        <property name="width_chars">10</property>
+                        <property name="xalign">0.5</property>
+                        <style>
+                          <class name="mode-fbk"/>
+                        </style>
                       </object>
                     </child>
                     <child type="label">
@@ -930,6 +933,7 @@
                                             <property name="width_chars">8</property>
                                             <property name="text" translatable="yes">0.0 %</property>
                                             <property name="xalign">0.5</property>
+                                            <property name="secondary_icon_name">units-pct-symbolic</property>
                                             <style>
                                               <class name="device-fbk"/>
                                             </style>
@@ -973,8 +977,9 @@
                                             <property name="can_focus">False</property>
                                             <property name="editable">False</property>
                                             <property name="width_chars">8</property>
-                                            <property name="text" translatable="yes">0.0 K</property>
+                                            <property name="text" translatable="yes">0.0 </property>
                                             <property name="xalign">0.5</property>
+                                            <property name="secondary_icon_name">units-kelvin-symbolic</property>
                                             <style>
                                               <class name="device-fbk"/>
                                             </style>
@@ -1020,6 +1025,7 @@
                                             <property name="width_chars">8</property>
                                             <property name="text" translatable="yes">0.0 L/min</property>
                                             <property name="xalign">0.5</property>
+                                            <property name="secondary_icon_name">units-lpm-symbolic</property>
                                             <style>
                                               <class name="device-fbk"/>
                                             </style>
@@ -1065,6 +1071,7 @@
                                             <property name="width_chars">8</property>
                                             <property name="text" translatable="yes">0.0 L/min</property>
                                             <property name="xalign">0.5</property>
+                                            <property name="secondary_icon_name">units-lpm-symbolic</property>
                                             <style>
                                               <class name="device-fbk"/>
                                             </style>
@@ -1114,9 +1121,10 @@
                                                 <property name="width_chars">7</property>
                                                 <property name="text" translatable="yes">5</property>
                                                 <property name="xalign">0.75</property>
-                                                <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                                                <property name="secondary_icon_name">units-sec-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -1320,7 +1328,7 @@
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
                                                         <property name="halign">center</property>
-                                                        <property name="pixbuf">diffraction.png</property>
+                                                        <property name="icon_name">diffraction-symbolic</property>
                                                       </object>
                                                     </child>
                                                   </object>
@@ -3871,8 +3879,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">0.5</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                                                <property name="secondary_icon_name">units-sec-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>
@@ -3918,8 +3928,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">200</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-um.svg</property>
+                                                <property name="secondary_icon_name">units-um-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -3966,7 +3978,7 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">2.0</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-ang.svg</property>
+                                                <property name="secondary_icon_name">units-ang-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -4013,8 +4025,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">200</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-um.svg</property>
+                                                <property name="secondary_icon_name">units-um-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -4063,8 +4077,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">50</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-um.svg</property>
+                                                <property name="secondary_icon_name">units-um-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>
@@ -4204,7 +4220,7 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">0</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-deg.svg</property>
+                                                <property name="secondary_icon_name">units-deg-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
@@ -4855,7 +4871,7 @@
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
-                                                        <property name="pixbuf">periodic.png</property>
+                                                        <property name="icon_name">ptable-symbolic</property>
                                                       </object>
                                                     </child>
                                                   </object>
@@ -4910,9 +4926,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">50</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-%.svg</property>
+                                                <property name="secondary_icon_name">units-pct-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -4960,9 +4977,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">11.2225</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5009,9 +5027,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">0.5</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                                                <property name="secondary_icon_name">units-sec-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5059,9 +5078,10 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">12.6567</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
+                                                <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5305,9 +5325,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">0.5</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                                                <property name="secondary_icon_name">units-sec-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>
@@ -5353,9 +5372,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">50</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-%.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>
@@ -5401,9 +5419,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">12.658</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>
@@ -5475,7 +5492,7 @@
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
-                                                        <property name="pixbuf">periodic.png</property>
+                                                        <property name="icon_name">ptable-symbolic</property>
                                                       </object>
                                                     </child>
                                                   </object>
@@ -5531,9 +5548,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">12.6567</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-key-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5581,9 +5597,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">11.2225</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5849,7 +5864,7 @@
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
-                                                        <property name="pixbuf">periodic.png</property>
+                                                        <property name="icon_name">ptable-symbolic</property>
                                                       </object>
                                                     </child>
                                                   </object>
@@ -5990,9 +6005,9 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">12.6567</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
+                                                <property name="primary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -6040,9 +6055,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">11.2225</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-keV.svg</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -6089,9 +6103,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">50</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-%.svg</property>
+                                                <property name="secondary_icon_name">units-pct-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>
@@ -6137,9 +6150,8 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">0.5</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_pixbuf">units-sec.svg</property>
+                                                <property name="secondary_icon_name">units-sec-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
-                                                <property name="secondary_icon_sensitive">False</property>
                                                 <style>
                                                   <class name="value-sp"/>
                                                 </style>

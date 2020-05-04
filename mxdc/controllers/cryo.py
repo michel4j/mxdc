@@ -32,10 +32,10 @@ class CryoController(Object):
             'shield': self.widget.cryo_shield_fbk
         }
         self.formats = {
-            'temperature': '{:0.0f} K',
-            'level': '{:0.0f} %',
-            'sample': '{:0.1f} L/m',
-            'shield': '{:0.1f} L/m',
+            'temperature': '{:0.0f}',
+            'level': '{:0.0f}',
+            'sample': '{:0.1f}',
+            'shield': '{:0.1f}',
         }
         self.limits = {
             'temperature': (105, 110),

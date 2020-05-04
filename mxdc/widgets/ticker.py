@@ -156,8 +156,10 @@ class TickerChart(Gtk.Box):
             line.set_data(x_data, y_data)
 
         for i, (ymin, ymax) in list(extrema.items()):
-            self.axes[i].set_ylim(ymin, ymax)
-            self.axes[i].set_xlim(xmin, xmax)
+            if ymin != ymax:
+                self.axes[i].set_ylim(ymin, ymax)
+            if xmin != xmax:
+                self.axes[i].set_xlim(xmin, xmax)
 
     def redraw(self):
         self.canvas.draw_idle()

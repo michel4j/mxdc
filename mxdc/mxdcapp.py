@@ -71,6 +71,7 @@ class Application(Gtk.Application):
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
+        gui.register_icons()
         self.connect('shutdown', self.on_shutdown)
 
     def do_startup(self, *args):

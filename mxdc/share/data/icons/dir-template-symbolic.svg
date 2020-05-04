@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0rc1 (09960d6f05, 2020-04-09)"
+   sodipodi:docname="dir-template-symbolic.svg"
+   id="svg8"
+   version="1.1"
+   height="16"
+   width="16">
+  <metadata
+     id="metadata14">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs12" />
+  <sodipodi:namedview
+     inkscape:current-layer="svg8"
+     inkscape:window-maximized="0"
+     inkscape:window-y="27"
+     inkscape:window-x="0"
+     inkscape:cy="11.654637"
+     inkscape:cx="8"
+     inkscape:zoom="21.89"
+     showgrid="false"
+     id="namedview10"
+     inkscape:window-height="740"
+     inkscape:window-width="1606"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <g
+     id="g6"
+     fill="#2e3436" />
+  <path
+     d="m 1.0000005,8.002 h 0.9999996 v 1 H 1.0000005 Z m -1,1 h 1 v 1 h -1 z m 1,1 h 0.9999996 v 1 H 1.0000005 Z m -1,1 h 1 v 1 h -1 z m 1,1 h 0.9999996 v 1 H 1.0000005 Z m -1,1 h 1 v 1 h -1 z m 1.9999996,0 h 1 v 1 h -1 z m 2,0 h 1 v 1 h -1 z m 2,0 H 7 v 1 H 6.0000001 Z M 8,13.002 h 1 v 1 H 8 Z m -6.9999995,1 h 0.9999996 v 1 H 1.0000005 Z m 1.9999996,0 h 1 v 1 h -1 z m 2,0 h 1 v 1 h -1 z M 7,14.002 h 1 v 1 H 7 Z m 2,0 h 1 v 1 H 9 Z M 2,1 C 2,1 1.541,0.986 1.053,1.23 0.564,1.475 0,2.167 0,3 V 8 H 2 V 3 H 6.586 L 8.293,4.707 C 8.4804927,4.8945494 8.7348052,4.9999434 9,5 h 5 v 4 h 2 V 5 C 16,5 16.014,4.541 15.77,4.053 15.525,3.564 14.833,3 14,3 H 9.414 L 7.707,1.293 C 7.5195073,1.1054506 7.2651948,1.0000566 7,1 Z m 10,9.008 v 1.997 h -2 v 1.997 h 2 v 1.996 h 2 v -1.996 h 2 v -1.997 h -2 v -1.997 z"
+     style="marker:none;fill-rule:evenodd"
+     id="path16" />
+</svg>
