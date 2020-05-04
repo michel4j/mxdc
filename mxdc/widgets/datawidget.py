@@ -4,6 +4,7 @@ import uuid
 from gi.repository import Gtk, Gdk, Gio
 
 from mxdc import Registry, IBeamline, Property, Object
+from mxdc.devices.goniometer import GonioFeatures
 from mxdc.utils import gui, converter, datatools, glibref
 from mxdc.utils.datatools import StrategyType, Strategy
 from mxdc.utils.gui import Validator
@@ -38,7 +39,7 @@ def calculate_skip(strategy, total_range, delta, first):
 
 class RunItem(Object):
     class StateType:
-        (ADD, DRAFT, ACTIVE, ERROR, COMPLETE) = list(range(5))
+        (ADD, DRAFT, ACTIVE, PAUSED, ERROR, COMPLETE) = range(6)
 
     state = Property(type=int, default=StateType.DRAFT)
     position = Property(type=int, default=0)
@@ -54,7 +55,6 @@ class RunItem(Object):
     def __init__(self, info=None, state=StateType.DRAFT, uid=None, created=None):
         super().__init__()
         self.connect('notify::info', self.info_changed)
-        self.frames = []
         self.props.created = created if created else time.time()
         self.props.uuid = uid if uid else str(uuid.uuid4())
         self.props.state = state
@@ -62,16 +62,12 @@ class RunItem(Object):
 
     def info_changed(self, *args, **kwargs):
         if self.props.info:
-            self.frames = datatools.generate_frame_names(self.props.info)
-            self.props.size = len(self.frames)
-            if len(self.frames):
-                self.props.title = '{}, ...'.format(self.frames[0])
-            else:
-                self.props.title = '...'
+            self.props.size = datatools.count_frames(self.props.info)
+            self.props.title = '{}_{:04d}, ...'.format(self.info['name'], self.info['first'])
             self.props.subtitle = '{}f {:0.4g}°/{:0.2g}s  @ {:0.5g} keV {}'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
                 self.props.info.get('energy'),
-                '(inverse beam)' if self.props.info.get('inverse') else ''
+                '[INV]' if self.props.info.get('inverse') else ''
             )
 
     def set_progress(self, progress):
@@ -81,9 +77,7 @@ class RunItem(Object):
             return False
 
         self.props.progress = progress
-        if 0.0 < progress < 0.95:
-            self.props.state = RunItem.StateType.ACTIVE
-        elif progress >= 0.95:
+        if progress >= 0.95:
             self.props.state = RunItem.StateType.COMPLETE
         return state != self.props.state  # return True if state changed
 
@@ -112,7 +106,7 @@ class RunItem(Object):
                 return 0
 
     def get_color(self):
-        return Gdk.RGBA(*STATE_COLORS[self.props.state])
+        return Gdk.RGBA(*STATE_COLORS[self.state])
 
     def __getitem__(self, item):
         if self.props.info:
@@ -125,7 +119,8 @@ class RunItem(Object):
 STATE_COLORS = {
     RunItem.StateType.ADD: (1.0, 1.0, 1.0, 0.0),
     RunItem.StateType.DRAFT: (1.0, 1.0, 1.0, 0.0),
-    RunItem.StateType.ACTIVE: (1.0, 1.0, 0.0, 0.1),
+    RunItem.StateType.ACTIVE: (1.0, 1.0, 0.0, 0.2),
+    RunItem.StateType.PAUSED: (1.0, 1.0, 0.0, 0.1),
     RunItem.StateType.COMPLETE: (0.2, 1.0, 0.2, 0.5),
     RunItem.StateType.ERROR: (1.0, 0.0, 0.5, 0.1),
 }
@@ -133,7 +128,8 @@ STATE_COLORS = {
 STATE_PROPERTIES = {
     RunItem.StateType.ADD: ('add-tool', 'list-add-symbolic'),
     RunItem.StateType.DRAFT: ('draft-run', 'content-loading-symbolic'),
-    RunItem.StateType.ACTIVE: ('active-run', 'emblem-synchronizing-symbolic'),
+    RunItem.StateType.ACTIVE: ('active-run', 'system-run-symbolic'),
+    RunItem.StateType.PAUSED: ('paused-run', 'media-playback-pause-symbolic'),
     RunItem.StateType.COMPLETE: ('complete-run', 'object-select-symbolic'),
     RunItem.StateType.ERROR: ('error-run', 'dialog-warning-symbolic'),
 }
@@ -181,11 +177,8 @@ class DataForm(gui.FormManager):
                 Validator.Float(min_res, max_res, default=2.0)
             )
 
-        if name == 'strategy' and 'inverse' not in self.disabled:
+        if name == 'strategy':
             strategy = self.get_value('strategy')
-            inverse_spec = self.fields['inverse']
-            inverse = inverse_spec.field_from(self.builder, self.prefix)
-            inverse.set_sensitive(strategy == StrategyType.FULL)
             defaults = Strategy.get(strategy)
             default_rate = self.beamline.config['default_delta'] / float(self.beamline.config['default_exposure'])
             if 'delta' in defaults and 'exposure' not in defaults:
@@ -193,6 +186,9 @@ class DataForm(gui.FormManager):
             elif 'exposure' in defaults and 'delta' not in defaults:
                 defaults['delta'] = default_rate / defaults['exposure']
                 self.exposure_rate = default_rate
+
+            inverse = self.get_field('inverse')
+            inverse.set_sensitive((strategy == StrategyType.FULL and 'inverse' not in self.disabled))
             self.set_values(defaults)
 
         if name in ['delta', 'strategy', 'range']:
@@ -215,7 +211,7 @@ class DataEditor(gui.BuilderMixin):
 
     Fields = (
         gui.FieldSpec('resolution', 'entry', '{:0.3g}', Validator.Float(0.5, 50, 2.0)),
-        gui.FieldSpec('delta', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 1.)),
+        gui.FieldSpec('delta', 'entry', '{:0.3g}', Validator.AngleFrac(0.001, 720, 1.)),
         gui.FieldSpec('range', 'entry', '{:0.4g}', Validator.Float(0.05, 10000, 1.)),
         gui.FieldSpec('start', 'entry', '{:0.4g}', Validator.Float(-360., 360., 0.)),
         gui.FieldSpec('wedge', 'entry', '{:0.4g}', Validator.Float(0.05, 720., 360.)),
@@ -267,6 +263,11 @@ class DataEditor(gui.BuilderMixin):
         defaults = self.get_default(info['strategy'])
         defaults.update(info)
         self.form.set_values(info)
+
+        # disable/enable inverse field
+        inverse = self.form.get_field('inverse')
+        strategy = self.form.get_value('strategy')
+        inverse.set_sensitive((strategy == StrategyType.FULL and 'inverse' not in self.disabled))
 
     def get_parameters(self):
         info = self.form.get_values()
@@ -360,24 +361,35 @@ class RunEditor(DataEditor):
         self.data_end_point_mbox.bind_property(
             'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda *args: bool(args[1])
         )
-        self.data_vector_size_spin.bind_property(
-            'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda *args: not args[1]
-        )
+        # self.data_vector_size_spin.bind_property(
+        #     'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda *args: not args[1]
+        # )
         for i, name in enumerate(['point', 'end_point']):
             field = self.form.get_field(name)
             if not field: continue
             renderer_text = Gtk.CellRendererText()
             field.pack_start(renderer_text, True)
             field.add_attribute(renderer_text, "text", self.Column.LABEL)
-            choice_column = i + 1
             field.set_model(self.points)
             field.set_id_column(self.Column.LABEL)
             # field.connect('changed', self.sync_choices, choice_column)
 
     def on_points_updated(self, *args, **kwargs):
         num_points = len(self.points)
-        self.data_vector_box.set_sensitive(num_points > 0)
-        self.data_end_point_mbox.set_sensitive(num_points > 1)
+        self.data_vector_box.set_sensitive(num_points > 1)
+
+    def configure(self, info):
+        super().configure(info)
+
+        # disable/enable point fields
+        num_points = len(self.points)
+        self.data_vector_box.set_sensitive(num_points > 1)
+        vector_size = self.form.get_field('vector_size')
+        if self.beamline.goniometer.supports(GonioFeatures.SCAN4D):
+            self.form.set_value('vector_size', 1)
+            vector_size.set_sensitive(False)
+        else:
+            vector_size.set_sensitive(True)
 
 
 class DataDialog(DataEditor):
@@ -385,7 +397,7 @@ class DataDialog(DataEditor):
         'data/data_dialog': ['data_dialog'],
         'data/data_form': ['data_form_fields'],
     }
-    disabled = ['name', 'inverse', 'energy']
+    disabled = ('name', 'inverse', 'energy')
     use_dialog = True
 
     def build_gui(self):
@@ -420,7 +432,7 @@ class RunConfig(gui.Builder):
 
     def update(self):
         style_context = self.saved_run_row.get_style_context()
-        for state, (style_class, icon_name) in list(STATE_PROPERTIES.items()):
+        for state, (style_class, icon_name) in STATE_PROPERTIES.items():
             if self.item.state == state:
                 style_context.add_class(style_class)
                 self.data_icon.set_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)

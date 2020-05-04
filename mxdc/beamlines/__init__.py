@@ -55,16 +55,6 @@ class Beamline(Object):
         self.load_config()
         Registry.add_utility(IBeamline, self)
 
-    def __getitem__(self, key):
-        try:
-            return self.registry[key]
-        except KeyError:
-            keys = key.split('.')
-            v = getattr(self, keys[0])
-            for key in keys[1:]:
-                v = getattr(v, key)
-            return v
-
     def __getattr__(self, key):
         if key in self.registry:
             return self.registry[key]
@@ -176,5 +166,6 @@ def build_beamline(console=False):
     beamline_class_name = PROPERTIES.get('type', 'mxdc.beamlines.mx.MXBeamline')
     BeamlineClass = import_string(beamline_class_name)
     return BeamlineClass(console=console)
+
 
 __all__ = ['Beamline', 'IBeamline', 'build_beamline']

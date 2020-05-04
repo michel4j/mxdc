@@ -34,7 +34,6 @@ class RasterCollector(Engine):
 
     def __init__(self):
         super().__init__()
-        self.collecting = False
         self.pending_results = set()
         self.runs = []
         self.results = {}
@@ -112,11 +111,6 @@ class RasterCollector(Engine):
         self.beamline.detector_cover.close()
 
     def acquire_step(self):
-        self.paused = False
-        self.stopped = False
-
-        self.collecting = True
-        is_first_frame = True
         self.count = 0
         self.prepare(self.config['params'])
 
@@ -149,7 +143,7 @@ class RasterCollector(Engine):
             # perform scan
             if self.stopped or self.paused: break
             self.beamline.detector.configure(**detector_parameters)
-            self.beamline.detector.start(first=is_first_frame)
+            self.beamline.detector.start()
             self.beamline.goniometer.scan(
                 time=frame['exposure'],
                 range=frame['delta'],
@@ -164,7 +158,6 @@ class RasterCollector(Engine):
             self.count += 1
             msg = '{}: {} of {}'.format(self.config['params']['name'], self.count, self.total_frames)
             self.emit('progress', self.count / self.total_frames, msg)
-            is_first_frame = False
             time.sleep(0)
             file_path = os.path.join(frame['directory'], template.format(frame['first']))
             self.analyse_frame(file_path, frame['first'])
@@ -172,19 +165,11 @@ class RasterCollector(Engine):
         while self.pending_results:
             time.sleep(0.5)
 
-        self.collecting = False
-
     def acquire_slew(self):
-        self.paused = False
-        self.stopped = False
-
-        self.collecting = True
-        is_first_frame = True
         self.count = 0
         self.prepare(self.config['params'])
 
         logger.debug('Setting up detector for rastering ... ')
-        template = self.beamline.detector.get_template(self.config['params']['name'])
 
         # Prepare detector
         params = self.config['params']
@@ -229,9 +214,6 @@ class RasterCollector(Engine):
 
         while self.pending_results:
             time.sleep(0.5)
-        self.collecting = False
-
-
 
     @inlineCallbacks
     def analyse_frame(self, file_path, index):

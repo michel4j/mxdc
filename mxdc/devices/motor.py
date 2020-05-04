@@ -278,7 +278,7 @@ class BaseMotor(Device):
                 time.sleep(poll)
             if elapsed >= timeout:
                 logger.warning(
-                    '"{}" Timed-out. Did not stop moving after {:d} sec.'.format(self.name, elapsed)
+                    '"{}" Timed-out. Did not stop moving after {:g} sec.'.format(self.name, elapsed)
                 )
                 return False
         return True

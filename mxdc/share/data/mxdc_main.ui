@@ -2188,6 +2188,7 @@
                                           <object class="GtkScrolledWindow">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
+                                            <property name="shadow_type">in</property>
                                             <child>
                                               <object class="GtkTreeView" id="samples_list">
                                                 <property name="visible">True</property>
@@ -7385,7 +7386,7 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
+                    <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>

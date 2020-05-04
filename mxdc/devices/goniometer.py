@@ -162,13 +162,23 @@ class MD2Gonio(BaseGoniometer):
     MD2-type BaseGoniometer. New Arinax Java Interface
 
     :param root: Server PV name
+    :keyword kappa_enabled: enable Kappa
+    :keyword scan4d: enable 4D scan capability
+    :keyword raster4d: enable 4D rastering capability
+    :keyword triggering: enable detector triggering capability
     """
     NULL_VALUE = '__EMPTY__'
 
-    def __init__(self, root, kappa_enabled=False):
+    def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True):
         super().__init__('MD2 Diffractometer')
         if kappa_enabled:
             self.add_features(GonioFeatures.KAPPA)
+        if scan4d:
+            self.add_features(GonioFeatures.SCAN4D)
+        if raster4d:
+            self.add_features(GonioFeatures.RASTER4D)
+        if triggering:
+            self.add_features(GonioFeatures.TRIGGERING)
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
@@ -322,6 +332,7 @@ class SimGonio(BaseGoniometer):
 
         self.trigger = trigger
         self.trigger_positions = []
+        self.trigger_index = 0
         self.settings = {}
         self._scanning = False
         self._lock = Lock()
@@ -360,9 +371,10 @@ class SimGonio(BaseGoniometer):
             self.omega.move_to(self.settings['angle'] - 0.05, wait=True)
             scan_speed = float(self.settings['range']) / self.settings['time']
             self.omega.configure(speed=scan_speed)
+            self.trigger_index = 0
             self.trigger_positions = numpy.arange(
                 self.settings['angle'],
-                self.settings['range'],
+                self.settings['angle'] + self.settings['range'],
                 self.settings['range']/self.settings.get('frames', 1)
             )
             if self.supports(GonioFeatures.TRIGGERING):
@@ -374,14 +386,16 @@ class SimGonio(BaseGoniometer):
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 
+    @async_call
     def send_triggers(self):
-        if len(self.trigger_positions):
-            if self.omega.get_position() >= self.trigger_positions[0]:
-                self.trigger.on(self._frame_exposure*0.9)
-                self.trigger_positions = self.trigger_positions[1:]
-            return True
-        else:
-            return False
+        logger.debug('starting triggers for {}'.format(self.trigger_positions))
+        while self._scanning and self.trigger_index < len(self.trigger_positions):
+            if self.omega.get_position() >= self.trigger_positions[self.trigger_index]:
+                self.trigger.on(self._frame_exposure*0.5)
+                self.trigger_index += 1
+            if self.trigger_index > len(self.trigger_positions):
+                break
+            time.sleep(0.001)
 
     def scan(self, type='simple', wait=True, timeout=0, start_pos:tuple=None, **kwargs):
         """

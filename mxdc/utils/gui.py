@@ -505,8 +505,19 @@ class Validator(object):
         """
         Convert a value to the specified type and clip it between the specified limits
         """
+
         def __init__(self, lo, hi, default=None):
             super().__init__(float, lo, hi, default)
+
+    class AngleFrac(Float):
+
+        def fix(self, val):
+            return 180. / round(180. / val)
+
+        def __call__(self, val):
+            val = super().__call__(val)
+            return self.fix(val)
+
 
     class Int(Clip):
         """

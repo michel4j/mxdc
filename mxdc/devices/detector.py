@@ -213,9 +213,10 @@ class BaseDetector(Device):
         """
 
         file_path = os.path.join(directory, self.get_template(prefix).format(first))
+
         if os.path.exists(file_path):
             header = read_header(file_path)
-            return [], False
+            return header.get('dataset', {}).get('sequence', []), True
         return [], False
 
 
@@ -290,17 +291,17 @@ class SimDetector(BaseDetector):
 
     def on_trigger(self, trigger, high):
         if high and self.get_state('state') in [States.ACQUIRING, States.ARMED]:
-            logger.debug(f'Received trigger for frame: {self.trigger_count}')
             self._copy_frame()
         else:
             self.trigger_count += 1
+            logger.debug(f'Received trigger for frame: {self.trigger_count}')
 
     def _select_dir(self, name='junk'):
         import hashlib
 
         self._num_frames = 2
 
-        # always select the same dataset for the same name and date
+        # always select the same dataset for the same name
         name_int = int(hashlib.sha1(name.encode('utf8')).hexdigest(), 16) % (10 ** 8)
         if 'pow' in name:
             num_datasets = len(self._powders.keys())
@@ -323,6 +324,11 @@ class SimDetector(BaseDetector):
         shutil.copyfile(src_img, file_path)
         logger.debug('Frame saved: {}'.format(datetime.now().isoformat()))
         self.monitor.add(file_path)
+
+        # progress
+        num_frames = self.parameters['num_frames']
+        self.set_state(progress=((1 + self.trigger_count)/num_frames, 'frames acquired'))
+
 
     @decorators.async_call
     def prepare_datasets(self):

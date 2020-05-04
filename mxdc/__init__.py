@@ -528,7 +528,7 @@ class Engine(Object):
         done = Signal('done', arg_types=(object,))
         error = Signal('error', arg_types=(str,))
         paused = Signal('paused', arg_types=(bool, str))
-        progress = Signal('progress', arg_types=(float, str))
+        progress = Signal('progress', arg_types=(float, object))
 
     def __init__(self):
         super().__init__()

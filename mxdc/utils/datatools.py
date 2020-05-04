@@ -1,17 +1,14 @@
 import copy
-import itertools
-import os
 import glob
+import os
 import re
-import pytz
-from datetime import datetime
 from collections import defaultdict
 from datetime import date
+from datetime import datetime
 
 import numpy
+import pytz
 from mxio import read_header
-
-from mxdc.conf import settings
 from mxdc.utils import misc
 
 FRAME_NUMBER_DIGITS = 4
@@ -88,6 +85,8 @@ def update_for_sample(info, sample=None, overwrite=True):
     # Add directory and related auxillary information to dictionary
     # provides values for {session} {sample}, {group}, {container}, {port}, {date}, {activity}
 
+    from mxdc.conf import settings
+
     sample = {} if not sample else sample
     params = copy.deepcopy(info)
 
@@ -116,6 +115,7 @@ def update_for_sample(info, sample=None, overwrite=True):
                 break
     params['sample'] = sample
     return params
+
 
 class NameManager(object):
     """
@@ -151,77 +151,50 @@ class NameManager(object):
         return new_name
 
 
-def fix_name(name, names, index):
+def summarize_list(values):
+    """
+    Takes a list of integers such as [1,2,3,4,6,7,8] and summarises it as a string "1-4,6-8"
+    
+    :param values: 
+    :return: string
+    """
 
-    if not names:
-        new_name = name
-    elif name in names:
-        m = re.match(r'(.+)(\d+)', name)
-        if m:
-            new_name = "{}{}".format(m.group(1), int(m.group(2))+1)
-        else:
-            new_name = "{}{}".format(name, 1)
-    else:
-        new_name = name
-
-    return new_name
-
-
-def add_framsets(run):
-    info = copy.deepcopy(run)
-    info['frame_sets'] = generate_frame_sets(info)
-    return info
+    sorted_values = numpy.array(sorted(values))
+    summaries = [
+        (f'{chunk[0]}-{chunk[-1]}' if len(chunk) > 1 else f'{chunk[0]}')
+        for chunk in  numpy.split(sorted_values, numpy.where(numpy.diff(sorted_values) > 1)[0] + 1)
+        if len(chunk)
+    ]
+    return ','.join(summaries)
 
 
-def summarize_list(full_frame_set):
-    # takes a list of integers such as [1,2,3,4,6,7,8]
-    # and reduces it to the string "1-4,6-8"
-    sum_list = []
-    tmp_pairs = []
-    full_set = list(set(full_frame_set))
+def summarize_gaps(values):
+    """
+    Takes a list of integers such as [1,2,3,4,7,8] and reduces it to the string of skipped regions such as "5-6"
+    
+    :param values: 
+    :return: string summary
+    """
 
-    if len(full_set) == 0:
-        return ""
-    full_set.sort()
-    cur = full_set.pop(0)
-    tmp_pairs.append([cur, cur])
-    while len(full_set) > 0:
-        cur = full_set.pop(0)
-        last_pair = tmp_pairs[-1]
-        if (cur - last_pair[-1]) == 1:
-            last_pair[-1] = cur
-        else:
-            tmp_pairs.append([cur, cur])
-
-    for st, en in tmp_pairs:
-        if st == en:
-            sum_list.append('{}'.format(st, ))
-        else:
-            sum_list.append('{}-{}'.format(st, en))
-    return ','.join(sum_list)
-
-
-def summarize_gaps(frame_list):
-    # takes a list of integers such as [1,2,3,4,7,8]
-    # and reduces it to the string of skipped regions such as "5-6"
-
-    complete_set = set(range(1, max(frame_list) + 1))
-    frame_set = set(frame_list)
+    complete_set = set(range(1, max(values) + 1))
+    frame_set = set(values)
     full_set = list(complete_set.difference(frame_set))
     return summarize_list(full_set)
 
 
-def generate_frames(wedge):
-    frame_list = []
-    # initialize general parameters
-    for i in range(wedge['num_frames']):
-        # generate frame info
-        frame = {
-            'dataset': wedge['name'],
+def generate_frames(wedge: dict):
+    """
+    Generate individual frames for the given wedge
+
+    :param wedge: wedge information
+    :return: A generator of frame parameter dicts
+    """
+
+    return ({
+            'name': wedge['name'],
             'uuid': wedge.get('uuid'),
             'saved': False,
             'first': i + wedge['first'],
-            'frame_name': wedge['frame_template'].format(i + wedge['first']),
             'start': wedge['start'] + i * wedge['delta'],
             'delta': wedge['delta'],
             'exposure': wedge['exposure'],
@@ -231,35 +204,8 @@ def generate_frames(wedge):
             'attenuation': wedge.get('attenuation', 0.0),
             'directory': wedge['directory'],
         }
-        frame_list.append(frame)
-
-    return frame_list
-
-
-def generate_collection_list(run, frame_set):
-    collection_list = []
-
-    # generate frame info
-    first_frame, start_angle = frame_set[0]
-    data_set = {
-        'uuid': run.get('uuid'),
-        'dataset': run['name'],
-        'name': run['name'],
-        'frame_template': make_file_template(run['name']),
-        'start': start_angle,
-        'first': first_frame,
-        'num_frames': len(frame_set),
-        'delta': run['delta'],
-        'exposure': run.get('exposure', 1.0),
-        'energy': run.get('energy', 12.658),
-        'distance': run['distance'],
-        'two_theta': run.get('two_theta', 0.0),
-        'attenuation': run.get('attenuation', 0.0),
-        'directory': run['directory'],
-        'point': run.get('point', None)
-    }
-    collection_list.append(data_set)
-    return collection_list
+        for i in range(wedge['num_frames'])
+    )
 
 
 def calc_range(run):
@@ -285,9 +231,14 @@ def get_frame_numbers(run):
     :return: a set of integers
     """
     total_range = calc_range(run)
-    num_frames = max(1, int(total_range / run.get('delta', 1.0)))
+    num_frames = max(1, int(total_range / run['delta']))
     first = run.get('first', 1)
     frame_numbers = set(range(first, num_frames + first))
+
+    if run.get("inverse"):
+        first = first + int(180. / run['delta'])
+        frame_numbers |= set(range(first, num_frames + first))
+
     excluded = set(frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', ''))))
     return frame_numbers - excluded
 
@@ -303,25 +254,15 @@ def calc_num_frames(strategy, delta, range, skip=''):
     """
 
     if strategy in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
-        size = max(1, range/delta)
+        size = max(1, range / delta)
         total_range = ScreeningRange.get(strategy, range) + size * delta
     else:
         total_range = range
 
-    num_frames = max(1, int(total_range/delta))
+    num_frames = max(1, int(total_range / delta))
 
     excluded = len(frameset_to_list(skip))
     return num_frames - excluded
-
-def generate_frame_names(run):
-    # get the list of frame names for the given run
-    valid_numbers = get_frame_numbers(run)
-    template = make_file_template(run['name'])
-    names = [template.format(index) for index in sorted(valid_numbers)]
-    if run.get('inverse', False):
-        inverse_start = int(180.0 / run.get('delta', 1.0)) + run.get('first', 1)
-        names += [template.format(index + inverse_start) for index in sorted(valid_numbers)]
-    return names
 
 
 def count_frames(run):
@@ -329,100 +270,6 @@ def count_frames(run):
         return 1
     else:
         return len(get_frame_numbers(run))
-
-
-def generate_frame_sets(run, show_number=True):
-    make_wedges(run)
-    frame_sets = []
-
-    # initialize general parameters
-    delta_angle = run.get('delta', 1.0)
-    total_angle = calc_range(run)
-    first_frame = run.get('first', 1)
-    start_angle = run.get('start', 0.0)
-
-    wedge = run.get('wedge', 360.0)
-
-    # make sure wedge is good
-    if wedge < total_angle:
-        wedge = delta_angle * round(wedge / delta_angle)
-
-    # generate list of frames to exclude from skip
-    excluded_frames = frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', '')))
-    n_wedge = int(round(wedge / delta_angle))  # number of frames in a wedge
-
-    # inverse beam
-    if run.get('inverse', False):
-        offsets = [0.0, 180.0]
-    else:
-        offsets = [0.0, ]
-
-    # first wedge
-    wedge_start = start_angle
-    while wedge_start <= start_angle + (total_angle - delta_angle):
-        wedge_list = []
-        for offset in offsets:
-            for i in range(n_wedge):
-                angle = wedge_start + i * delta_angle
-                if angle > start_angle + (total_angle - delta_angle):
-                    break
-                angle += offset
-
-                frame_number = int(round(first_frame + (angle - start_angle) / delta_angle))
-                if frame_number in excluded_frames:
-                    # new wedge if skipping
-                    if wedge_list:
-                        frame_sets.append(wedge_list)
-                        wedge_list = []
-                else:
-                    wedge_list.append((frame_number, angle))
-
-        if wedge_list:
-            frame_sets.append(wedge_list)
-
-        wedge_start += wedge
-    return frame_sets
-
-
-def generate_run_list(runs):
-    datasets, wedges = generate_wedges(runs)
-    run_list = list(itertools.chain.from_iterable(generate_frames(wedge) for wedge in wedges))
-    return run_list
-
-
-class Interleaver(object):
-    """Produce lists of framesets for specified wedge at a time until consumed"""
-
-    def __init__(self, dataset):
-        self.dataset = dataset
-        self.wedges = make_wedges(dataset)
-        self.position = 0
-
-    def has_items(self):
-        return self.position < len(self.wedges)
-
-    def fetch(self):
-        if self.has_items():
-            pos = self.position
-            self.position += 1
-            return self.wedges[pos]
-
-
-def generate_wedges(runs):
-    dispensers = [Interleaver(d) for d in runs]
-    items_exist = any(disp.has_items() for disp in dispensers)
-    pos = 0
-    wedge_list = []
-    while items_exist:
-        chunk = dispensers[pos].fetch()
-
-        if chunk:
-            # update wedge weight (total exposure for wedge)
-            chunk['weight'] = chunk['exposure']*chunk['num_frames']
-            wedge_list.append(chunk)
-        items_exist = any(disp.has_items() for disp in dispensers)
-        pos = (pos + 1) % len(dispensers)
-    return runs, wedge_list
 
 
 def dataset_from_files(directory, file_glob):
@@ -448,7 +295,7 @@ def dataset_from_files(directory, file_glob):
     full_set = [int(m.group(1)) for f in data_files for m in [file_pattern.search(f)] if m]
     return {
         'start_time': start_time,
-        'frames':summarize_list(full_set),
+        'frames': summarize_list(full_set),
         'num_frames': len(full_set),
     }
 
@@ -499,15 +346,20 @@ def template_to_glob(template):
     return re.sub(r'{[^{}]*}', '*', template)
 
 
-def grid_frames(params):
+def grid_frames(params: dict):
+    """
+    Generate frame parameters for individual grid data frames when performed in step mode.
+
+    :param params: run parameters
+    :return: list of dictionaries representing a frame each
+    """
     frame_template = make_file_template(params['name'])
     return (
         {
-            'dataset': params['name'],
+            'name': params['name'],
             'uuid': params['uuid'],
             'saved': False,
-            'first': i+1,
-            'frame_name': frame_template.format(i),
+            'first': i + 1,
             'start': params['angle'],
             'delta': params['delta'],
             'exposure': params['exposure'],
@@ -522,68 +374,168 @@ def grid_frames(params):
     )
 
 
-def _split_wedge(a):
-    return numpy.split(a, numpy.where(numpy.diff(a) > 1)[0] + 1)
+def wedge_points(start, end, steps):
+    """
+    Split the given starting and ending point into the given number of steps
 
+    :param start: start point coordinates (tuple of values) or None
+    :param end: end point coordinates (tuple of values) or None
+    :param steps: number of steps
+    :return: array of point pairs corresponding to the start and end of each sub section
+    """
 
-def _calc_points(start, end, steps):
     if not start:
-        return numpy.array([None] * steps)
+        points = numpy.array([None] * (steps + 1))
     elif not end:
-        end = start
-        return numpy.array([start] + [None] * (steps - 1))
-    return numpy.linspace(start, end, steps)
+        points = numpy.array([start] + [None] * (steps))
+    else:
+        points = numpy.linspace(start, end, steps + 1)
+    return numpy.take(points, [[i, i + 1] for i in range(points.shape[0] - 1)], axis=0)
 
 
-def make_wedges(run):
+def make_wedges(run: dict):
+    """
+    Given run parameters, generate all wedges required to implement the experiment except for inverse beam
+    which is handled much later after interleaving. This includes calculating the starting point for multi-point/vector
+    data collection.
+
+    :param run: dictionary of run parameters.
+    :return: list of dictionaries each representing a wedge.
+    """
     delta = run.get('delta', 1.0)
     total = calc_range(run)
     first = run.get('first', 1)
-    if run.get('vector_size') and run.get('end_point'):
-        wedge = total // run['vector_size']
-    else:
-        wedge = min(run.get('wedge', 180), total)
 
-    num_wedges = int(total / wedge)
-    points = _calc_points(run.get('point'), run.get('end_point'), num_wedges)
+    # reconcile vector_size with requested wedge size. vector_size should be 1 for 4D helical scans
+    vector_slice = total // run['vector_size'] if run.get('vector_size') and run.get('end_point') else total
+    slice = min(vector_slice, run.get('wedge', 180), total)
 
-    wedge_frames = int(wedge / delta)
+    # determine start point,  end point and list of frames for each wedge
+    num_wedges = int(total / slice)
+    positions = wedge_points(run.get('point'), run.get('end_point'), num_wedges)
+    wedge_frames = int(slice / delta)
     wedge_numbers = numpy.arange(wedge_frames)
 
-    full_wedges = [
-        (points[i], (first + i * wedge_frames + wedge_numbers).tolist())
+    frames_points = [
+        (positions[i][0], positions[i][1], (first + i * wedge_frames + wedge_numbers).tolist())
         for i in range(num_wedges)
     ]
+
+    # remove skipped or existing frames.
     excluded = frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', '')))
-    raw_wedges = [
-        (point, numpy.array(sorted(set(wedge) - set(excluded))))
-        for point, wedge in full_wedges
+    wedge_info = [
+        (start_pos, end_pos, numpy.array(sorted(set(frames) - set(excluded))))
+        for start_pos, end_pos, frames in frames_points
     ]
+
+    # split discontinuous sections into independent wedges
     wedges = [
-        (point, w)
-        for point, wedge in raw_wedges
-        for w in _split_wedge(wedge) if wedge.shape[0]
+        (start_pos, end_pos, chunk)
+        for start_pos, end_pos, frames in wedge_info
+        for chunk in numpy.split(frames, numpy.where(numpy.diff(frames) > 1)[0] + 1)
+        if frames.shape[0]
     ]
 
     return [
         {
             'uuid': run.get('uuid'),
-            'dataset': run['name'],
             'name': run['name'],
-            'frame_template': make_file_template(run['name']),
+            'directory': run['directory'],
             'start': run['start'] + (frames[0] - run['first']) * run['delta'],
             'first': frames[0],
             'num_frames': len(frames),
             'delta': run['delta'],
-            'exposure': run.get('exposure', 1.0),
-            'energy': run.get('energy', 12.658),
+            'exposure': run['exposure'],
             'distance': run['distance'],
+            'energy': run.get('energy', 12.658),
             'two_theta': run.get('two_theta', 0.0),
             'attenuation': run.get('attenuation', 0.0),
-            'directory': run['directory'],
-            'point': point
+            'point': start_pos if start_pos is None else tuple(start_pos),
+            'end_point': end_pos if end_pos is None else tuple(end_pos),
+            'inverse': run.get('inverse', False),
+            'weight': run['exposure'] * len(frames)
         }
-        for point, frames in wedges
+        for start_pos, end_pos, frames in wedges
     ]
 
 
+class WedgeDispenser(object):
+    """
+    Given a data run, generate sequences of wedges to be interleaved. Typically the sequences
+    will contain a single wedge but when inverse beam is used, pairs are generated each time
+
+    :param run: run parameters
+    """
+
+    def __init__(self, run: dict):
+        self.details = run
+        self.sample = run.get('sample', {})
+
+        # generate main wedges
+        self.wedges = make_wedges(self.details)
+        self.num_wedges = len(self.wedges)
+        self.pos = 0
+
+        # total weights for progress
+        self.weight = sum(wedge['weight'] for wedge in self.wedges)
+        self.weight *= 2 if self.details.get('inverse') else 1  # inverse beam takes twice as long
+
+        # progress housekeeping
+        self.complete = 0
+        self.pending = 0
+        self.progress = 0.0
+        self.factor = 1
+
+    def set_progress(self, fraction):
+        """
+        Set the percentage of the current wedge that has been completed
+
+        :param fraction: fraction of current pending workload that is complete set to 1 if complete.
+        """
+
+        self.progress = (self.complete + (fraction * self.pending) / self.factor) / self.weight
+        if fraction == 1.0:
+            self.complete += (fraction * self.pending)/self.factor
+
+    def has_items(self):
+        """
+        Check if wedges remain
+        """
+        return self.pos < self.num_wedges
+
+    def fetch(self):
+        """
+        Produce collections of one or more two
+        """
+        if self.pos >= self.num_wedges:
+            return ()
+
+        wedge = self.wedges[self.pos]
+        self.pos += 1
+        self.pending = wedge['weight']
+
+        # prepare inverse beam
+        if wedge['inverse']:
+            inv_wedge = copy.deepcopy(wedge)
+            inv_wedge['first'] += int(180. / wedge['delta'])
+            inv_wedge['start'] += 180.
+            self.factor = 2
+            return (wedge, inv_wedge)
+        else:
+            self.factor = 1
+            return (wedge,)
+
+
+def interleave(*datasets):
+    """
+    For the provided Wedge dispensers, yield one wedge at a time in the right order
+
+    :param datasets: WedgeDispenser objects
+    :return: generator of wedge parameters
+    """
+
+    while any(dataset.has_items() for dataset in datasets):
+        for dataset in datasets:
+            if dataset.has_items():
+                for wedge in dataset.fetch():
+                    yield wedge

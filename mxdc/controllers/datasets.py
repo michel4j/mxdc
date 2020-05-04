@@ -176,7 +176,7 @@ class AutomationController(Object):
     def on_state_changed(self, obj, param):
         if self.props.state == self.StateType.ACTIVE:
             self.widget.auto_collect_icon.set_from_icon_name(
-                "media-playback-pause-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "media-playback-pause-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.auto_stop_btn.set_sensitive(True)
             self.widget.auto_collect_btn.set_sensitive(True)
@@ -185,7 +185,7 @@ class AutomationController(Object):
         elif self.props.state == self.StateType.PAUSED:
             self.widget.auto_progress_lbl.set_text("Automation paused!")
             self.widget.auto_collect_icon.set_from_icon_name(
-                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.auto_stop_btn.set_sensitive(True)
             self.widget.auto_collect_btn.set_sensitive(True)
@@ -193,7 +193,7 @@ class AutomationController(Object):
             self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.StateType.PENDING:
             self.widget.auto_collect_icon.set_from_icon_name(
-                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.auto_sequence_box.set_sensitive(False)
             self.widget.auto_collect_btn.set_sensitive(False)
@@ -201,7 +201,7 @@ class AutomationController(Object):
             self.widget.auto_groups_btn.set_sensitive(False)
         else:
             self.widget.auto_collect_icon.set_from_icon_name(
-                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.auto_stop_btn.set_sensitive(False)
             self.widget.auto_collect_btn.set_sensitive(True)
@@ -344,13 +344,11 @@ class DatasetsController(Object):
         self.pause_info = False
         self.start_time = 0
         self.monitors = {}
-        self.frame_manager = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
         self.run_editor = datawidget.RunEditor()
         self.editor_frame = arrowframe.ArrowFrame()
         self.editor_frame.add(self.run_editor.data_form)
-        #self.editor_frame.set_size_request(300, -1)
         self.widget.datasets_overlay.add_overlay(self.editor_frame)
         self.run_store = Gio.ListStore(item_type=datawidget.RunItem)
         self.run_store.connect('items-changed', self.on_runs_changed)
@@ -425,7 +423,17 @@ class DatasetsController(Object):
         config.set_item(item)
         return config.get_widget()
 
+    def auto_save_run(self):
+        item = self.run_editor.item
+        # auto save current parameters
+        if item and item.props.state not in [datawidget.RunItem.StateType.ADD, datawidget.RunItem.StateType.COMPLETE]:
+            info = self.run_editor.get_parameters()
+            item.props.info = info
+            item.props.state = datawidget.RunItem.StateType.DRAFT
+            self.check_run_store()
+
     def on_row_activated(self, list, row):
+        self.auto_save_run()
         self.editor_frame.set_row(row)
         position = row.get_index()
         item = self.run_store.get_item(position)
@@ -470,7 +478,7 @@ class DatasetsController(Object):
 
     def generate_run_list(self):
         runs = []
-        self.frame_manager = {}  # initialize frame manager
+
         pos = 0
         item = self.run_store.get_item(pos)
         sample = self.sample_store.get_current()
@@ -480,10 +488,6 @@ class DatasetsController(Object):
                 run.update(item.info)
                 run = datatools.update_for_sample(run, sample)
                 runs.append(run)
-                self.frame_manager.update({
-                    frame: item for frame in item.frames
-                })
-                item.collected = set()
             pos += 1
             item = self.run_store.get_item(pos)
         return runs
@@ -500,7 +504,12 @@ class DatasetsController(Object):
 
         # check for existing files
         if any(pair[0] for pair in existing.values()):
-            details = '\n'.join(['{}: {}'.format(k, v[0]) for k, v in list(existing.items())])
+            details = '\n'.join([
+                '{}: {}'.format(k, datatools.summarize_list(v[0]))
+                for k, v in existing.items()
+                if v[0]
+
+            ])
             header = 'Frames from this sequence already exist!\n'
             sub_header = details + (
                 '\n\n<b>What would you like to? </b>\n'
@@ -655,7 +664,6 @@ class DatasetsController(Object):
             eta = '--:--'
         self.widget.collect_eta.set_text(eta)
         self.widget.collect_pbar.set_fraction(fraction)
-        self.widget.collect_progress_lbl.set_text('Acquiring images ... {:0.2%}'.format(fraction))
 
     def on_done(self, obj, completion):
         self.complete_run(completion)
@@ -677,7 +685,7 @@ class DatasetsController(Object):
 
     def complete_run(self, completion):
         self.widget.datasets_collect_btn.set_sensitive(True)
-        self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR)
+        self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR)
         self.widget.datasets_clean_btn.set_sensitive(True)
         self.widget.datasets_overlay.set_sensitive(True)
         self.collecting = False
@@ -707,11 +715,27 @@ class DatasetsController(Object):
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
             self.widget.dsets_dir_fbk.set_text(wedge['directory'])
+            progress_text = "Acquiring frames {}-{} of '{}' ...".format(
+                wedge['first'], wedge['first'] + wedge['num_frames'] - 1, wedge['name']
+            )
+            self.widget.collect_progress_lbl.set_text(progress_text)
+
+            # mark progress
+            count = 0
+            item = self.run_store.get_item(count)
+            while item:
+                if item.uuid == wedge['uuid']:
+                    item.props.state = item.StateType.ACTIVE
+                elif item.state not in [item.StateType.COMPLETE, item.StateType.ADD]:
+                    item.props.state = item.StateType.PAUSED
+                count += 1
+                item = self.run_store.get_item(count)
 
     def on_new_image(self, obj, frame):
         self.image_viewer.show_frame(frame)
 
     def on_collect_btn(self, obj):
+        self.auto_save_run()
         self.widget.datasets_collect_btn.set_sensitive(False)
         if self.collecting:
             self.stopping = True
@@ -727,10 +751,11 @@ class DatasetsController(Object):
             success, checked_runs, existing = self.check_runlist(runs)
             if success:
                 self.collecting = True
-                self.widget.collect_btn_icon.set_from_icon_name("media-playback-stop-symbolic",
-                                                                Gtk.IconSize.LARGE_TOOLBAR)
+                self.widget.collect_btn_icon.set_from_icon_name(
+                    "media-playback-stop-symbolic", Gtk.IconSize.SMALL_TOOLBAR
+                )
                 self.widget.collect_progress_lbl.set_text("Starting acquisition ...")
                 self.widget.collect_pbar.set_fraction(0)
-                self.collector.configure(checked_runs, existing=existing, analysis='default')
+                self.collector.configure(checked_runs, analysis='default')
                 self.collector.start()
                 self.image_viewer.set_collect_mode(True)

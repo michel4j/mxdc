@@ -36,7 +36,7 @@ class SingleCollector(Engine):
         frame_template = self.beamline.detector.get_template(parameters['name'])
         self.config['params'] = parameters
         self.config['frame'] = {
-            'dataset': parameters['name'],
+            'name': parameters['name'],
             'uuid': parameters['uuid'],
             'saved': False,
             'first': 1,

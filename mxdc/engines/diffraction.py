@@ -1,3 +1,4 @@
+import itertools
 import os
 import time
 from datetime import datetime
@@ -42,9 +43,8 @@ class DataCollector(Engine):
         self.results = []
         self.config = {}
         self.total = 1
-        self.count = 0
         self.current_wedge = None
-        self.completion = {}
+
         self.analyst = Registry.get_utility(IAnalyst)
         self.progress_link = self.beamline.detector.connect('progress', self.on_progress)
         self.unwatch_frames()
@@ -52,13 +52,12 @@ class DataCollector(Engine):
         self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
 
-    def configure(self, run_data, take_snapshots=True, existing=0, analysis=None, anomalous=False):
+    def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
         """
         Configure the data collection engine
 
         :param run_data: information about the data runs to collect
         :param take_snapshots: bool, whether to take sample snapshot images or not
-        :param existing: existing frames
         :param analysis: bool, whether to run analysis after acquiring frames
         :param anomalous: bool, enable analysis mode for data analysis
         """
@@ -67,23 +66,39 @@ class DataCollector(Engine):
         self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
-        datasets, wedges = datatools.generate_wedges(self.config['runs'])
-        self.config['wedges'] = wedges
-        self.config['datasets'] = datasets
-        self.config['existing'] = existing
-        self.completion = {}
+        self.config['datasets'] = {
+            run['uuid']: datatools.WedgeDispenser(run) for run in self.config['runs']
+        }
+
+    def prepare_for_wedge(self, wedge):
+        logger.debug('Preparing for new dataset wedge ...')
+        # setup folder for wedge
+        self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
 
         # delete existing frames
-        for wedge in wedges:
-            self.completion[wedge['uuid']] = 0.0
-            frames = [i + wedge['first'] for i in range(wedge['num_frames'])]
-            self.beamline.detector.delete(wedge['directory'], wedge['name'], frames)
+        frames = [i + wedge['first'] for i in range(wedge['num_frames'])]
+        self.beamline.detector.delete(wedge['directory'], wedge['name'], frames)
+
+        # make sure shutter is closed before starting
+        self.beamline.fast_shutter.close()
+
+        # setup devices
+        if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
+            self.beamline.energy.move_to(wedge['energy'], wait=True)
+
+        if abs(self.beamline.distance.get_position() - wedge['distance']) >= 0.1:
+            self.beamline.distance.move_to(wedge['distance'], wait=True)
+
+        self.beamline.attenuator.set(wedge['attenuation'], wait=True)
+        logger.debug('Ready for acquisition.')
 
     def run(self):
         self.collecting = True
         self.beamline.detector_cover.open(wait=True)
-        self.count = self.config['existing']
-        self.total = sum([wedge['weight'] for wedge in self.config['wedges']])  # total raw time for all wedges
+        self.total = sum([
+            dataset.weight for dataset in self.config['datasets'].values()
+        ])  # total raw time for all wedges
+
         current_attenuation = self.beamline.attenuator.get()
         self.watch_frames()
 
@@ -109,7 +124,11 @@ class DataCollector(Engine):
             self.config['end_time'] = datetime.now(tz=pytz.utc)
 
         if self.stopped or self.paused:
-            self.emit('stopped', self.completion)
+            completion = {
+                uid: dataset.progress
+                for uid, dataset in self.config['datasets'].items()
+            }
+            self.emit('stopped', completion)
         else:
             self.emit('done', None)
 
@@ -120,18 +139,18 @@ class DataCollector(Engine):
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
         time.sleep(2.0)
 
-        for dataset in self.config['datasets']:
+        for uid, dataset in self.config['datasets'].items():
             metadata = self.save(dataset)
             self.results.append(metadata)
             if metadata and self.config['analysis']:
-                self.analyse(metadata, dataset['sample'])
+                self.analyse(metadata, dataset.sample)
 
         return self.results
 
     def run_simple(self):
         is_first_frame = True
 
-        for wedge in self.config['wedges']:
+        for wedge in datatools.interleave(*self.config['datasets'].values()):
             self.emit('started', wedge)
             self.current_wedge = wedge
             if self.stopped or self.paused: break
@@ -142,7 +161,7 @@ class DataCollector(Engine):
                 # Prepare image header
                 energy = self.beamline.energy.get_position()
                 detector_parameters = {
-                    'file_prefix': frame['dataset'],
+                    'file_prefix': frame['name'],
                     'start_frame': frame['first'],
                     'directory': frame['directory'],
                     'wavelength': energy_to_wavelength(energy),
@@ -182,7 +201,7 @@ class DataCollector(Engine):
         is_first_frame = True
         # Perform scan
 
-        for wedge in self.config['wedges']:
+        for wedge in datatools.interleave(*self.config['datasets'].values()):
             self.emit('started', wedge)
             self.current_wedge = wedge
             if self.stopped or self.paused:
@@ -190,7 +209,7 @@ class DataCollector(Engine):
             self.prepare_for_wedge(wedge)
             energy = self.beamline.energy.get_position()
             detector_parameters = {
-                'file_prefix': wedge['dataset'],
+                'file_prefix': wedge['name'],
                 'start_frame': wedge['first'],
                 'directory': wedge['directory'],
                 'wavelength': energy_to_wavelength(energy),
@@ -208,7 +227,7 @@ class DataCollector(Engine):
                 break
 
             # Perform scan
-            logger.info("Collecting Shutterless {} frames for dataset {}...".format(wedge['num_frames'], wedge['dataset']))
+            logger.info("Collecting Shutterless {} frames for dataset {}...".format(wedge['num_frames'], wedge['name']))
             logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
@@ -223,47 +242,30 @@ class DataCollector(Engine):
                 wait=True,
                 start_pos=wedge.get('start_pos'),
                 end_pos=wedge.get('end_pos'),
-                timeout=wedge['exposure'] * wedge['num_frames'] * 1.2,
+                timeout=wedge['exposure'] * wedge['num_frames'] * 2,
             )
             self.beamline.detector.save()
             is_first_frame = False
             time.sleep(0)
 
     def take_snapshots(self):
-        if self.config['take_snapshots'] and self.config['wedges']:
-            wedges = self.config['wedges']
-            prefix = os.path.commonprefix([wedge['dataset'] for wedge in wedges]) or 'SNAPSHOT'
-            wedge = wedges[0]
+        if self.config['take_snapshots'] and self.config['datasets']:
+            names = [dataset.details['name'] for dataset in self.config['datasets'].values()]
+            prefix = os.path.commonprefix(names) or 'SNAPSHOT'
+            dataset = list(self.config['datasets'].values())[0]
 
             # setup folder
-            self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
+            self.beamline.dss.setup_folder(dataset.details['directory'], misc.get_project_name())
 
             # take snapshot
-            snapshot_file = os.path.join(wedge['directory'], f'{prefix}.png')
+            snapshot_file = os.path.join(dataset.details['directory'], f'{prefix}.png')
             if not os.path.exists(snapshot_file):
                 logger.info('Taking snapshot ...')
                 img = self.beamline.sample_camera.get_frame()
                 img.save(snapshot_file)
 
-    def prepare_for_wedge(self, wedge):
-        logger.debug('Preparing for new dataset wedge ...')
-        # setup folder for wedge
-        self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
-
-        # make sure shutter is closed before starting
-        self.beamline.fast_shutter.close()
-
-        # setup devices
-        if abs(self.beamline.energy.get_position() - wedge['energy']) >= 0.0005:
-            self.beamline.energy.move_to(wedge['energy'], wait=True)
-
-        if abs(self.beamline.distance.get_position() - wedge['distance']) >= 0.1:
-            self.beamline.distance.move_to(wedge['distance'], wait=True)
-
-        self.beamline.attenuator.set(wedge['attenuation'], wait=True)
-        logger.debug('Ready for acquisition.')
-
-    def save(self, params):
+    def save(self, dataset):
+        params = dataset.details
         template = self.beamline.detector.get_template(params['name'])
         reference = template.format(params['first'])
 
@@ -324,8 +326,12 @@ class DataCollector(Engine):
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
     def on_progress(self, obj, fraction, message):
-        overall = fraction * self.current_wedge['weight']/self.total
-        self.completion[self.current_wedge['uuid']] = fraction
+        self.config['datasets'][self.current_wedge['uuid']].set_progress(fraction)
+
+        overall = sum([
+            dataset.progress*dataset.weight for dataset in self.config['datasets'].values()
+        ])/self.total
+
         if not (self.paused or self.stopped):
             self.set_state(progress=(overall, message))
 
@@ -349,7 +355,7 @@ class DataCollector(Engine):
             run['existing'] = datatools.summarize_list(existing)
             collected += len(datatools.frameset_to_list(run['existing']))
 
-        self.configure(self.config['runs'], existing=collected, take_snapshots=False)
+        self.configure(self.config['runs'], take_snapshots=False)
         self.beamline.all_shutters.open()
         self.start()
 
