@@ -324,7 +324,7 @@ class DataEditor(gui.BuilderMixin):
 
     def on_dir_template(self, btn):
         app = Gio.Application.get_default()
-        app.activate_action('preferences')
+        app.window.activate_action('preferences')
 
     def update(self, *args, **kwargs):
         if self.item.props.state == RunItem.StateType.ADD:
