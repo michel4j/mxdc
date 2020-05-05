@@ -1,13 +1,4 @@
 # Settings for SIM Beamline
-# copy this file to a dedicated directory, and set the $MXDC_CONFIG environment variable
-# to point to the directory before starting MxDC.  The directory can contain
-# as many config files as desired, one per sub-net.
-#
-# Config files are read in pairs  XXXX.py, XXXX_local.py
-#   * XXXX.py       - main config file, usually closely guarded
-#   * XXXX_local.py - local config file, overrides entries in the main config file, customizations can be allowed
-
-
 import mxdc.devices.shutter
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
@@ -22,7 +13,7 @@ CONFIG = {
     'mono_unit_cell': 5.4297575,
     'source': 'CLS Sim SGU',
     'type': 'mxdc.beamlines.mx.MXBeamline',
-    'subnet': '0.0.0.0/32',
+    'subnet': '0.0.0.0/0',
 
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 
@@ -46,6 +37,7 @@ CONFIG = {
 # maps names to devices objects
 tmp1 = motor.SimMotor('Detector Distance', 150.0, 'mm', speed=50.0)  # use the same motor for distance and z
 tmp2 = motor.SimMotor('Energy', 12.5, 'keV', speed=0.2, precision=4)
+trig1 = detector.Trigger() # internal trigger
 
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
@@ -54,38 +46,32 @@ DEVICES = {
     'dcm_pitch': motor.SimMotor('DCM Pitch', 0.0, 'deg'),
     'beam_tuner': boss.SimTuner('Simulated Beam Tuner'),
 
-    # BaseGoniometer/goniometer head devices
+    # Goniometer/goniometer head devices
     'manager': manager.SimModeManager(),
-    'goniometer': goniometer.SimGonio(),
-    'omega': motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3),
-    'sample_x': motor.SimMotor('Sample X', 0.0, units='mm', speed=0.2),
-    'sample_y1': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
-    'sample_y2': motor.SimMotor('Sample Y', 0.0, units='mm', speed=0.2),
-
-    # Beam position & Size
+    'goniometer': goniometer.SimGonio(kappa_enabled=True, trigger=trig1),
     'aperture': misc.SimChoicePositioner('Beam Size', 100, choices=[200, 150, 100, 50, 25], units='um'),
 
     # Detector, distance & two_theta
     'distance': tmp1,
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
-    'detector': detector.SimDetector('Simulated CCD Detector', size=4096, pixel_size=0.07243),
-    'camera_scale': misc.SimPositioner('Camera Scale', pos=0.025, noise=0),
+    'detector': detector.SimDetector(
+        'Simulated Detector', images="/Data/Xtal/643", extension='cbf',
+        trigger=trig1, size=(2463, 2527), pixel_size=0.172
+    ),
 
     # Sample environment, beam stop, cameras, zoom, lighting
     'beamstop_x': motor.SimMotor('Beamstop X', 0.0, 'mm'),
     'beamstop_y': motor.SimMotor('Beamstop Y', 0.0, 'mm'),
-    'beamstop_z': motor.SimMotor('Beamstop Z', 30.0, 'mm'),
+    'beamstop_z': motor.SimMotor('Beamstop Z', 30.0, 'mm', speed=15),
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
-    'sample_camera': video.SimCamera(),
+    'sample_camera': video.SimGIFCamera(),
+    'hutch_video': video.SimPTZCamera(),
 
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
     'sample_uvlight': misc.SimLight('UV light', 25.0, '%'),
-
-    # 'hutch_video':  SimPTZCamera(),
-    'hutch_video': video.SimPTZCamera(),
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
@@ -93,7 +79,7 @@ DEVICES = {
     'ssh1': mxdc.devices.shutter.SimShutter('SSH2'),
     'psh2': mxdc.devices.shutter.SimShutter('PSH2'),
     'fast_shutter': mxdc.devices.shutter.SimShutter('Fast Shutter'),
-    'enclosures': misc.SimEnclosures('Beamline Enclusures'),
+    'enclosures': misc.SimEnclosures('Beamline Enclosures'),
 
     # Intensity monitors, shutter, attenuation, mca etc
     'i0': counter.SimCounter('i0', zero=26931),
@@ -108,13 +94,12 @@ DEVICES = {
     'multi_mca': mca.SimMCA('Simulated MCA', energy=tmp2),
 
     # disk space monitor
-    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/home', warn=0.2, critical=0.1, freq=30),
+    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/users', warn=0.2, critical=0.1, freq=30),
 }
 
-# lims, dpm, imagesync and other services
 SERVICES = {
     'dss': clients.LocalDSSClient(),
     'lims': clients.MxLIVEClient('http://localhost:8000'),
-    'dps': clients.DPSClient('hpc1608-001.clsi.ca:9991'),
-    'messenger': clients.Messenger('cmcf.lightsource.ca', realm=CONFIG['name'])
+    'dps': clients.DPSClient(),
+    'messenger': clients.SimMessenger(realm=CONFIG['name'])
 }
