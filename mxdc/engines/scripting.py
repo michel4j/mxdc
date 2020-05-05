@@ -88,7 +88,7 @@ _SCRIPTS = {}
 
 
 def get_scripts():
-    importlib.import_module('mxdc.scripts')
+    importlib.import_module('mxdc.engines.scripts')
     for script in Script.__subclasses__():
         name = script.__name__
         if not name in _SCRIPTS:

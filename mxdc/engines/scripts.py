@@ -94,13 +94,12 @@ class DeiceGonio(Script):
         if 'deicer' in self.beamline.registry:
             pos = self.beamline.goniometer.omega.get_position()
             self.beamline.deicer.on()
-            self.beamline.goniometer.scan(
-                delta=360,
-                time=60,
-                angle=pos,
-                wait=True
-            )
-            self.beamline.goniometer.omega.move_to(pos)
+            config = self.beamline.goniometer.omega.get_config()
+            self.beamline.goniometer.configure(speed=1)
+            for i in range(5):
+                self.beamline.goniometer.omega.move_by(270, wait=True)
+                self.beamline.goniometer.omega.move_by(-270, wait=True)
+            self.beamline.goniometer.configure(**config)
             self.beamline.deicer.off()
             self.beamline.manager.mount(wait=True)
         return
