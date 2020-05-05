@@ -19,7 +19,7 @@ Status Panel
 
 The Status Panel at the bottom of the application window provides overall status information and global commands.
 The labels at the top of the boxes help to identify the feedback or command.  From left to right the status panel
-shows the beamline mode, the synchrotron ring current, live flux diagnostics, the Beam ON/OFF, the beamline
+shows the beamline mode, the synchrotron ring current, live flux diagnostics, the Beam ON/OFF switch, the beamline
 mode switch command buttons, the Fast Shutter ON/OFF switch, a status area for displaying the current operation,
 and the beamline identifier for the current beamline.
 

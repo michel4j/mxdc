@@ -29,7 +29,7 @@ to the beamline.
 
 When MxDC starts-up, it fetches sample information from MxLIVE. The information fetched, includes details about exact
 locations in the Automounter as configured by beamline staff. This information can then be used to mount specific
-samples, and also to organize dataset storage in the file system.
+samples, and also to organize data storage in the file system.
 
 
 Creating Directories

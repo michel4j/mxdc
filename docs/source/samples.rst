@@ -44,27 +44,27 @@ into a pointing finger. To center at a given point, click on the point and it wi
 Repeating the process at angular intervals of 90 degrees a couple of times is usually sufficient to center the sample.
 
 The centering behaviour can be modified by holding down the Ctrl-key on the keyboard. In Centering or Beam mode, holding
-down the Ctrl-key will enable rotation of the goniometer with the scroll-button of the mouse, in increments of 10 degrees.
+down the Ctrl-key will enable rotation of the goniometer with the scroll-button of the mouse, in increments of 45 degrees.
 However, in other modes, the Ctrl-key will temporary enable click-centering to allow re-centering the crystal. Rotation
-of the goniometer with the mouse scroll key is only allowed in Centerin mode.
+of the goniometer with the mouse scroll key is only allowed in Centering mode.
 
 .. note::
    Single-click centering is not available while defining a grid.
 
 *Auto-centering* is only availble in Centering mode. There are Four types of auto-centering operations available:
-loop-centering, crystal-centering, diffraction based centering and capillary centering.
+loop centering, diffraction centering, Ai based centering using machine learning and capillary centering. Ai
+centering requires an external service to be configured.
 
-The centered position can be saved by clicking on the *Save Point* icon on the toolbar.  Saved points are annotated on
-the video overlay and labeled P1, P2, P3, ...
+The currently centered position can be saved by clicking on the *Save Point* icon on the toolbar.  Saved points are
+annotated on the video overlay and labeled P1, P2, P3, ... . These points will be available for selection during
+interactive data collection.
 
 *Grids*: Arbitrary grids can be defined using the grid tool. To define a grid for rastering, click on the grid icon.
-Once activated, the cursor changes into a target crosshair. You can then define a polygon enclosing the area you want to
-scan. A valid polygon is a list of at least 3 points starting and ending at the same location. A line can be defined as
-a polygon with 3 points only. Once the polygon is defined, a raster grid will be calculated for the specified region.
-
-.. note::
-   You must select the points either in a clockwise or counter-clockwise manner in order to obtain properly defined grids.
-
+Once activated, the cursor changes into a target crosshair. You can then draw a box on enclosing the area you want to
+scan. The dimensions of the box are displayed as it is drawn. Once complete, a grid is calculated, and the Rastering
+parameters on the Data page are automatically updated to reflect the newly created grid. It is not required to create
+a grid prior to a rastering experiment. However, a new grid will be calculated and displayed on the sample video
+as soon as a raster scan is started.
 
 Points and grids can be cleared using the *Clear* icon on the toolbar.
 
@@ -106,11 +106,16 @@ initiate the mount operation.
 If a sample is currently mounted, the *Current Sample* tool at the bottom of the list will be active, and contain the port of
 the mounted sample. Click the dismount button, to dismount the sample.
 
+For automounters that support pre-fetching, such as the SAM, the next sample that is checked in the list will be
+automatically pre-fetched to speed up the next mount opertion. Prefetched samples will be shown in the *Next Sample*
+tool with a highlighted color.
+
 .. note::
    You can mount a sample if another sample is currently mounted. The automounter will first dismount the mounted sample
    before proceeding to mount the selected sample. In fact, the process will be faster than attempting to carry out
    dismount-then-mount cycle yourself. Therefore, it is recommended to only use the dismount tool when switching to manual
    mounting, or at the end of your session.
+
 
 
 Automounter Tool
@@ -126,27 +131,23 @@ This is not the recommended method of loading samples. Users should use the
 the Sample List tool to select and mount samples by name. Only samples provided through MxLIVE, or ports within containers
 identified in MxLIVE as belonging to the current user, and loaded in the automounter can be selected for mounting.
 
-Hovering the mouse on an available port will display the identity of the sample at the bottom of the automounter layout.
-If the mouse pointer changes into a pointed finger, then clicking on the port activates the *Next Sample* tool, through
-which the sample can be mounted.
+Hovering the mouse on an available port will display the identity of the sample in a tool-tip.
+If the mouse pointer changes into a pointed finger, then clicking on the port activates the *Next Sample* tool of the
+sample list and allows the sample to be mounted from the sample list.
 
+Beam Tuner
+----------
+The beam tuner shows the current beamline flux as a percentage of the current expected flux. On some beamlines, it
+also allows the beam tuning to be adjusted.
 
-Rastering Tool
---------------
-The Rastering tool allow users to perform diffraction cartography on mounted samples, in order to identify locations
-where the best diffraction can be obtained. The rastering tool is available once a grid has been defined within the
-sample microscope. The number of grid points is displayed at the top of the rastering tool.
-
-.. image:: images/rastering.png
+.. image:: images/beam-tuner.png
     :align: center
-    :alt: Rastering Tool
+    :alt: Beam Tuner
 
-To perform a run, update the exposure time and resolution settings, and click the start button.
-Results for each point of the raster scan are then displayed on the table, and are also overlaid on the sample miscroscope.
+The plus and minus buttons can be used to tune the beam when applicable. Pressing and holding the button, allows
+allows for continuous tuning in the given direction until it is released. This is usually easier for large adjustments
+than multiple-clicking. Where applicable, the reset button can be used to reset the beam tuner.
 
-.. image:: images/rastering-scores.png
-    :align: center
-    :alt: Rastering Tool
 
 Humidity Tool
 -------------

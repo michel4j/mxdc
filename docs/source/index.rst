@@ -47,6 +47,7 @@ Index
     data
     scans
     analysis
+    chat
 
 .. toctree::
     :caption: For Beamline Staff

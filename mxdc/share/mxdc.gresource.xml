@@ -22,7 +22,6 @@
         <file>data/icon.svg</file>
         <file>data/icon.png</file>
         <file>data/active_stop.gif</file>
-
         <file>data/icons/dir-template-symbolic.svg</file>
         <file>data/icons/diffraction-symbolic.svg</file>
         <file>data/icons/clean-symbolic.svg</file>
@@ -41,7 +40,6 @@
         <file>data/icons/units-hz-symbolic.svg</file>
         <file>data/icons/units-lpm-symbolic.svg</file>
         <file>data/icons/units-kelvin-symbolic.svg</file>
-
         <file>data/icons/16x16/diffraction-symbolic.symbolic.png</file>
         <file>data/icons/16x16/clean-symbolic.symbolic.png</file>
         <file>data/icons/16x16/ai-symbolic.symbolic.png</file>
@@ -60,7 +58,6 @@
         <file>data/icons/16x16/units-hz-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-lpm-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-kelvin-symbolic.symbolic.png</file>
-
         <file>data/icons/32x32/diffraction-symbolic.symbolic.png</file>
         <file>data/icons/32x32/clean-symbolic.symbolic.png</file>
         <file>data/icons/32x32/ai-symbolic.symbolic.png</file>

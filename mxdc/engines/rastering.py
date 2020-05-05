@@ -127,7 +127,7 @@ class RasterCollector(Engine):
 
             # Prepare image header
             detector_parameters = {
-                'file_prefix': frame['dataset'],
+                'file_prefix': frame['name'],
                 'start_frame': frame['first'],
                 'directory': frame['directory'],
                 'wavelength': energy_to_wavelength(frame['energy']),

@@ -1,7 +1,7 @@
 Data
 ====
 
-The Data View is the primary view used for both interactive and automated diffraction data acquisition.
+The Data View is the primary view used for interactive, automated and rastering diffraction data acquisition.
 
 .. figure:: images/data.svg
     :align: center
@@ -9,7 +9,7 @@ The Data View is the primary view used for both interactive and automated diffra
     :alt: MxDC Data View
 
 The view is divided horizontally into two regions -- the Diffraction Image Viewer and the Data acquisition area, which
-can be toggled between the *Interactive* or *Automated* data acquisition tools.
+can be toggled between the *Interactive* , *Automated* or *Rastering* data acquisition tools.
 
 Interactive Data Acquisition
 ----------------------------
@@ -75,12 +75,33 @@ make sure to re-select it, as collected samples are automatically deselected whe
 
 Automation can be paused, resumed or stopped using the control buttons below the sample queue.
 
+
+Rastering Data Acquitision
+--------------------------
+The Rastering tool allow users to perform diffraction cartography on mounted samples, in order to identify locations
+where the best diffraction can be obtained. The rastering tool is integrated with the video microscope allowing
+rastering parameters to be determined simply by drawing a grid on the sample video.  Alternatively, rastering
+parameters can be directly provided using the rastering form fields.
+
+.. image:: images/rastering.png
+    :align: center
+    :alt: Rastering Tool
+
+To perform a run, update the parameters like exposure time and resolution settings, and then click the start button.
+Results for each point of the raster scan are then displayed on the table, and are also overlaid on the sample miscroscope.
+
+.. image:: images/rastering-scores.png
+    :align: center
+    :alt: Rastering Tool
+
+
+
 Data Set Parameters
 -------------------
 .. image:: images/data-parameters.png
     :align: center
 
-Data set parameters can be configured using the dataset run editor for interactive data acquisition or through the
+Data set parameters can be configured using the dataset form for interactive data acquisition or through the
 *Acquire frames* configuration tool for automated data acquisition. Note that some parameters may not be available
 depending on the data acquisition mode.
 
@@ -142,7 +163,11 @@ The set of available parameters are described below:
     Wedge
         The wedge angle determines how much of a given run will be collected before proceeding to the next run when
         performing interleaved data collection strategies inverse beam or interleaved-MAD data acquisition. The
-        default value of 360 degrees should be used otherwise.
+        default value of 360 degrees should be used otherwise. For example, to interleave 3 datasets A, B, C each into 3
+        slices will result in the following data collection sequence: A1, B1, C1, A2, B2, C2, A3, B3, C3.  The wedge
+        parameter can be different for each dataset but is not very meaningful if only collecting a single dataset at
+        a time, unless the inverse beam parameter is active (see below). Also, the wedge parameter will be ignored if
+        if it more than the total range of data collection.
 
     First Frame
         The index number of the first frame to be acquired. Usually 1. Subsequent frames will be numbered starting at
@@ -154,6 +179,15 @@ The set of available parameters are described below:
 
     Energy
         The data acquisition energy. By default this field is set to the current beamline energy.
+
+    Inverse Beam
+        In addition, collect the same amount of data already specified with an offset of 180 degrees. Use the wedge
+        setting to interleave the direct and inverse portions of the dataset after a fixed data range in degrees.
+        Dataset slices resulting from the inverse-beam option have priority over other slices resulting from the effect
+        of the wedge parameter. Thus, inverse beam data slices will always be collected in pairs right after each other.
+        For example for datasets A,B,C with inverse beam set only on A (e.g A'), if each dataset is sliced into 3 wedges
+        based on the wedge parameter, the resulting sequence of data collection will be A1, A'1, B1, C1, A2, A'2, B2, ...
+        etc.
 
     Points
         Enables selection of one or two saved points for data acquisition.  If a single point is selected, the sample
@@ -172,6 +206,7 @@ The set of available parameters are described below:
     Linked parameters are re-evaluated and validated everytime a parameter changes. However, parameters are only applied
     once the save button is clicked.
 
+
 Diffraction Image Viewer
 ------------------------
 The diffraction image viewer is a full-featured viewer for diffraction images. All diffraction images collected within
@@ -182,10 +217,11 @@ and humidity control snapshots.
     :align: center
 
 It is divided into the image area, which forms the bulk of the viewer, and a toolbar below the image area which provides
-tools for opening new images, a back button for returning to the previous view, a tool for resetting the zoom, a
-pseudo-color toggle, a button for resetting the image, backward and forward navigation buttons for stepping through frames
-in a dataset, a follow-frame toggle for automatically loading the next frame in a sequence, and a button for displaying
-image header parameters.  The toolbar also displays detailed information about the current mouse position over the image,
+tools for opening new images, saving PNG representations of displayed patterns, a back button for returning to the
+previous view, a tool for resetting the zoom, a pseudo-color toggle, a button for resetting the image, backward and
+forward navigation buttons for stepping through frames in a dataset, a follow-frame toggle for automatically loading the
+next frame in a sequence, and a button for displaying image header parameters.
+The toolbar also displays detailed information about the current mouse position over the image,
 such as pixel-coordinates, intensity and diffraction resolution.
 
 Additional mouse gestures are available for manipulating the image.  For example, the scroll button of the mouse can be
@@ -193,5 +229,5 @@ used to adjust the brightness of the image. Left-clicking and dragging on the im
 to zoom into. Right-clicking and dragging will select a line along which to integrate and display a 2-dimensional
 intensity profile. Middle clicking and dragging the image while zoomed-in pans the image.
 
-The diffraction image viewer currently supports CBF, MarCCD Tiff and SMV (ADSC) formatted diffraction image files. In
+The diffraction image viewer currently supports CBF, MarCCD Tiff, SMV (ADSC) and HDF5 formatted diffraction image files. In
 addition, XDS Spot files can be loaded and overlaid on any displayed image.
