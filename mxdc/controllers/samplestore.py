@@ -230,7 +230,7 @@ class SampleStore(Object):
             item.get('group', ''),
             item.get('container', ''),
             item.get('port', ''),
-            '{} ({})'.format(item.get('container'), item.get('location')),
+            item.get('container'),
             item.get('barcode', ''),
             False,  # not mismatched
             item.get('priority', 0),
@@ -371,10 +371,8 @@ class SampleStore(Object):
     def roll_next_sample(self):
         items = self.get_selected()
         if items:
-            self.widget.samples_info1_lbl.set_markup('{} Selected'.format(len(items)))
             self.props.next_sample = items[0]
         else:
-            self.widget.samples_info1_lbl.set_markup('')
             self.props.next_sample = {}
 
     def get_next(self):

@@ -40,8 +40,9 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
 
         color = Gdk.RGBA()
         color.parse(ICON_COLORS[Diagnostic.State.UNKNOWN])
-        self.override_color(Gtk.StateFlags.NORMAL, color)
         self.icon.set_from_icon_name(MSG_ICONS[Diagnostic.State.UNKNOWN], Gtk.IconSize.SMALL_TOOLBAR)
+        self.icon.override_color(Gtk.StateFlags.NORMAL, color)
+        self.info.override_color(Gtk.StateFlags.NORMAL, color)
         self.add(self.status_widget)
         self.notifier = notifier
         self.last_state = self.diagnostic.props.state
@@ -60,7 +61,8 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
         color = Gdk.RGBA()
         color.parse(ICON_COLORS[state])
         self.icon.set_from_icon_name(MSG_ICONS.get(state, 'dialog-question-symbolic'), Gtk.IconSize.SMALL_TOOLBAR)
-        self.override_color(Gtk.StateFlags.NORMAL, color)
+        self.icon.override_color(Gtk.StateFlags.NORMAL, color)
+        self.info.override_color(Gtk.StateFlags.NORMAL, color)
 
         # Only show notification if state *changes* to bad
         if state != self.last_state and state == Diagnostic.State.BAD and self.diagnostic.props.message:

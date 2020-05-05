@@ -147,12 +147,12 @@ class Microscope(Object):
                 self.monitors.append(
                     common.ScaleMonitor(scale, light),
                 )
-
                 box.set_sensitive(True)
             else:
                 box.destroy()
             if key == 'uvlight':
-                color = Gdk.RGBA(red=0.5, green=0.1, blue=0.9, alpha=0.75)
+                color = Gdk.RGBA()
+                color.parse("#9B59B6")
                 box.override_color(Gtk.StateFlags.NORMAL, color)
 
         self.video.connect('motion-notify-event', self.on_mouse_motion)

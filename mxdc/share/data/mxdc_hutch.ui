@@ -877,7 +877,7 @@
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
-                                                        <property name="icon_name">edit-clear-all-symbolic</property>
+                                                        <property name="icon_name">clean-symbolic</property>
                                                         <property name="icon_size">1</property>
                                                       </object>
                                                     </child>
@@ -2317,7 +2317,7 @@
                       <object class="GtkEntry" id="mode_fbk">
                         <property name="visible">True</property>
                         <property name="app_paintable">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="editable">False</property>
                         <property name="width_chars">10</property>
                         <property name="xalign">0.5</property>
@@ -2354,7 +2354,7 @@
                       <object class="GtkEntry" id="status_current_fbk">
                         <property name="visible">True</property>
                         <property name="app_paintable">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="editable">False</property>
                         <property name="width_chars">10</property>
                         <property name="text" translatable="yes">0.0</property>
@@ -2391,7 +2391,7 @@
                     <child>
                       <object class="GtkEntry" id="status_i1_fbk">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="editable">False</property>
                         <property name="width_chars">10</property>
                         <property name="text" translatable="yes">0.0</property>
@@ -2428,7 +2428,7 @@
                     <child>
                       <object class="GtkEntry" id="status_i0_fbk">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="editable">False</property>
                         <property name="width_chars">10</property>
                         <property name="text" translatable="yes">0.0</property>
@@ -2702,8 +2702,7 @@
                     <child>
                       <object class="GtkEntry" id="status_beamline_fbk">
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
+                        <property name="can_focus">False</property>
                         <property name="editable">False</property>
                         <property name="width_chars">10</property>
                         <property name="text" translatable="yes">SIM-1</property>

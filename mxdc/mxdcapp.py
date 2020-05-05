@@ -64,10 +64,11 @@ class AppBuilder(gui.Builder):
 
 
 class Application(Gtk.Application):
-    def __init__(self, **kwargs):
+    def __init__(self, dark=False, **kwargs):
         super(Application, self).__init__(application_id="org.mxdc", **kwargs)
         self.window = None
         self.settings_active = False
+        self.dark_mode = dark
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
@@ -112,8 +113,10 @@ class Application(Gtk.Application):
                 action.connect("activate", callback)
                 self.window.add_action(action)
 
-            app_settings = self.window.get_settings()
+            #app_settings = self.window.get_settings()
+            app_settings = Gtk.Settings.get_default()
             app_settings.props.gtk_enable_animations = True
+            app_settings.props.gtk_application_prefer_dark_theme = self.dark_mode
             css = Gtk.CssProvider()
             with open(os.path.join(conf.SHARE_DIR, 'styles.less'), 'rb') as handle:
                 css_data = handle.read()
@@ -239,8 +242,8 @@ def clear_loggers():
 
 
 class MxDCApp(object):
-    def __init__(self):
-        self.application = Application()
+    def __init__(self, dark=False):
+        self.application = Application(dark=dark)
 
     def run(self):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.application.quit)

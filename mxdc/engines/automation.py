@@ -1,7 +1,6 @@
 import time
 import uuid
 
-
 from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering, auto
 from mxdc.engines.interfaces import IDataCollector
@@ -40,10 +39,9 @@ class Automator(Engine):
         return fraction, msg
 
     def run(self):
-        self.emit('started', None)
+        self.set_state(busy=True, started=None)
         pos = 0
         self.pause_message = ''
-        first = True
         for sample in self.samples:
             if self.stopped: break
             self.emit('sample-started', sample['uuid'])
@@ -52,7 +50,7 @@ class Automator(Engine):
                     self.intervene()
                 if self.stopped: break
                 pos += 1
-                self.emit('progress', *self.get_progress(pos, task, sample), '')
+                self.emit('progress', *self.get_progress(pos, task, sample))
                 logger.info(
                     'Sample: {}/{}, Task: {}'.format(sample['group'], sample['name'], self.TaskNames[task['type']])
                 )
@@ -99,25 +97,24 @@ class Automator(Engine):
                         ))
 
                         self.collector.configure(
-                            params, take_snapshots=True, analysis=params.get('analysis'),
+                            [params], take_snapshots=True, analysis=params.get('analysis'),
                             anomalous=params.get('anomalous', False)
                         )
-                        sample['results'] = self.collector.run()
+                        sample['results'] = self.collector.execute()
 
                     else:
                         self.emit('error', 'Sample not mounted. Unable to continue automation!')
                         self.stop()
 
             self.emit('sample-done', sample['uuid'])
-            first = False
 
         if self.stopped:
-            self.emit('stopped', None)
+            self.set_state(stopped=None, busy=False)
             logger.info('Automation stopped')
 
         if not self.stopped:
             auto.auto_dismount_manual(self.beamline)
-            self.emit('done', None)
+            self.set_state(done=None, busy=False)
             logger.info('Automation complete')
 
     def intervene(self, message=''):

@@ -19,6 +19,9 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
+GRACE_PERIOD = 2  # Amount of time to wait after completion for frames to all appear.
+
+
 @implementer(IDataCollector)
 class DataCollector(Engine):
     """
@@ -37,7 +40,6 @@ class DataCollector(Engine):
     def __init__(self):
         super().__init__()
 
-        self.collecting = False
         self.run_list = []
         self.runs = []
         self.results = []
@@ -93,16 +95,15 @@ class DataCollector(Engine):
         logger.debug('Ready for acquisition.')
 
     def run(self):
-        self.collecting = True
+        self.set_state(busy=True)
         self.beamline.detector_cover.open(wait=True)
         self.total = sum([
             dataset.weight for dataset in self.config['datasets'].values()
         ])  # total raw time for all wedges
 
         current_attenuation = self.beamline.attenuator.get()
-        self.watch_frames()
-
         self.results = []
+        self.watch_frames()
 
         with self.beamline.lock:
             # Take snapshots and prepare end station mode
@@ -123,21 +124,20 @@ class DataCollector(Engine):
                 self.beamline.fast_shutter.close()
             self.config['end_time'] = datetime.now(tz=pytz.utc)
 
-        if self.stopped or self.paused:
-            completion = {
-                uid: dataset.progress
-                for uid, dataset in self.config['datasets'].items()
-            }
-            self.emit('stopped', completion)
-        else:
-            self.emit('done', None)
+            if self.stopped or self.paused:
+                completion = {
+                    uid: dataset.progress
+                    for uid, dataset in self.config['datasets'].items()
+                }
+                self.emit('stopped', completion)
+            else:
+                self.emit('done', None)
 
-        self.beamline.attenuator.set(current_attenuation)  # restore attenuation
-        self.collecting = False
-        self.beamline.detector_cover.close()
+            self.beamline.attenuator.set(current_attenuation)  # restore attenuation
+            self.beamline.detector_cover.close()
 
         # Wait for Last image to be transferred (only if dataset is to be uploaded to MxLIVE)
-        time.sleep(2.0)
+        time.sleep(GRACE_PERIOD)
 
         for uid, dataset in self.config['datasets'].items():
             metadata = self.save(dataset)
@@ -145,6 +145,8 @@ class DataCollector(Engine):
             if metadata and self.config['analysis']:
                 self.analyse(metadata, dataset.sample)
 
+        self.unwatch_frames()
+        self.set_state(busy=False)
         return self.results
 
     def run_simple(self):
@@ -336,7 +338,7 @@ class DataCollector(Engine):
             self.set_state(progress=(overall, message))
 
     def on_beam_change(self, obj, available):
-        if not (self.stopped or self.paused) and self.collecting and not available:
+        if not (self.stopped or self.paused) and self.is_busy() and not available:
             message = (
                 "Data acquisition has paused due to beam loss!\n"
                 "It will resume automatically once the beam becomes available."

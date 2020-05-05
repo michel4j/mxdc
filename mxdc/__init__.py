@@ -572,6 +572,15 @@ class Engine(Object):
         self.stopped = False
         worker_thread.start()
 
+    def execute(self):
+        """
+        Run engine in the current thread
+        :return: the result of the run method
+        """
+        self.paused = False
+        self.stopped = False
+        return self.run()
+
     def stop(self):
         """
         Stop the engine

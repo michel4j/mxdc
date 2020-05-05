@@ -11,6 +11,7 @@ from mxdc.hutchapp import HutchApp
 # Setup single argument for verbose logging
 parser = argparse.ArgumentParser(description='MxDC Hutch Viewer')
 parser.add_argument('-v', action='store_true', help='Verbose Logging')
+parser.add_argument('-d', action='store_true', help='Prefer Dark Mode if available')
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -19,5 +20,5 @@ if __name__ == "__main__":
     else:
         log.log_to_console(logging.INFO)
 
-    app = HutchApp()
+    app = HutchApp(dark=args.d)
     app.run()
