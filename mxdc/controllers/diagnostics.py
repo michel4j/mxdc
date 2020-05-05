@@ -55,6 +55,9 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
     def on_message_changed(self, *args, **kwargs):
         self.info.set_text(self.diagnostic.props.message)
         self.info.set_tooltip_text(self.diagnostic.props.message)
+        if self.diagnostic.state == Diagnostic.State.BAD:
+            # Only show notification if state *changes* to bad
+            self.notifier.notify('{}: {}'.format(self.diagnostic.description, self.diagnostic.message))
 
     def on_state_changed(self, *args, **kwargs):
         state = self.diagnostic.props.state
@@ -63,10 +66,6 @@ class DiagnosticDisplay(Gtk.Alignment, gui.BuilderMixin):
         self.icon.set_from_icon_name(MSG_ICONS.get(state, 'dialog-question-symbolic'), Gtk.IconSize.SMALL_TOOLBAR)
         self.icon.override_color(Gtk.StateFlags.NORMAL, color)
         self.info.override_color(Gtk.StateFlags.NORMAL, color)
-
-        # Only show notification if state *changes* to bad
-        if state != self.last_state and state == Diagnostic.State.BAD and self.diagnostic.props.message:
-            self.notifier.notify('{}: {}'.format(self.diagnostic.description, self.diagnostic.props.message))
         self.last_state = state
 
 
