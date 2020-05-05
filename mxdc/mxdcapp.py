@@ -103,20 +103,25 @@ class Application(Gtk.Application):
 
             # create actions
             actions = {
-                'about': self.on_about,
-                'quit': self.on_quit,
-                'preferences': self.on_preferences,
-                'help': self.on_help,
+                'about': (self.on_about, None),
+                'dark': (self.on_dark, GLib.Variant.new_boolean(self.dark_mode)),
+                'quit': (self.on_quit, None),
+                'preferences': (self.on_preferences, None),
+                'help': (self.on_help, None),
             }
-            for name, callback in actions.items():
-                action = Gio.SimpleAction(name=name, parameter_type=None)
+            for name, (callback, state) in actions.items():
+                if state is None:
+                    action = Gio.SimpleAction.new(name, None)
+                else:
+                    action = Gio.SimpleAction.new_stateful(name, None, state)
+
                 action.connect("activate", callback)
                 self.window.add_action(action)
 
-            #app_settings = self.window.get_settings()
             app_settings = Gtk.Settings.get_default()
             app_settings.props.gtk_enable_animations = True
             app_settings.props.gtk_application_prefer_dark_theme = self.dark_mode
+
             css = Gtk.CssProvider()
             with open(os.path.join(conf.SHARE_DIR, 'styles.less'), 'rb') as handle:
                 css_data = handle.read()
@@ -157,6 +162,14 @@ class Application(Gtk.Application):
         about.set_logo(self.window.get_icon())
         about.present()
         about.connect('response', lambda x,y: about.destroy())
+
+    def on_dark(self, action, param):
+        """
+        Toggle dark mode
+        """
+        action.set_state(GLib.Variant.new_boolean(not action.get_state()))
+        app_settings = Gtk.Settings.get_default()
+        app_settings.props.gtk_application_prefer_dark_theme = action.get_state().get_boolean()
 
     def on_preferences(self, action, param):
         if not self.settings_active:
