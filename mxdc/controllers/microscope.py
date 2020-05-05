@@ -163,22 +163,6 @@ class Microscope(Object):
         self.video.connect('configure-event', self.setup_grid)
         self.scripts = get_scripts()
 
-        toolbar_btns = [
-            self.widget.microscope_zoomout_btn, self.widget.microscope_zoom100_btn,
-            self.widget.microscope_zoomin_btn,
-            self.widget.microscope_ccw90_btn, self.widget.microscope_cw90_btn,
-            self.widget.microscope_rot180_btn, self.widget.microscope_loop_btn,
-            # self.widget.microscope_crystal_btn, self.widget.microscope_click_btn,
-            self.widget.microscope_capillary_btn, self.widget.microscope_save_btn
-        ]
-        self.size_grp = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
-        for btn in toolbar_btns:
-            self.size_grp.add_widget(btn)
-
-        # self.widget.microscope_bkg.override_background_color(
-        #     Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
-        # )
-
         # Connect Grid signals
         self.connect('notify::grid-xyz', self.update_grid)
         self.connect('notify::tool', self.on_tool_changed)

@@ -2,6 +2,7 @@ import time
 
 from gi.repository import GdkPixbuf, Gtk
 from mxdc.utils import gui
+from mxdc import Device
 
 
 class ActiveMenu(Gtk.Box, gui.BuilderMixin):

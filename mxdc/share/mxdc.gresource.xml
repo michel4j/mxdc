@@ -26,11 +26,14 @@
         <file>data/icons/dir-template-symbolic.svg</file>
         <file>data/icons/diffraction-symbolic.svg</file>
         <file>data/icons/clean-symbolic.svg</file>
+        <file>data/icons/ai-symbolic.svg</file>
+        <file>data/icons/loop-symbolic.svg</file>
         <file>data/icons/ptable-symbolic.svg</file>
         <file>data/icons/units-ang-symbolic.svg</file>
         <file>data/icons/units-deg-symbolic.svg</file>
         <file>data/icons/units-kev-symbolic.svg</file>
         <file>data/icons/units-mm-symbolic.svg</file>
+        <file>data/icons/units-ma-symbolic.svg</file>
         <file>data/icons/units-um-symbolic.svg</file>
         <file>data/icons/units-ms-symbolic.svg</file>
         <file>data/icons/units-sec-symbolic.svg</file>
@@ -41,12 +44,15 @@
 
         <file>data/icons/16x16/diffraction-symbolic.symbolic.png</file>
         <file>data/icons/16x16/clean-symbolic.symbolic.png</file>
+        <file>data/icons/16x16/ai-symbolic.symbolic.png</file>
+        <file>data/icons/16x16/loop-symbolic.symbolic.png</file>
         <file>data/icons/16x16/dir-template-symbolic.symbolic.png</file>
         <file>data/icons/16x16/ptable-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-ang-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-deg-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-kev-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-mm-symbolic.symbolic.png</file>
+        <file>data/icons/16x16/units-ma-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-um-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-ms-symbolic.symbolic.png</file>
         <file>data/icons/16x16/units-sec-symbolic.symbolic.png</file>
@@ -57,12 +63,15 @@
 
         <file>data/icons/32x32/diffraction-symbolic.symbolic.png</file>
         <file>data/icons/32x32/clean-symbolic.symbolic.png</file>
+        <file>data/icons/32x32/ai-symbolic.symbolic.png</file>
+        <file>data/icons/32x32/loop-symbolic.symbolic.png</file>
         <file>data/icons/32x32/dir-template-symbolic.symbolic.png</file>
         <file>data/icons/32x32/ptable-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-ang-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-deg-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-kev-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-mm-symbolic.symbolic.png</file>
+        <file>data/icons/32x32/units-ma-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-um-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-ms-symbolic.symbolic.png</file>
         <file>data/icons/32x32/units-sec-symbolic.symbolic.png</file>
@@ -72,4 +81,3 @@
         <file>data/icons/32x32/units-kelvin-symbolic.symbolic.png</file>
     </gresource>
 </gresources>
-
