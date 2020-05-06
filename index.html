@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>MxDC - Macromolecular Crystallography Data Collector &mdash; MxDC 2020.5.44 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/styles.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Overview" href="overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> MxDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.5.44
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Chat and Log</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="console.html">Beamline Console</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/purpose.html">Purpose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/devices.html">Devices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/services.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/beamlines.html">Beamlines</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">MxDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>MxDC - Macromolecular Crystallography Data Collector</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <a class="reference internal image-reference" href="_images/mxdc.svg"><img alt="_images/mxdc.svg" class="align-center" src="_images/mxdc.svg" width="400px" /></a>
+<p>MxDC (Macromolecular Crystallography Data Collector) is a software package for acquisition of
+Macromolecular Crystallography data and related techniques at synchrotron beamlines. MxDC has
+been developed since 2006 and has been the primary software for data acquisition and experiment
+control at the Canadian Light Source Macromolecular Crystallography beamlines.  It is also
+used at the Pohang Light Source II in South-Korea.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>An earlier version of MxDC is described in the following publication:</p>
+<ul class="simple">
+<li><p>MxDC and MxLIVE: software for data acquisition, information management and remote access to macromolecular
+crystallography beamlines. M. Fodje, K. Janzen, R. Berg, G. Black, S. Labiuk, J. Gorin and P. Grochulski
+J. Synchrotron Rad. (2012). 19, 274-280. <a class="reference external" href="https://doi.org/10.1107/S0909049511056305">https://doi.org/10.1107/S0909049511056305</a></p></li>
+</ul>
+</div>
+<p>Although developed primarily for MX beamlines, MxDC is based on an extensible generic framework that can be used
+to develop data acquisition systems for different types of experiments and beamlines.</p>
+<div class="section" id="how-to-use-this-documentation">
+<h1>How to Use This Documentation<a class="headerlink" href="#how-to-use-this-documentation" title="Permalink to this headline">¶</a></h1>
+<p>This documentation is divided into three sections targeted at different audiences.  For MX beamline users
+primarily interested in using the MxDC GUI for data acquisition, it is recommended to start with the  <a class="reference internal" href="overview.html"><span class="doc">Overview</span></a>
+section which describes the user interface. For beamline staff interested in installing and configuring MxDC for their
+beamlines, start with the <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> section.  Develpers interested in re-using or extending the MxDC framework should
+consult the <a class="reference internal" href="api/purpose.html"><span class="doc">Purpose</span></a> section.</p>
+</div>
+<div class="section" id="index">
+<h1>Index<a class="headerlink" href="#index" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Chat and Log</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="console.html">Beamline Console</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/purpose.html">Purpose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/devices.html">Devices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/services.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/beamlines.html">Beamlines</a></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2006-2020, Canadian Light Source, Inc
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

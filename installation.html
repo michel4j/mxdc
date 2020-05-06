@@ -1,0 +1,322 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Installation &mdash; MxDC 2020.5.44 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/styles.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Hutch Viewer" href="hutch.html" />
+    <link rel="prev" title="Chat and Log" href="chat.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> MxDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.5.44
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Chat and Log</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="console.html">Beamline Console</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/purpose.html">Purpose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/devices.html">Devices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/services.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/beamlines.html">Beamlines</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MxDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Installation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>It is recommended to install MxDC within a python virtual environment. MxDC can be installed using the python setup
+tools from within the top-level directory of the application as follows.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3 -m venv venv
+<span class="nb">source</span> venv/bin/activate
+python setup.py install
+</pre></div>
+</div>
+<p>This will install all MxDC and all it’s dependences in the python environment.</p>
+</div>
+<div class="section" id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
+<p>MxDC needs a beamline configuration file to be able to perform the most basic control operations or run any of the
+included programs.  The configuration file is a special python module placed in a specific directory defined
+by the MXDC_CONFIG environment variable.</p>
+<p>An example configuration file <cite>CONFIG_example.py</cite> is available within the <cite>deploy/</cite> sub-directory of distribution
+archive. Copy this file to the directory pointed to by MXDC_CONFIG and modify as needed.  The name of the file is
+not important except it must be named such that it is a valid python module.  The MXDC_CONFIG directory may
+contain as many beamline configuration files as desired.</p>
+<p>The general philosophy for a configuration file is that you would typically import your device  and service
+classes at the top of the module, and then create instances of the devices in the configuration sections.  The following
+configuration sections are expected in configuration files.</p>
+<p class="rubric">CONFIG</p>
+<p>A python dictionary specifying various configuration parameters for the beamline. Parameters defined in
+this section will be available through the <cite>beamline.config</cite> attribute of beamline objects. Only a few of these parameters
+are mandatory but there is no limit on which parameters can be defined.</p>
+<div class="topic">
+<p class="topic-title">Required Parameters for all Beamlines</p>
+<ul class="simple">
+<li><p>name - The acronym of the beamline</p></li>
+<li><p>facility - The acronym of the synchrotron facility</p></li>
+<li><p>mono - The type of monochromator (eg ‘Si 111’)</p></li>
+<li><p>mono_unit_cell - The monochromator unit cell length</p></li>
+<li><p>source - The name of the beam source</p></li>
+<li><p>type - The full module name of the beamline class as a string, e.g ‘mxdc.beamlines.mx.MXBeamline’</p></li>
+<li><p>subnet - The beamline subnet, e.g. ‘10.52.4.0/22’</p></li>
+</ul>
+</div>
+<p class="rubric">Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;SIM-1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;facility&#39;</span><span class="p">:</span> <span class="s1">&#39;CLS&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;mono&#39;</span><span class="p">:</span> <span class="s1">&#39;Si 111&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;mono_unit_cell&#39;</span><span class="p">:</span> <span class="mf">5.4297575</span><span class="p">,</span>
+    <span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="s1">&#39;CLS Sim SGU&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;mxdc.beamlines.mx.MXBeamline&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;subnet&#39;</span><span class="p">:</span> <span class="s1">&#39;10.12.1.0/22&#39;</span><span class="p">,</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p class="rubric">DEVICES</p>
+<p>A python dictionary mapping device names to device instances. The only restriction for device names is
+that they should be valid python attribute names since they will be available as attributes of the beamline instance.
+Additionally, each beamline class may define required devices that must be provided in configuration files for instances
+of that beamline.</p>
+<p class="rubric">Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">mxdc.devices</span> <span class="kn">import</span> <span class="n">motor</span><span class="p">,</span> <span class="n">goniometer</span>
+
+<span class="n">DEVICES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="o">...</span>
+    <span class="s1">&#39;manager&#39;</span><span class="p">:</span> <span class="n">manager</span><span class="o">.</span><span class="n">SimModeManager</span><span class="p">(),</span>
+    <span class="s1">&#39;goniometer&#39;</span><span class="p">:</span> <span class="n">goniometer</span><span class="o">.</span><span class="n">SimGonio</span><span class="p">(),</span>
+    <span class="s1">&#39;omega&#39;</span><span class="p">:</span> <span class="n">motor</span><span class="o">.</span><span class="n">SimMotor</span><span class="p">(</span><span class="s1">&#39;Omega&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;deg&#39;</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+    <span class="s1">&#39;sample_x&#39;</span><span class="p">:</span> <span class="n">motor</span><span class="o">.</span><span class="n">SimMotor</span><span class="p">(</span><span class="s1">&#39;Sample X&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;mm&#39;</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+    <span class="s1">&#39;sample_y1&#39;</span><span class="p">:</span> <span class="n">motor</span><span class="o">.</span><span class="n">SimMotor</span><span class="p">(</span><span class="s1">&#39;Sample Y&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;mm&#39;</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+    <span class="s1">&#39;sample_y2&#39;</span><span class="p">:</span> <span class="n">motor</span><span class="o">.</span><span class="n">SimMotor</span><span class="p">(</span><span class="s1">&#39;Sample Y&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;mm&#39;</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p class="rubric">SERVICES</p>
+<p>A python dictionary mapping service names to service instances. The same restrictions for device names applies to service
+names. Services will also accesible as attributes of the beamline objects.</p>
+<p class="rubric">CONSOLE</p>
+<p>Similar to <strong>DEVICES</strong> except devices specified here will only be available within the beamline console
+application.</p>
+</div>
+<div class="section" id="available-commands">
+<h1>Available Commands<a class="headerlink" href="#available-commands" title="Permalink to this headline">¶</a></h1>
+<p>The following scripts and commands are provided with MxDC.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">mxdc</span></code>, <code class="docutils literal notranslate"><span class="pre">sim-mxdc</span></code>:  Launch the main MxDC GUI application or the simulated variant.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">archiver</span></code>:  A script for synchronizing files between a file system and a portable drive.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>usage: archiver &lt;<span class="nb">source</span> directory&gt;  &lt;destination directory&gt;
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">blconsole</span></code>, <code class="docutils literal notranslate"><span class="pre">sim-console</span></code>: Launch the beamline console application or the simulated variant. See <a class="reference internal" href="console.html"><span class="doc">Beamline Console</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hutchviewer</span></code>: Launch the hutch viewer application. See <a class="reference internal" href="hutch.html"><span class="doc">Hutch Viewer</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imgview</span></code>: A stand alone image viewer for diffraction images.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plotxdi</span></code>: An application for plotting saved data in XDI format.</p></li>
+</ul>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="hutch.html" class="btn btn-neutral float-right" title="Hutch Viewer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="chat.html" class="btn btn-neutral float-left" title="Chat and Log" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2006-2020, Canadian Light Source, Inc
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

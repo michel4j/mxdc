@@ -1,0 +1,342 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Objects &mdash; MxDC 2020.5.44 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/styles.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Devices" href="devices.html" />
+    <link rel="prev" title="Purpose" href="purpose.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> MxDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.5.44
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../chat.html">Chat and Log</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../console.html">Beamline Console</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="purpose.html">Purpose</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="devices.html">Devices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beamlines.html">Beamlines</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MxDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Objects</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="objects">
+<h1>Objects<a class="headerlink" href="#objects" title="Permalink to this headline">¶</a></h1>
+<p>The fundamental base class for the key components of MxDC is the <code class="xref py py-class docutils literal notranslate"><span class="pre">Object</span></code>.  It is a subclass of
+<a class="reference external" href="https://pygobject.readthedocs.io/en/latest/guide/api/gobject.html">GObject.Object</a>
+and provides several key features such as Signals registration and connection to callbacks, typed properties, and
+all other features supported by <cite>GObject.Object</cite>.</p>
+<p>Signals are a system for creating named events and registering callbacks to them. <code class="xref py py-class docutils literal notranslate"><span class="pre">mxdc.Signal</span></code> is an alias for
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GObject.Signal</span></code></p>
+<p class="rubric">Example</p>
+<p>The following is an example of an object supporting two signals with different
+numbers of arguments, how to connect to callbacks and trigger events.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>An appropriate main-loop is required. These examples can be tried out using an ipython shell with the
+<cite>Gtk3</cite> main loop active.  This can be activated using the IPython magic command <code class="docutils literal notranslate"><span class="pre">%gui</span> <span class="pre">gtk3</span></code>.</p>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">mxdc</span> <span class="kn">import</span> <span class="n">Object</span><span class="p">,</span> <span class="n">Signal</span>
+
+<span class="k">class</span> <span class="nc">Door</span><span class="p">(</span><span class="n">Object</span><span class="p">):</span>
+
+    <span class="k">class</span> <span class="nc">Signals</span><span class="p">:</span>
+        <span class="n">opened</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">(</span><span class="s1">&#39;opened&#39;</span><span class="p">,</span> <span class="n">arg_types</span><span class="o">=</span><span class="p">(</span><span class="nb">bool</span><span class="p">,))</span>
+        <span class="n">locked</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">(</span><span class="s1">&#39;locked&#39;</span><span class="p">,</span> <span class="n">arg_types</span><span class="o">=</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">on_lock</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Door </span><span class="si">{}</span><span class="s1">locked, </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;un&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">on_opened</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Door </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;opened&#39;</span> <span class="k">if</span> <span class="n">state</span> <span class="k">else</span> <span class="s1">&#39;closed&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">door</span> <span class="o">=</span> <span class="n">Door</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;opened&#39;</span><span class="p">,</span> <span class="n">on_opened</span><span class="p">)</span>
+<span class="go">17L</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;locked&#39;</span><span class="p">,</span> <span class="n">on_lock</span><span class="p">)</span>
+<span class="go">18L</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;opened&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="go">Door opened.</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;opened&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+<span class="go">Door closed.</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;locked&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;come back later&#39;</span><span class="p">)</span>
+<span class="go">Door locked, come back later.</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># set state and emit multiple signals simultaneously</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">locked</span><span class="o">=</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;access forbidden&#39;</span><span class="p">),</span> <span class="n">opened</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">Door locked, access forbidden.</span>
+<span class="go">Door closed.</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">door</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="s1">&#39;locked&#39;</span><span class="p">)</span>
+<span class="go">(True, &quot;access forbidden&quot;)</span>
+</pre></div>
+</div>
+<p class="rubric">API Details</p>
+<dl class="py class">
+<dt id="mxdc.Object">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.</code><code class="sig-name descname">Object</code><a class="headerlink" href="#mxdc.Object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base Class for event-aware objects in MxDC which can emit signals and register
+callbacks.</p>
+<p>Signals are defined through the <cite>Signals</cite> attribute class as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Signals</span><span class="p">:</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">arg_types</span><span class="o">=</span><span class="p">(</span><span class="nb">str</span><span class="p">,))</span>
+    <span class="n">ready</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">(</span><span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="n">arg_types</span><span class="o">=</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="mxdc.Object.emit">
+<code class="sig-name descname">emit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">signal</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Object.emit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Emit the signal. Signal emissions are thread safe and will be handled in the main thread.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signal</strong> – Signal name</p></li>
+<li><p><strong>args</strong> – list of signal parameters</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Object.get_state">
+<code class="sig-name descname">get_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">item</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Object.get_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a specific state by key. The key is transformed so that underscores are replaced with hyphens
+(i.e, ‘event_name’ is translated to ‘event-name’)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>item</strong> – state key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Object.get_states">
+<code class="sig-name descname">get_states</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Object.get_states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain a copy of the internal state dictionary. The returned dictionary is not
+neccessarily usable as kwargs for set_state due to the ‘_’ to ‘-‘ transformation of the keys.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Object.set_state">
+<code class="sig-name descname">set_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Object.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of the object and emit the corresponding signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – list of strings corresponding to non-value signal names</p></li>
+<li><p><strong>kwargs</strong> – name, value pairs corresponding to signal name and signal arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="devices.html" class="btn btn-neutral float-right" title="Devices" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="purpose.html" class="btn btn-neutral float-left" title="Purpose" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2006-2020, Canadian Light Source, Inc
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

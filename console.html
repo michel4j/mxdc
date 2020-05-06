@@ -1,0 +1,369 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Beamline Console &mdash; MxDC 2020.5.44 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/styles.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Purpose" href="api/purpose.html" />
+    <link rel="prev" title="Hutch Viewer" href="hutch.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> MxDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.5.44
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chat.html">Chat and Log</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Beamline Console</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#default-environment">Default Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#performing-scans">Performing Scans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fitting">Fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#saved-scan-data">Saved Scan Data</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/purpose.html">Purpose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/devices.html">Devices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/services.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/beamlines.html">Beamlines</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MxDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Beamline Console</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="beamline-console">
+<h1>Beamline Console<a class="headerlink" href="#beamline-console" title="Permalink to this headline">¶</a></h1>
+<p>The beamline console is a command line enhanced IPython shell allowing users to configure and control beamline
+devices outside of the MxDC GUI.  Commissioning activities such as scanning, plotting, fitting and scripting are all
+supported. As a normal python prompt, it allows traditional python scripts to be used in combination with device
+control and data-acquisition features provided by MxDC.</p>
+<p>The beamline console includes a plot window which displays live data from currently executing scans, and results of
+some analysis after scans, such as curve-fitting.</p>
+<p>The beamline console can be started using the <cite>blconsole</cite> command.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ blconsole
+</pre></div>
+</div>
+<p>For non-destructive testing and learning, a simulated console is available with a simulated beamline through the
+<cite>sim-console</cite> command.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ blconsole
+</pre></div>
+</div>
+<div class="figure align-center" id="id1">
+<a class="reference internal image-reference" href="_images/console.png"><img alt="Beamline Console" src="_images/console.png" style="width: 100%;" /></a>
+<p class="caption"><span class="caption-text">Screenshot of the Beamline Console showing the plot window and command prompt.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<div class="section" id="default-environment">
+<h2>Default Environment<a class="headerlink" href="#default-environment" title="Permalink to this headline">¶</a></h2>
+<p>The following objects and classes are available in the default environment once the beamline console is launched.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>bl</cite> -  A reference to the beamline object. The devices registered will be available as attributes of this object.</p></li>
+<li><p><cite>plot</cite> - A reference to the plot controller.</p></li>
+<li><p><cite>fit</cite> - A fitting Manager object. This can be used to do curve fitting on the most recent scan data.</p></li>
+<li><p>Various Scan types</p></li>
+</ul>
+</div></blockquote>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AbsScan</span></code>(m1, p1, p2, steps, exposure, *counters)</p></td>
+<td><p>An absolute scan of a single motor.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">RelScan</span></code>(m1, p1, p2, steps, exposure, *counters)</p></td>
+<td><p>Relative scan of a single motor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlewScan</span></code>(m1, p1, p2, *counters[, i0, speed])</p></td>
+<td><p>A Continuous scan of a single motor.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AbsScan2</span></code>(m1, p11, p12, m2, p21, p22, steps, …)</p></td>
+<td><p>Sequential Absolute scan of two motors.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">RelScan2</span></code>(m1, p11, p12, m2, p21, p22, steps, …)</p></td>
+<td><p>Sequential Relative scan of two motors.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">GridScan</span></code>(m1, p11, p12, steps1, m2, p21, p22, …)</p></td>
+<td><p>Absolute Step Grid scan of two motors.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlewGridScan</span></code>(m1, p11, p12, m2, p21, p22, …)</p></td>
+<td><p>A Grid scan with Slewing of the inner motor (first).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Avoid shadowing these names by assigning to them.</p>
+</div>
+</div>
+<div class="section" id="performing-scans">
+<h2>Performing Scans<a class="headerlink" href="#performing-scans" title="Permalink to this headline">¶</a></h2>
+<p>To perform a scan, create a scan instance with the appropriate parameters and then call the start method to run the
+scan asynchronously.  The plot window should update in realtime as the scan progresses.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">scan</span> <span class="o">=</span> <span class="n">RelScan</span><span class="p">(</span><span class="n">bl</span><span class="o">.</span><span class="n">dcm_pitch</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">bl</span><span class="o">.</span><span class="n">i1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scan</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>While the scan is running, it can be stopped before it is complete</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">scan</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Sometimes, it is desirable to extend the scan range once the scan is complete, without destroying the previously
+acquired data.  In such cases, use the <code class="xref py py-func docutils literal notranslate"><span class="pre">scan.extend()</span></code> method as follows.  The method takes a single parameter
+which is the amount to extend the scan by in steps except for a <code class="xref py py-class docutils literal notranslate"><span class="pre">SlewScan</span></code> where the amount is the actual additional
+travel range for the motor.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">scan</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>   <span class="c1"># 10 more steps for all other scan types</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scan</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>  <span class="c1"># 2.5 mm more for a Slew Scan</span>
+</pre></div>
+</div>
+<p>The introspection capabilities of IPython can be used to investigate objects. For example, to get help on required
+parameters for a specific type of scan, use the IPython help shortcut.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt; SlewScan?
+Init signature: SlewScan(m1, p1, p2, *counters, i0=None, speed=None)
+
+Docstring:
+A Continuous scan of a single motor.
+:param m1: motor or positioner
+:param p1: start position
+:param p2: end position
+:param counters: one or more counters
+:param i0: reference counter
+:param speed:  scan speed of m1
+</pre></div>
+</div>
+</div>
+<div class="section" id="fitting">
+<h2>Fitting<a class="headerlink" href="#fitting" title="Permalink to this headline">¶</a></h2>
+<p>To perform curve-fitting on the results of a scan, you can use the fit object as follows. Once the fit is complete, a
+fitted curve will be overlaid on the plot window and the fitted parameters will be returned. You can specify the data
+column to be used for fitting. The first  column is selected by default if none is specified.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="s1">&#39;i1&#39;</span><span class="p">)</span>
+<span class="go">{&#39;ymax&#39;: 38.753925,</span>
+<span class="go"> &#39;midp&#39;: -0.010566544083663901,</span>
+<span class="go"> &#39;fwhm&#39;: 0.07076730539816214,</span>
+<span class="go"> &#39;cema&#39;: -0.0009469308321938418,</span>
+<span class="go"> &#39;midp_hist&#39;: -0.01071071087031274,</span>
+<span class="go"> &#39;fwhm_hist&#39;: 0.08288288411793407,</span>
+<span class="go"> &#39;ymax_hist&#39;: 38.75275534939397}</span>
+</pre></div>
+</div>
+<p>The following types of functions are available for fitting: <code class="xref py py-func docutils literal notranslate"><span class="pre">gaussian()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">lorentz()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">voigt()</span></code>.</p>
+</div>
+<div class="section" id="saved-scan-data">
+<h2>Saved Scan Data<a class="headerlink" href="#saved-scan-data" title="Permalink to this headline">¶</a></h2>
+<p>Scan results are saved as GZip compressed XDI files like <cite>~/Scans/YYYY/mmm/xxxxxx-HHMMSS.xdi.gz</cite>. These files can
+be displayed later using the <cite>plotxdi</cite> command provided with MxDC.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">plotxdi</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">x</span> <span class="n">X</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">y</span> <span class="n">Y</span><span class="p">]</span> <span class="n">file</span>
+
+<span class="n">Plot</span> <span class="n">XDI</span> <span class="n">data</span>
+
+<span class="n">positional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="n">file</span>        <span class="n">File</span> <span class="n">to</span> <span class="n">plot</span>
+
+<span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>  <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">-</span><span class="n">x</span> <span class="n">X</span>        <span class="n">X</span><span class="o">-</span><span class="n">axis</span> <span class="n">column</span> <span class="n">name</span>
+  <span class="o">-</span><span class="n">y</span> <span class="n">Y</span>        <span class="n">Y</span><span class="o">-</span><span class="n">axis</span> <span class="n">column</span> <span class="n">name</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="api/purpose.html" class="btn btn-neutral float-right" title="Purpose" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="hutch.html" class="btn btn-neutral float-left" title="Hutch Viewer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2006-2020, Canadian Light Source, Inc
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,2303 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Devices &mdash; MxDC 2020.5.44 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/styles.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Engines" href="engines.html" />
+    <link rel="prev" title="Objects" href="objects.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> MxDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.5.44
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../chat.html">Chat and Log</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../console.html">Beamline Console</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="purpose.html">Purpose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objects.html">Objects</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Devices</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#auto-mounters">Auto Mounters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#beam-tuners">Beam Tuners</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#counters">Counters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detectors">Detectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#goniometers">Goniometers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#motors">Motors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-channel-analyzers">Multi-Channel Analyzers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mode-managers">Mode Managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#miscellaneous-devices">Miscellaneous Devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#shutters">Shutters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stages">Stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#storage-ring">Storage Ring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#video">Video</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beamlines.html">Beamlines</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MxDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Devices</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="devices">
+<h1>Devices<a class="headerlink" href="#devices" title="Permalink to this headline">¶</a></h1>
+<p>An MxDC Device is a high-level abstraction of a beamline hardware device that allows MxDC to interact with the hardware.
+From our perspective, the only relevant details are those important for the function that is common
+across all devices of the same type.</p>
+<p>Devices of the same type are expected to provide a minimum common subset of functions and <em>behaviours</em> that determine the
+interface of the device.  The interface for the device type is therefore a common set of attributes, methods, signals
+and <em>behaviours</em>.</p>
+<p>All devices in MxDC are derived from the base class <a class="reference internal" href="#mxdc.Device" title="mxdc.Device"><code class="xref py py-class docutils literal notranslate"><span class="pre">mxdc.Device</span></code></a> which provides a default set of methods attributes
+and signals for all device types. Specific device types can be created by subclassing <a class="reference internal" href="#mxdc.Device" title="mxdc.Device"><code class="xref py py-class docutils literal notranslate"><span class="pre">mxdc.Device</span></code></a> and adding
+required methods, signals and attributes.</p>
+<dl class="py class">
+<dt id="mxdc.Device">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.</code><code class="sig-name descname">Device</code><a class="headerlink" href="#mxdc.Device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base device object. All devices should be derived from this class.</p>
+<p class="rubric">Signals</p>
+<ul>
+<li><p>“active”: arg_types=(bool,), True when device is ready to be controlled</p></li>
+<li><p>“busy”: arg_types=(bool,), True when device is busy</p></li>
+<li><p>“enabled”: arg_types=(bool,), True when device is enabled for control</p></li>
+<li><p>“health”: arg_types=(severity: int, context: str, message: str), represents the health state of the device the severity levels are</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>0: OK,</p></li>
+<li><p>1: MINOR,</p></li>
+<li><p>2: MARGINAL,</p></li>
+<li><p>4: SERIOUS,</p></li>
+<li><p>8: CRITICAL,</p></li>
+<li><p>16: DISABLED</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.Device.add_components">
+<code class="sig-name descname">add_components</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">components</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.add_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add one or more components as children of this device. Components can be other devices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>components</strong> – components to add to this device</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.add_features">
+<code class="sig-name descname">add_features</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">features</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.add_features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flag the provided features as supported</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – features supported by device. Features can be any python object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.add_pv">
+<code class="sig-name descname">add_pv</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.add_pv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new process variable (PV) and add it as a component to the device.</p>
+<p>Arguments and Keyworded arguments should be the same as those expected for instantiating the process variable
+class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.cleanup">
+<code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up before shutdown</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.configure">
+<code class="sig-name descname">configure</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the device.  Keyword arguments and implementation details are device specific.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.get_pending">
+<code class="sig-name descname">get_pending</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.get_pending" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of pending/inactive components</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.is_active">
+<code class="sig-name descname">is_active</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.is_active" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the device is active and ready for commands</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.is_busy">
+<code class="sig-name descname">is_busy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.is_busy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the device is busy/moving</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.is_enabled">
+<code class="sig-name descname">is_enabled</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.is_enabled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the device is enabled/disabled</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.is_healthy">
+<code class="sig-name descname">is_healthy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.is_healthy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if all health flags are clear</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.on_component_active">
+<code class="sig-name descname">on_component_active</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="n">state</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.on_component_active" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback which is processed every time a component becomes active or inactive, and manages the list
+of pending components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>component</strong> – sub-component</p></li>
+<li><p><strong>state</strong> – state of component, True if active, False if inactive</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.set_state">
+<code class="sig-name descname">set_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of the object and emit the corresponding signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – list of strings corresponding to non-value signal names</p></li>
+<li><p><strong>kwargs</strong> – name, value pairs corresponding to signal name and signal arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.Device.supports">
+<code class="sig-name descname">supports</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">features</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.supports" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if device supports all of the features in specified</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – features to check</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>The following are some examples of device types included by default. To implement variants of the these built-in device
+types, simply subclass them and provide implementation details of the interface.</p>
+<div class="section" id="auto-mounters">
+<h2>Auto Mounters<a class="headerlink" href="#auto-mounters" title="Permalink to this headline">¶</a></h2>
+<p>Auto mounters provide abstractions for robotic sample mounting systems for loading samples onto beamlines.</p>
+<dl class="py class">
+<dt id="mxdc.devices.automounter.AutoMounter">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.automounter.</code><code class="sig-name descname">AutoMounter</code><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all Sample Automounters.</p>
+<p class="rubric">Properties</p>
+<ul class="simple">
+<li><p><strong>layout</strong>: container layout dictionary</p></li>
+<li><p><strong>sample</strong>: mounted sample</p></li>
+<li><p><strong>next_port</strong>: next port to mount</p></li>
+<li><p><strong>containers</strong>: container meta-data</p></li>
+<li><p><strong>status</strong>: automounter status</p></li>
+<li><p><strong>failure</strong>: failure meta-data</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.abort">
+<code class="sig-name descname">abort</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.abort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abort current operation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.cancel">
+<code class="sig-name descname">cancel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.cancel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cancel Standby state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.configure">
+<code class="sig-name descname">configure</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the automounter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – Accepted kwargs are the same as the device properties.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.dismount">
+<code class="sig-name descname">dismount</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.dismount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dismount the currently mounted sample.
+Must take care of preparing the end station
+and dismounting any mounted samples before mounting
+:return: bool, True if successful</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.is_mountable">
+<code class="sig-name descname">is_mountable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">port</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.is_mountable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the specified port can be mounted successfully</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>port</strong> – str representation of the port</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>bool, True if it is mounted</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.is_mounted">
+<code class="sig-name descname">is_mounted</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.is_mounted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the specified port is mounted
+:param port: str representation of the port or None if checking for any
+:return: bool, True if it is mounted</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.is_preparing">
+<code class="sig-name descname">is_preparing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.is_preparing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the automounter is preparing to start</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.is_ready">
+<code class="sig-name descname">is_ready</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.is_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the automounter is ready for an operation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.is_valid">
+<code class="sig-name descname">is_valid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">port</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.is_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the specified port is a valid port designation for this automounter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>port</strong> – str representation of the port</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>bool, True if it is valid</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.mount">
+<code class="sig-name descname">mount</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">port</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.mount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mount the sample at the given port. Must take care of preparing the end station
+and dismounting any mounted samples before mounting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – str, the port to mount</p></li>
+<li><p><strong>wait</strong> – bool, whether to block until operation is completed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>bool, True if successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.prefetch">
+<code class="sig-name descname">prefetch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">port</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.prefetch" title="Permalink to this definition">¶</a></dt>
+<dd><p>For automounters which support pre-fetching. Prefetch the next sample for mounting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – next port to mount</p></li>
+<li><p><strong>wait</strong> – boolean, wait for prefetch to complete</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.prepare">
+<code class="sig-name descname">prepare</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.prepare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get ready to start.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.recover">
+<code class="sig-name descname">recover</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">failure</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.recover" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recover from a specific failure type</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>failure</strong> – Failure type</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param">states=(&lt;State.IDLE: 0&gt;</em>, <em class="sig-param">)</em>, <em class="sig-param">timeout=60</em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the given state to be attained</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> – requested state to wait for or a list of states</p></li>
+<li><p><strong>timeout</strong> – maximum time to wait</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>bool, True if state was attained or False if timeout was exhausted</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sam.UncleSAM</span></code>(root)</p></td>
+<td><p>Auto mounter Device based on the UncleSAM EPICS driver without Blu-ICE.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sam.SAM</span></code>(root)</p></td>
+<td><p>Auto mounter Device based on the old EPICS/DCSS/Blu-ICE driver .</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">isara.AuntISARA</span></code>(root)</p></td>
+<td><p>Auto mounter Device for the IRELEC ISARA based on the newer AunISARA python-based EPICS driver.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">isara.ISARA</span></code>(root)</p></td>
+<td><p>Auto mounter Device for the IRELEC ISARA based on the original EPICS driver.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cats.CATS</span></code>(root)</p></td>
+<td><p>An abstraction fot the IRELEC CATS Auto Mounter</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sim.SimSAM</span></code>()</p></td>
+<td><p>Simulated Auto mounter Device which emulates a SAM automounter.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="beam-tuners">
+<h2>Beam Tuners<a class="headerlink" href="#beam-tuners" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.boss.BaseTuner">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.boss.</code><code class="sig-name descname">BaseTuner</code><a class="headerlink" href="#mxdc.devices.boss.BaseTuner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base device for all Beam Tuners.  A beam tuner links to a beam intensity monitor and reports
+the percentage intensity compared to the expected value for the intensity monitor.  It also allows
+tweak the beam up or down. Optionally it can be an abstraction for a device which performs automated
+optimization of the beam.</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><em>changed</em> (float,): emitted with the current value of the tuner</p></li>
+<li><p><em>percent</em> (float,): percentage of current value compared to expected</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.get_value">
+<code class="sig-name descname">get_value</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.get_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return current value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.is_tunable">
+<code class="sig-name descname">is_tunable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.is_tunable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if Tuner is actually tunable, or just a dummy tuner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.pause">
+<code class="sig-name descname">pause</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.pause" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pause optimization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the beam tuner</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.resume">
+<code class="sig-name descname">resume</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.resume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pause optimization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.start">
+<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start optimization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop optimization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.tune_down">
+<code class="sig-name descname">tune_down</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.tune_down" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tweak the beam down.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.boss.BaseTuner.tune_up">
+<code class="sig-name descname">tune_up</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.tune_up" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tweak the beam up.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">BOSSTuner</span></code>(name, picoameter, current[, …])</p></td>
+<td><p>Beam Tuner abstraction for the original ELETTRA Beamline Optimisation and Stabilization System (BOSS).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MOSTABTuner</span></code>(name, picoameter, current[, …])</p></td>
+<td><p>Beam Tuner abstraction for the D-MOSTAB beam stabilisation hardware.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimTuner</span></code>(name)</p></td>
+<td><p>A Simulated Beam Tuner</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="counters">
+<h2>Counters<a class="headerlink" href="#counters" title="Permalink to this headline">¶</a></h2>
+<p>Counters are simple devices that are continuously monitoring hardware feedback, like temperature, current, voltage,
+vacuum pressure, etc. Counters provide mechanisms for averaging or integrating those values over peiods of time.</p>
+<dl class="py class">
+<dt id="mxdc.devices.counter.BaseCounter">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.counter.</code><code class="sig-name descname">BaseCounter</code><a class="headerlink" href="#mxdc.devices.counter.BaseCounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all counter devices</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p>changed (object,): value has changed</p></li>
+<li><p>count (float,): result of asynchronous</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.counter.BaseCounter.count">
+<code class="sig-name descname">count</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">duration</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate of the value for the specified amount of time. Blocks while counting</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>duration</strong> – total time duration in seconds to count</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>accumulated value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.counter.BaseCounter.start">
+<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start counting as fast as possible until stopped. Values are be emitted as the “count” signal.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.counter.BaseCounter.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop fast counting</p>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimCounter</span></code>(name[, zero])</p></td>
+<td><p>Simulated Counter Device objects.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Counter</span></code>(pv_name[, zero])</p></td>
+<td><p>EPICS based Counter Device objects.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="detectors">
+<h2>Detectors<a class="headerlink" href="#detectors" title="Permalink to this headline">¶</a></h2>
+<p>In the context of MxDC, detectors are 2D imaging detector/cameras the acquire series of images.</p>
+<dl class="py class">
+<dt id="mxdc.devices.detector.BaseDetector">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.detector.</code><code class="sig-name descname">BaseDetector</code><a class="headerlink" href="#mxdc.devices.detector.BaseDetector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all imaging detector classes</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>state</strong>: (object,), Detector state</p></li>
+<li><p><strong>new-image</strong>: (object,), New image recorded</p></li>
+<li><p><strong>progress</strong>:  (float, str), Progress fraction and message</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.check">
+<code class="sig-name descname">check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">directory</span></em>, <em class="sig-param"><span class="n">prefix</span></em>, <em class="sig-param"><span class="n">first</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check the dataset in a given directory and prefix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>directory</strong> – Directory in which to check files</p></li>
+<li><p><strong>prefix</strong> – file name prefix</p></li>
+<li><p><strong>first</strong> – first frame number, defaults to 1</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tuple with the following sequence of values (list, bool), list of existing frame numbers
+True if dataset can be resumed, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.delete">
+<code class="sig-name descname">delete</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">directory</span></em>, <em class="sig-param"><span class="n">prefix</span></em>, <em class="sig-param"><span class="n">frames</span><span class="o">=</span><span class="default_value">()</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete dataset frames given a file name prefix and directory</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>directory</strong> – Directory in which to delete files</p></li>
+<li><p><strong>prefix</strong> – file name prefix</p></li>
+<li><p><strong>frames</strong> – list of frame numbers.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.get_template">
+<code class="sig-name descname">get_template</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prefix</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.get_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a file name prefix, generate the file name template for the dataset.  This should be
+a format string specification which takes a single parameter <cite>number</cite> representing the file number, or
+no parameter at all, for archive formats like hdf5</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>prefix</strong> – file name prefix</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>format string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.initialize">
+<code class="sig-name descname">initialize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the detector
+:param wait: if True, wait for the detector to complete initialization</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.process_frame">
+<code class="sig-name descname">process_frame</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.process_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the frame data from a monitor helper</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – Dataset object to be processed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.set_state">
+<code class="sig-name descname">set_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.set_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of the object and emit the corresponding signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – list of strings corresponding to non-value signal names</p></li>
+<li><p><strong>kwargs</strong> – name, value pairs corresponding to signal name and signal arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait while the detector is busy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if detector became idle or False if wait timed-out.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.wait_until">
+<code class="sig-name descname">wait_until</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">states</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">20.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.wait_until" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for a maximum amount of time until the detector state is one of the specified states, or busy
+if no states are specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> – states to check for. Attaining any of the states will terminate the wait</p></li>
+<li><p><strong>timeout</strong> – Maximum time in seconds to wait</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if state was attained, False if timeout was reached.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.detector.BaseDetector.wait_while">
+<code class="sig-name descname">wait_while</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">states</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">20.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.wait_while" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for a maximum amount of time while the detector state is one of the specified states, or not busy
+if no states are specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – states to check for. Attaining a state other than any of the states will terminate the wait</p></li>
+<li><p><strong>timeout</strong> – Maximum time in seconds to wait</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if state was attained, False if timeout was reached.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimDetector</span></code>(name, size[, pixel_size, …])</p></td>
+<td><p>Simulated Detector.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">RayonixDetector</span></code>(name, size[, detector_type, …])</p></td>
+<td><p>Rayonix Detector devices controlled through the AreaDetector MarCCD EPICS driver.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ADSCDetector</span></code>(name, size[, detector_type, …])</p></td>
+<td><p>ADSC Detector devices for the AreaDetector EPICS driver.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">PilatusDetector</span></code>(name[, size, detector_type, …])</p></td>
+<td><p>Pilatus Detector devices from DECTRIS controlled through the AreaDetector Pilaltus EPICS driver.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">EigerDetector</span></code>(name, stream[, size, description])</p></td>
+<td><p>Eiger Detector devices from DECTRIS controlled through the AreaDetector EPICS driver.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="goniometers">
+<h2>Goniometers<a class="headerlink" href="#goniometers" title="Permalink to this headline">¶</a></h2>
+<p>Goniometers are rotary devices that can be configured to perform scans combined with triggering of detectors for
+acquiring data.</p>
+<dl class="py class">
+<dt id="mxdc.devices.goniometer.BaseGoniometer">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.goniometer.</code><code class="sig-name descname">BaseGoniometer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'Diffractometer'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all goniometers.</p>
+<dl class="py method">
+<dt id="mxdc.devices.goniometer.BaseGoniometer.configure">
+<code class="sig-name descname">configure</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the goniometer in preparation for scanning.</p>
+<dl class="simple">
+<dt>kwargs:</dt><dd><ul class="simple">
+<li><p>time: exposure time per frame</p></li>
+<li><p>range: angle range</p></li>
+<li><p>angle: start angle of data set</p></li>
+<li><p>frames: total number of frames</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.goniometer.BaseGoniometer.scan">
+<code class="sig-name descname">scan</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="o">=</span><span class="default_value">'simple'</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure and perform the scan
+:keyword type: Scan type (str), one of (‘simple’, ‘shutterless’, ‘helical’, ‘vector’, ‘raster’)
+:keyword wait:
+:keyword timeout:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.goniometer.BaseGoniometer.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop and abort the current scan if any.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.goniometer.BaseGoniometer.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">stop</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the goniometer busy state to change.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – (bool), Wait for the goniometer to become busy.</p></li>
+<li><p><strong>stop</strong> – (bool), Wait for the goniometer to become idle.</p></li>
+<li><p><strong>timeout</strong> – maximum time in seconds to wait before failing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(bool), False if wait timed-out</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimGonio</span></code>([kappa_enabled, trigger])</p></td>
+<td><p>Simulated Goniometer.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParkerGonio</span></code>(root, xname, y1name, y2name)</p></td>
+<td><p>EPICS based Parker-type BaseGoniometer at the CLS 08ID-1.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MD2Gonio</span></code>(root[, kappa_enabled, scan4d, …])</p></td>
+<td><p>MD2-type BaseGoniometer.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="motors">
+<h2>Motors<a class="headerlink" href="#motors" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.motor.BaseMotor">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.motor.</code><code class="sig-name descname">BaseMotor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">precision</span><span class="o">=</span><span class="default_value">2</span></em>, <em class="sig-param"><span class="n">units</span><span class="o">=</span><span class="default_value">''</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for motors.</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>changed</strong>: float, Emitted everytime the position of the motor changes.
+Data contains the current position of the motor.</p></li>
+<li><p><strong>target</strong>: float, Emitted everytime the requested position of the motor changes.
+Data is a tuple containing the previous set point and the current one.
+Data is a 2-tuple with the current position and the timestamp of the last change.</p></li>
+<li><p><strong>starting</strong>: bool, Emitted when this a command to move has been accepted by this instance of the motor.</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.configure">
+<code class="sig-name descname">configure</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">speed</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">accel</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the motor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speed</strong> – speed value to set, None if no change required</p></li>
+<li><p><strong>accel</strong> – acceleration value to set, None if no change required</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.get_config">
+<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.get_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current configuration of the motor as a dictionary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.has_reached">
+<code class="sig-name descname">has_reached</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.has_reached" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the motor has reached a given position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – query position</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(boolean)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.is_moving">
+<code class="sig-name descname">is_moving</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.is_moving" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if motor is moving, ie a command has been received.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if moving, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.is_starting">
+<code class="sig-name descname">is_starting</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.is_starting" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if motor is starting, ie a command has been received but has not yet started moving.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if starting, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.move_by">
+<code class="sig-name descname">move_by</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.move_by" title="Permalink to this definition">¶</a></dt>
+<dd><p>Similar to <a class="reference internal" href="#mxdc.devices.motor.BaseMotor.move_to" title="mxdc.devices.motor.BaseMotor.move_to"><code class="xref py py-func docutils literal notranslate"><span class="pre">move_to()</span></code></a>, except request the motor to move by a
+relative amount.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Relative amount to move position by</p></li>
+<li><p><strong>wait</strong> – Whether to block until move is completed or not</p></li>
+<li><p><strong>force</strong> – Force move even if already at current position</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.move_operation">
+<code class="sig-name descname">move_operation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.move_operation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raw move operation command. Moves the motor to the absolute position. Warning: this method sends the command
+directy to the device without additional checks. Should not be used directly without additional checks.
+Subclasses must implement this method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target</strong> – Absolute position to move to.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.move_to">
+<code class="sig-name descname">move_to</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pos</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.move_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move to an absolute position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> – Target position</p></li>
+<li><p><strong>wait</strong> – Block until move is done, default is non-blocking</p></li>
+<li><p><strong>force</strong> – Force move even if already at current position</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.on_calibration">
+<code class="sig-name descname">on_calibration</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">state</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.on_calibration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback to emit “health” signal changes when the motor calibration changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – process variable object</p></li>
+<li><p><strong>value</strong> – value of process variable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.on_change">
+<code class="sig-name descname">on_change</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.on_change" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback to Emit “changed” signals when the motor position changes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – process variable object</p></li>
+<li><p><strong>value</strong> – value of process variable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.on_enable">
+<code class="sig-name descname">on_enable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.on_enable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback to emit “enabled” signal when the motor-enabled state is changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – process variable object</p></li>
+<li><p><strong>value</strong> – value of process variable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.on_motion">
+<code class="sig-name descname">on_motion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.on_motion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback to emit “starting” and “busy” signal when the motor starts moving.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – process variable object</p></li>
+<li><p><strong>value</strong> – value of process variable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.on_target">
+<code class="sig-name descname">on_target</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.on_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Callback to emit “target” signal when the motor target is changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – process variable object</p></li>
+<li><p><strong>value</strong> – value of process variable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.setup">
+<code class="sig-name descname">setup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare all the components of the motor when it is started.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">stop</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the motor busy state to change.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – (bool) Wait for the motor to start moving.</p></li>
+<li><p><strong>stop</strong> – (bool): Wait for the motor to stop moving.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(bool), True if successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.wait_start">
+<code class="sig-name descname">wait_start</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">2</span></em>, <em class="sig-param"><span class="n">poll</span><span class="o">=</span><span class="default_value">0.05</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.wait_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for motor to start moving
+:param timeout: Maximum time to wait before failing
+:param poll: Time step between checking motor state
+:return: (boolean), True if motor started successfully</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.motor.BaseMotor.wait_stop">
+<code class="sig-name descname">wait_stop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">120</span></em>, <em class="sig-param"><span class="n">poll</span><span class="o">=</span><span class="default_value">0.05</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.motor.BaseMotor.wait_stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for motor to stop moving.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – Optional target to check</p></li>
+<li><p><strong>timeout</strong> – Maximum time to wait before failing</p></li>
+<li><p><strong>poll</strong> – Time step between checking motor state</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(boolean), True if motor stopped successfully or if it is not moving.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimMotor</span></code>(name[, pos, units, speed, limits, …])</p></td>
+<td><p>Simulated Motor</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Motor</span></code>(name, *args, **kwargs)</p></td>
+<td><p>Base Motor object for EPICS based motor records.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">VMEMotor</span></code>(name[, encoded])</p></td>
+<td><p>CLS “vme” type motors.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">CLSMotor</span></code>(name[, encoded])</p></td>
+<td><p>Ancient CLS type motor records.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">APSMotor</span></code>(name[, encoded])</p></td>
+<td><p>APS type motor records.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">PseudoMotor</span></code>(name[, version])</p></td>
+<td><p>CLS Pseudo Motor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">BraggEnergyMotor</span></code>(name[, encoder, …])</p></td>
+<td><p>VME Motor for Bragg based Energy</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResolutionMotor</span></code>(energy, distance, detector_size)</p></td>
+<td><p>Detector Resolution PseudoMotor</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="multi-channel-analyzers">
+<h2>Multi-Channel Analyzers<a class="headerlink" href="#multi-channel-analyzers" title="Permalink to this headline">¶</a></h2>
+<p>Abstractions for configuring and acquiring data from a multichannel analyzers</p>
+<dl class="py class">
+<dt id="mxdc.devices.mca.BaseMCA">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.mca.</code><code class="sig-name descname">BaseMCA</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for single and multi-element fluorescence MCA detector objects.</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>deadtime</strong>: float, dead time</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – All arguments and key-worded arguments are passed to <a class="reference internal" href="#mxdc.devices.mca.BaseMCA.custom_setup" title="mxdc.devices.mca.BaseMCA.custom_setup"><code class="xref py py-func docutils literal notranslate"><span class="pre">custom_setup()</span></code></a>
+but before that, the following key-worded arguments are used if available.</p></li>
+<li><p><strong>kwargs</strong> – elements: (int) number of detector elements, default 1
+channels: (int) number of channels per element, default 4096</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.acquire">
+<code class="sig-name descname">acquire</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">duration</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.acquire" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate the detector for the specified amount of time and return
+the raw data from all elements without any ROI manipulation. This method
+blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>duration</strong> – (float), integrating time in seconds.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Array(float). An MxN array of counts from each channel of each
+element. Where M is the number of elements and N is the number of
+channels in the detector.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.channel_to_energy">
+<code class="sig-name descname">channel_to_energy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">channel</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.channel_to_energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a channel number to an energy value using the detectors
+calibration tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – (int), channel number.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>float. Energy in keV</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.configure">
+<code class="sig-name descname">configure</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the detector for data acquisition.</p>
+<dl class="simple">
+<dt>Kwargs:</dt><dd><ul class="simple">
+<li><p><cite>roi</cite> (tuple(int, int)): bounding channels enclosing region of interest.</p></li>
+<li><p><cite>energy</cite> (float): an energy value in keV around which to construct
+a region of interest. The ROI is calculated as a 150 eV window around
+the requested energy. If both <cite>roi</cite> and <cite>energy</cite> are given, <cite>energy</cite>
+takes precendence.</p></li>
+<li><p><cite>cooling</cite> (bool): cool down if available, ignore otherwise</p></li>
+<li><p><cite>nozzle</cite> (bool): move nozzle in if True and out if False, if nozzle is available, ignore otherwise</p></li>
+<li><p><cite>dark</cite> (bool): take dark current</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.count">
+<code class="sig-name descname">count</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">duration</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate the detector for the specified amount of time. This method
+blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>duration</strong> – (float), integrating time in seconds.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>float. The total integrated count from the region of interest of
+all detector elements. If individual counts for each element are
+desired, they can be obtained using <a class="reference internal" href="#mxdc.devices.mca.BaseMCA.get_roi_counts" title="mxdc.devices.mca.BaseMCA.get_roi_counts"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_roi_counts()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.custom_setup">
+<code class="sig-name descname">custom_setup</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.custom_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is where all the custom setup for derived classes is performed.
+Must be overridden for derived classes. Care must be taken to make sure
+call signatures of derived classes are compatible if using explicitly
+named ordered arguments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.energy_to_channel">
+<code class="sig-name descname">energy_to_channel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">energy</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.energy_to_channel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a an energy to a channel number using the detectors
+calibration tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>energy</strong> – (float), Energy in keV.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(int), channel number</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.get_count_rates">
+<code class="sig-name descname">get_count_rates</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.get_count_rates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the input and output count rates for last performed data
+acquisition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>[(int, int)]. A list of tuples, one for each element. the first entry
+is the input count rate and the second is the output count rate. If
+the values are not available (-1, -1) is substituted</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.get_roi">
+<code class="sig-name descname">get_roi</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">energy</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.get_roi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get region of interest tuple for the given energy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>energy</strong> – Energy</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.get_roi_counts">
+<code class="sig-name descname">get_roi_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.get_roi_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the counts for the region of interest for each element of the
+detector for the last performed data acquisition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Array(float). The array contains as many elements as the number of
+elements plus one. The first entry is an average of all elements combined.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop data acquisition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the detector to start and then stop data acquisition.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimMCA</span></code>(name[, energy, channels, nozzle])</p></td>
+<td><p>Simulated MCA detector.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">XFlashMCA</span></code>(name[, channels, nozzle])</p></td>
+<td><p>mcaRecord based single element fluorescence detector object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">VortexMCA</span></code>(name[, channels, nozzle])</p></td>
+<td><p>EPICS based 4-element Vortex ME4 detector object.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="mode-managers">
+<h2>Mode Managers<a class="headerlink" href="#mode-managers" title="Permalink to this headline">¶</a></h2>
+<p>Mode managers are devices which manage the beamline sample environment. A “mode” is a specific configuration
+of the sample environment suitable for a specific type of activity. Examples of modes include:</p>
+<ul class="simple">
+<li><p><cite>mount</cite>:  Sample environment suitable for mounting/loading samples</p></li>
+<li><p><cite>center</cite>: Sample centering mode</p></li>
+<li><p><cite>collect</cite>: Data acquisition mode</p></li>
+<li><p><cite>align</cite>: Beam alignment mode</p></li>
+</ul>
+<dl class="py class">
+<dt id="mxdc.devices.manager.BaseManager">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.manager.</code><code class="sig-name descname">BaseManager</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'Beamline Modes'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base Mode Manager. A device to manage beamline modes</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>mode</strong>: beamline mode</p></li>
+</ul>
+<p class="rubric">Properties</p>
+<ul class="simple">
+<li><p><strong>mode</strong>: beamline mode</p></li>
+</ul>
+<dl class="py class">
+<dt id="mxdc.devices.manager.BaseManager.ModeType">
+<em class="property">class </em><code class="sig-name descname">ModeType</code><a class="headerlink" href="#mxdc.devices.manager.BaseManager.ModeType" title="Permalink to this definition">¶</a></dt>
+<dd><p>An enumeration.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.manager.BaseManager.align">
+<code class="sig-name descname">align</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.align" title="Permalink to this definition">¶</a></dt>
+<dd><p>Switch to Align mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>wait</strong> – wait for switch to complete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.manager.BaseManager.center">
+<code class="sig-name descname">center</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Switch to Center mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>wait</strong> – wait for switch to complete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.manager.BaseManager.collect">
+<code class="sig-name descname">collect</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Switch to Collect mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>wait</strong> – wait for switch to complete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.manager.BaseManager.get_mode">
+<code class="sig-name descname">get_mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.get_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the current mode</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.manager.BaseManager.mount">
+<code class="sig-name descname">mount</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.mount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Switch to Mount mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>wait</strong> – wait for switch to complete</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.manager.BaseManager.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">modes</span></em>, <em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">stop</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">30</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the one of specified modes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>modes</strong> – a list of Mode ENUMS or strings to wait for</p></li>
+<li><p><strong>start</strong> – (bool), Wait for the manager to become busy.</p></li>
+<li><p><strong>stop</strong> – (bool), Wait for the manager to become idle.</p></li>
+<li><p><strong>timeout</strong> – maximum time in seconds to wait before failing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(bool), False if wait timed-out</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimModeManager</span></code>()</p></td>
+<td><p>Simulated Mode Manager.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MD2Manager</span></code>(root)</p></td>
+<td><p>MD2 Based Mode Manager.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ModeManager</span></code>(root)</p></td>
+<td><p>CMCF BL Mode Mode Manager.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="miscellaneous-devices">
+<h2>Miscellaneous Devices<a class="headerlink" href="#miscellaneous-devices" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.misc.BasePositioner">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">BasePositioner</code><a class="headerlink" href="#mxdc.devices.misc.BasePositioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for a simple positioning devices.</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><cite>changed</cite> : Data is the new value of the devices.</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.misc.BasePositioner.get">
+<code class="sig-name descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.BasePositioner.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current position</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.BasePositioner.get_position">
+<code class="sig-name descname">get_position</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.BasePositioner.get_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for the <a class="reference internal" href="#mxdc.devices.misc.BasePositioner.get" title="mxdc.devices.misc.BasePositioner.get"><code class="xref py py-func docutils literal notranslate"><span class="pre">get()</span></code></a> method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.BasePositioner.set">
+<code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.BasePositioner.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the value of the positioner</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – new value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.BasePositioner.set_position">
+<code class="sig-name descname">set_position</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.BasePositioner.set_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for the <a class="reference internal" href="#mxdc.devices.misc.BasePositioner.set" title="mxdc.devices.misc.BasePositioner.set"><code class="xref py py-func docutils literal notranslate"><span class="pre">set()</span></code></a> method.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.Positioner">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">Positioner</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">fbk_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">100</span></em>, <em class="sig-param"><span class="n">units</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">wait_time</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.Positioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple EPICS based positioning devices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – process variable name</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Kwargs:</dt><dd><ul class="simple">
+<li><p><cite>fbk_name</cite> (str): optional Name of PV for getting current value. If not
+provided, the same PV will be used to both set and get.</p></li>
+<li><p><cite>scale</cite> (float): A percentage to scale the set and get values by.</p></li>
+<li><p><cite>units</cite> (str): The units of the value.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.Positioner.get">
+<code class="sig-name descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.Positioner.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current position</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.Positioner.set">
+<code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pos</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.Positioner.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the value of the positioner</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – new value</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.ChoicePositioner">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">ChoicePositioner</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pv</span></em>, <em class="sig-param"><span class="n">choices</span><span class="o">=</span><span class="default_value">()</span></em>, <em class="sig-param"><span class="n">units</span><span class="o">=</span><span class="default_value">''</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.ChoicePositioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>An Enumerated EPICS choice positioner</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pv</strong> – name of process variable</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>kwargs:</dt><dd><ul class="simple">
+<li><p>choices: tuple of values to translate to</p></li>
+<li><p>units: device units</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.ChoicePositioner.get">
+<code class="sig-name descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.ChoicePositioner.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current position</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.ChoicePositioner.set">
+<code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.ChoicePositioner.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the value of the positioner</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – new value</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.PositionerMotor">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">PositionerMotor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">positioner</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.PositionerMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adapts a positioner so that it behaves like a Motor (ie, provides the
+<cite>IMotor</cite> interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>positioner</strong> – Positioner device</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.PositionerMotor.move_by">
+<code class="sig-name descname">move_by</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">val</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.PositionerMotor.move_by" title="Permalink to this definition">¶</a></dt>
+<dd><p>Similar to <a class="reference internal" href="#mxdc.devices.misc.PositionerMotor.move_to" title="mxdc.devices.misc.PositionerMotor.move_to"><code class="xref py py-func docutils literal notranslate"><span class="pre">move_to()</span></code></a>, except request the motor to move by a
+relative amount.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Relative amount to move position by</p></li>
+<li><p><strong>wait</strong> – Whether to block until move is completed or not</p></li>
+<li><p><strong>force</strong> – Force move even if already at current position</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.PositionerMotor.move_to">
+<code class="sig-name descname">move_to</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pos</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.PositionerMotor.move_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move to an absolute position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> – Target position</p></li>
+<li><p><strong>wait</strong> – Block until move is done, default is non-blocking</p></li>
+<li><p><strong>force</strong> – Force move even if already at current position</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.PositionerMotor.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.PositionerMotor.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the motor busy state to change.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – (bool) Wait for the motor to start moving.</p></li>
+<li><p><strong>stop</strong> – (bool): Wait for the motor to stop moving.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(bool), True if successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimPositioner</span></code>(name[, pos, units, active, …])</p></td>
+<td><p>Simulated positioner</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimChoicePositioner</span></code>(name, value[, choices, …])</p></td>
+<td><p>Simulated choice positioner</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Attenuator</span></code>(bitname, energy)</p></td>
+<td><p>A positioner for EPICS XIA attenuator boxes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Attenuator2</span></code>(bitname, energy)</p></td>
+<td><p>Second generation XIA attenuator EPICS device</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimEnclosures</span></code>(name)</p></td>
+<td><p>Simulated Enclusures</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt id="mxdc.devices.misc.OnOffToggle">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">OnOffToggle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pv_name</span></em>, <em class="sig-param"><span class="n">values</span><span class="o">=</span><span class="default_value">1, 0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Device that can be toggled on/off.</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p>changed: (bool,) state of the device</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pv_name</strong> – process variable name</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>kwargs:</dt><dd><ul class="simple">
+<li><p>values: tuple of values representing (on value, off value) for the PV.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.OnOffToggle.is_on">
+<code class="sig-name descname">is_on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle.is_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the light is on or off</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.OnOffToggle.off">
+<code class="sig-name descname">off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle.off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <a class="reference internal" href="#mxdc.devices.misc.OnOffToggle.set_off" title="mxdc.devices.misc.OnOffToggle.set_off"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_off()</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.OnOffToggle.on">
+<code class="sig-name descname">on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle.on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <a class="reference internal" href="#mxdc.devices.misc.OnOffToggle.set_on" title="mxdc.devices.misc.OnOffToggle.set_on"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_on()</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.OnOffToggle.set_off">
+<code class="sig-name descname">set_off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle.set_off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn off the device</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.OnOffToggle.set_on">
+<code class="sig-name descname">set_on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle.set_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn on the device</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.SampleLight">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">SampleLight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">set_name</span></em>, <em class="sig-param"><span class="n">fbk_name</span></em>, <em class="sig-param"><span class="n">onoff_name</span></em>, <em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">100</span></em>, <em class="sig-param"><span class="n">units</span><span class="o">=</span><span class="default_value">''</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.SampleLight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Illumination controller device. This device is a Positioner that can in addition be turned On and Off.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set_name</strong> – name of PV for setting illumination level</p></li>
+<li><p><strong>fbk_name</strong> – name of PV for getting the illumination level</p></li>
+<li><p><strong>onoff_name</strong> – name of PV for toggling the light on or off</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>kwargs:</dt><dd><ul class="simple">
+<li><p>scale: scale value for illumination level</p></li>
+<li><p>units: units of the device</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.SampleLight.is_on">
+<code class="sig-name descname">is_on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.SampleLight.is_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the light is on or off</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.SampleLight.off">
+<code class="sig-name descname">off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.SampleLight.off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <a class="reference internal" href="#mxdc.devices.misc.SampleLight.set_off" title="mxdc.devices.misc.SampleLight.set_off"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_off()</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.SampleLight.on">
+<code class="sig-name descname">on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.SampleLight.on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for <a class="reference internal" href="#mxdc.devices.misc.SampleLight.set_on" title="mxdc.devices.misc.SampleLight.set_on"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_on()</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.SampleLight.set_off">
+<code class="sig-name descname">set_off</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.SampleLight.set_off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn off the device</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.SampleLight.set_on">
+<code class="sig-name descname">set_on</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.SampleLight.set_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn on the device</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.DiskSpaceMonitor">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">DiskSpaceMonitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">descr</span></em>, <em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">warn</span><span class="o">=</span><span class="default_value">0.05</span></em>, <em class="sig-param"><span class="n">critical</span><span class="o">=</span><span class="default_value">0.025</span></em>, <em class="sig-param"><span class="n">freq</span><span class="o">=</span><span class="default_value">5.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.DiskSpaceMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>A device which periodically monitors a given path for available space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>descr</strong> – Description</p></li>
+<li><p><strong>path</strong> – Path to monitor</p></li>
+<li><p><strong>warn</strong> – Warn if Fraction of available space goes below</p></li>
+<li><p><strong>critical</strong> – Raise alarm if Fraction of available space goes below</p></li>
+<li><p><strong>freq</strong> – Frequency in minutes to check space</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.DiskSpaceMonitor.check_space">
+<code class="sig-name descname">check_space</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.DiskSpaceMonitor.check_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check disk space and emit health signals accordingly</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.DiskSpaceMonitor.humanize">
+<code class="sig-name descname">humanize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">size</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.DiskSpaceMonitor.humanize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert disk space to human friendly units
+:param size: disk size
+:return: human friendly size string</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.Enclosures">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">Enclosures</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.Enclosures" title="Permalink to this definition">¶</a></dt>
+<dd><p>A device for monitoring beamline enclosures</p>
+<dl class="field-list simple">
+<dt class="field-odd">Params kwargs</dt>
+<dd class="field-odd"><p>name, pv_name pairs each representing one beamline enclosure to monitor</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.Enclosures.get_messages">
+<code class="sig-name descname">get_messages</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.Enclosures.get_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate and return messages indicating the status of the enclosures</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mxdc.devices.misc.CamScaleFromZoom">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">CamScaleFromZoom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">zoom</span></em>, <em class="sig-param"><span class="n">width</span><span class="o">=</span><span class="default_value">1360.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.CamScaleFromZoom" title="Permalink to this definition">¶</a></dt>
+<dd><p>A positioner for converting camera zoom values to pixel size for the sample microscope video.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>zoom</strong> – zoom device</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>kwargs:</dt><dd><ul class="simple">
+<li><p>width: width of camera video.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.misc.CamScaleFromZoom.get">
+<code class="sig-name descname">get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.CamScaleFromZoom.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current position</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.misc.CamScaleFromZoom.set">
+<code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.CamScaleFromZoom.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the value of the positioner</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – new value</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="shutters">
+<h2>Shutters<a class="headerlink" href="#shutters" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.shutter.BaseShutter">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.shutter.</code><code class="sig-name descname">BaseShutter</code><a class="headerlink" href="#mxdc.devices.shutter.BaseShutter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all shutters.</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>changed</strong>: (bool,) State of shutter</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.shutter.BaseShutter.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.shutter.BaseShutter.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the shutter if open</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>wait</strong> – bool, if True, block until shutter is fully closed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.shutter.BaseShutter.is_open">
+<code class="sig-name descname">is_open</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.shutter.BaseShutter.is_open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function to check for opened state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.shutter.BaseShutter.open">
+<code class="sig-name descname">open</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.shutter.BaseShutter.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open the shutter if closed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>wait</strong> – bool, if True, block until shutter is fully open</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.shutter.BaseShutter.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">state</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">5.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.shutter.BaseShutter.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the shutter to reach a given state. Subclasses need not re-implement this method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – bool, True = ‘open’, False = ‘close’</p></li>
+<li><p><strong>timeout</strong> – timeout duration</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimShutter</span></code>(name)</p></td>
+<td><p>Simulated Shutter</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">EPICSShutter</span></code>(open_name, close_name, state_name)</p></td>
+<td><p>EPICS Shutter requiring three PVs (close, open, state).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">StateLessShutter</span></code>(open_name, close_name)</p></td>
+<td><p>EPICS shutter which has not state</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToggleShutter</span></code>(name[, reversed])</p></td>
+<td><p>A Toggle shutter controlled by a single process variable</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShutterGroup</span></code>(*shutters)</p></td>
+<td><p>Meta Shutter controlling a sequence of shutters</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Shutter</span></code>(name)</p></td>
+<td><p>CLS EPICS Shutter</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="stages">
+<h2>Stages<a class="headerlink" href="#stages" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.stages.BaseSampleStage">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.stages.</code><code class="sig-name descname">BaseSampleStage</code><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for sample alignment stages</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>changed</strong>: (object,) stage information</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.get_omega">
+<code class="sig-name descname">get_omega</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.get_omega" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the angle position</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.screen_to_xyz">
+<code class="sig-name descname">screen_to_xyz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">z</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.screen_to_xyz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert screen coordiantes to x, y, z</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – x-position</p></li>
+<li><p><strong>y</strong> – y-position</p></li>
+<li><p><strong>z</strong> – z-position</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(x, y, z) screen coordinates</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.wait">
+<code class="sig-name descname">wait</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">stop</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the busy state to change.</p>
+<dl class="simple">
+<dt>Kwargs:</dt><dd><ul class="simple">
+<li><p><cite>start</cite> (bool): Wait for the motor to start moving.</p></li>
+<li><p><cite>stop</cite> (bool): Wait for the motor to stop moving.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.xvw_to_screen">
+<code class="sig-name descname">xvw_to_screen</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">v</span></em>, <em class="sig-param"><span class="n">w</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.xvw_to_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert 3D horizontal, vertical, omega coordinates to screen coordinates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – horizontal position</p></li>
+<li><p><strong>v</strong> – vertical position</p></li>
+<li><p><strong>w</strong> – omega angle position</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(x, y, z) screen coordinates</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.xvw_to_xyz">
+<code class="sig-name descname">xvw_to_xyz</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">v</span></em>, <em class="sig-param"><span class="n">w</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.xvw_to_xyz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert 3D horizontal, vertical, omega coordinates to  x, y, z coordinates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – horizontal position</p></li>
+<li><p><strong>v</strong> – vertical position</p></li>
+<li><p><strong>w</strong> – omega angle position</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(x, y, z)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.xyz_to_screen">
+<code class="sig-name descname">xyz_to_screen</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">z</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.xyz_to_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert 3D horizontal, x, y, z to screen coordinates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – x-position</p></li>
+<li><p><strong>y</strong> – y-position</p></li>
+<li><p><strong>z</strong> – z-position</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(x, y, z) screen coordinates</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.stages.BaseSampleStage.xyz_to_xvw">
+<code class="sig-name descname">xyz_to_xvw</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">z</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.xyz_to_xvw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert 3D x, y, z coordinates to horizontal, vertical and angle coordinates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – x-position</p></li>
+<li><p><strong>y</strong> – y-position</p></li>
+<li><p><strong>z</strong> – z-position</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(x, v, w) ie (horizontal, vertical, omega angle)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SampleStage</span></code>(x, y1, y2, omega[, name, …])</p></td>
+<td><p>Sample stage based based on x, y1, y2 and omega motors.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="storage-ring">
+<h2>Storage Ring<a class="headerlink" href="#storage-ring" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.synchrotron.BaseStorageRing">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.synchrotron.</code><code class="sig-name descname">BaseStorageRing</code><a class="headerlink" href="#mxdc.devices.synchrotron.BaseStorageRing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for storage ring devices</p>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p><strong>ready</strong>: arg_types=(bool,), beam available state</p></li>
+</ul>
+<p class="rubric">Properties</p>
+<ul class="simple">
+<li><p><strong>current</strong>: float, stored current</p></li>
+<li><p><strong>mode</strong>:  int, operational mode</p></li>
+<li><p><strong>state</strong>: int, storage ring state</p></li>
+<li><p><strong>message</strong>: str, storage ring message</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.devices.synchrotron.BaseStorageRing.beam_available">
+<code class="sig-name descname">beam_available</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.synchrotron.BaseStorageRing.beam_available" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check beam availability</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.synchrotron.BaseStorageRing.wait_for_beam">
+<code class="sig-name descname">wait_for_beam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">60</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.synchrotron.BaseStorageRing.wait_for_beam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for beam to become available</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout</strong> – timeout period</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">StorageRing</span></code>(current_pv, mode_pv, state_pv)</p></td>
+<td><p>EPICS Storage Ring Device</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="video">
+<h2>Video<a class="headerlink" href="#video" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="mxdc.devices.video.VideoSrc">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.video.</code><code class="sig-name descname">VideoSrc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'Basic Camera'</span></em>, <em class="sig-param"><span class="n">maxfps</span><span class="o">=</span><span class="default_value">5.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all Video Sources. Maintains a list of listenners (sinks)
+and updates each one when the video frame changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Camera Name (str)</p></li>
+<li><p><strong>maxfps</strong> – Max frames per second (float)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.add_sink">
+<code class="sig-name descname">add_sink</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sink</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.add_sink" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a sink to the Camera</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sink</strong> – <code class="xref py py-class docutils literal notranslate"><span class="pre">mxdc.interface.IVideoSink</span></code> provider</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.cleanup">
+<code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up before shutdown</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.configure">
+<code class="sig-name descname">configure</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure the camera. Keyword arguments are device dependent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.del_sink">
+<code class="sig-name descname">del_sink</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sink</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.del_sink" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a video sink.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sink</strong> – <code class="xref py py-class docutils literal notranslate"><span class="pre">mxdc.interface.IVideoSink</span></code> provider</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.get_frame">
+<code class="sig-name descname">get_frame</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.get_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the most recent video frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A PIL Image object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.start">
+<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start producing video frames.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.video.VideoSrc.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop producing video frames.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p class="rubric">Sub-classes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimCamera</span></code>([name])</p></td>
+<td><p>Simulated Camera</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimPTZCamera</span></code>()</p></td>
+<td><p>Simulated PTZ Camera</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MJPGCamera</span></code>(url[, size, name])</p></td>
+<td><p>MJPG Camera</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">JPGCamera</span></code>(url[, size, name])</p></td>
+<td><p>JPG Camera</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">REDISCamera</span></code>(server, mac[, size, name])</p></td>
+<td><p>REDIS Camera</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AxisCamera</span></code>(hostname[, idx, name])</p></td>
+<td><p>Axis JPG Camera</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AxisPTZCamera</span></code>(hostname[, idx, name])</p></td>
+<td><p>Axis PTZ Camera</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="engines.html" class="btn btn-neutral float-right" title="Engines" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="objects.html" class="btn btn-neutral float-left" title="Objects" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2006-2020, Canadian Light Source, Inc
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

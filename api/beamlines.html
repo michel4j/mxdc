@@ -1,0 +1,292 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Beamlines &mdash; MxDC 2020.5.44 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/styles.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Services" href="services.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> MxDC
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.5.44
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">For MX Users</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../starting.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../samples.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../scans.html">Scans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis.html">Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../chat.html">Chat and Log</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Beamline Staff</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html#configuration">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html#available-commands">Available Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hutch.html">Hutch Viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../console.html">Beamline Console</a></li>
+</ul>
+<p class="caption"><span class="caption-text">For Developers</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="purpose.html">Purpose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="devices.html">Devices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services.html">Services</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Beamlines</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MxDC</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Beamlines</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="beamlines">
+<h1>Beamlines<a class="headerlink" href="#beamlines" title="Permalink to this headline">¶</a></h1>
+<p>Beamline objects are the central hub of all devices devices and provide a convenient configuration
+mechanism for defining component devices.</p>
+<dl class="py class">
+<dt id="mxdc.beamlines.Beamline">
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.beamlines.</code><code class="sig-name descname">Beamline</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">console</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.beamlines.Beamline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all Beamline objects</p>
+<p>Initializes a Beamline object from a python configuration file. The devices
+defined in the configuration file can be accessed by name as attributes
+of the beamline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>console</strong> – if True, initialize console devices as well</p>
+</dd>
+</dl>
+<p>The configuration file is loaded as a python module and follows the
+following conventions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Optionally will also load a local module defined in the file
+&lt;config-module&gt;_local.py for the above example.</p></li>
+<li><p>Global Variables:</p></li>
+</ul>
+</div></blockquote>
+<p class="rubric">Signals</p>
+<ul class="simple">
+<li><p>ready: (bool,)</p></li>
+</ul>
+<p class="rubric">Attributes</p>
+<ul class="simple">
+<li><p>DEFAULTS: dict, default config values for the beamline</p></li>
+<li><p>REQUIRED: list of required device names. All devices on this list must be
+defined in the config file.</p></li>
+</ul>
+<dl class="py method">
+<dt id="mxdc.beamlines.Beamline.cleanup">
+<code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.beamlines.Beamline.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cleanup devices which can be cleaned up</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.beamlines.Beamline.is_admin">
+<code class="sig-name descname">is_admin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.beamlines.Beamline.is_admin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the current user is an administrator</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.beamlines.Beamline.is_ready">
+<code class="sig-name descname">is_ready</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.beamlines.Beamline.is_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if beamline is ready</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.beamlines.Beamline.load_config">
+<code class="sig-name descname">load_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.beamlines.Beamline.load_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the configuration file and register all devices. You should not need to call
+this method directly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.beamlines.Beamline.setup">
+<code class="sig-name descname">setup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.beamlines.Beamline.setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Additional setup tasks should be defined here. This is run after the configuration is loaded
+and all devices and services have been added to the registry</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="services.html" class="btn btn-neutral float-left" title="Services" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2006-2020, Canadian Light Source, Inc
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
