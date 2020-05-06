@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from mxdc.version import get_version
 
-with open("README.md", "r") as fh:
+with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 with open('requirements.txt') as f:
@@ -16,7 +16,7 @@ setup(
     author_email='michel4j@gmail.com',
     description='Mx Data Collector',
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     keywords='beamline data-acquisition crystallography MX',
     include_package_data=True,
     packages=find_packages(),
