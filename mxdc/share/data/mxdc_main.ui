@@ -5286,7 +5286,7 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">50</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_name">units-kev-symbolic</property>
+                                                <property name="secondary_icon_name">units-pct-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <style>
                                                   <class name="value-sp"/>

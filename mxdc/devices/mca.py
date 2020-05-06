@@ -41,6 +41,7 @@ class BaseMCA(Device):
         self.elements = kwargs.get('elements', 1)
         self.region_of_interest = (0, self.channels)
         self.data = None
+        self.dark = None
         self.nozzle = None
 
         # Setup the PVS
@@ -92,6 +93,7 @@ class BaseMCA(Device):
               takes precendence.
             - `cooling` (bool): cool down if available, ignore otherwise
             - `nozzle` (bool): move nozzle in if True and out if False, if nozzle is available, ignore otherwise
+            - `dark` (bool): take dark current
         """
 
         for k, v in list(kwargs.items()):
@@ -112,6 +114,9 @@ class BaseMCA(Device):
                     self.nozzle.on()
                 else:
                     self.nozzle.off()
+            if k == 'dark':
+                self.dark = None
+                self.dark = self.acquire(.5)
 
     def get_roi(self, energy):
         """
@@ -203,7 +208,7 @@ class BaseMCA(Device):
             channels in the detector.            
         """
         self._acquire_data(duration)
-        return self.data
+        return self.data if self.dark is None else self.data - self.dark
 
     def stop(self):
         """

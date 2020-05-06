@@ -133,7 +133,6 @@ class XRFScan(BasicScan):
             'sample_id': params['sample_id'],
             'uuid': params['uuid'],
             'directory': params['directory'],
-
             'energy': params['energy'],
             'attenuation': params['attenuation'],
             'exposure': params['exposure'],
@@ -195,7 +194,7 @@ class MADScan(BasicScan):
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.manager.collect(wait=True)
                 self.beamline.mca.configure(
-                    cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, nozzle=True
+                    cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, nozzle=True, dark=True
                 )
                 self.beamline.attenuator.set(self.config.attenuation)
                 self.beamline.energy.wait()
