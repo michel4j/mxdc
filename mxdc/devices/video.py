@@ -126,9 +126,9 @@ class SimCamera(VideoSrc):
     """
     Simulated Camera
     """
-    def __init__(self, name="Camera Simulator"):
+    def __init__(self, name="Camera Simulator", size=(1280, 960)):
         super().__init__(name=name)
-        self.size = (1280, 960)
+        self.size = size
         self.resolution = 5.34e-3 * numpy.exp(-0.18)
         self._packet_size = self.size[0] * self.size[1]*3
         self._fsource = open('/dev/urandom', 'rb')
@@ -168,7 +168,7 @@ class SimPTZCamera(SimCamera):
     Simulated PTZ Camera
     """
     def __init__(self):
-        super().__init__(name='Sim PTZ Camera')
+        super().__init__(name='Sim PTZ Camera', size=(1920, 1080))
 
     def zoom(self, value):
         pass

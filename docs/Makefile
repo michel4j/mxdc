@@ -20,8 +20,6 @@ html: Makefile
 	rm -rf $(DOCSPAGES)/*
 	cp -rf $(BUILDDIR)/html/* $(DOCSPAGES)
 	cd $(DOCSPAGES)
-	git add .
-	git commit -am "Rebuilt docs"
 	
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

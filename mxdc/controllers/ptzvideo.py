@@ -5,7 +5,7 @@ from gi.repository import Gtk, Gdk
 from mxdc.devices.interfaces import IPTZCameraController
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
-from mxdc.widgets.video import VideoWidget
+from mxdc.widgets.video import VideoWidget, VideoBox
 
 logger = get_module_logger(__name__)
 

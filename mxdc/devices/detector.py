@@ -329,17 +329,15 @@ class SimDetector(BaseDetector):
         num_frames = self.parameters['num_frames']
         self.set_state(progress=((1 + self.trigger_count)/num_frames, 'frames acquired'))
 
-
     @decorators.async_call
     def prepare_datasets(self):
         self._datasets = {}
         for root, dir, files in os.walk(self.sim_images_src):
             if self._stopped: break
-            for file in fnmatch.filter(files, f'*_00001.{self.file_extension}'):
+            data_files = sorted(fnmatch.filter(files, f'*_*.{self.file_extension}'))
+            for file in data_files:
                 if self._stopped: break
-                key = os.path.join(root, file.replace('_00001.', '_{:05d}.'))
-                data_root = file.replace('_00001.', '_?????.')
-                data_files = fnmatch.filter(files, data_root)
+                key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
                 if len(data_files) >= 60:
                     self._datasets[key] = len(data_files)
         self._select_dir()
