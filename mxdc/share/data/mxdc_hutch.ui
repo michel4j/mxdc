@@ -1541,12 +1541,17 @@
                                         <property name="border_width">12</property>
                                         <property name="orientation">vertical</property>
                                         <child>
-                                          <object class="GtkAlignment" id="diagnostics_box">
+                                          <object class="GtkAlignment">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
                                             <property name="border_width">24</property>
                                             <child>
-                                              <placeholder/>
+                                              <object class="GtkFlowBox" id="diagnostics_box">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="min_children_per_line">1</property>
+                                                <property name="max_children_per_line">1</property>
+                                              </object>
                                             </child>
                                           </object>
                                           <packing>
