@@ -30,7 +30,9 @@ setup(
             'share/styles.less'
         ]
     },
-    install_requires=requirements,
+    install_requires=requirements + [
+        'importlib-metadata ~= 1.0 ; python_version < "3.8"',
+    ],
     scripts=[
         'bin/archiver',
         'bin/blconsole',

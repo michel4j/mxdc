@@ -4,7 +4,7 @@ import os
 import re
 from subprocess import CalledProcessError, check_output
 
-
+NAME = 'mxdc'
 PREFIX = 'v'
 
 tag_re = re.compile(rf'\btag: {PREFIX}([0-9][^,]*)\b')
@@ -30,8 +30,12 @@ def get_version():
         except CalledProcessError:
             raise RuntimeError('Unable to get version number from git tags')
     else:
-        # Extract the version from the PKG-INFO file.
-        with open(os.path.join(package_dir, 'PKG-INFO')) as fobj:
-            version = version_re.search(fobj.read()).group(1)
+        try:
+            from importlib import metadata
+        except ImportError:
+            # Running on pre-3.8 Python; use importlib-metadata package
+            import importlib_metadata as metadata
+
+        version = metadata.version(NAME)
 
     return version
