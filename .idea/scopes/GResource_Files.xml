@@ -1,3 +1,3 @@
 <component name="DependencyValidationManager">
-  <scope name="GResource Files" pattern="file:*.gresource.xml" />
+  <scope name="GResource Files" pattern="file:mxdc/share/mxdc.gresource.xml" />
 </component>

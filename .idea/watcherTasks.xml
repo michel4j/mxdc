@@ -6,7 +6,7 @@
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
       <option name="exitCodeBehavior" value="ERROR" />
-      <option name="fileExtension" value="xml" />
+      <option name="fileExtension" value="*" />
       <option name="immediateSync" value="true" />
       <option name="name" value="GSettings" />
       <option name="output" value="" />
@@ -16,9 +16,9 @@
       <option name="outputFromStdout" value="false" />
       <option name="program" value="glib-compile-schemas" />
       <option name="runOnExternalChanges" value="true" />
-      <option name="scopeName" value="Builder UI Files" />
+      <option name="scopeName" value="GSettings Files" />
       <option name="trackOnlyRoot" value="false" />
-      <option name="workingDir" value="" />
+      <option name="workingDir" value="$ProjectFileDir$/mxdc/share" />
       <envs />
     </TaskOptions>
     <TaskOptions isEnabled="true">
@@ -26,7 +26,7 @@
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
       <option name="exitCodeBehavior" value="ALWAYS" />
-      <option name="fileExtension" value="xml" />
+      <option name="fileExtension" value="*" />
       <option name="immediateSync" value="true" />
       <option name="name" value="GResources" />
       <option name="output" value="" />
@@ -43,7 +43,7 @@
     </TaskOptions>
     <TaskOptions isEnabled="true">
       <option name="arguments" value="mxdc.gresource.xml" />
-      <option name="checkSyntaxErrors" value="true" />
+      <option name="checkSyntaxErrors" value="false" />
       <option name="description" />
       <option name="exitCodeBehavior" value="ALWAYS" />
       <option name="fileExtension" value="*" />
@@ -58,7 +58,7 @@
       <option name="runOnExternalChanges" value="true" />
       <option name="scopeName" value="Builder UI Files" />
       <option name="trackOnlyRoot" value="false" />
-      <option name="workingDir" value="$FileDir$/.." />
+      <option name="workingDir" value="$ProjectFileDir$/mxdc/share" />
       <envs />
     </TaskOptions>
   </component>

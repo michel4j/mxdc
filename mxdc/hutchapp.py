@@ -53,9 +53,7 @@ class AppBuilder(gui.Builder):
             self.notification_btn
         )
         self.status_monitor = common.StatusMonitor(self)
-
-        for stack in [self.main_stack, self.setup_status_stack]:
-            stack.connect('notify::visible-child', self.on_page_switched)
+        self.main_stack.connect('notify::visible-child', self.on_page_switched)
 
     def on_page_switched(self, stack, params):
         stack.child_set(stack.props.visible_child, needs_attention=False)

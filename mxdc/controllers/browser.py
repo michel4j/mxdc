@@ -5,11 +5,10 @@ import numpy
 
 gi.require_version('WebKit2', '4.0')
 from gi.repository import GLib, WebKit2
-from mxdc import conf
 from mxdc.utils import gui
 
 
-DOCS_PATH = os.path.join(conf.DOCS_DIR, 'index.html')
+DOCS_URL = 'https://michel4j.github.io/mxdc/'
 
 
 class Browser(gui.Builder):
@@ -42,8 +41,7 @@ class Browser(gui.Builder):
         self.view.connect('realize', self.on_realized)
 
     def on_realized(self, *args, **kwargs):
-        uri = 'file://{}?v={}'.format(DOCS_PATH, numpy.random.rand())
-        GLib.idle_add(self.view.load_uri, uri)
+        GLib.idle_add(self.view.load_uri, DOCS_URL)
 
     def go_back(self, btn):
         self.view.go_back()

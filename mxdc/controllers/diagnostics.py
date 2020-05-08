@@ -74,12 +74,6 @@ class DiagnosticsController(object):
         super().__init__()
         self.app = app_window
         self.container = container
-        self.box = Gtk.FlowBox(column_spacing=12, row_spacing=6)
-        self.box.set_valign(Gtk.Align.START)
-        self.box.set_max_children_per_line(2)
-        self.box.set_min_children_per_line(1)
-        self.box.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.container.add(self.box)
 
         # fetch and add diagnostics
         self.diagnostics = [
@@ -87,6 +81,6 @@ class DiagnosticsController(object):
             for diagnostic in Registry.get_subscribers(IDiagnostic)
         ]
         for diagnostic in self.diagnostics:
-            self.box.add(diagnostic)
+            self.container.add(diagnostic)
 
         self.container.show_all()
