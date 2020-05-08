@@ -188,7 +188,7 @@ class MxLIVEClient(BaseService):
         )
 
     def get(self, path, *args, **kwargs):
-        r = requests.get(self.url(path), *args, verify=False, cookies=self.cookies, **kwargs)
+        r = requests.get(self.url(path), *args, cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
@@ -196,7 +196,7 @@ class MxLIVEClient(BaseService):
             r.raise_for_status()
 
     def post(self, path, **kwargs):
-        r = requests.post(self.url(path), verify=False, cookies=self.cookies, **kwargs)
+        r = requests.post(self.url(path), cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
             return r.json()
         else:

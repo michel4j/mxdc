@@ -203,7 +203,7 @@ class MD2Gonio(BaseGoniometer):
         self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
         if self.supports(GonioFeatures.KAPPA):
             self.phi = motor.PseudoMotor(f'{root}:PMTR:phi:deg')
-            self.chi = motor.PseudoMotor(f'{root}:chi:deg')
+            self.chi = motor.PseudoMotor(f'{root}:PMTR:chi:deg')
             self.kappa = motor.PseudoMotor(f'{root}:PMTR:kappa:deg')
             self.add_components(self.phi, self.chi, self.kappa)
         self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)

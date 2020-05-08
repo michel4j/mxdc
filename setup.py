@@ -22,7 +22,7 @@ setup(
     packages=find_packages(),
     package_data={
         'mxdc': [
-            'share/data/simulated/*.raw',
+            'share/data/simulated/*.*',
             'share/data/*.*',
             'share/gschemas.compiled',
             'share/mxdc.*.xml',

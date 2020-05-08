@@ -380,8 +380,9 @@ class Motor(BaseMotor):
     def __init__(self, name, *args, **kwargs):
         name_parts = name.split(':')
         units = name_parts[-1]
+        kwargs['units'] = units
         self.name_root = ':'.join(name_parts[:-1])
-        super().__init__(name, *args, units=units, **kwargs)
+        super().__init__(name, *args, **kwargs)
         self.connect_monitors()
 
     def connect_monitors(self):
