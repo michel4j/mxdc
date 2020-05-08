@@ -643,7 +643,7 @@ class PilatusDetector(BaseDetector):
 
         self.saved_frame_num.connect('changed', self.on_new_frame)
         self.state_value.connect('changed', self.on_state_change)
-        self.armed_status.connect('changed', self.on_change)
+        self.armed_status.connect('changed', self.on_state_change)
         self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
