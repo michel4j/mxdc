@@ -208,6 +208,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
 
         :param signal: Signal name
         :param args: list of signal parameters
+
         """
 
         signal = signal.replace('_', '-')

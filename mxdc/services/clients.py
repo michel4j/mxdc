@@ -3,9 +3,11 @@ import re
 import socket
 import random
 import msgpack
+import json
 import redis
 import requests
 import lorem
+import time
 
 from gi.repository import GLib
 from mxdc.conf import settings
@@ -321,7 +323,10 @@ class BaseMessenger(Object):
 
     def __init__(self):
         super().__init__()
-        self.configs = {}
+        self.configs = {
+            'xtalbot': {'status': 1, 'avatar': random.randint(0, 50)},
+            misc.get_project_name(): {'status': 1, 'avatar': random.randint(0, 50)},
+        }
 
 
 class Messenger(BaseMessenger):
@@ -330,14 +335,16 @@ class Messenger(BaseMessenger):
         self.realm = realm or 'SIM-1'
         self.channel = 'CHAT:{}:MSGS:{{}}'.format(self.realm)
         self.conf = 'CHAT:CONFIG:{}'
+        self.stat = 'CHAT:STATUS:{}'
         self.key = self.channel.format(misc.get_project_name())
-        self.pool = redis.ConnectionPool(host=host)
-        self.sender = redis.Redis(connection_pool=self.pool)
-        self.receiver = redis.Redis(connection_pool=self.pool)
-        self.watcher = self.receiver.pubsub()
-        self.watcher.psubscribe(**{self.channel.format('*'): self.get_message})
-        self.watcher.psubscribe(**{self.conf.format('*'): self.get_configs})
-        self.watch_thread = self.watcher.run_in_thread(sleep_time=0.001)
+        self.server = redis.Redis(host=host, port=6379, db=0)
+        self.watcher = self.server.pubsub()
+        self.watcher.psubscribe(**{
+            self.channel.format('*'): self.get_message,
+            self.stat.format('*'): self.get_configs,
+
+        })
+        self.watch_thread = self.watcher.run_in_thread(sleep_time=0.01)
         self.get_configs()
 
     def cleanup(self):
@@ -351,34 +358,41 @@ class Messenger(BaseMessenger):
         self.set_state(message=(user, text))
 
     def send(self, message):
-        self.sender.publish(self.key, message)
+        self.server.publish(self.key, message)
 
     def set_config(self, status=None, avatar=None):
         user = misc.get_project_name()
-        key = self.conf.format(user)
+        conf_key = self.conf.format(user)
+        stat_key = self.stat.format(user)
+
         status = status if status is not None else 1
         avatar = avatar if avatar is not None else self.configs.get(user, {}).get('avatar', 0)
-        self.configs[user] = {'status': status, 'avatar': avatar}
-        self.sender.publish(key, msgpack.dumps(self.configs))
+
+        # send config
+        self.server.set(conf_key, json.dumps({'status': status, 'avatar': avatar}))
+        self.server.publish(stat_key, time.time())
 
     def get_configs(self, *args):
-        self.configs = {
-            key: msgpack.loads(data)
-            for key, data in self.receiver.hscan_iter(self.conf.format('*'))
+        data = {
+            key.decode('utf-8'): self.server.get(key).decode('utf-8')
+            for key in self.server.scan_iter(self.conf.format('*'))
         }
-        self.set_state(config=self.configs)
+
+        configs = {
+            key.split(':')[-1]: json.loads(value)
+            for key, value in data.items()
+        }
+
+        self.set_state(config=configs)
+        self.configs = configs
+
 
 
 class SimMessenger(BaseMessenger):
     def __init__(self, realm=None):
         super().__init__()
         self.realm = realm or 'SIM'
-        self.channel = 'CHAT:{}:MESSAGES:{{}}'.format(self.realm)
         self.key = self.channel.format(misc.get_project_name())
-        self.configs = {
-            'xtalbot': {'status': 1, 'avatar': random.randint(0, 50)},
-            misc.get_project_name(): {'status': 1, 'avatar': random.randint(0, 50)},
-        }
         self.set_state(config=self.configs.copy())
 
     def get_message(self, message):
