@@ -1,4 +1,4 @@
-# Settings for SIM Beamline
+# BCM GLOBAL Settings for SIM Beamline
 import mxdc.devices.shutter
 from mxdc.devices import motor, goniometer, cryojet, boss, detector, synchrotron
 from mxdc.devices import humidity, video, misc, mca, counter, manager
@@ -13,7 +13,7 @@ CONFIG = {
     'mono_unit_cell': 5.4297575,
     'source': 'CLS Sim SGU',
     'type': 'mxdc.beamlines.mx.MXBeamline',
-    'subnet': '0.0.0.0/0',
+    'subnet': '192.168.0.0/16',
 
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 
@@ -56,7 +56,7 @@ DEVICES = {
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     'detector': detector.SimDetector(
-        'Simulated Detector', images="/Data/Xtal/643", extension='cbf',
+        'Simulated Detector', images="/users/michel/Work/data-processing/", extension='img',
         trigger=trig1, size=(2463, 2527), pixel_size=0.172
     ),
 
@@ -68,7 +68,6 @@ DEVICES = {
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     'sample_camera': video.SimGIFCamera(),
     'hutch_video': video.SimPTZCamera(),
-
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
     'sample_uvlight': misc.SimLight('UV light', 25.0, '%'),
@@ -94,12 +93,12 @@ DEVICES = {
     'multi_mca': mca.SimMCA('Simulated MCA', energy=tmp2),
 
     # disk space monitor
-    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/users', warn=0.2, critical=0.1, freq=30),
+    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/home', warn=0.2, critical=0.1, freq=30),
 }
 
 SERVICES = {
     'dss': clients.LocalDSSClient(),
     'lims': clients.MxLIVEClient('http://localhost:8000'),
     'dps': clients.DPSClient(),
-    'messenger': clients.SimMessenger(realm=CONFIG['name'])
+    'messenger': clients.SimMessenger()
 }

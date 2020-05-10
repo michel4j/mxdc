@@ -389,10 +389,8 @@ class Messenger(BaseMessenger):
 
 
 class SimMessenger(BaseMessenger):
-    def __init__(self, realm=None):
+    def __init__(self):
         super().__init__()
-        self.realm = realm or 'SIM'
-        self.key = self.channel.format(misc.get_project_name())
         self.set_state(config=self.configs.copy())
 
     def get_message(self, message):
