@@ -182,6 +182,8 @@ class MD2Gonio(BaseGoniometer):
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
+        self.helix_cmd = self.add_pv(f"{root}:startScan4DEx")
+        self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
         self.save_pos_cmd = self.add_pv(f"{root}:saveCentringPositions")
@@ -221,35 +223,32 @@ class MD2Gonio(BaseGoniometer):
             'time': self.add_pv(f"{root}:startScan4DEx:exposure_time"),
             'range': self.add_pv(f"{root}:startScan4DEx:scan_range"),
             'angle': self.add_pv(f"{root}:startScan4DEx:start_angle"),
-            'frames': self.add_pv(f"{root}startScan4DEx:ScanNumberOfFrames"),
+            'frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
 
             # Start position
             'start_pos': (
-                self.add_pv(f'{root}:startScan4DEx:start_y'),
+                self.add_pv(f'{root}:startScan4DEx:start_cy'),
                 self.add_pv(f'{root}:startScan4DEx:start_cx'),
-                self.add_pv(f'{root}:startScan4DEx:start_cz'),
+                self.add_pv(f'{root}:startScan4DEx:start_z'),
             ),
 
             # Stop position
             'end_pos': (
-                self.add_pv(f'{root}:startScan4DEx:stop_y'),
+                self.add_pv(f'{root}:startScan4DEx:stop_cy'),
                 self.add_pv(f'{root}:startScan4DEx:stop_cx'),
-                self.add_pv(f'{root}:startScan4DEx:stop_cz')
+                self.add_pv(f'{root}:startScan4DEx:stop_z')
             ),
         }
 
         self.raster_settings = {
-            'time': self.add_pv(f"{root}:tartRasterScanEx:exposure_time"),
-            'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
-            'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
-            'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
-            'range': self.add_pv(f"{root}:startRasterScanEx:line_range"),
-            'uturn': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
-            'start_pos': (
-                self.add_pv(f'{root}:startRasterScanEx:start_y'),
-                self.add_pv(f'{root}:startRasterScanEx:start_cx'),
-                self.add_pv(f'{root}:startRasterScanEx:start_cz'),
-            )
+            'time': self.add_pv(f"{root}:ScanExposureTime"),
+            'range': self.add_pv(f"{root}:ScanRange"),
+            'angle': self.add_pv(f"{root}:ScanStartAngle"),
+
+            'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
+            'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
+            'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
+            'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
         }
 
         # semi constant but need to be re-applied each scan
@@ -292,21 +291,22 @@ class MD2Gonio(BaseGoniometer):
         :param wait: Whether to wait for scan to complete
         :param timeout: maximum time to wait
         """
+        self.wait(stop=True, start=False, timeout=timeout)
+        self.set_state(message='Scanning ...')
 
-        # configure device
+        # configure device and start scan
         self.extra_values['z_pos'] = (self.gon_z_fbk.get(),)*3
         if type in ['simple', 'shutterless']:
             misc.set_settings(self.settings, **kwargs)
+            self.scan_cmd.put(self.NULL_VALUE)
         elif type == 'helical':
             misc.set_settings(self.helix_settings, **kwargs)
             misc.set_settings(self.extra_settings, **self.extra_values)
+            self.helix_cmd.put(self.NULL_VALUE)
         elif type == 'raster':
             misc.set_settings(self.raster_settings, **kwargs)
-            misc.set_settings(self.extra_settings, **self.extra_values)
+            self.raster_cmd.put(self.NULL_VALUE)
 
-        self.set_state(message='Scanning ...')
-        self.wait(stop=True, start=False, timeout=timeout)
-        self.scan_cmd.put(self.NULL_VALUE)
         self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
             self.set_state(message='Scan complete!')

@@ -10,9 +10,7 @@ from gi.repository import GLib
 from mxdc import Registry, Engine
 from mxdc.utils import imgproc, datatools, misc
 from mxdc.utils.log import get_module_logger
-from mxdc.controllers.microscope import IMicroscope
-from mxdc.controllers.samplestore import ISampleStore
-from mxdc.engines.rastering import IRasterCollector
+
 from mxdc.devices.interfaces import ICenter
 
 # setup module logger with a default do-nothing handler
@@ -44,7 +42,10 @@ class Centering(Engine):
 
     def configure(self, method='loop'):
 
-        self.microscope = Registry.get_utility(IMicroscope)
+
+        from mxdc.controllers.samplestore import ISampleStore
+        from mxdc.engines.rastering import IRasterCollector
+
         self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = Registry.get_utility(IRasterCollector)
         self.device = Registry.get_utility(ICenter)
@@ -116,6 +117,7 @@ class Centering(Engine):
         :param med_trials: Number of trials at high resolution
         """
         if not self.device:
+            logger.warning('External centering device not present')
             self.score = 0.0
             return
 
@@ -249,9 +251,8 @@ class Centering(Engine):
                 logger.error('Unable to find loop edges')
                 return
 
-            grid_info = self.microscope.make_grid(points=points, scaled=False)
-            GLib.idle_add(self.microscope.configure_grid, grid_info)
-            raster_params.update(grid_info['grid_params'])
+
+
             raster_params.update({
                 "exposure": 0.5,
                 "resolution": self.beamline.maxres.get_position(),
@@ -266,8 +267,7 @@ class Centering(Engine):
             # 2D grid on face
             logger.info('Finding best diffraction spot in grid')
             raster_params = datatools.update_for_sample(raster_params, self.sample_store.get_current())
-            grid = grid_info['grid_xyz']
-            self.collector.configure(grid, raster_params)
+            self.collector.configure(raster_params)
             self.collector.run()
 
             grid_scores = numpy.array([
@@ -276,7 +276,8 @@ class Centering(Engine):
 
             best = grid_scores[:, 1].argmax()
             index = int(grid_scores[best, 0])
-            point = grid[index]
+            #FIXME point = grid[index]
+            point = (0,0,0)
 
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
             scores.append(grid_scores[best, 1])

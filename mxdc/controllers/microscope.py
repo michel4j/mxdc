@@ -114,6 +114,7 @@ class Microscope(Object):
         self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'loop')
         self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
+        self.widget.microscope_ai_btn.connect('clicked', self.on_auto_center, 'external')
 
         self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.goniometer.stage.connect('changed', self.update_grid)
