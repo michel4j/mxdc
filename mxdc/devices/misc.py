@@ -32,7 +32,7 @@ class BasePositioner(Device):
         super().__init__()
         self.units = ''
 
-    def _signal_change(self, obj, value):
+    def signal_change(self, obj, value):
         self.set_state(changed=self.get())
 
     def set(self, value):
@@ -132,7 +132,7 @@ class Positioner(BasePositioner):
         self.units = units
         self._wait_time = wait_time
 
-        self.fbk_pv.connect('changed', self._signal_change)
+        self.fbk_pv.connect('changed', self.signal_change)
         self.DESC.connect('changed', self._on_name_change)
 
     def _on_name_change(self, pv, val):
@@ -171,7 +171,7 @@ class ChoicePositioner(BasePositioner):
         self.units = units
         self.dev = self.add_pv(pv)
         self.choices = choices
-        self.dev.connect('changed', self._signal_change)
+        self.dev.connect('changed', self.signal_change)
 
     def get(self):
         val = self.dev.get()
@@ -415,8 +415,8 @@ class Attenuator(BasePositioner):
         self.units = '%'
         self.name = 'Attenuator'
         for f in self._filters:
-            f.connect('changed', self._signal_change)
-        self._energy.connect('changed', self._signal_change)
+            f.connect('changed', self.signal_change)
+        self._energy.connect('changed', self.signal_change)
 
     def get(self):
         if self._energy.is_connected():
@@ -474,7 +474,7 @@ class Attenuator(BasePositioner):
             if timeout <= 0:
                 logger.warning('Attenuator timed out going to [%s]' % (bitmap))
 
-    def _signal_change(self, obj, value):
+    def signal_change(self, obj, value):
         self.set_state(changed=self.get())
 
 
@@ -512,8 +512,8 @@ class Attenuator2(Attenuator):
         self.units = '%'
         self.name = 'Attenuator'
         for f in self._filters:
-            f.connect('changed', self._signal_change)
-        self._energy.connect('changed', self._signal_change)
+            f.connect('changed', self.signal_change)
+        self._energy.connect('changed', self.signal_change)
 
     def _set_bits(self, bitmap):
         for i in range(4):

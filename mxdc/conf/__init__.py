@@ -95,7 +95,6 @@ def initialize(name=None):
 
         # get config modules
         CONFIGS, PROPERTIES = get_config_modules(CONFIG_DIR, name=name)
-        print(CONFIGS, PROPERTIES)
 
         assert bool(CONFIGS), 'Configuration error'
         APP_CACHE_DIR = os.path.join(app_config_dir, '{}.cache'.format(misc.short_hash(PROPERTIES['name'])))
