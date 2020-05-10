@@ -411,3 +411,25 @@ class IModeManager(IDevice):
 
     def scan():
         """Switch to mount mode"""
+
+
+class ICenter(IDevice):
+    """A CryoStat devices object."""
+
+    def loop():
+        """Get Loop coordinates in pixels."""
+
+    def xtal():
+        """Get Crystal coordinates in pixels."""
+
+    def update_loop(x, y, score):
+        """Update the loop coordinates"""
+
+    def update_xtal(x, y, score):
+        """Update the xtal coordinates"""
+
+    def wait_loop(timeout):
+        """Wait up to timeout seconds for loop position to be updated"""
+
+    def wait_xtal(timeout):
+        """Wait up to timeout seconds for xtal position to be updated"""

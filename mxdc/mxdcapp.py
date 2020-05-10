@@ -147,8 +147,6 @@ class Application(Gtk.Application):
         authors = [
             "Michel Fodje",
             "Kathryn Janzen",
-            "Kevin Anderson",
-            "Cuylar Conly",
             "Avatar Icons by Pixel Perfect(www.flaticon.com)"
         ]
         name = 'Mx Data Collector (MxDC)'

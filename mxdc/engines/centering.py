@@ -10,15 +10,20 @@ from gi.repository import GLib
 from mxdc import Registry, Engine
 from mxdc.utils import imgproc, datatools, misc
 from mxdc.utils.log import get_module_logger
+from mxdc.controllers.microscope import IMicroscope
+from mxdc.controllers.samplestore import ISampleStore
+from mxdc.engines.rastering import IRasterCollector
+from mxdc.devices.interfaces import ICenter
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
+
 RASTER_DELTA = 0.5
-_SAMPLE_SHIFT_STEP = 0.2  # mm
+SAMPLE_SHIFT_STEP = 0.2  # mm
 CENTERING_ZOOM = 2
-_CENTERING_BLIGHT = 65.0
-_CENTERING_FLIGHT = 0
-_MAX_TRIES = 5
+CENTERING_BLIGHT = 65.0
+CENTERING_FLIGHT = 0
+MAX_TRIES = 5
 
 
 class Centering(Engine):
@@ -27,28 +32,27 @@ class Centering(Engine):
         super().__init__()
         self.name = 'Auto Centering'
         self.method = None
-        self.ext_device = None
+        self.device = None
         self.score = 0.0
         self.methods = {
             'loop': self.center_loop,
             'crystal': self.center_crystal,
             'capillary': self.center_capillary,
             'diffraction': self.center_diffraction,
+            'external': self.center_external,
         }
 
     def configure(self, method='loop'):
-        from mxdc.controllers.microscope import IMicroscope
-        from mxdc.controllers.samplestore import ISampleStore
-        from mxdc.engines.rastering import IRasterCollector
 
         self.microscope = Registry.get_utility(IMicroscope)
         self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = Registry.get_utility(IRasterCollector)
+        self.device = Registry.get_utility(ICenter)
+
         if method in self.methods:
             self.method = self.methods[method]
-        elif method in self.beamline.registry:
+        elif self.device:
             self.method = self.center_external()
-            self.ext_device = self.beamline.registry[method]
         else:
             self.method = self.center_loop
 
@@ -106,7 +110,13 @@ class Centering(Engine):
         )
 
     def center_external(self, low_trials=3, med_trials=2):
-        if self.ext_device:
+        """
+        External centering device
+        :param low_trials: Number of trials at low resolution
+        :param med_trials: Number of trials at high resolution
+        """
+        if not self.device:
+            self.score = 0.0
             return
 
         self.beamline.sample_frontlight.set_off()
@@ -117,17 +127,16 @@ class Centering(Engine):
         # Find tip of loop at low and high zoom
         max_trials = low_trials + med_trials
         trial_count = 0
-        failed = False
-        reliability = 0
+
         for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
-            if failed:
-                break
             self.beamline.sample_video.zoom(zoom_level, wait=True)
             for i in range(trials):
                 trial_count += 1
-                x, y, reliability = self.ext_device.get_loop_coords()
-                if reliability > 0.75:
-                    logger.debug('... tip found at {}, {}'.format(x, y))
+                found = self.device.wait_loop(1)
+                if found:
+                    x, y, reliability = self.device.loop()
+                    scores.append(reliability)
+                    logger.debug('... loop found at {}, {}'.format(x, y))
                     xmm, ymm = self.screen_to_mm(x, y)
                     self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                     logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
@@ -136,6 +145,16 @@ class Centering(Engine):
                 if trial_count < max_trials:
                     cur_pos = self.beamline.goniometer.omega.get_position()
                     self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+
+        # finally, try to find the crystal:
+        found = self.device.wait_xtal(1)
+        if found:
+            x, y, reliability = self.device.xtal()
+            scores.append(reliability)
+            logger.debug('... crystal found at {}, {}'.format(x, y))
+            xmm, ymm = self.screen_to_mm(x, y)
+            self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+            logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
         self.score = numpy.mean(scores)
 
@@ -288,9 +307,4 @@ class Centering(Engine):
             else:
                 scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
             logger.debug('Centering: {}'.format(info))
-
-        # # final shift
-        # xmm, ymm = self.screen_to_mm(half_width, 0)
-        # if not self.beamline.goniometer.stage.is_busy():
-        #     self.beamline.goniometer.stage.move_screen_by(xmm, 0.0, 0.0)
         self.score = numpy.mean(scores)
