@@ -1,5 +1,4 @@
-import random
-from gi.repository import Gtk, Gio, Gdk, GLib
+from gi.repository import Gtk, Gio, Gdk
 
 from mxdc import Registry, IBeamline, Object, Property
 from datetime import datetime

@@ -379,7 +379,7 @@ class Plotter(Gtk.Alignment):
         default.xaxis.set_minor_locator(SecondLocator(interval=min_int))
         if len(default.xaxis.get_major_ticks()) < len(labels):
             labels.pop(0)
-        default.set_xticklabels([d is not ' ' and d.strftime(fmt) or '' for d in labels])
+        default.set_xticklabels([d != ' ' and d.strftime(fmt) or '' for d in labels])
 
     def redraw(self):
         if not self.grid_mode:

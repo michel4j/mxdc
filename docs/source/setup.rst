@@ -40,7 +40,7 @@ to inspect the hutch remotely.
     :alt: Hutch Video
 
 The camera can be controlled by clicking on the image to re-center the view, or by selecting pre-defined positions
-from the *Presets* drop-down menu.
+from the drop-down menu where available.
 
 Beamline Status
 ---------------

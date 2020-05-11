@@ -14,5 +14,6 @@ control at the Canadian Light Source Macromolecular Crystallography beamlines.
 
 
 Although developed primarily for MX beamlines, MxDC is based on an extensible generic framework that can be used
-to develop data acquisition systems for different types of experiments and beamlines.
+to develop data acquisition systems for different types of experiments and beamlines. Detailed documentation
+for both users and developers is available at https://michel4j.github.io/mxdc/.
 
