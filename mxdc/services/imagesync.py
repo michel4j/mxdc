@@ -9,13 +9,12 @@ import sys
 import time
 
 from twisted.application import internet, service
-from twisted.internet import defer, threads
+from twisted.internet import defer, threads, reactor
 from twisted.python import components, log as twistedlog
 from twisted.spread import pb
 from zope.interface import implementer, Interface
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
+from mxdc.conf import SHARE_DIR
 from mxdc.utils import log, mdns
 
 logger = log.get_module_logger(__name__)
@@ -150,10 +149,20 @@ class Archiver(object):
 class DSService(service.Service):
     ARCHIVE_ROOT = '/archive'
     FILE_MODE = 0o777
-    INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas']
+    INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas', '*.h5']
 
     def __init__(self):
+        super().__init__()
         self.backups = {}
+        reactor.callLater(2, self.publishService)
+
+    def publishService(self):
+        self.provider = mdns.Provider('Data Synchronization Server', DSS_CODE, DSS_PORT, {}, unique=True)
+        reactor.addSystemEventTrigger('before', 'shutdown', self.stopService)
+
+    def stopService(self):
+        del self.provider
+        super().stopService()
 
     @log.log_call
     def setup_folder(self, folder, user_name):
@@ -193,16 +202,40 @@ class DSService(service.Service):
 
 components.registerAdapter(DSSPerspective2Service, IDSService, IDSSPerspective)
 
-# twistd stuff goes here
-log_to_twisted()
 
-try:
-    # publish DPS service on network
-    provider = mdns.Provider('Data Synchronization Server', DSS_CODE, DSS_PORT, {}, unique=True)
-except mdns.mDNSError:
-    logger.error('An instance of is already running. Only one permitted.')
-else:
-    application = service.Application('Data Synchronization Server')
-    serviceCollection = service.IServiceCollection(application)
-    srv = DSService()
-    internet.TCPServer(DSS_PORT, pb.PBServerFactory(IDSSPerspective(srv))).setServiceParent(serviceCollection)
+TAC_FILE = os.path.join(SHARE_DIR, 'imgsync.tac')
+
+
+def get_service():
+    """
+    Return a service suitable for creating an application object.
+    """
+    log_to_twisted()
+    dss_server = DSService()
+    return internet.TCPServer(DSS_PORT, pb.PBServerFactory(IDSSPerspective(dss_server)))
+
+
+def main(args):
+    if args.nodaemon:
+        sys.argv = ['', '-ny', TAC_FILE, '--umask=022']
+    else:
+        sys.argv = ['', '-y', TAC_FILE, '--umask=022']
+
+    if args.pidfile:
+        sys.argv.append(f'--pidfile={args.pidfile}')
+
+    if args.logfile:
+        sys.argv.append(f'--logfile={args.logfile}')
+
+    from twisted.application import app
+    from twisted.scripts._twistd_unix import ServerOptions, UnixApplicationRunner
+
+    def runApp(config):
+        runner = UnixApplicationRunner(config)
+        runner.run()
+        if runner._exitSignal is not None:
+            app._exitWithSignal(runner._exitSignal)
+
+    app.run(runApp, ServerOptions)
+
+

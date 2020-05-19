@@ -1,15 +1,11 @@
 #!/bin/sh
 #
-# imgsync:   Image Synchronization daemon
+# imgsync:   Data Synchronization Server
 #
 # chkconfig: 345 98 02
-# description:  This is a daemon for synchronizing diffraction images between the \
-#               detector data folder and user home directories.
+# description:  This is a daemon for synchronizing diffraction images between folders for backup
 #
 # Source MXDC parameters
-
-#. /cmcf_apps/profile.d/epics.sh  - modify and uncomment to setup EPICS environment
-#. /cmcf_apps/profile.d/mxdc.sh - modify and uncomment to setup MxDC environment, MXDC_PATH, MXDC_CONFIG etc
 
 # Source function library.
 . /etc/rc.d/init.d/functions
@@ -17,8 +13,7 @@
 servicename='imgsync'
 pidfile='/var/run/imgsync.pid'
 logfile='/var/log/imgsync.log'
-appfile=$MXDC_PATH/mxdc/services/imagesync.py
-umask=022
+appfile=$MXDC_PATH/bin/sync.server
 
 # Sanity checks.
 [ -x /usr/bin/twistd ] || exit 0
@@ -26,7 +21,7 @@ umask=022
 
 start() {
     echo -n $"Starting ImgSync daemon: "
-    daemon /usr/bin/twistd -y $appfile --logfile=$logfile --pidfile=$pidfile --umask=$umask
+    daemon $appfile -y --logfile $logfile --pidfile $pidfile
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$servicename

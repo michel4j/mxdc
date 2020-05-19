@@ -27,7 +27,8 @@ setup(
             'share/gschemas.compiled',
             'share/mxdc.*.xml',
             'share/mxdc.gresource',
-            'share/styles.less'
+            'share/styles.less',
+            'share/imgsync.tac',
         ]
     },
     install_requires=requirements + [
@@ -41,7 +42,8 @@ setup(
         'bin/mxdc',
         'bin/plotxdi',
         'bin/sim-console',
-        'bin/sim-mxdc'
+        'bin/sim-mxdc',
+        'bin/sync.server'
     ],
     classifiers=[
         'Intended Audience :: Developers',
