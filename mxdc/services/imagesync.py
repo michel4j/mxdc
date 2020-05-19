@@ -8,6 +8,9 @@ import subprocess
 import sys
 import time
 
+from twisted.internet import gireactor
+gireactor.install()
+
 from twisted.application import internet, service
 from twisted.internet import defer, threads, reactor
 from twisted.python import components, log as twistedlog
@@ -156,7 +159,7 @@ class DSService(service.Service):
         reactor.callLater(2, self.publishService)
 
     def publishService(self):
-        self.provider = mdns.SimpleProvider('Data Sync Server', "_imgsync._tcp.local", DSS_PORT)
+        self.provider = mdns.SimpleProvider('Data Sync Server', "_imgsync._tcp.local.", DSS_PORT)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stopService)
 
     def stopService(self):
@@ -215,9 +218,9 @@ def get_service():
 
 def main(args):
     if args.nodaemon:
-        sys.argv = ['', '-ny', TAC_FILE, '--umask=022', '-r', 'gi']
+        sys.argv = ['', '-ny', TAC_FILE, '--umask=022']
     else:
-        sys.argv = ['', '-y', TAC_FILE, '--umask=022', '-r', 'gi']
+        sys.argv = ['', '-y', TAC_FILE, '--umask=022']
 
     if args.pidfile:
         sys.argv.append(f'--pidfile={args.pidfile}')

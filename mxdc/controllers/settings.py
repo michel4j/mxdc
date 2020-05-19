@@ -42,7 +42,7 @@ class SettingRow(gui.Builder):
         super(SettingRow, self).__init__()
         self.item = item
         self.name.set_text(item.props.name)
-        self.icon.props.name = self.item.icon
+        self.icon.set_from_icon_name(self.item.icon, Gtk.IconSize.SMALL_TOOLBAR)
 
     def get_widget(self):
         row = Gtk.ListBoxRow()
@@ -67,6 +67,11 @@ def valid_screening(txt):
     return txt.strip().lower() in SCREENING_VARIABLES
 
 
+def valid_mode(value):
+    print (value)
+    return bool(value)
+
+
 class SettingsDialog(gui.BuilderMixin):
     gui_roots = {
         'data/settings': ['settings_dialog']
@@ -74,7 +79,7 @@ class SettingsDialog(gui.BuilderMixin):
 
     OPTIONS = [
         ('directory-template', 'dir-template-symbolic', valid_template),
-        ('screening-method', 'error-correct-symbolic', valid_screening)
+        ('screening-method', 'error-correct-symbolic', valid_screening),
     ]
 
     def __init__(self, parent):

@@ -9,7 +9,7 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, Gio, GLib, Gdk, GdkPixbuf
+from gi.repository import Gtk, Gio, GLib, Gdk
 from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
@@ -68,7 +68,8 @@ class Application(Gtk.Application):
         super(Application, self).__init__(application_id="org.mxdc", **kwargs)
         self.window = None
         self.settings_active = False
-        self.dark_mode = dark
+        self.prefs = conf.load_cache('prefs')
+        self.dark_mode = dark if dark else self.prefs.get('dark')
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
@@ -165,9 +166,11 @@ class Application(Gtk.Application):
         """
         Toggle dark mode
         """
-        action.set_state(GLib.Variant.new_boolean(not action.get_state()))
+        self.prefs['dark'] = not action.get_state()
+        action.set_state(GLib.Variant.new_boolean(self.prefs['dark']))
         app_settings = Gtk.Settings.get_default()
         app_settings.props.gtk_application_prefer_dark_theme = action.get_state().get_boolean()
+        conf.save_cache(self.prefs, 'prefs')
 
     def on_preferences(self, action, param):
         if not self.settings_active:

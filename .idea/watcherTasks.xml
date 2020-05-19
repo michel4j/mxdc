@@ -5,7 +5,7 @@
       <option name="arguments" value="$FileDir$" />
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
-      <option name="exitCodeBehavior" value="ERROR" />
+      <option name="exitCodeBehavior" value="ALWAYS" />
       <option name="fileExtension" value="*" />
       <option name="immediateSync" value="true" />
       <option name="name" value="GSettings" />

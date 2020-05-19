@@ -151,8 +151,8 @@ class DPSClient(PBClient):
 
 
 class DSSClient(PBClient):
-    NAME = 'Data Synchronization Server'
-    CODE = '_imgsync_rpc._tcp.local.'
+    NAME = 'Data Sync Service'
+    CODE = '_imgsync._tcp.local.'
 
     def configure(self, *args, **kwargs):
         return self.service.callRemote('configure', *args, **kwargs)
