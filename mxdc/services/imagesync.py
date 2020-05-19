@@ -16,12 +16,10 @@ from zope.interface import implementer, Interface
 
 from mxdc.conf import SHARE_DIR
 from mxdc.utils import log, mdns
-
 logger = log.get_module_logger(__name__)
 
-
 DSS_PORT = 8882
-DSS_CODE = '_imgsync_rpc._tcp.local.'
+DSS_CODE = '_imgsync._tcp.local.'
 
 
 class TwistedLogger(logging.StreamHandler):
@@ -145,6 +143,7 @@ class Archiver(object):
         self.processing = False
 
 
+
 @implementer(IDSService)
 class DSService(service.Service):
     ARCHIVE_ROOT = '/archive'
@@ -157,7 +156,7 @@ class DSService(service.Service):
         reactor.callLater(2, self.publishService)
 
     def publishService(self):
-        self.provider = mdns.Provider('Data Synchronization Server', DSS_CODE, DSS_PORT, {}, unique=True)
+        self.provider = mdns.SimpleProvider('Data Sync Server', "_imgsync._tcp.local", DSS_PORT)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stopService)
 
     def stopService(self):
@@ -202,7 +201,6 @@ class DSService(service.Service):
 
 components.registerAdapter(DSSPerspective2Service, IDSService, IDSSPerspective)
 
-
 TAC_FILE = os.path.join(SHARE_DIR, 'imgsync.tac')
 
 
@@ -217,9 +215,9 @@ def get_service():
 
 def main(args):
     if args.nodaemon:
-        sys.argv = ['', '-ny', TAC_FILE, '--umask=022']
+        sys.argv = ['', '-ny', TAC_FILE, '--umask=022', '-r', 'gi']
     else:
-        sys.argv = ['', '-y', TAC_FILE, '--umask=022']
+        sys.argv = ['', '-y', TAC_FILE, '--umask=022', '-r', 'gi']
 
     if args.pidfile:
         sys.argv.append(f'--pidfile={args.pidfile}')
@@ -237,5 +235,3 @@ def main(args):
             app._exitWithSignal(runner._exitSignal)
 
     app.run(runApp, ServerOptions)
-
-
