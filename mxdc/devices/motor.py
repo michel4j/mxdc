@@ -475,6 +475,7 @@ class VMEMotor(Motor):
 
     def connect_monitors(self):
         self.pos_tgt.connect('changed', self.on_target)
+        self.pos_fbk.connect('changed', self.on_change)
         self.moving_fbk.connect('changed', self.on_motion)
         self.calib_fbk.connect('changed', self.on_calibration)
         self.enable_fbk.connect('changed', self.on_enable)
