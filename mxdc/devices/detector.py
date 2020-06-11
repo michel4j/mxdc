@@ -738,7 +738,7 @@ class PilatusDetector(BaseDetector):
         params['exposure_time'] -= 0.002
 
         self.mode_cmd.put(3)  # External Trigger Mode
-        self.num_images.put(1)
+        #self.num_images.put(1)
 
         for k, v in list(params.items()):
             if k in self.settings:
