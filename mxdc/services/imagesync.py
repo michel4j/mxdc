@@ -130,7 +130,7 @@ class Archiver(object):
             except subprocess.CalledProcessError as e:
                 logger.error('RSYNC Failed: {}'.format(e))
             else:
-                m = re.search("Number of regular files transferred: (?P<files>\d+)", output)
+                m = re.search(r"Number of regular files transferred: (?P<files>\d+)", output.decode('utf-8'))
                 if m:
                     num_files = int(m.groupdict()['files'])
                     self.time = time.time()
