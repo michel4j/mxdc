@@ -343,6 +343,7 @@ class DatasetsController(Object):
         self.stopping = False
         self.pause_info = False
         self.start_time = 0
+        self.frame_monitor = None
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
@@ -706,6 +707,10 @@ class DatasetsController(Object):
             self.update_cache()
 
     def on_started(self, obj, wedge):
+
+        if self.frame_monitor is None:
+            self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
+
         if wedge is None:  # Overall start for all wedges
             self.start_time = time.time()
             self.widget.datasets_collect_btn.set_sensitive(True)

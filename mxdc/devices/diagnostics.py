@@ -1,8 +1,8 @@
 from enum import Enum
-from gi.repository import GObject
-from mxdc import Registry, Property, Object
+
 from zope.interface import implementer
 
+from mxdc import Registry, Property, Object
 from mxdc.utils.log import get_module_logger
 from .interfaces import IDiagnostic
 

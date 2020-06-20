@@ -581,7 +581,8 @@ class DiskSpaceMonitor(Device):
                 self.set_state(health=(2, 'usage',msg))
                 logger.warn(msg)
             else:
-                self.set_state(health=(0, 'usage',msg))
+                self.set_state(health=(0, 'usage', msg))
+                logger.info(msg)
         return True
 
 
