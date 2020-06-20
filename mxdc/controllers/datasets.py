@@ -417,7 +417,6 @@ class DatasetsController(Object):
         }
         self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
         self.microscope.connect('notify::points', self.on_points)
-        self.beamline.detector.connect('new-image', self.on_new_image)
 
     def create_run_config(self, item):
         config = datawidget.RunConfig()
