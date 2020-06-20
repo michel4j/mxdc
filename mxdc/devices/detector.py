@@ -616,6 +616,8 @@ class PilatusDetector(BaseDetector):
     :param description: String escription of detector
     """
 
+    READOUT_TIME = 0.015  # 15 ms, Pilatus manual calls for about 13 ms.
+
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
         self.detector_type = detector_type
@@ -735,10 +737,9 @@ class PilatusDetector(BaseDetector):
         params['beam_y'] = self.settings['beam_y'].get()
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
-        params['exposure_time'] -= 0.002
+        params['exposure_time'] -= self.READOUT_TIME
 
-        self.mode_cmd.put(3)  # External Trigger Mode
-        #self.num_images.put(1)
+        self.mode_cmd.put(3)  # External Multi-Trigger Mode
 
         for k, v in list(params.items()):
             if k in self.settings:
