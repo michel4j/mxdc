@@ -124,9 +124,6 @@ class DataCollector(Engine):
                 self.beamline.fast_shutter.close()
             self.config['end_time'] = datetime.now(tz=pytz.utc)
 
-            # Wait for Last image to be transferred
-            time.sleep(GRACE_PERIOD)
-
             if self.stopped or self.paused:
                 completion = {
                     uid: dataset.progress
@@ -138,6 +135,9 @@ class DataCollector(Engine):
 
             self.beamline.attenuator.set(current_attenuation)  # restore attenuation
             self.beamline.detector_cover.close()
+
+        # Wait for Last image to be transferred
+        time.sleep(GRACE_PERIOD)
 
         for uid, dataset in self.config['datasets'].items():
             metadata = self.save(dataset)
