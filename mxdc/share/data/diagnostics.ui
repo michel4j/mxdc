@@ -79,6 +79,7 @@
             <property name="justify">right</property>
             <property name="selectable">True</property>
             <property name="ellipsize">end</property>
+            <property name="max_width_chars">40</property>
           </object>
           <packing>
             <property name="expand">False</property>
