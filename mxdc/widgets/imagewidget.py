@@ -80,7 +80,6 @@ class DataLoader(Object):
         self.zscale = ZSCALE_MULTIPLIER  # Standard zscale above mean for palette maximum
         self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
-        self.loading = False
         self.inbox = Queue(10000)
 
         self.needs_refresh = False
@@ -114,10 +113,9 @@ class DataLoader(Object):
         self.zscale = self.default_zscale
         self.scale = avg + self.zscale * std_dev
         self.needs_refresh = True
+        logger.info("Loading frame {}".format(self.dataset.header['filename']))
 
     def load(self, path):
-        self.loading = True
-
         attempts = 0
         success = False
         while not success and attempts < 10:
@@ -125,13 +123,17 @@ class DataLoader(Object):
                 os.path.exists(path) and time.time() - os.path.getmtime(path) > MAX_SAVE_JITTER
             )
             if loadable:
-                dataset = read_image(path)
-                self.show(dataset)
-                success = True
+                try:
+                    dataset = read_image(path)
+                    self.show(dataset)
+                    success = True
+                except (ValueError, KeyError):
+                    success = False
             attempts += 1
             time.sleep(0.1)
 
-        self.loading = False
+        if not success:
+            logger.info("Unable to load {}".format(path))
         return success
 
     def set_colormap(self, index):
@@ -178,19 +180,15 @@ class DataLoader(Object):
         path = None
         while not self.stopped:
 
-            # Load frame if path exists
+            # skip ahead a few frames
             count = 0
             while not self.inbox.empty() and count < self.skip_count:
                 path = self.inbox.get()
                 count += 1
 
-            if path and not self.loading:
-                try:
-                    success = self.load(path)
-                    if success:
-                        path = None
-                except KeyError:
-                    success = False
+            if path:
+                self.load(path)
+                path = None
 
             # Check if next_frame or prev_frame has been requested
             if self.load_next:

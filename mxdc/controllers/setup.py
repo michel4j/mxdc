@@ -5,6 +5,7 @@ from mxdc import Registry, IBeamline
 from mxdc.controllers.diagnostics import DiagnosticsController
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import sci_fmt
 from mxdc.widgets import misc
 from mxdc.widgets.textviewer import GUIHandler
 from mxdc.widgets.ticker import ChartManager
@@ -70,7 +71,7 @@ class SetupController(object):
         self.widget.tuner_box.pack_start(self.tuner.chart, True, True, 0)
         self.tuner.add_plot(self.beamline.beam_tuner, 'Beam Intensity (%)', signal='percent')
         self.tuner_monitors = [
-            common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl),
+            common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl, format=sci_fmt),
             common.DeviceMonitor(
                 self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:6.1f} %',
                 signal='percent', warning=80.0, error=60.0

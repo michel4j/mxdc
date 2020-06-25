@@ -136,9 +136,16 @@ class TickerChart(Gtk.Box):
             self.data[name][:] = numpy.nan
 
     def update(self):
-        if self.paused: return
-        selector = (self.data['time'] > self.view_time - self.view_range) & (self.data['time'] <= self.view_time)
-        if selector.sum() < 2: return
+        if self.paused:
+            return
+        selector = ~numpy.isnan(self.data['time'])
+        selector[selector] = (
+            (self.data['time'][selector] > (self.view_time - self.view_range))
+            & (self.data['time'][selector] <= self.view_time)
+        )
+
+        if selector.sum() < 2:
+            return
         now = self.data['time'][selector][-1]
         x_data = self.data['time'][selector] - now
         xmin, xmax = min(x_data.min(), -self.view_range), x_data.max()

@@ -2,10 +2,10 @@ import logging
 import operator
 from collections import OrderedDict
 
-from gi.repository import Gtk, Gdk, Pango, GObject
-
+from gi.repository import Gtk, Pango, GObject, GLib
 from mxdc.widgets import timer
 from mxdc.devices.manager import BaseManager
+
 
 def value_class(val, warning, error):
     if (val < warning < error) or (val > warning > error):
@@ -28,7 +28,14 @@ class DeviceMonitor(object):
         self.device.connect(signal, self.on_signal)
 
     def on_signal(self, obj, *args):
-        self.text.set_text(self.format.format(*args))
+        if isinstance(self.format, str):
+            display_text = self.format.format(*args)
+        elif callable(self.format):
+            display_text = self.format(*args)
+        else:
+            display_text = args[0]
+
+        self.text.set_text(display_text)
         style = self.text.get_style_context()
         if self.warning and self.error:
             style_class = value_class(args[0], self.warning, self.error)
@@ -325,13 +332,13 @@ class Tuner(object):
         if event.button == 1:
             self.tune_func = self.tuner.tune_up
             self.tuner.tune_up()
-            GObject.timeout_add(self.repeat_interval, self.repeat_tuning)
+            GLib.timeout_add(self.repeat_interval, self.repeat_tuning)
 
     def on_tune_down(self, button, event):
         if event.button == 1:
             self.tune_func = self.tuner.tune_down
             self.tuner.tune_down()
-            GObject.timeout_add(self.repeat_interval, self.repeat_tuning)
+            GLib.timeout_add(self.repeat_interval, self.repeat_tuning)
 
     def cancel_tuning(self, *args, **kwargs):
         self.tune_func = None

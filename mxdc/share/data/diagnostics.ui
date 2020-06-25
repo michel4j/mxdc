@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.36.0 -->
 <interface>
   <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow">
     <property name="can_focus">False</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox" id="status_widget">
         <property name="visible">True</property>
@@ -77,11 +74,11 @@
           <object class="GtkLabel" id="info">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="halign">end</property>
             <property name="use_markup">True</property>
             <property name="justify">right</property>
             <property name="selectable">True</property>
             <property name="ellipsize">end</property>
-            <property name="max_width_chars">15</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -91,6 +88,9 @@
           </packing>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
 </interface>

@@ -537,7 +537,7 @@ class DiskSpaceMonitor(Device):
     :param freq: Frequency in minutes to check space
     """
 
-    def __init__(self, descr, path, warn=0.05, critical=0.025, freq=5.0):
+    def __init__(self, descr, path, warn=0.05, critical=0.025, freq=2):
         super().__init__()
         self.name = descr
         self.path = path
@@ -559,7 +559,7 @@ class DiskSpaceMonitor(Device):
         base_sz[1:] = 1 << (numpy.arange(len(symbols) - 1) + 1) * 10
         idx = numpy.where(base_sz <= size)[0][-1]
         value = float(size) / base_sz[idx]
-        return "{:0.2f} {}B".format(value, symbols[idx])
+        return "{:0.1f} {}B".format(value, symbols[idx])
 
     def check_space(self):
         """
@@ -573,15 +573,16 @@ class DiskSpaceMonitor(Device):
             total = float(fs_stat.f_frsize * fs_stat.f_blocks)
             avail = float(fs_stat.f_frsize * fs_stat.f_bavail)
             fraction = avail / total
-            msg = '{} ({:0.1f} %) available.'.format(self.humanize(avail), fraction * 100)
+            quantity = self.humanize(avail)
+            msg = f'{quantity} ({fraction:0.0%}) available.'
             if fraction < self.error_threshold:
                 self.set_state(health=(4, 'usage', msg))
                 logger.error(msg)
             elif fraction < self.warn_threshold:
-                self.set_state(health=(2, 'usage',msg))
+                self.set_state(health=(2, 'usage', msg))
                 logger.warn(msg)
             else:
-                self.set_state(health=(0, 'usage', msg))
+                self.set_state(health=(1, 'usage', msg))
                 logger.info(msg)
         return True
 
@@ -629,7 +630,7 @@ class SimEnclosures(Device):
     def __init__(self, name):
         super().__init__()
         self.name = name
-        self.set_state(active=True, health=(0, 'ready',self.get_messages()))
+        self.set_state(active=True, health=(0, 'ready', self.get_messages()))
 
     def get_messages(self):
         return "All secure"

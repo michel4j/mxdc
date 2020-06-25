@@ -5,6 +5,7 @@
   <object class="GtkApplicationWindow" id="app_window">
     <property name="can_focus">False</property>
     <property name="role">Mx Data Collector</property>
+    <property name="resizable">False</property>
     <property name="default_width">1300</property>
     <property name="icon">icon.png</property>
     <property name="gravity">center</property>
@@ -35,7 +36,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="editable">False</property>
-                        <property name="width_chars">10</property>
+                        <property name="width_chars">12</property>
                         <property name="xalign">0.5</property>
                         <style>
                           <class name="mode-fbk"/>
@@ -728,11 +729,12 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>
-                                <property name="homogeneous">True</property>
                                 <child>
                                   <object class="GtkAlignment">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
+                                    <property name="yalign">0.25</property>
+                                    <property name="xscale">0.75</property>
                                     <property name="yscale">0.5</property>
                                     <property name="top_padding">12</property>
                                     <property name="bottom_padding">12</property>
@@ -742,12 +744,11 @@
                                       <object class="GtkFlowBox" id="diagnostics_box">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="halign">center</property>
                                         <property name="valign">center</property>
                                         <property name="homogeneous">True</property>
                                         <property name="column_spacing">12</property>
                                         <property name="min_children_per_line">1</property>
-                                        <property name="max_children_per_line">2</property>
+                                        <property name="max_children_per_line">1</property>
                                         <property name="selection_mode">none</property>
                                         <property name="activate_on_single_click">False</property>
                                       </object>
@@ -769,15 +770,12 @@
                                       <object class="GtkAlignment">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
-                                        <property name="top_padding">12</property>
-                                        <property name="bottom_padding">12</property>
-                                        <property name="left_padding">12</property>
-                                        <property name="right_padding">12</property>
+                                        <property name="xscale">0.5</property>
+                                        <property name="yscale">0.5</property>
                                         <child>
                                           <object class="GtkFlowBox" id="setup_device_box">
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
-                                            <property name="halign">center</property>
                                             <property name="valign">center</property>
                                             <property name="homogeneous">True</property>
                                             <property name="column_spacing">6</property>
@@ -808,7 +806,7 @@
                                     </child>
                                   </object>
                                   <packing>
-                                    <property name="expand">True</property>
+                                    <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">1</property>
                                   </packing>
@@ -2502,9 +2500,10 @@
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                                 <property name="halign">start</property>
-                                                <attributes>
-                                                  <attribute name="scale" value="0.90000000000000002"/>
-                                                </attributes>
+                                                <property name="use_markup">True</property>
+                                                <style>
+                                                  <class name="tuner-fbk"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -2520,6 +2519,9 @@
                                                 <attributes>
                                                   <attribute name="scale" value="0.90000000000000002"/>
                                                 </attributes>
+                                                <style>
+                                                  <class name="tuner-fbk"/>
+                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>

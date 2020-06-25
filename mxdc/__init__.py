@@ -314,9 +314,9 @@ class Device(Object):
 
     def supports(self, *features):
         """
-        Check if device supports all of the features in specified
+        Check if device supports all of the features specified
 
-        :param features: features to check
+        :param features: one or more features to check
         :return: bool
         """
         return all(feature in self.__features for feature in features)

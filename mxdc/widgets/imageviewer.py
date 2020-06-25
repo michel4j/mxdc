@@ -155,8 +155,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         # select spots and display for current image
         if len(self.reflections) > 0:
             self.canvas.select_reflections(self.reflections)
-
-        logger.info("Loading image {}".format(filename))
         self.canvas.open(filename)
 
     def show_frame(self, frame):

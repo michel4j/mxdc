@@ -3,6 +3,7 @@ from gi.repository import Gtk
 from mxdc.devices.manager import BaseManager
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
+from mxdc.utils import misc
 from mxdc.widgets import dialogs
 from mxdc import Registry, IBeamline
 
@@ -20,8 +21,8 @@ class StatusPanel(object):
 
     def setup(self):
         self.monitors = [
-            common.DeviceMonitor(self.beamline.i0, self.widget.status_i0_fbk, format='{:0.3e}'),
-            common.DeviceMonitor(self.beamline.i1, self.widget.status_i1_fbk, format='{:0.3e}'),
+            common.DeviceMonitor(self.beamline.i0, self.widget.status_i0_fbk, format=misc.sci_fmt),
+            common.DeviceMonitor(self.beamline.i1, self.widget.status_i1_fbk, format=misc.sci_fmt),
             common.PropertyMonitor(
                 self.beamline.synchrotron, 'current', self.widget.status_current_fbk, format='{:0.1f}'
             ),

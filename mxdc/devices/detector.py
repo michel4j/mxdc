@@ -616,7 +616,7 @@ class PilatusDetector(BaseDetector):
     :param description: String escription of detector
     """
 
-    READOUT_TIME = 0.015  # 15 ms, Pilatus manual calls for about 13 ms.
+    READOUT_TIME = 0.0025  # minimum readout time
 
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()

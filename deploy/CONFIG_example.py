@@ -93,7 +93,7 @@ DEVICES = {
     'multi_mca': mca.SimMCA('Simulated MCA', energy=tmp2),
 
     # disk space monitor
-    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/home', warn=0.2, critical=0.1, freq=30),
+    'disk_space': misc.DiskSpaceMonitor('Disk Space', '/home', warn=0.2, critical=0.1, freq=0.5),
 }
 
 SERVICES = {
