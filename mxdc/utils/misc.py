@@ -55,12 +55,12 @@ SUPERSCRIPTS_TRANS = str.maketrans('0123456789+-', '⁰¹²³⁴⁵⁶⁷⁸⁹�
 
 
 def sci_fmt(number, digits=3):
-    exp = math.floor(math.log10(number))
-    value = round(number*(10**-exp), digits)
+    exp = 0 if number == 0 else math.floor(math.log10(abs(number)))
+    value = number*(10**-exp)
     exp_text = f'{exp}'.translate(SUPERSCRIPTS_TRANS)
     val_fmt = f'{{:0.{digits}f}}'
     val_text = val_fmt.format(value)
-    return f"{val_text}×10{exp_text}"
+    return f"{val_text}" if exp == 0 else f"{val_text}×10{exp_text}"
 
 
 class NameToInt(object):
