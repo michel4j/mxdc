@@ -95,7 +95,7 @@ class VideoWidget(Gtk.DrawingArea):
         ymm = (cy - y) * mm_scale
         ix = x / self.scale
         iy = y / self.scale
-        return ix, iy, -xmm, ymm
+        return ix, iy, xmm, ymm
 
     def set_display_size(self, width, height):
         self.display_width, self.display_height = width, height

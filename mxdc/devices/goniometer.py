@@ -208,7 +208,10 @@ class MD2Gonio(BaseGoniometer):
             self.chi = motor.PseudoMotor(f'{root}:PMTR:chi:deg')
             self.kappa = motor.PseudoMotor(f'{root}:PMTR:kappa:deg')
             self.add_components(self.phi, self.chi, self.kappa)
-        self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)
+        self.stage = stages.SampleStage(
+            self.sample_x, self.sample_y1, self.sample_y2, self.omega,
+            linked=False, #direction=(-1, 1, -1),
+        )
 
         # config parameters
         self.settings = {
