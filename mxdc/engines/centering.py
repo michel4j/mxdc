@@ -42,7 +42,6 @@ class Centering(Engine):
 
     def configure(self, method='loop'):
 
-
         from mxdc.controllers.samplestore import ISampleStore
         from mxdc.engines.rastering import IRasterCollector
 

@@ -160,7 +160,7 @@ class BaseDetector(Device):
         """
 
         states = states if len(states) else self.BUSY_STATES
-        states_text = "|".join(states)
+        states_text = "|".join([str(state) for state in states])
 
         logger.debug('"{}" Waiting for {}'.format(self.name, states_text))
         elapsed = 0

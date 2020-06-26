@@ -198,7 +198,7 @@ class MD2Gonio(BaseGoniometer):
         self.state_fbk.connect('changed', self.on_state_changed)
 
         # create additional components
-        self.omega =  motor.PseudoMotor(f'{root}:PMTR:omega:deg')
+        self.omega = motor.PseudoMotor(f'{root}:PMTR:omega:deg')
         self.sample_x = motor.PseudoMotor(f'{root}:PMTR:gonX:mm')
         self.sample_y1 = motor.PseudoMotor(f'{root}:PMTR:smplY:mm')
         self.sample_y2 = motor.PseudoMotor(f'{root}:PMTR:smplZ:mm')
