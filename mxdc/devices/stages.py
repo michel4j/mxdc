@@ -78,7 +78,8 @@ class BaseSampleStage(Device):
         :param w: omega angle position
         :return: (x, y, z)
         """
-        return x, v * numpy.cos(w), v * numpy.sin(w)
+        ang = self.invert_omega * w
+        return self.invert_x * x, v * numpy.cos(ang), v * numpy.sin(ang)
 
     def xvw_to_screen(self, x, v, w):
         """
@@ -102,7 +103,7 @@ class BaseSampleStage(Device):
         :return: (x, y, z) screen coordinates
         """
         x, v, w = self.xyz_to_xvw(x, y, z)
-        return self.xvw_to_screen(x, v, w)
+        return self.xvw_to_screen(self.invert_x * x, v, self.invert_omega * w)
 
     def screen_to_xyz(self, x, y, z):
         """
@@ -113,9 +114,9 @@ class BaseSampleStage(Device):
         :param z: z-position
         :return: (x, y, z) screen coordinates
         """
-        phi = self.get_omega() - numpy.arctan2(z, y)
+        phi = self.invert_omega * (self.get_omega() - numpy.arctan2(z, y))
         h = numpy.hypot(z, y)
-        return x, h * numpy.cos(phi), h * numpy.sin(phi)
+        return self.invert_x * x, h * numpy.cos(phi), h * numpy.sin(phi)
 
     def get_omega(self):
         """
@@ -163,9 +164,11 @@ class SampleStage(BaseSampleStage):
     :param name:  name of stage
     :param offset: offset angle, default 0.0
     :param linked: bool, if True, motors can't move simultaneously
+    :param invert_x:  bool, invert direction of x translation relative to screen
+    :param clockwise: bool, if True, positive displacement of y2 stage at 90% will move sample down on screen.
     """
 
-    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False):
+    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False, invert_x=False, invert_omega=False):
         super().__init__()
         self.name = name
         self.x = x
@@ -174,6 +177,8 @@ class SampleStage(BaseSampleStage):
         self.offset = offset
         self.linked = linked
         self.omega = omega
+        self.invert_x = -1 if invert_x else 1
+        self.invert_omega = -1 if invert_omega else 1
         self.add_components(x, y1, y2, omega)
         for dev in (self.x, self.y1, self.y2, self.omega):
             dev.connect('changed', self.emit_change)
