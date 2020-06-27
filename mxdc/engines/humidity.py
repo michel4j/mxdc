@@ -112,6 +112,7 @@ class SingleCollector(Engine):
         self.beamline.detector.configure(**detector_parameters)
         self.beamline.detector.start(first=True)
         self.beamline.goniometer.scan(
+            kind='simple',
             time=frame['exposure'],
             delta=frame['delta'],
             angle=frame['start'],

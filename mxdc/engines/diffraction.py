@@ -183,7 +183,7 @@ class DataCollector(Engine):
                 self.beamline.detector.configure(**detector_parameters)
                 self.beamline.detector.start(first=is_first_frame)
                 self.beamline.goniometer.scan(
-                    type='simple',
+                    kind='simple',
                     time=frame['exposure'],
                     range=frame['delta'],
                     angle=frame['start'],
@@ -236,7 +236,7 @@ class DataCollector(Engine):
 
             logger.debug('Starting scan ...')
             self.beamline.goniometer.scan(
-                type='shutterless',
+                kind='shutterless',
                 time=wedge['exposure'] * wedge['num_frames'],
                 range=wedge['delta'] * wedge['num_frames'],
                 angle=wedge['start'],

@@ -90,12 +90,22 @@ class BaseGoniometer(Device):
         """
         self.stopped = True
 
-    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
+    def scan(self, **kwargs):
         """
         Configure and perform the scan
         :keyword type: Scan type (str), one of ('simple', 'shutterless', 'helical', 'vector', 'raster')
-        :keyword wait:
-        :keyword timeout:
+        :keyword wait: boolean whether to wait or not
+        :keyword timeout: maximum time to wait for scan.
+        :keyword time: exposure time
+        :keyword range: scan range in degrees
+        :keyword angle: starting angle for scan
+        :keyword frames: number of frames to acquire during scan, per line for raster scans
+        :keyword start_pos: starting position
+        :keyword end_pos: ending position
+        :keyword passes:  Number of exposures per frame
+        :keyword lines: Number of lines for raster scans
+        :keyword width: horizontal size of raster grid
+        :keyword height: vertical size of raster grid
         """
         raise NotImplementedError('Sub-classes must implement "scan" method')
 
@@ -136,7 +146,12 @@ class ParkerGonio(BaseGoniometer):
     def on_busy(self, obj, st):
         self.set_state(busy=(self.scan_fbk.get() == 1))
 
-    def scan(self, type='simple', wait=True, timeout=None, start_pos=None, **kwargs):
+    def scan(self, **kwargs):
+
+        wait = kwargs.pop('wait', True)
+        timeout = kwargs.pop('timeout', None)
+        start_pos = kwargs.get('start_pos')
+
         self.configure(**kwargs)
 
         # move stage to starting point if provided
@@ -287,33 +302,41 @@ class MD2Gonio(BaseGoniometer):
             self.save_pos_cmd.put(self.NULL_VALUE)
         self.prev_state = state
 
-    def scan(self, type='simple', wait=True, timeout=None, **kwargs):
-        """
-        Perform a data collection scan
+    def scan(self, **kwargs):
 
-        :param wait: Whether to wait for scan to complete
-        :param timeout: maximum time to wait
-        """
+        wait = kwargs.pop('wait', True)
+        timeout = kwargs.pop('timeout', None)
+        kind = kwargs.get('kind', 'simple')
+
+        # switch to helical if shutterless and points given
+        is_helical = all((
+            kind == 'shutterless',
+            kwargs.get('start_pos'),
+            kwargs.get('end_pos'),
+            self.supports(GonioFeatures.SCAN4D)
+        ))
+        if is_helical:
+            kind = 'helical'
+
         self.wait(stop=True, start=False, timeout=timeout)
-        self.set_state(message=f'"{type}" Scanning ...')
+        self.set_state(message=f'"{kind}" Scanning ...')
 
         # configure device and start scan
         self.extra_values['z_pos'] = (self.gon_z_fbk.get(),)*3
-        if type in ['simple', 'shutterless']:
+        if kind in ['simple', 'shutterless']:
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
-        elif type == 'helical':
+        elif kind == 'helical':
             misc.set_settings(self.helix_settings, **kwargs)
             misc.set_settings(self.extra_settings, **self.extra_values)
             self.helix_cmd.put(self.NULL_VALUE)
-        elif type == 'raster':
+        elif kind == 'raster':
             misc.set_settings(self.raster_settings, **kwargs)
             self.raster_cmd.put(self.NULL_VALUE)
 
         self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
-            self.set_state(message=f'"{type}" scan complete!')
-
+            self.set_state(message=f'"{kind}" scan complete!')
 
     def stop(self):
         """
@@ -401,9 +424,9 @@ class SimGonio(BaseGoniometer):
                 break
             time.sleep(0.001)
 
-    def scan(self, type='simple', wait=True, timeout=0, start_pos:tuple=None, **kwargs):
+    def scan(self, **kwargs):
         """
-        :keyword type: type of scan
+        :keyword kind: type of scan
         :keyword wait: whether to block until scan is complete
         :keyword timeout: maximum wait time
         :keyword time: Exposure time per frame
@@ -411,6 +434,9 @@ class SimGonio(BaseGoniometer):
         :keyword start: Start angle for frame
         :keyword start_pos:  Stage position to start from.
         """
+
+        wait = kwargs.pop('wait', True)
+        start_pos = kwargs.get('start_pos')
 
         # settings
         self.configure(**kwargs)

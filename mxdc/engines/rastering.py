@@ -192,7 +192,7 @@ class RasterCollector(Engine):
 
         logger.debug('Starting raster scan ...')
         self.beamline.goniometer.scan(
-            type='raster',
+            kind='raster',
             time=params['exposure'] * params['frames'],
             range=params['delta'] * params['frames'],
             angle=params['angle'],
