@@ -242,8 +242,8 @@ class DataCollector(Engine):
                 angle=wedge['start'],
                 frames=wedge['num_frames'],
                 wait=True,
-                start_pos=wedge.get('start_pos'),
-                end_pos=wedge.get('end_pos'),
+                start_pos=wedge.get('p0'),
+                end_pos=wedge.get('p1'),
                 timeout=wedge['exposure'] * wedge['num_frames'] * 2,
             )
             self.beamline.detector.save()

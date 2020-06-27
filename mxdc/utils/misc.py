@@ -483,7 +483,7 @@ def set_settings(settings, **kwargs):
             if isinstance(settings[key], tuple):
                 if isinstance(value, (tuple, list)):
                     for p, v in zip(settings[key], value):
-                        p.put(p, v, wait=True)
+                        p.put(v, wait=True)
             else:
                 settings[key].put(kwargs[key], wait=True)
             changed.append(key)

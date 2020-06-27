@@ -365,7 +365,12 @@ class DatasetsController(Object):
     def import_from_cache(self):
         runs = load_cache('runs')
         if runs:
+            points = set()
             for run in runs:
+                if run.get('p0') and not run['p0'] in points:
+                    self.microscope.add_point(run['p0'])
+                if run.get('p1') and not run['p1'] in points:
+                    self.microscope.add_point(run['p1'])
                 new_item = datawidget.RunItem(
                     run['info'], state=run['state'], created=run['created'], uid=run['uuid']
                 )
@@ -393,7 +398,7 @@ class DatasetsController(Object):
         self.sample_store = Registry.get_utility(ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
 
-        self.run_editor.set_points(self.microscope.props.points)
+        self.on_points()
         self.import_from_cache()
 
         new_item = datawidget.RunItem(state=datawidget.RunItem.StateType.ADD)

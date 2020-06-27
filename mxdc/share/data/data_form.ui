@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.36.0 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkWindow">
     <property name="can_focus">False</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox" id="saved_run_row">
         <property name="visible">True</property>
@@ -90,12 +87,12 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkWindow">
-    <property name="can_focus">False</property>
     <child type="titlebar">
       <placeholder/>
     </child>
+  </object>
+  <object class="GtkWindow">
+    <property name="can_focus">False</property>
     <child>
       <object class="GtkBox" id="data_form">
         <property name="visible">True</property>
@@ -181,7 +178,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBox" id="data_end_point_mbox">
+                      <object class="GtkComboBox" id="data_p1_mbox">
                         <property name="width_request">80</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -273,7 +270,7 @@ points (inclusive) for vector collection.</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBox" id="data_point_mbox">
+                      <object class="GtkComboBox" id="data_p0_mbox">
                         <property name="width_request">80</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -1092,6 +1089,9 @@ resolution expected.</property>
           </packing>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
 </interface>

@@ -149,7 +149,7 @@ class RasterCollector(Engine):
                 range=frame['delta'],
                 frames=1,
                 angle=frame['start'],
-                start_pos=frame['point'],
+                start_pos=frame['p0'],
                 wait=True,
                 timeout=frame['exposure'] * 20
             )

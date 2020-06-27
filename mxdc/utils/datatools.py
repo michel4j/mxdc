@@ -368,7 +368,7 @@ def grid_frames(params: dict):
             'two_theta': params.get('two_theta', 0.0),
             'attenuation': params.get('attenuation', 0.0),
             'directory': params['directory'],
-            'point': point,
+            'p0': point,
         }
         for i, point in enumerate(params['grid'])
     )
@@ -412,7 +412,7 @@ def make_wedges(run: dict):
 
     # determine start point,  end point and list of frames for each wedge
     num_wedges = int(total / slice)
-    positions = wedge_points(run.get('point'), run.get('end_point'), num_wedges)
+    positions = wedge_points(run.get('p0'), run.get('p1'), num_wedges)
     wedge_frames = int(slice / delta)
     wedge_numbers = numpy.arange(wedge_frames)
 
@@ -450,8 +450,8 @@ def make_wedges(run: dict):
             'energy': run.get('energy', 12.658),
             'two_theta': run.get('two_theta', 0.0),
             'attenuation': run.get('attenuation', 0.0),
-            'point': start_pos if start_pos is None else tuple(start_pos),
-            'end_point': end_pos if end_pos is None else tuple(end_pos),
+            'p0': start_pos if start_pos is None else tuple(start_pos),
+            'p1': end_pos if end_pos is None else tuple(end_pos),
             'inverse': run.get('inverse', False),
             'weight': run['exposure'] * len(frames)
         }

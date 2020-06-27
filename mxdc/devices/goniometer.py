@@ -11,7 +11,7 @@ from mxdc import Registry, Device, IBeamline
 from mxdc.devices import motor, stages
 from mxdc.utils import misc
 from mxdc.utils.decorators import async_call
-from mxdc.utils.log import get_module_logger
+from mxdc.utils.log import get_module_logger, log_call
 from .interfaces import IGoniometer
 
 # setup module logger with a default handler
@@ -197,7 +197,7 @@ class MD2Gonio(BaseGoniometer):
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
-        self.helix_cmd = self.add_pv(f"{root}:startScan4DEx")
+        self.helix_cmd = self.add_pv(f"{root}:startScan4D")
         self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
@@ -302,8 +302,8 @@ class MD2Gonio(BaseGoniometer):
             self.save_pos_cmd.put(self.NULL_VALUE)
         self.prev_state = state
 
+    @log_call
     def scan(self, **kwargs):
-
         wait = kwargs.pop('wait', True)
         timeout = kwargs.pop('timeout', None)
         kind = kwargs.get('kind', 'simple')

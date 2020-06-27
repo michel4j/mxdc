@@ -2,7 +2,7 @@ import math
 import os
 
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 import numpy
 import cairo
 from mxdc import Registry, IBeamline, Object, Property
@@ -130,7 +130,7 @@ class Microscope(Object):
         self.widget.microscope_save_btn.connect('clicked', self.on_save)
         self.widget.microscope_grid_btn.connect('toggled', self.toggle_grid_mode)
         self.widget.microscope_colorize_tbtn.connect('toggled', self.colorize)
-        self.widget.microscope_point_btn.connect('clicked', self.add_point)
+        self.widget.microscope_point_btn.connect('clicked', self.on_save_point)
         self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
 
         # disable centering buttons on click
@@ -345,8 +345,8 @@ class Microscope(Object):
         points = numpy.array(polygon)
         self.props.grid_bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
 
-    def add_point(self, *args, **kwargs):
-        self.props.points = self.props.points + [self.beamline.goniometer.stage.get_xyz()]
+    def add_point(self, point):
+        self.props.points = self.props.points + [point]
         self.queue_overlay()
 
     def make_grid(self, bbox=None, points=None, scaled=True, center=True):
@@ -459,6 +459,10 @@ class Microscope(Object):
 
     def colorize(self, button):
         self.video.set_colorize(state=button.get_active())
+
+    def on_save_point(self, *args, **kwargs):
+        self.add_point(self.beamline.goniometer.stage.get_xyz())
+        self.save_to_cache()
 
     def on_tool_changed(self, *args, **kwargs):
         window = self.widget.microscope_bkg.get_window()

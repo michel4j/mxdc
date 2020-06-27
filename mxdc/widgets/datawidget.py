@@ -224,8 +224,8 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('name', 'entry', '{}', Validator.Slug(30)),
         gui.FieldSpec('strategy', 'cbox', '{}', Validator.Int(None, None, StrategyType.SINGLE)),
         gui.FieldSpec('inverse', 'check', '{}', Validator.Bool(False)),
-        gui.FieldSpec('point', 'mbox', '{}', Validator.Int(None, None)),
-        gui.FieldSpec('end_point', 'mbox', '{}', Validator.Int(None, None)),
+        gui.FieldSpec('p0', 'mbox', '{}', Validator.Int(None, None)),
+        gui.FieldSpec('p1', 'mbox', '{}', Validator.Int(None, None)),
         gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(2, 100, 10)),
     )
     disabled = ()
@@ -281,13 +281,13 @@ class DataEditor(gui.BuilderMixin):
 
         # convert points to coordinates and then
         # make sure point is not empty if end_point is set
-        for name in ['point', 'end_point']:
+        for name in ['p0', 'p1']:
             if info.get(name) not in [-1, 0, None]:
                 info[name] = self.get_point(info[name])
             elif name in info:
                 del info[name]
-        if 'end_point' in info and 'point' not in info:
-            info['point'] = info.pop('end_point')
+        if 'p1' in info and 'p0' not in info:
+            info['p0'] = info.pop('p1')
 
         return info
 
@@ -358,13 +358,13 @@ class RunEditor(DataEditor):
 
         adjustment = Gtk.Adjustment(10, 2, 100, 1, 5, 0)
         self.data_vector_size_spin.set_adjustment(adjustment)
-        self.data_end_point_mbox.bind_property(
+        self.data_p1_mbox.bind_property(
             'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda *args: bool(args[1])
         )
         # self.data_vector_size_spin.bind_property(
         #     'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda *args: not args[1]
         # )
-        for i, name in enumerate(['point', 'end_point']):
+        for i, name in enumerate(['p0', 'p1']):
             field = self.form.get_field(name)
             if not field: continue
             renderer_text = Gtk.CellRendererText()
