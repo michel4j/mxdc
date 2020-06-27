@@ -537,7 +537,7 @@ class DiskSpaceMonitor(Device):
     :param freq: Frequency in minutes to check space
     """
 
-    def __init__(self, descr, path, warn=0.05, critical=0.025, freq=2):
+    def __init__(self, descr, path, warn=0.05, critical=0.025, freq=10):
         super().__init__()
         self.name = descr
         self.path = path
@@ -583,7 +583,6 @@ class DiskSpaceMonitor(Device):
                 logger.warn(msg)
             else:
                 self.set_state(health=(1, 'usage', msg))
-                logger.info(msg)
         return True
 
 
