@@ -295,7 +295,7 @@ class MD2Gonio(BaseGoniometer):
         :param timeout: maximum time to wait
         """
         self.wait(stop=True, start=False, timeout=timeout)
-        self.set_state(message='Scanning ...')
+        self.set_state(message=f'"{type}" Scanning ...')
 
         # configure device and start scan
         self.extra_values['z_pos'] = (self.gon_z_fbk.get(),)*3
@@ -312,7 +312,8 @@ class MD2Gonio(BaseGoniometer):
 
         self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
-            self.set_state(message='Scan complete!')
+            self.set_state(message=f'"{type}" scan complete!')
+
 
     def stop(self):
         """

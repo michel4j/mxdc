@@ -1,19 +1,11 @@
 """This module implements utility classes and functions for logging."""
 import logging
+from functools import wraps
 from logging.handlers import RotatingFileHandler
-try:
-    import reprlib
-except ImportError:
-    import reprlib as reprlib
-import os
+from reprlib import aRepr
 
-
-if os.environ.get('MXDC_DEBUG', '0') in ['1', 'True', 'TRUE', 'true']:
-    LOG_LEVEL = logging.DEBUG
-    DEBUGGING = True
-else:
-    LOG_LEVEL = logging.INFO
-    DEBUGGING = False
+IMPORTANT = 25
+logging.addLevelName(IMPORTANT, 'IMPORTANT')
 
 
 class TermColor(object):
@@ -25,6 +17,11 @@ class TermColor(object):
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    ITALICS = '\033[3m'
+
+    @classmethod
+    def bold(cls, text):
+        return '{}{}{}'.format(cls.BOLD, text, cls.ENDC)
 
     @classmethod
     def warn(cls, text):
@@ -54,6 +51,10 @@ class TermColor(object):
     def underline(cls, text):
         return '{}{}{}'.format(cls.UNDERLINE, text, cls.ENDC)
 
+    @classmethod
+    def italics(cls, text):
+        return '{}{}{}'.format(cls.ITALICS, text, cls.ENDC)
+
 
 class NullHandler(logging.Handler):
     """A do-nothing log handler."""
@@ -63,46 +64,42 @@ class NullHandler(logging.Handler):
 
 
 class ColoredConsoleHandler(logging.StreamHandler):
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            if record.levelno == logging.WARNING:
-                msg = TermColor.warn(msg)
-            elif record.levelno > logging.WARNING:
-                msg = TermColor.error(msg)
-            elif record.levelno == logging.DEBUG:
-                msg = TermColor.debug(msg)
-            self.stream.write("{}\n".format(msg))
-            self.flush()
-        except:
-            self.handleError(record)
+    def format(self, record):
+        msg = super(ColoredConsoleHandler, self).format(record)
+        if record.levelno == logging.WARNING:
+            msg = TermColor.warn(msg)
+        elif record.levelno > logging.WARNING:
+            msg = TermColor.error(msg)
+        elif record.levelno == logging.DEBUG:
+            msg = TermColor.debug(msg)
+        return msg
 
 
 def get_module_logger(name):
     """A factory which creates loggers with the given name and returns it."""
     name = name.split('.')[-1]
     logger = logging.getLogger(name)
-    logger.setLevel(LOG_LEVEL)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(NullHandler())
     return logger
 
 
-def log_to_console(level=LOG_LEVEL):
+def log_to_console(level=logging.DEBUG):
     """Add a log handler which logs to the console."""
 
     console = ColoredConsoleHandler()
     console.setLevel(level)
-    if DEBUGGING:
+    if level == logging.DEBUG:
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
     else:
-        formatter = logging.Formatter('%(asctime)s - %(message)s', '%b/%d %H:%M:%S')
+        formatter = logging.Formatter(' %(message)s', '%b/%d %H:%M:%S')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
 
 
 def log_to_file(filename, level=logging.DEBUG):
     """Add a log handler which logs to the console."""
-    logfile = RotatingFileHandler(filename, maxBytes=1e6, backupCount=10)
+    logfile = RotatingFileHandler(filename, maxBytes=1000000, backupCount=10)
     logfile.setLevel(level)
     formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
     logfile.setFormatter(formatter)
@@ -115,15 +112,17 @@ logger = get_module_logger(__name__)
 def log_call(f):
     """
     Log all calls to the function or method
-    :param f: function or method
+    @param f: function or method
     """
 
-    def new_f(*args, **kwargs):
-        params = ['{}'.format(reprlib.repr(a)) for a in args[1:]]
-        params.extend(['{}={}'.format(p[0], reprlib.repr(p[1])) for p in list(kwargs.items())])
-        params = ', '.join(params)
-        logger.info('<{}({})>'.format(f.__name__, params))
+    @wraps(f)
+    def _decorator(*args, **kwargs):
+        params = [
+                     aRepr.repr1(arg, 1) for arg in args[1:]
+                 ] + [
+                     '{}={}'.format(p[0], aRepr.repr1(p[1], 1)) for p in list(kwargs.items())
+                 ]
+        logger.info('<{}({})>'.format(f.__name__, ', '.join(params)))
         return f(*args, **kwargs)
 
-    new_f.__name__ = f.__name__
-    return new_f
+    return _decorator

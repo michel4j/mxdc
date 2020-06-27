@@ -10,7 +10,7 @@ import msgpack
 from gi.repository import Gio
 
 from mxdc.utils import misc
-from mxdc.utils.log import get_module_logger, log_to_console
+from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 

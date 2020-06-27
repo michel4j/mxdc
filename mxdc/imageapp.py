@@ -7,12 +7,11 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, GLib
 from mxdc import conf
 from mxdc.utils import misc
-from mxdc.utils.log import get_module_logger, log_to_console
+from mxdc.utils.log import get_module_logger
 from mxdc.widgets.imageviewer import ImageViewer
 from mxdc.widgets import dialogs
 
 logger = get_module_logger(__name__)
-log_to_console()
 
 
 class ImageApp(object):
