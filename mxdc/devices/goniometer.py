@@ -332,7 +332,8 @@ class MD2Gonio(BaseGoniometer):
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             misc.set_settings(self.raster_settings, **kwargs)
-            self.raster_cmd.put(self.NULL_VALUE)
+            params = [kwargs['height'], kwargs['width'], kwargs['lines'], kwargs['frames'], 1]
+            self.raster_cmd.put(params)
 
         self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
