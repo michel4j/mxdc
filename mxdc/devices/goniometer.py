@@ -263,10 +263,10 @@ class MD2Gonio(BaseGoniometer):
             'range': self.add_pv(f"{root}:ScanRange"),
             'angle': self.add_pv(f"{root}:ScanStartAngle"),
 
-            'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
-            'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
-            'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
-            'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
+            #'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
+            #'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
+            #'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
+            #'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
         }
 
         # semi constant but need to be re-applied each scan
@@ -332,7 +332,10 @@ class MD2Gonio(BaseGoniometer):
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             misc.set_settings(self.raster_settings, **kwargs)
-            params = [kwargs['height'], kwargs['width'], kwargs['lines'], kwargs['frames'], 1]
+            params = [
+                kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,    # convert to mm
+                kwargs['lines'], kwargs['frames'], 1
+            ]
             self.raster_cmd.put(params)
 
         self.wait(start=True, stop=wait, timeout=timeout)

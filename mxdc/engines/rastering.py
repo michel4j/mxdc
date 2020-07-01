@@ -42,6 +42,9 @@ class RasterCollector(Engine):
         self.count = 0
 
         self.analyst = Registry.get_utility(IAnalyst)
+        self.analysis_link = self.beamline.detector.connect('progress', self.on_frame_collected)
+        self.unwatch_frames()
+
         Registry.add_utility(IRasterCollector, self)
 
     def configure(self, params):
@@ -80,6 +83,7 @@ class RasterCollector(Engine):
 
     def run(self):
         current_attenuation = self.beamline.attenuator.get()
+        self.watch_frames()
         with self.beamline.lock:
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             self.emit('started', self.config['params'])
@@ -104,18 +108,21 @@ class RasterCollector(Engine):
         self.config['end_time'] = datetime.now(tz=pytz.utc)
         if self.stopped:
             self.emit('stopped', None)
+            self.pending_results = set()
         else:
+            while self.pending_results:
+                time.sleep(0.5)
             self.emit('done', None)
             self.save_metadata()
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
         self.beamline.detector_cover.close()
+        self.unwatch_frames()
 
     def acquire_step(self):
         self.count = 0
         self.prepare(self.config['params'])
 
         logger.debug('Rastering ... ')
-        template = self.beamline.detector.get_template(self.config['params']['name'])
         for frame in datatools.grid_frames(self.config['params']):
             if self.paused:
                 self.emit('paused', True, '')
@@ -126,6 +133,7 @@ class RasterCollector(Engine):
             if self.stopped: break
 
             # Prepare image header
+            template = self.beamline.detector.get_template(self.config['params']['name'])
             detector_parameters = {
                 'file_prefix': frame['name'],
                 'start_frame': frame['first'],
@@ -155,15 +163,11 @@ class RasterCollector(Engine):
             )
             self.beamline.detector.save()
 
-            self.count += 1
-            msg = '{}: {} of {}'.format(self.config['params']['name'], self.count, self.total_frames)
-            self.emit('progress', self.count / self.total_frames, msg)
-            time.sleep(0)
-            file_path = os.path.join(frame['directory'], template.format(frame['first']))
-            self.analyse_frame(file_path, frame['first'])
+            # Add frame to pending results
+            file_path = os.path.join(self.config['params']['directory'], template.format(frame['first']))
+            self.pending_results.add(file_path)
 
-        while self.pending_results:
-            time.sleep(0.5)
+            time.sleep(0)
 
     def acquire_slew(self):
         self.count = 0
@@ -191,6 +195,14 @@ class RasterCollector(Engine):
         self.beamline.detector.start()
 
         logger.debug('Starting raster scan ...')
+
+        # add frames to pending results
+        template = self.beamline.detector.get_template(self.config['params']['name'])
+        self.pending_results = {
+            os.path.join(self.config['params']['directory'], template.format(i + 1))
+            for i in range(params['frames'])
+        }
+
         self.beamline.goniometer.scan(
             kind='raster',
             time=params['exposure'] * params['frames'],
@@ -198,27 +210,18 @@ class RasterCollector(Engine):
             angle=params['angle'],
             frames=params['frames'],
             lines=params['lines'],
-            uturn=params['delta'],
+            width=params['width'],
+            height=params['height'],
             start_pos=params['grid'][0],
             wait=True,
-            timeout=params['exposure'] * self.total_frames * 1.2,
+            timeout=params['exposure'] * self.total_frames * 3,
         )
-
         self.beamline.detector.save()
         time.sleep(0)
-
-        template = self.beamline.detector.get_template(self.config['params']['name'])
-        for frame in datatools.grid_frames(self.config['params']):
-            file_path = os.path.join(frame['directory'], template.format(frame['first']))
-            self.analyse_frame(file_path, frame['first'])
-
-        while self.pending_results:
-            time.sleep(0.5)
 
     @inlineCallbacks
     def analyse_frame(self, file_path, index):
         frame = os.path.splitext(os.path.basename(file_path))[0]
-        self.pending_results.add(file_path)
         logger.info("Analyzing frame: {}".format(frame))
         try:
             report = yield self.beamline.dps.analyse_frame(file_path, misc.get_project_name())
@@ -234,12 +237,14 @@ class RasterCollector(Engine):
         info['filename'] = path
         self.results[index] = info
         self.emit('result', index, info)
-        self.pending_results.remove(path)
+        if path in self.pending_results:
+            self.pending_results.remove(path)
 
     def result_fail(self, error, cell, file_path):
         self.results[cell] = error
         logger.error("Unable to process data for cell {}".format(cell))
-        self.pending_results.remove(file_path)
+        if file_path in self.pending_results:
+            self.pending_results.remove(file_path)
 
     def save_metadata(self, upload=True):
         params = self.config['params']
@@ -288,3 +293,19 @@ class RasterCollector(Engine):
             if upload:
                 self.beamline.lims.upload_data(self.beamline.name, filename)
             return metadata
+
+    def watch_frames(self):
+        self.beamline.detector.handler_unblock(self.analysis_link)
+
+    def unwatch_frames(self):
+        self.beamline.detector.handler_block(self.analysis_link)
+
+    def on_frame_collected(self, obj, fraction, message):
+        pos = int(fraction * self.total_frames)
+        msg = '{}: {} of {}'.format(self.config['params']['name'], pos, self.total_frames)
+        self.emit('progress', fraction, msg)
+        for i in range(self.count, pos):
+            template = self.beamline.detector.get_template(self.config['params']['name'])
+            file_path = os.path.join(self.config['params']['directory'], template.format(i+1))
+            self.analyse_frame(file_path, i+1)
+        self.count = pos

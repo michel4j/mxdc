@@ -239,7 +239,10 @@ class RasterController(Object):
     def on_results(self, collector, frame, results):
         index = frame - 1   # frames are 1-based counting
         config = collector.config['params']
-        score = misc.frame_score(results)
+        try:
+            score = misc.frame_score(results)
+        except (KeyError, ValueError, AttributeError):
+            score = 0.0
         self.microscope.add_grid_score(frame, score)
         x, y, z = self.microscope.props.grid_xyz[index]  # frames
         parent, child = self.manager.add_item({
@@ -258,6 +261,7 @@ class RasterController(Object):
         if parent:
             self.view.expand_row(parent, False)
         self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
+        self.microscope.update_grid()
 
     def on_result_activated(self, view, path, column=None):
         itr = self.manager.model.get_iter(path)

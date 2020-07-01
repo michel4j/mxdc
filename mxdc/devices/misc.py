@@ -171,6 +171,7 @@ class ChoicePositioner(BasePositioner):
         self.units = units
         self.dev = self.add_pv(pv)
         self.choices = choices
+        self.set_state(enabled=True)
         self.dev.connect('changed', self.signal_change)
 
     def get(self):

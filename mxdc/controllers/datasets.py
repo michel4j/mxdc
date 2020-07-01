@@ -344,6 +344,7 @@ class DatasetsController(Object):
         self.pause_info = False
         self.start_time = 0
         self.frame_monitor = None
+        self.first_frame = True
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
@@ -422,6 +423,7 @@ class DatasetsController(Object):
         }
         self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
         self.microscope.connect('notify::points', self.on_points)
+        self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
 
     def create_run_config(self, item):
         config = datawidget.RunConfig()
@@ -711,10 +713,6 @@ class DatasetsController(Object):
             self.update_cache()
 
     def on_started(self, obj, wedge):
-
-        if self.frame_monitor is None:
-            self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
-
         if wedge is None:  # Overall start for all wedges
             self.start_time = time.time()
             self.widget.datasets_collect_btn.set_sensitive(True)
@@ -741,7 +739,10 @@ class DatasetsController(Object):
                 item = self.run_store.get_item(count)
 
     def on_new_image(self, obj, frame):
-        self.image_viewer.show_frame(frame)
+        # ignore first frame which is the PV value when MxDC starts up, frame may belong to a different user
+        if not self.first_frame:
+            self.image_viewer.show_frame(frame)
+        self.first_frame = False
 
     def on_collect_btn(self, obj):
         self.auto_save_run()

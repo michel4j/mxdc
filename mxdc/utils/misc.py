@@ -532,7 +532,7 @@ def grid_from_bounds(bbox, step_size, tight=True, snake=True):
     x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
 
     if snake:
-        x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip alternate rows
+        x_ij[::2, :] = x_ij[::2, ::-1]  # flip alternate rows
 
     offset = radius if tight else 0.0
     return numpy.array([
@@ -562,7 +562,7 @@ def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=Tr
     x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
 
     if snake:
-        x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip alternate rows
+        x_ij[::2, :] = x_ij[::2, ::-1]  # flip alternate rows
 
     offset = radius if tight else 0.0
     return numpy.array([
