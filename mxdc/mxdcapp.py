@@ -194,19 +194,16 @@ class Application(Gtk.Application):
             'beamline': self.beamline.name
         }
 
-        try:
-            unique = 'SIM' not in self.beamline.name
-            self.provider = mdns.Provider(
-                'MXDC Client - {}'.format(self.beamline.name),
-                self.service_type, MXDC_PORT, self.service_data, unique=unique
-            )
-            self.provider.connect('collision', self.on_collision)
-        except:
-            self.on_collision(None)
-        else:
-            self.start_server()
+        unique = 'SIM' not in self.beamline.name
+        self.provider = mdns.Provider(
+            'MXDC Client - {}'.format(self.beamline.name),
+            self.service_type, MXDC_PORT, self.service_data, unique=unique
+        )
+        self.provider.connect('collision', self.server_collision)
+        self.provider.connect('running', self.start_server)
+        self.provider.start()
 
-    def on_collision(self, obj):
+    def server_collision(self, *args, **kwargs):
         self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
         self.remote_mxdc.connect('active', self.service_found)
 

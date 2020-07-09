@@ -3,7 +3,7 @@ import ipaddress
 import random
 import socket
 from typing import cast
-from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo
+from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo, NonUniqueNameException
 
 from mxdc import Object, Signal
 from mxdc.utils.log import get_module_logger
@@ -12,6 +12,8 @@ from mxdc.utils.log import get_module_logger
 log = get_module_logger(__name__)
 
 ZCONF = Zeroconf()
+
+Collision = NonUniqueNameException
 
 
 class SimpleProvider(object):
@@ -34,6 +36,7 @@ class SimpleProvider(object):
         super().__init__()
         self.name = name
         data = data or {}
+        self.unique = unique
         self.info = ServiceInfo(
             service_type,
             "{}.{}".format(name, service_type),
@@ -41,14 +44,16 @@ class SimpleProvider(object):
             port=port,
             properties=data
         )
-        self.add_service(unique)
 
-    def add_service(self, unique=False):
+    def start(self):
+        self.add_service()
+
+    def add_service(self):
         """
         Add a the service
         """
         try:
-            ZCONF.register_service(self.info, allow_name_change=not unique)
+            ZCONF.register_service(self.info)
         except:
             print('Collision')
 
@@ -83,6 +88,7 @@ class Provider(Object):
     def __init__(self, name, service_type, port, data=None, unique=False):
         super().__init__()
         data = data or {}
+        self.unique = unique
         self.info = ServiceInfo(
             service_type,
             "{}.{}".format(name, service_type),
@@ -90,16 +96,19 @@ class Provider(Object):
             port=port,
             properties=data
         )
-        self.add_service(unique)
 
-    def add_service(self, unique=False):
+    def start(self):
+        self.add_service()
+
+    def add_service(self):
         """
         Add a the service
         """
         try:
-            ZCONF.register_service(self.info, allow_name_change=not unique)
-        except:
+            ZCONF.register_service(self.info)
+        except NonUniqueNameException:
             self.emit('collision')
+            raise
         else:
             self.emit('running')
 
