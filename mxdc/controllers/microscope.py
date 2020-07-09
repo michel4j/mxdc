@@ -7,6 +7,7 @@ import numpy
 import cairo
 from mxdc import Registry, IBeamline, Object, Property
 from zope.interface import Interface, Attribute, implementer
+from mxdc.devices.interfaces import ICenter
 
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
@@ -136,6 +137,11 @@ class Microscope(Object):
         # disable centering buttons on click
         self.centering.connect('started', self.on_scripts_started)
         self.centering.connect('done', self.on_scripts_done)
+
+        aicenter = Registry.get_utility(ICenter)
+        self.widget.microscope_ai_btn.set_sensitive(False)
+        if aicenter:
+            aicenter.connect('active', lambda obj, state: self.widget.microscope_ai_btn.set_sensitive(state))
 
         # lighting monitors
         self.monitors = []
@@ -524,6 +530,8 @@ class Microscope(Object):
             xyz /= self.video.mm_scale()
             xyz[:, :2] += center
             self.make_grid(points=xyz[:, :2], center=False)
+        else:
+            self.queue_overlay()
 
     def on_rotate(self, widget, angle):
         cur_omega = int(self.beamline.goniometer.omega.get_position())

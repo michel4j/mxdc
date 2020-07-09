@@ -335,7 +335,7 @@ class Device(Object):
         """
         try:
             severity, context, message = self.get_state('health')
-        except ValueError:
+        except (ValueError, TypeError):
             return False
         else:
             return severity <= 1

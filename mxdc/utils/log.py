@@ -92,7 +92,7 @@ def log_to_console(level=logging.DEBUG):
     if level == logging.DEBUG:
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
     else:
-        formatter = logging.Formatter(' %(message)s', '%b/%d %H:%M:%S')
+        formatter = logging.Formatter('%(asctime)s %(message)s', '%b/%d %H:%M:%S')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
 
