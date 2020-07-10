@@ -62,12 +62,10 @@ class AppBuilder(gui.Builder):
     def on_page_switched(self, stack, params):
         stack.child_set(stack.props.visible_child, needs_attention=False)
 
-import random
-code = random.randint(1,10)
 
 class Application(Gtk.Application):
     def __init__(self, dark=False, **kwargs):
-        super(Application, self).__init__(application_id=f"org.mxdc{code}", **kwargs)
+        super(Application, self).__init__(application_id="org.mxdc", **kwargs)
         self.window = None
         self.settings_active = False
         self.prefs = conf.load_cache('prefs')
