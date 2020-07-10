@@ -1,15 +1,17 @@
 import atexit
-import ipaddress
+import json
 import random
 import socket
 from typing import cast
+
 from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo, NonUniqueNameException
 
 from mxdc import Object, Signal
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import get_address
 
 # get logging object
-log = get_module_logger(__name__)
+logger = get_module_logger(__name__)
 
 ZCONF = Zeroconf()
 
@@ -32,7 +34,7 @@ class SimpleProvider(object):
         - unique: bool, only one permitted, collisoin if more than one
     """
 
-    def __init__(self, name, service_type, port, data=None, unique=False, delay=1):
+    def __init__(self, name, service_type, port, data=None, unique=True, delay=1):
         super().__init__()
         self.name = name
         data = data or {}
@@ -40,9 +42,9 @@ class SimpleProvider(object):
         self.info = ServiceInfo(
             service_type,
             "{}.{}".format(name, service_type),
-            addresses=[ipaddress.ip_address("127.0.0.1").packed],
+            addresses=[get_address().packed],
             port=port,
-            properties=data
+            properties=json.dumps(data)
         )
 
     def start(self):
@@ -55,7 +57,7 @@ class SimpleProvider(object):
         try:
             ZCONF.register_service(self.info)
         except:
-            print('Collision')
+            logger.error('Service Name Collision: {}'.format(self.info.name))
 
     def __del__(self):
         ZCONF.unregister_service(self.info)
@@ -85,14 +87,15 @@ class Provider(Object):
         running = Signal('running', arg_types=())
         collision = Signal('collision', arg_types=())
 
-    def __init__(self, name, service_type, port, data=None, unique=False):
+    def __init__(self, name, service_type, port, data=None, unique=True):
         super().__init__()
+        self.ready = False
         data = data or {}
         self.unique = unique
         self.info = ServiceInfo(
             service_type,
             "{}.{}".format(name, service_type),
-            addresses=[ipaddress.ip_address("127.0.0.1").packed],
+            addresses=[get_address().packed],
             port=port,
             properties=data
         )
@@ -104,16 +107,23 @@ class Provider(Object):
         """
         Add a the service
         """
-        try:
-            ZCONF.register_service(self.info)
-        except NonUniqueNameException:
+
+        # Check if service already exists
+        info = ZCONF.get_service_info(self.info.type, self.info.name)
+        multiple = not self.unique
+        if multiple or info is None:
+            try:
+                ZCONF.register_service(self.info, allow_name_change=multiple)
+            except NonUniqueNameException:
+                self.emit('collision')
+            else:
+                self.emit('running')
+        elif info is not None:
             self.emit('collision')
-            raise
-        else:
-            self.emit('running')
 
     def __del__(self):
-        ZCONF.unregister_service(self.info)
+        if self.ready:
+            ZCONF.unregister_service(self.info)
 
 
 class Browser(Object):
@@ -165,7 +175,7 @@ class Browser(Object):
             'address': address,
             'addresses': addresses,
             'port': cast(int, info.port),
-            'data': info.properties
+            'data': {k.decode('utf-8'): v.decode('utf-8') for k, v in info.properties.items()}
         }
 
         self.services[(info.name, self.service_type)] = parameters

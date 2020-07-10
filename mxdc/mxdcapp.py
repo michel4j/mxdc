@@ -62,10 +62,12 @@ class AppBuilder(gui.Builder):
     def on_page_switched(self, stack, params):
         stack.child_set(stack.props.visible_child, needs_attention=False)
 
+import random
+code = random.randint(1,10)
 
 class Application(Gtk.Application):
     def __init__(self, dark=False, **kwargs):
-        super(Application, self).__init__(application_id="org.mxdc", **kwargs)
+        super(Application, self).__init__(application_id=f"org.mxdc{code}", **kwargs)
         self.window = None
         self.settings_active = False
         self.prefs = conf.load_cache('prefs')
@@ -93,7 +95,7 @@ class Application(Gtk.Application):
             emails=self.beamline.config['bug_report'], exit_function=self.quit
         )
 
-        #self.hook.install()
+        self.hook.install()
         self.broadcast_service()
 
     def do_activate(self, *args):
@@ -194,14 +196,14 @@ class Application(Gtk.Application):
             'beamline': self.beamline.name
         }
 
-        unique = 'SIM' not in self.beamline.name
+        unique = 'SIM' not in self.beamline.name    # allow multiple SIM instances
         self.provider = mdns.Provider(
-            'MXDC Client - {}'.format(self.beamline.name),
+            self.beamline.name,
             self.service_type, MXDC_PORT, self.service_data, unique=unique
         )
         self.provider.connect('collision', self.server_collision)
         self.provider.connect('running', self.start_server)
-        self.provider.start()
+        GLib.idle_add(self.provider.start)
 
     def server_collision(self, *args, **kwargs):
         self.remote_mxdc = clients.MxDCClientFactory(self.service_type)()
