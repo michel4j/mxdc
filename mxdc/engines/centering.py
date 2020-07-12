@@ -133,11 +133,11 @@ class Centering(Engine):
             self.beamline.sample_video.zoom(zoom_level, wait=True)
             for i in range(trials):
                 trial_count += 1
-                found = self.device.wait_loop(1)
+                found = self.device.wait(1)
                 if found:
-                    x, y, reliability = self.device.loop()
+                    x, y, reliability, label = self.device.fetch()
                     scores.append(reliability)
-                    logger.debug('... loop found at {}, {}'.format(x, y))
+                    logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
                     xmm, ymm = self.screen_to_mm(x, y)
                     self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                     logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
@@ -146,16 +146,6 @@ class Centering(Engine):
                 if trial_count < max_trials:
                     cur_pos = self.beamline.goniometer.omega.get_position()
                     self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
-
-        # finally, try to find the crystal:
-        found = self.device.wait_xtal(1)
-        if found:
-            x, y, reliability = self.device.xtal()
-            scores.append(reliability)
-            logger.debug('... crystal found at {}, {}'.format(x, y))
-            xmm, ymm = self.screen_to_mm(x, y)
-            self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-            logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
         self.score = numpy.mean(scores)
 
