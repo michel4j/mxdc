@@ -300,7 +300,7 @@ class OnOffToggle(Device):
         """
         Turn on the device
         """
-        self.onoff_cmd.put(self.on_value)
+        self.onoff_cmd.put(self.on_value, wait=True)
 
     def on(self):
         """
@@ -313,7 +313,7 @@ class OnOffToggle(Device):
         """
         Turn off the device
         """
-        self.onoff_cmd.put(self.off_value)
+        self.onoff_cmd.put(self.off_value, wait=True)
 
     def off(self):
         """

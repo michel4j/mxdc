@@ -52,8 +52,9 @@ class XRFScan(BasicScan):
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
                 self.beamline.manager.collect(wait=True)
-                self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
+                self.beamline.mca.configure(cooling=True, dark=True, energy=None, nozzle=True)
                 self.beamline.attenuator.set(self.config['attenuation'])
+                time.sleep(2)
                 self.beamline.energy.wait()
                 self.beamline.goniometer.wait(start=False)
                 self.emit("progress", .1, "Acquiring spectrum ...")
@@ -62,7 +63,6 @@ class XRFScan(BasicScan):
                 self.beamline.fast_shutter.close()
                 self.config['end_time'] = datetime.now(tz=pytz.utc)
                 self.emit("progress", 1, "Interpreting spectrum ...")
-
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.set(saved_attenuation)
@@ -212,12 +212,15 @@ class MADScan(BasicScan):
                             time.sleep(0.1)
                         self.beamline.manager.collect(wait=True)
                         self.beamline.mca.configure(cooling=True, nozzle=True)
+                        time.sleep(1)  # wait for nozzle to move out.
                     if self.stopped:
                         break
 
                     self.beamline.bragg_energy.move_to(x, wait=True)
                     y, i0 = multi_count(self.config.exposure, self.beamline.mca, self.beamline.i0)
                     counts = self.beamline.mca.get_roi_counts() + (i0,)
+                    self.beamline.mca.get_roi_counts()
+
                     if i == 0:
                         ref_value = i0
                     counts = (y * ref_value / i0, ) + counts
@@ -226,8 +229,9 @@ class MADScan(BasicScan):
                     self.emit("new-point", row)
                     self.emit("progress", (i + 1.0) /total, "")
                     time.sleep(0)
-            except ValueError:
+            except ValueError as e:
                 self.emit("error", "Scan Error!")
+                logger.error(e)
             finally:
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.fast_shutter.close()

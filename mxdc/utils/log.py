@@ -122,7 +122,7 @@ def log_call(f):
                  ] + [
                      '{}={}'.format(p[0], aRepr.repr1(p[1], 1)) for p in list(kwargs.items())
                  ]
-        logger.debug('<{}({})>'.format(f.__name__, ', '.join(params)))
+        logger.info('<{}({})>'.format(f.__name__, ', '.join(params)))
         return f(*args, **kwargs)
 
     return _decorator

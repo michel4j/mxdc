@@ -45,14 +45,14 @@ def summarize_lines(data):
 
     # data.sort(key=lambda x: x[1])
     data.sort()
-    # print data
+
     new_data = [data[0]]
     for entry in data:
         old = new_data[-1]
         _new = join(old, entry)
         new_data.remove(old)
         new_data.extend(_new)
-    # print new_data
+
     return new_data
 
 

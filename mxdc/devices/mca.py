@@ -4,7 +4,7 @@ import time
 
 import numpy
 from scipy import interpolate
-from gi.repository import GObject
+from gi.repository import GLib
 from mxdc import conf, Signal, Device
 from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
@@ -40,8 +40,9 @@ class BaseMCA(Device):
         self.channels = kwargs.get('channels', 4096)
         self.elements = kwargs.get('elements', 1)
         self.region_of_interest = (0, self.channels)
-        self.data = None
-        self.dark = None
+        self.data = numpy.zeros((self.channels, self.elements), int)
+        self.dark = numpy.zeros((self.channels, self.elements), int)
+        self.spectrum = numpy.zeros((self.channels, self.elements + 2), float)
         self.nozzle = None
 
         # Setup the PVS
@@ -49,9 +50,9 @@ class BaseMCA(Device):
 
         # Default parameters
         self.half_roi_width = 0.075  # energy units
-        self._monitor_id = None
+        self.monitor_id = 0
         self.acquiring = False
-        self._command_sent = False
+        self.command_sent = False
 
     def custom_setup(self, *args, **kwargs):
         """
@@ -115,8 +116,7 @@ class BaseMCA(Device):
                 else:
                     self.nozzle.off()
             if k == 'dark':
-                self.dark = None
-                self.dark = self.acquire(.5)
+                self.dark[:] = self.acquire_dark()
 
     def get_roi(self, energy):
         """
@@ -163,10 +163,22 @@ class BaseMCA(Device):
         detector for the last performed data acquisition.
         
         :returns: Array(float). The array contains as many elements as the number of
-            elements plus one. The first entry is an average of all elements combined.
+            elements.
         """
         # get counts for each spectrum within region of interest
-        values = self.data[self.region_of_interest[0]:self.region_of_interest[1], 1:].sum(0)
+        values = self.data[self.region_of_interest[0]:self.region_of_interest[1], :].sum(0)
+        return tuple(values)
+
+    def get_dark_counts(self):
+        """
+        Obtain the counts for the region of interest for each element of the
+        detector for the dark data.
+
+        :returns: Array(float). The array contains as many elements as the number of
+            elements.
+        """
+        # get counts for each spectrum within region of interest
+        values = self.dark[self.region_of_interest[0]:self.region_of_interest[1], :].sum(0)
         return tuple(values)
 
     def get_count_rates(self):
@@ -190,11 +202,12 @@ class BaseMCA(Device):
             all detector elements. If individual counts for each element are
             desired, they can be obtained using :func:`get_roi_counts`.            
         """
-        self._acquire_data(duration)
+        self.acquire_data(duration)
         # use only the last column to integrate region of interest 
         # should contain corrected sum for multichannel devices
         values = self.get_roi_counts()
-        return values[0]
+        dark = self.get_dark_counts()
+        return sum(values) - sum(dark)
 
     def acquire(self, duration=1.0):
         """
@@ -207,8 +220,8 @@ class BaseMCA(Device):
             element. Where M is the number of elements and N is the number of
             channels in the detector.            
         """
-        self._acquire_data(duration)
-        return self.data if self.dark is None else self.data - self.dark
+        self.acquire_data(duration)
+        return self.spectrum
 
     def stop(self):
         """
@@ -223,6 +236,23 @@ class BaseMCA(Device):
         self._wait_start()
         self._wait_stop()
 
+    def acquire_data(self, t=1.0):
+        self._count_time.put(t)
+        self._start()
+        self._wait_stop()
+
+        for i, spec in enumerate(self.spectra):
+            self.data[:, i] = spec.get()
+
+        corrected = (self.data - self.dark)
+        self.spectrum[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
+        self.spectrum[:, 1] = corrected.sum(1)
+        self.spectrum[:, 2:] = self.data
+
+    def acquire_dark(self, t=1.0):
+        self.acquire_data(t)
+        return self.data
+
     def _start(self, wait=True):
         self.START.put(1)
         if wait:
@@ -235,15 +265,6 @@ class BaseMCA(Device):
         pct = 100.0 * val / req_time
         self.set_state(deadtime=pct)
 
-    def _acquire_data(self, t=1.0):
-        self.data = numpy.zeros((self.channels, len(self.spectra) + 2))  # one more for x-axis, one more for sum
-        self._count_time.put(t)
-        self._start()
-        self._wait_stop()
-        self.data[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
-        for i, spectrum in enumerate(self.spectra):
-            self.data[:, i + 2] = spectrum.get()
-            self.data[:, 1] += spectrum.get()
 
     def _wait_start(self, poll=0.05, timeout=2):
         logger.debug('Waiting for MCA to start acquiring.')
@@ -342,12 +363,14 @@ class XFlashMCA(BaseMCA):
             self.TMODE.put(2)
         else:
             self.TMODE.put(0)
+        self.monitor_id = None
 
     def _schedule_warmup(self, obj, val):
         if val == 0:
-            if self._monitor_id is not None:
-                GObject.source_remove(self._monitor_id)
-            self._monitor_id = GObject.timeout_add(300000, self._set_temp, False)
+            if self.monitor_id:
+                GLib.source_remove(self.monitor_id)
+                self.monitor_id = None
+            self.monitor_id = GLib.timeout_add(300000, self._set_temp, False)
 
     def get_count_rates(self):
         # get IRC and OCR tuple
@@ -419,7 +442,7 @@ class SimMCA(BaseMCA):
         self.half_life = 60 * 30  # 1 hr
         self.start_time = time.time()
 
-        super().__init__(name, elements=4, channels=channels)
+        super().__init__(name, elements=1, channels=channels)
         self.name = name
         self.nozzle = nozzle
         self.scales = [1 - random.random() * 0.3 for i in range(self.elements)]
@@ -437,9 +460,10 @@ class SimMCA(BaseMCA):
         offset = random.random()/2
         x = numpy.linspace(edge - 0.5, edge + 1, 1000)
         y = (
-                    fitting.step_response(x, [0.5 + offset, fwhm, edge, 0])
-                    + fitting.gauss(x, [0.5 + 0.5-offset, fwhm, edge + fwhm * 0.5, 0])
-            ) + numpy.random.uniform(0.01, 0.02, len(x))
+            fitting.step_response(x, [0.5 + offset, fwhm, edge, 0]) +
+            fitting.gauss(x, [0.5 + 0.5-offset, fwhm, edge + fwhm * 0.5, 0]) +
+            numpy.random.uniform(0.01, 0.02, len(x))
+        )
         self.count_source = interpolate.interp1d(x, 5000 * y, kind='cubic', assume_sorted=True)
 
     def configure(self, **kwargs):
@@ -453,38 +477,34 @@ class SimMCA(BaseMCA):
         return int((y - self.offset) / self.slope)
 
     def count(self, duration):
-        self.aquiring = True
-        time.sleep(duration)
-        self.acquiring = False
+        self.acquire_data(duration)
+
         val = duration * self.count_source(self.energy.get_position())
         self.roi_counts = [self.scales[i] * val for i in range(self.elements)]
+
         self.set_state(deadtime=random.random() * 51.0)
         return sum(self.roi_counts)
 
-    def acquire(self, duration=1.0):
+    def acquire_data(self, t=1.0):
         self.aquiring = True
-        time.sleep(duration)
+        time.sleep(t)
         self.acquiring = False
         fname = SIM_XRF_TEMPLATE.format(random.choice(SIM_XRF_FILES))
         logger.debug('Simulated Spectrum: {}'.format(fname))
         self._raw_data = numpy.loadtxt(fname, comments="#")
-        self._x_axis = self._raw_data[:, 0]
         self.set_state(deadtime=random.random() * 51.0)
 
-        y_sum = self._raw_data[:, 1]
-        y_channels = [self._raw_data[:, 1]]
-        for i in range(self.elements - 1):
-            y_channel = (1-0.25*random.random())*self._raw_data[:, 1]
-            y_sum = y_sum + y_channel
-            y_channels.append(y_channel)
-        return numpy.array(list(zip(self._x_axis , y_sum, *y_channels)))
+        for i in range(self.elements):
+            self.data[:, i] = (1-0.25*random.random())*self._raw_data[:, 1]
 
-    def get_roi_counts(self):
-        return tuple(self.roi_counts)
+        corrected = (self.data - self.dark)
+        self.spectrum[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
+        self.spectrum[:, 1] = corrected.sum(1)
+        self.spectrum[:, 2:] = self.data
 
-    def get_count_rates(self):
-        self.set_state(deadtime=random.random() * 51.0)
-        return [(-1, -1)]
+    def acquire_dark(self, t=1.0):
+        self.dark[:] = 0
+        return self.dark
 
     def stop(self):
         pass

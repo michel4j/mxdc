@@ -1,6 +1,7 @@
 import atexit
 import threading
 import reprlib
+import copy
 
 from gi.repository import GObject, GLib
 from gi.types import GObjectMeta
@@ -9,7 +10,7 @@ from zope.interface.adapter import AdapterRegistry
 from zope.interface.interface import adapter_hooks
 
 from mxdc.com import ca
-from mxdc.utils.log import get_module_logger
+from mxdc.utils.log import get_module_logger, log_call
 from mxdc.utils.misc import check_call
 
 logger = get_module_logger(__name__)
@@ -198,16 +199,17 @@ class Object(GObject.GObject, metaclass=ObjectType):
         except TypeError as e:
             logger.error("'{}': Invalid parameters for signal '{}': {}".format(self, signal, args))
 
-    # # FOR diagnosis
+    # # # FOR diagnosis
     # def connect(self, signal:str, func, *args, **kwargs):
     #     return super().connect(signal, check_call(func), *args, **kwargs)
 
-    def emit(self, signal: str, *args):
+    def emit(self, signal: str, *args, force=False):
         """
         Emit the signal. Signal emissions are thread safe and will be handled in the main thread.
 
         :param signal: Signal name
         :param args: list of signal parameters
+        :param force: if True emit the signal even if the value is the same as before
 
         """
 
@@ -222,8 +224,11 @@ class Object(GObject.GObject, metaclass=ObjectType):
         else:
             value = args
 
+        if isinstance(value, (dict, list)):
+            force = True
+
         # Only emit signal if non-blank existing value is not the same as new value
-        if (current != value) or (current is None) or signal not in self.__state__:
+        if force or ((current != value) or (current is None) or signal not in self.__state__):
             self.__state__[signal] = value
             if GLib.main_context_get_thread_default():
                 self._emission(signal, *args)
@@ -259,9 +264,9 @@ class Object(GObject.GObject, metaclass=ObjectType):
 
         for signal, value in kwargs.items():
             if isinstance(value, (tuple, list)):
-                self.emit(signal, *value)
+                self.emit(signal, *value, force=True)
             else:
-                self.emit(signal, value)
+                self.emit(signal, value, force=True)
 
 
 class Device(Object):
