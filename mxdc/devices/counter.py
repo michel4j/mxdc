@@ -101,7 +101,7 @@ class Counter(BaseCounter):
             time.sleep(interval)
             time_left -= interval
         total = (duration / interval) * (sum(values, 0.0) / len(values)) - self.zero
-        logger.debug('(%s) Returning integrated values for %0.2f sec.' % (self.name, len(values), duration))
+        logger.debug('(%s) Returning integrated values for %0.2f sec.' % (self.name, duration))
         self.set_state(count=total)
         return total
 

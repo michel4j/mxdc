@@ -122,18 +122,21 @@ class Centering(Engine):
 
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
-        self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
-        scores = []
 
         # Find tip of loop at low and high zoom
         max_trials = low_trials + med_trials
         trial_count = 0
-
+        scores = []
+        failed = False
         for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
+            if failed:
+                break
+
             self.beamline.sample_video.zoom(zoom_level, wait=True)
-            for i in range(trials):
+
+            for i in range(3):
                 trial_count += 1
-                found = self.device.wait(1)
+                found = self.device.wait(2)
                 if found:
                     x, y, reliability, label = self.device.fetch()
                     scores.append(reliability)
@@ -141,6 +144,9 @@ class Centering(Engine):
                     xmm, ymm = self.screen_to_mm(x, y)
                     self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                     logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+                else:
+                    failed = True
+                    break
 
                 # final 90 rotation not needed
                 if trial_count < max_trials:
@@ -152,7 +158,6 @@ class Centering(Engine):
     def center_loop(self, low_trials=3, med_trials=2):
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
-        self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
 
         scores = []
         # Find tip of loop at low and high zoom
