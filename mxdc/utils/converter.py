@@ -78,7 +78,7 @@ def energy_to_bragg(energy, unit_cell=5.4310209):
 def dec_to_bin(x):
     """Convert from decimal number to a binary string representation."""
 
-    return x and (dec_to_bin(x / 2) + str(x % 2)) or '0'
+    return bin(x)[2:].zfill(4)
 
 
 def dist_to_resol(distance, detector_size, energy, two_theta=0):

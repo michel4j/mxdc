@@ -458,11 +458,10 @@ class Attenuator(BasePositioner):
 
         # calculate required aluminum thickness
         thickness = numpy.log(1.0 - frac) * (e * 1000 + 1e-6) ** 2.9554 / -4.4189e12
-        thk = int(round(thickness * 10.0))
-        if thk > 15: thk = 15
+        thk = min(15, int(round(thickness * 10.0)))
 
         # bitmap of thickness is fillter pattern
-        bitmap = '%04d' % int(converter.dec_to_bin(thk))
+        bitmap = converter.dec_to_bin(thk)
         self._set_bits(bitmap)
         logger.info('Attenuation of %f %s requested' % (target, self.units))
         logger.debug('Filters [8421] set to [%s] (0=off,1=on)' % bitmap)
