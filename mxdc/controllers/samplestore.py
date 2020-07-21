@@ -114,6 +114,7 @@ class SampleStore(Object):
         self.group_model = Gio.ListStore(item_type=GroupItem)
         self.group_registry = {}
         self.prefetch_pending = False
+        self.initializing = True
 
         # initialize properties
         self.props.next_sample = {}
@@ -141,9 +142,9 @@ class SampleStore(Object):
         self.widget.samples_selectnone_btn.connect('clicked', lambda x: self.select_all(False))
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
-        self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
-        self.beamline.automounter.connect('notify::next-port', self.on_prefetched)
-        self.beamline.automounter.connect('notify::ports', self.update_states)
+        self.beamline.automounter.connect('sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('next-port', self.on_prefetched)
+        self.beamline.automounter.connect('ports', self.update_states)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
@@ -258,7 +259,8 @@ class SampleStore(Object):
     @async_call
     def schedule_prefetch(self):
         port = self.next_sample.get('port')
-        if port and not self.prefetch_pending:
+        cur = self.current_sample.get('port')
+        if port and not self.prefetch_pending and port != cur:
             self.prefetch_pending = True
             ready = self.beamline.automounter.wait()
             self.beamline.automounter.prefetch(port)
@@ -296,8 +298,7 @@ class SampleStore(Object):
         if port not in ['...', '<manual>', None] and self.beamline.automounter.is_mounted():
             self.schedule_prefetch()
 
-    def on_prefetched(self, *args, **kwargs):
-        port = self.beamline.automounter.next_port
+    def on_prefetched(self, obj, port):
         name_style = self.widget.samples_next_sample.get_style_context()
         port_style = self.widget.samples_next_port.get_style_context()
         if port:
@@ -453,11 +454,11 @@ class SampleStore(Object):
                 cache.remove(row[self.Data.DATA]['id'])
             self.props.cache = cache
 
-    def update_states(self, *args, **kwargs):
+    def update_states(self, obj, ports):
         for row in self.model:
             port = row[self.Data.PORT]
             if port:
-                state = self.beamline.automounter.ports.get(port, Port.UNKNOWN)
+                state = ports.get(port, Port.UNKNOWN)
                 state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
                 row[self.Data.STATE] = state
 
@@ -477,8 +478,7 @@ class SampleStore(Object):
                 'port': port
             }
 
-    def on_sample_mounted(self, obj, param):
-        sample = self.beamline.automounter.sample
+    def on_sample_mounted(self, obj, sample):
         if sample:
             port = sample.get('port', '')
             row = self.find_by_port(port)
@@ -504,7 +504,10 @@ class SampleStore(Object):
             self.props.current_sample = {}
 
         self.widget.spinner.stop()
-        self.roll_next_sample()
+
+        if not self.initializing:
+            self.roll_next_sample()
+        self.initializing = False
 
     def on_key_press(self, obj, event):
         return self.widget.samples_search_entry.handle_event(event)

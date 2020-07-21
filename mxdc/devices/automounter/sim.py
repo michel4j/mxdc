@@ -1,7 +1,7 @@
 import copy
 import re
 import time
-from gi.repository import GObject
+from gi.repository import GLib
 from mxdc.devices.automounter import AutoMounter, State, logger
 from mxdc.utils.automounter import Port
 from .sam import SAM_DEWAR
@@ -48,13 +48,11 @@ class SimSAM(AutoMounter):
     def __init__(self):
         super(SimSAM, self).__init__()
         self.name = 'SIM Automounter'
-        GObject.timeout_add(2000, self._initialize)
+        GLib.timeout_add(2000, self._initialize)
 
     def _initialize(self):
         self.on_ports_changed(None, self.TEST_STATE3)
-        self.props.sample = {'port': 'MA14'}
-        self.props.status = State.IDLE
-        self.set_state(active=True, health=(0, '', 'Ready'))
+        self.set_state(active=True, status=State.IDLE, sample={'port': 'MA14'}, health=(0, '', 'Ready'))
 
     def is_valid(self, port):
         if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
@@ -63,7 +61,8 @@ class SimSAM(AutoMounter):
 
     def is_mountable(self, port):
         if self.is_valid(port):
-            return self.ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
+            ports = self.get_state('ports')
+            return ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
         return False
 
     def mount(self, port, wait=False):
@@ -86,7 +85,7 @@ class SimSAM(AutoMounter):
                 command = self._sim_mount_done
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
-            GObject.timeout_add(8000, command, port)
+            GLib.timeout_add(8000, command, port)
             if wait:
                 time.sleep(9)
                 return True
@@ -114,7 +113,7 @@ class SimSAM(AutoMounter):
                 self._sim_dismount_done()
                 return True
             else:
-                GObject.timeout_add(8000, self._sim_dismount_done)
+                GLib.timeout_add(8000, self._sim_dismount_done)
                 return True
 
     def abort(self):
@@ -154,51 +153,50 @@ class SimSAM(AutoMounter):
                 states = [self.StateCodes.get(c, Port.UNKNOWN) for c in port_states_str]
                 port_states.update({port: state for port, state in zip(ports, states)})
 
-        self.props.layout = {loc: SAM_DEWAR[loc] for loc in containers}
-        self.props.containers = containers
-        self.props.ports = port_states
+        self.set_state(layout = {loc: SAM_DEWAR[loc] for loc in containers})
+        self.set_state(containers = containers)
+        self.set_state(ports = port_states)
 
     def _sim_mount_start(self, message):
-        self.configure(status=State.BUSY)
-        self.set_state(message=message)
+        self.set_state(status=State.BUSY, message=message)
 
     def _sim_mount_done(self, port, dry=True):
-        ports = copy.deepcopy(self.ports)
+        ports = self.get_state("ports")
         ports[port] = Port.MOUNTED
-        self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
+        self.set_state(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample mounted")
-        #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
 
     def _sim_dismount_done(self, dry=True):
-        port = self.sample['port']
-        ports = self.ports
+        sample = self.get_state('sample')
+        port = sample['port']
+        ports = self.get_state("ports")
         ports[port] = Port.GOOD
-        self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
+        self.set_state(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample dismounted")
-        #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
 
     def _sim_mountnext_done(self, port, dry=True):
-        mounted_port = self.sample['port']
-        ports = copy.copy(self.props.ports)
+        sample = self.get_state('sample')
+        mounted_port = sample['port']
+        ports = self.get_state("ports")
         ports[mounted_port] = Port.GOOD
-        self.configure(sample={}, ports=ports)
-        self.set_state(message="Sample dismounted")
+        self.set_state(message="Sample dismounted", sample={}, ports=ports)
         ports[port] = Port.MOUNTED
-        self.configure(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
+        self.set_state(sample={'port': port, 'barcode': ''}, ports=ports, status=State.IDLE)
         self.set_state(busy=False, message="Sample mounted")
-        #self.configure(status=State.FAILURE, failure=('testing', 'Testing Failure recovery'))
 
     def recover(self, context):
         failure_type, message = context
+        sample = self.get_state('sample')
+        failure = self.get_state('failure')
         if failure_type == 'testing':
             logger.warning('Recovering from: {}'.format(failure_type))
-            port = self.props.sample['port']
+            port = sample['port']
             self.dismount()
-            ports = self.ports
+            ports = self.get_state('ports')
             ports[port] = Port.BAD
-            if self.props.failure and self.props.failure[0] == failure_type:
-                self.configure(status=State.IDLE, ports=ports, failure=None)
+            if failure and failure[0] == failure_type:
+                self.set_state(status=State.IDLE, ports=ports, failure=None)
             else:
-                self.configure(status=State.FAILURE)
+                self.set_state(status=State.FAILURE)
         else:
             logger.warning('Recovering from: {} not available.'.format(failure_type))

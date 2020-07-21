@@ -34,12 +34,12 @@ class DewarController(Object):
         self.props.ports = {}
         self.props.containers = []
 
-        self.beamline.automounter.connect('notify::status', self.on_state_changed)
-        self.beamline.automounter.connect('notify::ports', self.on_layout_changed)
-        self.beamline.automounter.connect('notify::layout', self.on_layout_changed)
-        self.beamline.automounter.connect('notify::containers', self.on_layout_changed)
-        self.beamline.automounter.connect('notify::sample', self.on_layout_changed)
-        self.beamline.automounter.connect('notify::failure', self.on_failure_changed)
+        self.beamline.automounter.connect('status', self.on_state_changed)
+        self.beamline.automounter.connect('ports', self.on_layout_changed)
+        self.beamline.automounter.connect('layout', self.on_layout_changed)
+        self.beamline.automounter.connect('containers', self.on_layout_changed)
+        self.beamline.automounter.connect('sample', self.on_layout_changed)
+        self.beamline.automounter.connect('failure', self.on_failure_changed)
 
         self.store.connect('notify::ports', self.on_layout_changed)
         self.store.connect('notify::containers', self.on_layout_changed)
@@ -59,7 +59,7 @@ class DewarController(Object):
         self.widget.sample_dewar_area.connect('button-press-event', self.on_press_event)
 
     def get_port_state(self, port):
-        robot_ports = self.beamline.automounter.ports
+        robot_ports = self.beamline.automounter.get_state('ports')
         user_ports = self.store.ports
         state = robot_ports.get(port, Port.UNKNOWN)
         if port in user_ports:
@@ -67,10 +67,10 @@ class DewarController(Object):
                 state = Port.GOOD
         return state
 
-    def on_layout_changed(self, *args, **kwargs):
-        self.props.layout = self.beamline.automounter.layout
-        robot_ports = self.beamline.automounter.ports
-        robot_containers = self.beamline.automounter.containers
+    def on_layout_changed(self, obj, *args):
+        self.props.layout = self.beamline.automounter.get_state('layout')
+        robot_ports = self.beamline.automounter.get_state('ports')
+        robot_containers = self.beamline.automounter.get_state('containers')
         user_ports = self.store.ports
         user_containers = self.store.containers
         self.props.ports = {
@@ -145,14 +145,15 @@ class DewarController(Object):
 
     def on_state_changed(self, obj, *args):
         health = self.beamline.automounter.get_state('health')
-        status = self.beamline.automounter.status
+        status = self.beamline.automounter.get_state('status')
 
         if status.name in ['IDLE', ]:
             self.widget.automounter_command_box.set_sensitive(True)
 
         self.widget.automounter_status_fbk.set_text(status.name)
 
-        if status.name == 'IDLE' and self.beamline.automounter.failure and self.failure_dialog:
+        failure = self.beamline.automounter.get_state('failure')
+        if status.name == 'IDLE' and failure and self.failure_dialog:
             self.failure_dialog.destroy()
             self.failure_dialog = None
 
@@ -167,8 +168,8 @@ class DewarController(Object):
                        "when it reaches the IDLE state")
             dialogs.info('Automounter Recovery', message, modal=False)
 
-    def on_failure_changed(self, *args, **kwargs):
-        failure_context = self.beamline.automounter.failure
+    def on_failure_changed(self, obj, failure):
+        failure_context = failure
         if failure_context:
             failure_type, message = failure_context
             self.failure_dialog = dialogs.make_dialog(

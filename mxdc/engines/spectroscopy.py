@@ -52,7 +52,7 @@ class XRFScan(BasicScan):
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
                 self.beamline.manager.collect(wait=True)
-                self.beamline.mca.configure(cooling=True, dark=True, energy=None, nozzle=True)
+                self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
                 self.beamline.attenuator.set(self.config['attenuation'])
                 time.sleep(2)
                 self.beamline.energy.wait()

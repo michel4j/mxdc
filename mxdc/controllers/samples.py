@@ -20,10 +20,10 @@ class SamplesController(Object):
         if hasattr(self.beamline, 'humidifier'):
             self.humidity_controller = humidity.HumidityController(self.widget)
         self.raster_tool = rastering.RasterController(self.widget.raster_list, self.widget)
-        self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('sample', self.on_sample_mounted)
         self.setup()
 
-    def on_sample_mounted(self, *args, **kwargs):
+    def on_sample_mounted(self, obj, sample):
         if not self.automounter_ready:
             self.microscope.clear_objects()
             self.automounter_ready = True
@@ -53,7 +53,7 @@ class HutchSamplesController(Object):
         self.cryo_tool = cryo.CryoController(self.widget)
         self.sample_dewar = automounter.DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
-        self.beamline.automounter.connect('notify::sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('sample', self.on_sample_mounted)
 
         self.setup()
 
@@ -96,11 +96,11 @@ class HutchSamplesController(Object):
     def find_by_id(self, port):
         return None
 
-    def on_sample_mounted(self, *args, **kwargs):
+    def on_sample_mounted(self, obj, sample):
         self.microscope.clear_objects()
-        if self.beamline.automounter.sample and self.beamline.is_admin():
+        if sample and self.beamline.is_admin():
             self.widget.samples_cur_sample.set_text('...')
-            port = self.beamline.automounter.sample.get('port')
+            port = sample.get('port')
             if port:
                 self.widget.samples_cur_port.set_text(port)
                 self.widget.samples_dismount_btn.set_sensitive(True)
