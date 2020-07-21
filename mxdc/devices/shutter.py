@@ -168,8 +168,9 @@ class ShutterGroup(BaseShutter):
     :param shutters: one or more shutters
     """
 
-    def __init__(self, *shutters):
+    def __init__(self, *shutters, close_last=False):
         super().__init__()
+        self.close_last = close_last
         self._dev_list = list(shutters)
         self.add_components(*self._dev_list)
         self.name = 'Beamline Shutters'
@@ -192,8 +193,11 @@ class ShutterGroup(BaseShutter):
     def close(self, wait=False):
         newlist = self._dev_list[:]
         newlist.reverse()
-        for i, dev in enumerate(newlist):
-            dev.close(wait=True)
+        if not self.close_last:
+            for i, dev in enumerate(newlist):
+                dev.close(wait=True)
+        else:
+            newlist[0].close(wait=True)
 
 
 class SimShutter(BaseShutter):
