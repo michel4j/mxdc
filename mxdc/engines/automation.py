@@ -77,7 +77,8 @@ class Automator(Engine):
                 elif task['type'] == self.Task.MOUNT:
                     success = auto.auto_mount_manual(self.beamline, sample['port'])
                     if success and self.beamline.automounter.is_mounted(sample['port']):
-                        barcode = self.beamline.automounter.sample.get('barcode')
+                        mounted = self.beamline.automounter.get_state("sample")
+                        barcode = mounted.get('barcode')
                         if sample['barcode'] and barcode and barcode != sample['barcode']:
                             logger.error('Barcode mismatch: {} vs {}'.format(barcode, sample['barcode']))
                     else:

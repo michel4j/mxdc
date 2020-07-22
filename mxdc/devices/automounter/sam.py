@@ -160,7 +160,7 @@ class UncleSAM(AutoMounter):
             else:
                 return True
 
-    def prefetch(self, port, wait=True):
+    def prefetch(self, port, wait=False):
         if self.prefetched_fbk.get():
             return False
 

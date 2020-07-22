@@ -170,12 +170,19 @@ class DataForm(gui.FormManager):
                 self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, energy
             )
             max_res = converter.dist_to_resol(
-                self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, energy
+                self.beamline.config['distance_limits'][1], self.beamline.detector.mm_size, energy
             )
-            self.set_value('resolution', min(max(resolution, min_res), max_res))
             self.fields['resolution'].set_converter(
                 Validator.Float(min_res, max_res, default=2.0)
             )
+            resolution = converter.dist_to_resol(self.get_value('distance'), self.beamline.detector.mm_size, energy)
+            self.set_value('resolution', resolution)
+
+        if name == 'resolution':
+            resolution = self.get_value('resolution')
+            energy = self.get_value('energy')
+            distance = converter.resol_to_dist(resolution, self.beamline.detector.mm_size, energy)
+            self.set_value('distance', distance)
 
         if name == 'strategy':
             strategy = self.get_value('strategy')
@@ -260,6 +267,17 @@ class DataEditor(gui.BuilderMixin):
     def configure(self, info):
         info['frames'] = datatools.count_frames(info)
         info['distance'] = converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy'])
+
+        min_res = converter.dist_to_resol(
+            self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, info['energy']
+        )
+        max_res = converter.dist_to_resol(
+            self.beamline.config['distance_limits'][1], self.beamline.detector.mm_size, info['energy']
+        )
+        self.form.fields['resolution'].set_converter(
+            Validator.Float(min_res, max_res, default=2.0)
+        )
+
         defaults = self.get_default(info['strategy'])
         defaults.update(info)
         self.form.set_values(info)

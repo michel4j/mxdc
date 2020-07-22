@@ -113,6 +113,6 @@ def resol_to_dist(resolution, detector_size, energy, two_theta=0):
     if resolution == 0.0:
         return 0.0
 
-    theta = math.asin(0.5 * energy_to_wavelength(energy) / resolution)
+    theta = math.asin(max(-1, min(0.5 * energy_to_wavelength(energy) / resolution, 1)))
     theta = max(0, (theta - two_theta))
     return 0.5 * detector_size / math.tan(2 * theta)

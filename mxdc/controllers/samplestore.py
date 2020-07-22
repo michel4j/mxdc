@@ -138,8 +138,8 @@ class SampleStore(Object):
 
         self.setup()
         self.model.connect('row-changed', self.on_sample_row_changed)
-        self.widget.samples_selectall_btn.connect('clicked', lambda x: self.select_all(True))
-        self.widget.samples_selectnone_btn.connect('clicked', lambda x: self.select_all(False))
+        self.widget.samples_selectall_btn.connect('clicked', self.on_select_all)
+        self.widget.samples_selectnone_btn.connect('clicked', self.on_unselect_all)
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
         self.beamline.automounter.connect('sample', self.on_sample_mounted)
@@ -223,7 +223,8 @@ class SampleStore(Object):
             item['port'] = ''
             state = Port.UNKNOWN
         else:
-            state = self.beamline.automounter.ports.get(item['port'], Port.UNKNOWN)
+            ports = self.beamline.automounter.get_state('ports')
+            state = ports.get(item['port'], Port.UNKNOWN)
             state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
         self.model.append([
             item['id'] in self.cache,
@@ -262,8 +263,7 @@ class SampleStore(Object):
         cur = self.current_sample.get('port')
         if port and not self.prefetch_pending and port != cur:
             self.prefetch_pending = True
-            ready = self.beamline.automounter.wait()
-            self.beamline.automounter.prefetch(port)
+            self.beamline.automounter.prefetch(port, wait=True)
             self.prefetch_pending = False
 
     def on_group_btn_toggled(self, btn, item):
@@ -407,22 +407,12 @@ class SampleStore(Object):
         ]
 
     def select_all(self, option=True):
-        model, paths = self.selection.get_selected_rows()
         # toggle all selected rows otherwise toggle the whole list
         changed = set()
-        if len(paths) > 1:
-            for path in paths:
-                path = self.filter_model.convert_path_to_child_path(path)
-                row = self.search_model[path]
-                if row[self.Data.STATE] not in [Port.EMPTY, Port.BAD]:
-                    row[self.Data.SELECTED] = option
-                    changed.add(row[self.Data.DATA]['id'])
-        else:
-            for item in self.filter_model:
-                row = self.search_model[self.filter_model.convert_iter_to_child_iter(item.iter)]
-                if row[self.Data.STATE] not in [Port.EMPTY, Port.BAD]:
-                    row[self.Data.SELECTED] = option
-                    changed.add(row[self.Data.DATA]['id'])
+        for row in self.model:
+            if row[self.Data.SELECTED] != option:
+                row[self.Data.SELECTED] = option
+                changed.add(row[self.Data.DATA]['id'])
 
         cache = self.props.cache
         if changed:
@@ -477,6 +467,18 @@ class SampleStore(Object):
             self.props.next_sample = {
                 'port': port
             }
+
+    def on_select_all(self, obj, *args):
+        try:
+            self.select_all(True)
+        except ValueError:
+            pass
+
+    def on_unselect_all(self, obj, *args):
+        try:
+            self.select_all(False)
+        except ValueError:
+            pass
 
     def on_sample_mounted(self, obj, sample):
         if sample:
