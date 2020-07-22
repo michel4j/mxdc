@@ -51,7 +51,7 @@ class DataCollector(Engine):
         self.progress_link = self.beamline.detector.connect('progress', self.on_progress)
         self.unwatch_frames()
 
-        self.beamline.synchrotron.connect('ready', self.on_beam_change)
+        #self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
 
     def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
@@ -244,7 +244,7 @@ class DataCollector(Engine):
                 wait=True,
                 start_pos=wedge.get('p0'),
                 end_pos=wedge.get('p1'),
-                timeout=wedge['exposure'] * wedge['num_frames'] * 2,
+                timeout=wedge['exposure'] * wedge['num_frames'] * 3,
             )
             self.beamline.detector.save()
             is_first_frame = False

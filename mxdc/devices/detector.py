@@ -680,14 +680,13 @@ class PilatusDetector(BaseDetector):
 
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
-        self.wait_while()
-        self.acquire_cmd.put(1)
+        self.acquire_cmd.put(1, wait=True)
         self.wait_until(States.ARMED)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
-        self.acquire_cmd.put(0)
-        self.wait_while()
+        self.acquire_cmd.put(0, wait=True)
+        self.wait_until(States.IDLE)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
@@ -697,7 +696,8 @@ class PilatusDetector(BaseDetector):
         return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{extension}'
 
     def save(self, wait=False):
-        return
+        logger.debug('({}) Acquisition completed ...'.format(self.name))
+        self.wait_until(States.IDLE)
 
     def on_new_frame(self, obj, frame_number):
         template = self.file_format.get()
@@ -715,15 +715,26 @@ class PilatusDetector(BaseDetector):
         self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def on_state_change(self, obj, value):
+        detector_state = self.state_value.get()
+        armed = self.armed_status.get()
+
         state = {
             0: States.IDLE,
             1: States.ACQUIRING,
-            6: States.ERROR,
+            2: States.ACQUIRING,
+            3: States.ACQUIRING,
+            4: States.ACQUIRING,
+            5: States.ACQUIRING,
+            6: States.IDLE,
+            7: States.ACQUIRING,
             8: States.INITIALIZING,
-        }.get(self.state_value.get(), States.IDLE)
-        armed = self.armed_status.get()
+            9: States.ERROR,
+            10: States.IDLE,
+        }.get(detector_state, States.IDLE)
+
         if armed == 1:
             state = States.ARMED
+        logger.info(f'Detector state: {state}')
         self.set_state(state=state)
 
     def configure(self, **kwargs):

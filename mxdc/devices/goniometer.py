@@ -183,6 +183,7 @@ class MD2Gonio(BaseGoniometer):
     :keyword triggering: enable detector triggering capability
     """
     NULL_VALUE = '__EMPTY__'
+    BUSY_STATES = [5,6,7,8]
 
     def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True):
         super().__init__('MD2 Diffractometer')
@@ -290,6 +291,7 @@ class MD2Gonio(BaseGoniometer):
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
         phase = self.phase_fbk.get()
+        logger.debug(f'MD2 State: state={state}, phase={phase}')
         if state in [5, 6, 7, 8]:
             self.set_state(health=(0, 'faults', ''), busy=True)
         elif state in [11, 12, 13, 14]:
