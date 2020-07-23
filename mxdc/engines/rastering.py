@@ -63,6 +63,9 @@ class RasterCollector(Engine):
         # update microscope display
         self.config['params']['grid'] = grid_xyz
 
+    def get_grid(self):
+        return self.config['params'].get('grid')
+
     def prepare(self, params):
         self.beamline.detector_cover.open(wait=True)
         self.total_frames = self.config['params']['frames'] * self.config['params']['lines']

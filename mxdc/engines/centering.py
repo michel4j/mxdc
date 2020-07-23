@@ -8,7 +8,7 @@ import numpy
 from gi.repository import GLib
 
 from mxdc import Registry, Engine
-from mxdc.utils import imgproc, datatools, misc
+from mxdc.utils import imgproc, datatools, misc, converter
 from mxdc.utils.log import get_module_logger
 
 from mxdc.devices.interfaces import ICenter
@@ -17,6 +17,9 @@ from mxdc.devices.interfaces import ICenter
 logger = get_module_logger(__name__)
 
 RASTER_DELTA = 0.5
+RASTER_EXPOSURE = 0.5
+RASTER_RESOLUTION = 2
+
 SAMPLE_SHIFT_STEP = 0.2  # mm
 CENTERING_ZOOM = 2
 CENTERING_BLIGHT = 65.0
@@ -220,48 +223,53 @@ class Centering(Engine):
             return
 
         scores.append(self.score)
+        aperture = self.beamline.aperture.get()
+        resolution = RASTER_RESOLUTION
+        energy = self.beamline.energy.get_position()
 
         for step in ['edge', 'face']:
             logger.info('Performing raster scan on {}'.format(step))
-            raster_params = {}
             self.beamline.goniometer.wait(start=False)
             if step == 'face':
                 self.beamline.goniometer.omega.move_by(-90, wait=True)
 
+            params = {
+                'name': datetime.now().strftime('%y%m%d-%H%M'),
+                'uuid': str(uuid.uuid4()),
+                'activity': 'raster',
+                'energy': energy,
+                'delta': RASTER_DELTA,
+                'exposure': RASTER_EXPOSURE,
+                'attenuation': self.beamline.attenuator.get(),
+                'aperture': aperture,
+                'distance': converter.resol_to_dist(
+                    resolution, self.beamline.detector.mm_size, energy
+                ),
+                'origin': self.beamline.goniometer.stage.get_xyz(),
+                'resolution': resolution,
+            }
+
             angle, info = self.get_features()
             if step == 'edge':
-                # close polygon
-                if info['points'] and (info['points'][0] != info['points'][-1]):
-                    info['points'].append(info['points'][0])
-                points = info['points']
+                params.update({
+                    'angle': angle,
+                    'width': min(aperture*5, 200.0),
+                    'height': min(aperture*5, 200.0),
+                    'frames': 5,
+                    'lines': 5,
+                })
             else:
-                # no horizontal centering for face, use camera center
-                points = [
-                    (info['center-x'], info['loop-y'] - info['loop-size']),
-                    (info['center-x'], info['loop-y'] + info['loop-size']),
-                    (info['center-x'], info['loop-y'] - info['loop-size']),
-                ]
-            if not len(points):
-                logger.error('Unable to find loop edges')
-                return
+                params.update({
+                    'angle': angle,
+                    'width': min(aperture, 200.0),
+                    'height': min(aperture * 5, 200.0),
+                    'frames': 1,
+                    'lines': 5,
+                })
 
-
-
-            raster_params.update({
-                "exposure": 0.5,
-                "resolution": self.beamline.maxres.get_position(),
-                "energy": self.beamline.energy.get_position(),
-                "distance": self.beamline.distance.get_position(),
-                "attenuation": self.beamline.attenuator.get(),
-                "delta": RASTER_DELTA,
-                "uuid": str(uuid.uuid4()),
-                "name": datetime.now().strftime('%y%m%d-%H%M'),
-                "activity": "raster",
-            })
-            # 2D grid on face
+            params = datatools.update_for_sample(params, self.sample_store.get_current())
             logger.info('Finding best diffraction spot in grid')
-            raster_params = datatools.update_for_sample(raster_params, self.sample_store.get_current())
-            self.collector.configure(raster_params)
+            self.collector.configure(params)
             self.collector.run()
 
             grid_scores = numpy.array([
@@ -270,8 +278,8 @@ class Centering(Engine):
 
             best = grid_scores[:, 1].argmax()
             index = int(grid_scores[best, 0])
-            #FIXME point = grid[index]
-            point = (0,0,0)
+            grid = self.collector.get_grid()
+            point = grid[index]
 
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
             scores.append(grid_scores[best, 1])
