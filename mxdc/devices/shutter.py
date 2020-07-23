@@ -48,12 +48,19 @@ class BaseShutter(Device):
         :param state: bool, True = 'open', False = 'close'
         :param timeout: timeout duration
         """
-        logger.debug('Waiting for {} to {}.'.format(self.name, {True: 'open', False: 'close'}[state]))
-        while self.get_state('changed') != state and timeout > 0:
+        duration = 0
+        action = {True: 'open', False: 'close'}[state]
+        logger.debug(f'Waiting for {self.name} to {action}.')
+        while self.get_state('changed') != state and duration < timeout:
             time.sleep(0.1)
-            timeout -= 0.1
-        if timeout <= 0:
-            logger.warning('Timed-out waiting for {}.'.format(self.name))
+            duration += 0.1
+        if duration >= timeout:
+            logger.warning(f'Timed-out waiting for {self.name} to {action}.')
+            return False
+        else:
+            action = {True: 'opened', False: 'closed'}[state]
+            logger.debug(f'{self.name} {action} after {duration:0.1f} sec.')
+            return True
 
 
 class EPICSShutter(BaseShutter):

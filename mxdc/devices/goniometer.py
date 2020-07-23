@@ -62,27 +62,42 @@ class BaseGoniometer(Device):
         :param timeout: maximum time in seconds to wait before failing.
         :return: (bool), False if wait timed-out
         """
-        timeout = timeout or self.default_timeout
+        timeout = self.default_timeout if timeout is None else timeout
         poll = 0.05
+        success = False
         self.stopped = False
-        if (start):
+        if start:
             time_left = timeout
             logger.debug('Waiting for goniometer to start moving')
             while not self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
                 if self.stopped: break
-            if time_left <= 0:
+
+            if self.stopped:
+                success = False
+            elif time_left <= 0:
                 logger.warn('Timed out waiting for goniometer to start moving')
-        if (stop):
+                success = False
+            else:
+                success = True
+
+        if stop:
             time_left = timeout
             logger.debug('Waiting for goniometer to stop')
             while self.is_busy() and time_left > 0:
                 time.sleep(poll)
                 time_left -= poll
                 if self.stopped: break
-            if time_left <= 0:
+            if self.stopped:
+                success = False
+            elif time_left <= 0:
                 logger.warn('Timed out waiting for goniometer to stop')
+                success = False
+            else:
+                success = True
+
+        return success
 
     def stop(self):
         """
@@ -183,7 +198,8 @@ class MD2Gonio(BaseGoniometer):
     :keyword triggering: enable detector triggering capability
     """
     NULL_VALUE = '__EMPTY__'
-    BUSY_STATES = [5,6,7,8]
+    BUSY_STATES = [5, 6, 7, 8]
+    ERROR_STATES = [11, 12, 13, 14]
 
     def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True):
         super().__init__('MD2 Diffractometer')
@@ -264,10 +280,10 @@ class MD2Gonio(BaseGoniometer):
             'range': self.add_pv(f"{root}:ScanRange"),
             'angle': self.add_pv(f"{root}:ScanStartAngle"),
 
-            #'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
-            #'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
-            #'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
-            #'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
+            # 'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
+            # 'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
+            # 'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
+            # 'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
         }
 
         # semi constant but need to be re-applied each scan
@@ -291,14 +307,12 @@ class MD2Gonio(BaseGoniometer):
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
         phase = self.phase_fbk.get()
+        busy = state in self.BUSY_STATES
+        error = state in self.ERROR_STATES
+        msg = self.log_fbk.get()
+        health = (2, 'faults', msg) if error else (0, 'faults', '')
         logger.debug(f'MD2 State: state={state}, phase={phase}')
-        if state in [5, 6, 7, 8]:
-            self.set_state(health=(0, 'faults', ''), busy=True)
-        elif state in [11, 12, 13, 14]:
-            msg = self.log_fbk.get()
-            self.set_state(health=(2, 'faults', msg), busy=False)
-        else:
-            self.set_state(busy=False, health=(0, 'faults', ''))
+        self.set_state(health=health, busy=busy)
 
         if phase == 0 and self.prev_state == 6 and state == 4:
             self.save_pos_cmd.put(self.NULL_VALUE)
@@ -320,11 +334,16 @@ class MD2Gonio(BaseGoniometer):
         if is_helical:
             kind = 'helical'
 
-        self.wait(stop=True, start=False, timeout=timeout)
+        success = self.wait(stop=True, start=False, timeout=10)
+
+        if not success:
+            logger.error('Goniometer is busy. Aborting ')
+            return
+
         self.set_state(message=f'"{kind}" Scanning ...')
 
         # configure device and start scan
-        self.extra_values['z_pos'] = (self.gon_z_fbk.get(),)*3
+        self.extra_values['z_pos'] = (self.gon_z_fbk.get(),) * 3
         if kind in ['simple', 'shutterless']:
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
@@ -335,14 +354,21 @@ class MD2Gonio(BaseGoniometer):
         elif kind == 'raster':
             misc.set_settings(self.raster_settings, **kwargs)
             params = [
-                kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,    # convert to mm
+                kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,  # convert to mm
                 kwargs['lines'], kwargs['frames'], 1
             ]
             self.raster_cmd.put(params)
 
-        self.wait(start=True, stop=wait, timeout=timeout)
+        timeout = timeout or 2 * kwargs['time']
+
+        success = self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
-            self.set_state(message=f'"{kind}" scan complete!')
+            if success:
+                msg = f'"{kind}" scan complete!'
+            else:
+                msg = f'"{kind}" scan failed!'
+            logger.info(msg)
+            self.set_state(message=msg)
 
     def stop(self):
         """
@@ -356,6 +382,7 @@ class SimGonio(BaseGoniometer):
     """
     Simulated Goniometer.
     """
+
     def __init__(self, kappa_enabled=False, trigger=None):
         super().__init__('SIM Diffractometer')
         if kappa_enabled:
@@ -386,7 +413,7 @@ class SimGonio(BaseGoniometer):
 
     def configure(self, **kwargs):
         self.settings = kwargs
-        self._frame_exposure = self.settings['time']/self.settings.get('frames', 1.)
+        self._frame_exposure = self.settings['time'] / self.settings.get('frames', 1.)
 
     @async_call
     def _scan_async(self):
@@ -408,7 +435,7 @@ class SimGonio(BaseGoniometer):
             self.trigger_positions = numpy.arange(
                 self.settings['angle'],
                 self.settings['angle'] + self.settings['range'],
-                self.settings['range']/self.settings.get('frames', 1)
+                self.settings['range'] / self.settings.get('frames', 1)
             )
             if self.supports(GonioFeatures.TRIGGERING):
                 GLib.idle_add(self.send_triggers)
@@ -424,7 +451,7 @@ class SimGonio(BaseGoniometer):
         logger.debug('starting triggers for {}'.format(self.trigger_positions))
         while self._scanning and self.trigger_index < len(self.trigger_positions):
             if self.omega.get_position() >= self.trigger_positions[self.trigger_index]:
-                self.trigger.on(self._frame_exposure*0.5)
+                self.trigger.on(self._frame_exposure * 0.5)
                 self.trigger_index += 1
             if self.trigger_index > len(self.trigger_positions):
                 break

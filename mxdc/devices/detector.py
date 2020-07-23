@@ -680,12 +680,12 @@ class PilatusDetector(BaseDetector):
 
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
-        self.acquire_cmd.put(1, wait=True)
+        self.acquire_cmd.put(1)
         self.wait_until(States.ARMED)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
-        self.acquire_cmd.put(0, wait=True)
+        self.acquire_cmd.put(0)
         self.wait_until(States.IDLE)
 
     def get_origin(self):

@@ -96,7 +96,6 @@ class DataCollector(Engine):
 
     def run(self):
         self.set_state(busy=True)
-        self.beamline.detector_cover.open(wait=True)
         self.total = sum([
             dataset.weight for dataset in self.config['datasets'].values()
         ])  # total raw time for all wedges
@@ -134,7 +133,6 @@ class DataCollector(Engine):
                 self.emit('done', None)
 
             self.beamline.attenuator.set(current_attenuation)  # restore attenuation
-            self.beamline.detector_cover.close()
 
         # Wait for Last image to be transferred
         time.sleep(GRACE_PERIOD)
@@ -189,7 +187,6 @@ class DataCollector(Engine):
                     angle=frame['start'],
                     num_frames=1,
                     wait=True,
-                    timeout=frame['exposure'] * 20
                 )
                 self.beamline.detector.save()
 
@@ -244,7 +241,6 @@ class DataCollector(Engine):
                 wait=True,
                 start_pos=wedge.get('p0'),
                 end_pos=wedge.get('p1'),
-                timeout=wedge['exposure'] * wedge['num_frames'] * 3,
             )
             self.beamline.detector.save()
             is_first_frame = False

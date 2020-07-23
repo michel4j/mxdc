@@ -484,12 +484,10 @@ def set_settings(settings, **kwargs):
                 if isinstance(value, (tuple, list)):
                     for p, v in zip(settings[key], value):
                         p.put(v, wait=True)
-                        logger.debug(f'Applying setting {p} = {v}')
             else:
                 settings[key].put(kwargs[key], wait=True)
                 p = settings[key]
                 v = kwargs[key]
-                logger.debug(f'Applying setting {p} = {v}')
             changed.append(key)
     return changed
 
