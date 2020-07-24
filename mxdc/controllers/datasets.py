@@ -719,6 +719,7 @@ class DatasetsController(Object):
             self.widget.datasets_clean_btn.set_sensitive(False)
             self.widget.datasets_overlay.set_sensitive(False)
             logger.info("Acquisition started ...")
+            print(self.beamline.lims.session_info)
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
             self.widget.dsets_dir_fbk.set_text(wedge['directory'])

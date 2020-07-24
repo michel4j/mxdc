@@ -250,7 +250,10 @@ def get_free_tcp_port():
 
 
 def frame_score(info):
-    return info['signal']
+    try:
+        return info['signal']
+    except KeyError:
+        return 0.0
 
 
 class ContextMessenger(object):

@@ -12,7 +12,6 @@ class SetMountMode(Script):
 
             self.beamline.manager.mount(wait=True)
             self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=False)
-            self.beamline.cryojet.nozzle.open()
 
 
 class SetCenterMode(Script):
@@ -20,7 +19,6 @@ class SetCenterMode(Script):
 
     def run(self):
         with self.beamline.lock:
-            self.beamline.cryojet.nozzle.close()
             default_beamstop = self.beamline.config['default_beamstop']
 
             # needed by 08ID
@@ -40,7 +38,6 @@ class SetCollectMode(Script):
     def run(self):
         with self.beamline.lock:
             self.beamline.manager.collect(wait=True)
-            self.beamline.cryojet.nozzle.close()
 
 
 class SetAlignMode(Script):

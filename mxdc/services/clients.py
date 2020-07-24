@@ -176,6 +176,7 @@ class MxLIVEClient(BaseService):
         self.keys = None
         self.signer = None
         self.session_active = None
+        self.session_info = {}
         self.register(update=(not settings.keys_exist()))
 
     def is_ready(self):
@@ -273,6 +274,7 @@ class MxLIVEClient(BaseService):
                 logger.error('Unable to Open MxLIVE Session')
                 logger.debug(e)
         else:
+            self.session_info = reply
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
             self.set_state(active=True)

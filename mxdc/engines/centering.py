@@ -233,6 +233,7 @@ class Centering(Engine):
             if step == 'face':
                 self.beamline.goniometer.omega.move_by(-90, wait=True)
 
+            time.sleep(2.0)
             params = {
                 'name': datetime.now().strftime('%y%m%d-%H%M'),
                 'uuid': str(uuid.uuid4()),
@@ -248,11 +249,9 @@ class Centering(Engine):
                 'origin': self.beamline.goniometer.stage.get_xyz(),
                 'resolution': resolution,
             }
-
-            angle, info = self.get_features()
             if step == 'edge':
                 params.update({
-                    'angle': angle,
+                    'angle': self.beamline.goniometer.omega.get_position(),
                     'width': min(aperture*5, 200.0),
                     'height': min(aperture*5, 200.0),
                     'frames': 5,
@@ -260,11 +259,11 @@ class Centering(Engine):
                 })
             else:
                 params.update({
-                    'angle': angle,
-                    'width': min(aperture, 200.0),
-                    'height': min(aperture * 5, 200.0),
-                    'frames': 1,
-                    'lines': 5,
+                    'angle': self.beamline.goniometer.omega.get_position(),
+                    'width': min(aperture * 4, 200.0),
+                    'height': min(aperture * 4, 200.0),
+                    'frames': 4,
+                    'lines': 4,
                 })
 
             params = datatools.update_for_sample(params, self.sample_store.get_current())
@@ -277,12 +276,16 @@ class Centering(Engine):
             ])
 
             best = grid_scores[:, 1].argmax()
+
             index = int(grid_scores[best, 0])
+            score = grid_scores[best, 1]
+
+            logger.info(f'Best diffraction at {index}: score={score}')
             grid = self.collector.get_grid()
-            point = grid[index]
+            point = grid[best]
 
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
-            scores.append(grid_scores[best, 1])
+            scores.append(score/100.)
         self.score = numpy.mean(scores)
 
     def center_capillary(self):
