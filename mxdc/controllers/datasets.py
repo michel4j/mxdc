@@ -1,6 +1,6 @@
 import copy
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from gi.repository import Gio, Gtk
 from zope.interface import Interface
@@ -350,6 +350,7 @@ class DatasetsController(Object):
         self.frame_monitor = None
         self.first_frame = True
         self.survey_submitted = False
+        self.survey_hours = SURVEY_BUFFER
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
@@ -721,11 +722,15 @@ class DatasetsController(Object):
         logger.info('Submitting user-survey to MxLIVE...')
         request.submit()
         window.destroy()
-        self.beamline.lims.session_info['survey'] = None
         self.survey_submitted = True
 
     def on_survey_closed(self, obj):
         logger.critical('Survey closed ...')
+        if self.survey_submitted:
+            self.beamline.lims.session_info['survey'] = None
+        else:
+            self.survey_hours /= 2
+
 
     def on_started(self, obj, wedge):
         if wedge is None:  # Overall start for all wedges
@@ -735,13 +740,11 @@ class DatasetsController(Object):
             self.widget.datasets_overlay.set_sensitive(False)
             logger.info("Acquisition started ...")
 
-            logger.critical(self.beamline.lims.session_info)
             url = self.beamline.lims.session_info.get('survey')
             end_time = self.beamline.lims.session_info.get('end_time')
-            now = datetime.now()
+            now = datetime.now(tz=timezone.utc)
 
-            show_survey = (url and end_time is not None and (end_time - now < timedelta(hours=SURVEY_BUFFER)))
-            #show_survey = True
+            show_survey = (url and end_time is not None and (end_time - now < timedelta(hours=self.survey_hours)))
             if show_survey:
                 logger.info('Showing user feedback survey ...')
                 survey_form = browser.Browser(title='Feedback', size=(512, 640))

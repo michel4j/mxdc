@@ -278,9 +278,10 @@ class MxLIVEClient(BaseService):
                 logger.error('Unable to Open MxLIVE Session')
                 logger.debug(e)
         else:
+            import pprint
             self.session_info = reply
             if self.session_info['end_time'] is not None:
-                self.session_info = datetime.fromisoformat(self.session_info['end_time'])
+                self.session_info['end_time'] = datetime.fromisoformat(self.session_info['end_time'])
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
             self.set_state(active=True)

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.36.0 -->
 <interface>
   <requires lib="gtk+" version="3.16"/>
   <object class="GtkApplicationWindow" id="app_window">
@@ -7,22 +7,6 @@
     <property name="resizable">False</property>
     <property name="gravity">center</property>
     <property name="show_menubar">False</property>
-    <child type="titlebar">
-      <object class="GtkHeaderBar" id="header_bar">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="show_close_button">True</property>
-        <child type="title">
-          <object class="GtkStackSwitcher" id="page_switcher">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="halign">center</property>
-            <property name="valign">center</property>
-            <property name="stack">main_stack</property>
-          </object>
-        </child>
-      </object>
-    </child>
     <child>
       <object class="GtkOverlay" id="mxdc_main">
         <property name="visible">True</property>
@@ -61,7 +45,7 @@
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="opacity">0.70196078431372544</property>
+                                <property name="opacity">0.7019607843137254</property>
                                 <property name="label" translatable="yes">C R Y O</property>
                                 <property name="angle">90</property>
                               </object>
@@ -1111,7 +1095,7 @@
                                         <property name="use_markup">True</property>
                                         <property name="wrap">True</property>
                                         <property name="ellipsize">end</property>
-                                        <property name="angle">0.040000000000000001</property>
+                                        <property name="angle">0.04</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
@@ -1168,95 +1152,6 @@
                                     <property name="margin_top">2</property>
                                     <property name="margin_bottom">6</property>
                                     <property name="spacing">6</property>
-                                    <child>
-                                      <object class="GtkFrame">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label_xalign">0.10000000149011612</property>
-                                        <property name="shadow_type">none</property>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                            <property name="homogeneous">True</property>
-                                            <child>
-                                              <object class="GtkButton" id="hutch_save_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can_focus">True</property>
-                                                <property name="receives_default">False</property>
-                                                <child>
-                                                  <object class="GtkImage" id="image12">
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">False</property>
-                                                    <property name="halign">center</property>
-                                                    <property name="icon_name">media-floppy-symbolic</property>
-                                                    <property name="icon_size">2</property>
-                                                  </object>
-                                                </child>
-                                                <style>
-                                                  <class name="image-button"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
-                                          </object>
-                                        </child>
-                                        <child type="label">
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                            <property name="label" translatable="yes">Tools:</property>
-                                            <attributes>
-                                              <attribute name="weight" value="bold"/>
-                                              <attribute name="scale" value="0.75"/>
-                                            </attributes>
-                                          </object>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="pack_type">end</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkFrame">
-                                        <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="label_xalign">0</property>
-                                        <property name="shadow_type">none</property>
-                                        <child>
-                                          <object class="GtkComboBoxText" id="hutch_presets_btn">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                          </object>
-                                        </child>
-                                        <child type="label">
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can_focus">False</property>
-                                            <property name="label" translatable="yes">Presets:</property>
-                                            <attributes>
-                                              <attribute name="weight" value="bold"/>
-                                              <attribute name="scale" value="0.75"/>
-                                            </attributes>
-                                          </object>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
                                     <child type="center">
                                       <object class="GtkFrame">
                                         <property name="visible">True</property>
@@ -1356,6 +1251,95 @@
                                         <property name="expand">False</property>
                                         <property name="fill">True</property>
                                         <property name="position">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label_xalign">0.10000000149011612</property>
+                                        <property name="shadow_type">none</property>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="homogeneous">True</property>
+                                            <child>
+                                              <object class="GtkButton" id="hutch_save_btn">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">False</property>
+                                                <child>
+                                                  <object class="GtkImage" id="image12">
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="halign">center</property>
+                                                    <property name="icon_name">media-floppy-symbolic</property>
+                                                    <property name="icon_size">2</property>
+                                                  </object>
+                                                </child>
+                                                <style>
+                                                  <class name="image-button"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                            <style>
+                                              <class name="linked"/>
+                                            </style>
+                                          </object>
+                                        </child>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Tools:</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                              <attribute name="scale" value="0.75"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack_type">end</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkFrame">
+                                        <property name="visible">True</property>
+                                        <property name="can_focus">False</property>
+                                        <property name="label_xalign">0</property>
+                                        <property name="shadow_type">none</property>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="hutch_presets_btn">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                          </object>
+                                        </child>
+                                        <child type="label">
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">False</property>
+                                            <property name="label" translatable="yes">Presets:</property>
+                                            <attributes>
+                                              <attribute name="weight" value="bold"/>
+                                              <attribute name="scale" value="0.75"/>
+                                            </attributes>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -1462,10 +1446,7 @@
                                   <object class="GtkFlowBox" id="setup_device_box">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="margin_left">24</property>
-                                    <property name="margin_right">24</property>
-                                    <property name="margin_top">12</property>
-                                    <property name="margin_bottom">12</property>
+                                    <property name="border_width">24</property>
                                     <property name="homogeneous">True</property>
                                     <property name="column_spacing">6</property>
                                     <property name="row_spacing">6</property>
@@ -1551,6 +1532,7 @@
                                                 <property name="can_focus">False</property>
                                                 <property name="min_children_per_line">1</property>
                                                 <property name="max_children_per_line">1</property>
+                                                <property name="activate_on_single_click">False</property>
                                               </object>
                                             </child>
                                           </object>
@@ -2793,6 +2775,22 @@
           <packing>
             <property name="pass_through">True</property>
           </packing>
+        </child>
+      </object>
+    </child>
+    <child type="titlebar">
+      <object class="GtkHeaderBar" id="header_bar">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+        <child type="title">
+          <object class="GtkStackSwitcher" id="page_switcher">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">center</property>
+            <property name="valign">center</property>
+            <property name="stack">main_stack</property>
+          </object>
         </child>
       </object>
     </child>
