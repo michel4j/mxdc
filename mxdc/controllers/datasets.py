@@ -1,5 +1,6 @@
 import copy
 import time
+from datetime import datetime, timedelta
 
 from gi.repository import Gio, Gtk
 from zope.interface import Interface
@@ -12,8 +13,10 @@ from mxdc.engines.diffraction import DataCollector
 from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
+
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from . import common
+from . import browser
 from .microscope import IMicroscope
 from .samplestore import ISampleStore, SampleQueue, SampleStore
 
@@ -26,6 +29,7 @@ logger = get_module_logger(__name__)
     RESPONSE_CANCEL,
 ) = list(range(4))
 
+SURVEY_BUFFER = 2  # hours to end of session to show survey form
 
 class IDatasets(Interface):
     """Sample information database."""
@@ -345,6 +349,7 @@ class DatasetsController(Object):
         self.start_time = 0
         self.frame_monitor = None
         self.first_frame = True
+        self.survey_submitted = False
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
@@ -712,6 +717,16 @@ class DatasetsController(Object):
         if changed:
             self.update_cache()
 
+    def on_submit_survey(self, view, request, window):
+        logger.info('Submitting user-survey to MxLIVE...')
+        request.submit()
+        window.destroy()
+        self.beamline.lims.session_info['survey'] = None
+        self.survey_submitted = True
+
+    def on_survey_closed(self, obj):
+        logger.critical('Survey closed ...')
+
     def on_started(self, obj, wedge):
         if wedge is None:  # Overall start for all wedges
             self.start_time = time.time()
@@ -719,7 +734,21 @@ class DatasetsController(Object):
             self.widget.datasets_clean_btn.set_sensitive(False)
             self.widget.datasets_overlay.set_sensitive(False)
             logger.info("Acquisition started ...")
-            print(self.beamline.lims.session_info)
+
+            logger.critical(self.beamline.lims.session_info)
+            url = self.beamline.lims.session_info.get('survey')
+            end_time = self.beamline.lims.session_info.get('end_time')
+            now = datetime.now()
+
+            show_survey = (url and end_time is not None and (end_time - now < timedelta(hours=SURVEY_BUFFER)))
+            #show_survey = True
+            if show_survey:
+                logger.info('Showing user feedback survey ...')
+                survey_form = browser.Browser(title='Feedback', size=(512, 640))
+                survey_form.view.connect('submit-form', self.on_submit_survey, survey_form)
+                survey_form.browser.connect('destroy', self.on_survey_closed)
+                survey_form.go_to(url)
+
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
             self.widget.dsets_dir_fbk.set_text(wedge['directory'])

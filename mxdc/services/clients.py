@@ -9,6 +9,10 @@ import requests
 import lorem
 import time
 
+from datetime import datetime
+from backports.datetime_fromisoformat import MonkeyPatch
+MonkeyPatch.patch_fromisoformat()
+
 from gi.repository import GLib
 from mxdc.conf import settings
 from mxdc import Device, Object, Signal
@@ -275,6 +279,8 @@ class MxLIVEClient(BaseService):
                 logger.debug(e)
         else:
             self.session_info = reply
+            if self.session_info['end_time'] is not None:
+                self.session_info = datetime.fromisoformat(self.session_info['end_time'])
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
             self.set_state(active=True)

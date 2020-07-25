@@ -21,3 +21,4 @@ pytz
 ipython
 mxio
 lorem
+backports-datetime-fromisoformat

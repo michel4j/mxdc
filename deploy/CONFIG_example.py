@@ -98,7 +98,8 @@ DEVICES = {
 
 SERVICES = {
     'dss': clients.LocalDSSClient(),
-    'lims': clients.MxLIVEClient('http://localhost:8000'),
+    #'lims': clients.MxLIVEClient('http://localhost:8000'),
+    'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
     'dps': clients.DPSClient(),
     'messenger': clients.SimMessenger()
 }

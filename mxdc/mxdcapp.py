@@ -63,6 +63,10 @@ class AppBuilder(gui.Builder):
         stack.child_set(stack.props.visible_child, needs_attention=False)
 
 
+DOCS_URL = 'https://mxlive.lightsource.ca/users/feedback/Zm9kamU6U0lNMS0yMDIwMDcyNC14UzRWSzZsRQ==/new/'
+DOCS_URL = 'https://michel4j.github.io/mxdc/'
+
+
 class Application(Gtk.Application):
     def __init__(self, dark=False, **kwargs):
         super(Application, self).__init__(application_id="org.mxdc", **kwargs)
@@ -180,7 +184,8 @@ class Application(Gtk.Application):
             self.settings_active = False
 
     def on_help(self, action, param):
-        Browser(self.window)
+        help_browser = Browser(title='MxDC Documentation',  size=(1024, -1))
+        help_browser.go_to(DOCS_URL)
 
     def on_quit(self, *args, **kwargs):
         self.quit()

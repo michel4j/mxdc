@@ -8,22 +8,25 @@ from gi.repository import GLib, WebKit2
 from mxdc.utils import gui
 
 
-DOCS_URL = 'https://michel4j.github.io/mxdc/'
-
-
 class Browser(gui.Builder):
     gui_roots = {
         'data/browser': ['browser']
     }
 
-    def __init__(self, parent):
+    def __init__(self, parent=None, title='MxDC Documentation', size=(820, 600)):
         super().__init__()
         self.view = WebKit2.WebView()
+        self.visible = False
         self.options = {}
+        self.size = size
+        self.title = title
+        self.parent = parent
+
+        self.header.set_title(self.title)
+        self.browser.set_keep_above(False)
+        self.content_box.set_size_request(*self.size)
+
         self.setup()
-        self.browser.set_transient_for(parent)
-        self.browser.show_all()
-        self.browser.present()
 
     def setup(self):
         self.content_box.add(self.view)
@@ -33,15 +36,21 @@ class Browser(gui.Builder):
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.view.set_settings(browser_settings)
-        self.browser.set_keep_above(False)
 
         self.back_btn.connect('clicked', self.go_back)
         self.forward_btn.connect('clicked', self.go_forward)
         self.view.connect('decide-policy', self.check_history)
-        self.view.connect('realize', self.on_realized)
 
-    def on_realized(self, *args, **kwargs):
-        GLib.idle_add(self.view.load_uri, DOCS_URL)
+        self.view.connect('load-changed', self.on_loading)
+
+    def on_loading(self, view, event):
+        if event == WebKit2.LoadEvent.FINISHED and not self.visible:
+            self.visible = True
+            self.browser.show_all()
+            self.browser.present()
+
+    def go_to(self, url):
+        self.view.load_uri(url)
 
     def go_back(self, btn):
         self.view.go_back()
@@ -53,6 +62,8 @@ class Browser(gui.Builder):
         self.back_btn.set_sensitive(self.view.can_go_back())
         self.forward_btn.set_sensitive(self.view.can_go_forward())
 
+    def destroy(self):
+        self.browser.destroy()
 
 
 
