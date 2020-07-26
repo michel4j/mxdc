@@ -586,4 +586,4 @@ class Microscope(Object):
         if event.button == 1:
             if self.tool == self.ToolState.GRID and self.grid_bbox:
                 self.make_grid()
-                self.toggle_grid_mode()
+                self.widget.microscope_grid_btn.set_active(False)
