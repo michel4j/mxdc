@@ -28,6 +28,7 @@ setup(
             'share/mxdc.*.xml',
             'share/mxdc.gresource',
             'share/styles.less',
+            'share/dark.mplstyle',
             'share/imgsync.tac',
         ]
     },
