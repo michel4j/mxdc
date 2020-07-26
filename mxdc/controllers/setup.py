@@ -7,7 +7,7 @@ from mxdc.engines.scripting import get_scripts
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import sci_fmt
 from mxdc.widgets import misc
-from mxdc.widgets.textviewer import GUIHandler
+from mxdc.controllers.common import GUIHandler
 from mxdc.widgets.ticker import ChartManager
 from .ptzvideo import AxisController
 from . import common

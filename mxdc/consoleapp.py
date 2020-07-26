@@ -17,7 +17,7 @@ gtk3reactor.install()
 from mxdc import conf
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui, misc
-from mxdc.widgets import dialogs, textviewer
+from mxdc.widgets import dialogs
 from mxdc.controllers import scanplot, common
 from mxdc.beamlines import build_beamline
 from twisted.internet import reactor
@@ -34,7 +34,6 @@ class AppBuilder(gui.Builder):
     gui_roots = {
         'data/scanplot': ['scan_window',]
     }
-
 
 
 class Application(Gtk.Application):
@@ -65,7 +64,7 @@ class Application(Gtk.Application):
         self.window.set_deletable(False)
         self.plot = scanplot.ScanPlotter(self.builder)
         self.log_viewer = common.LogMonitor(self.builder.scan_log, font='Candara 7')
-        log_handler = textviewer.GUIHandler(self.log_viewer)
+        log_handler = common.GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
         log_handler.setFormatter(formatter)

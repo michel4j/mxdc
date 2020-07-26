@@ -2,7 +2,7 @@ import logging
 import operator
 from collections import OrderedDict
 
-from gi.repository import Gtk, Pango, GObject, GLib
+from gi.repository import Gtk, Pango, GLib
 from mxdc.widgets import timer
 from mxdc.devices.manager import BaseManager
 
@@ -208,7 +208,7 @@ class AppNotifier(object):
             self.timer_shown = True
         self.revealer.set_reveal_child(True)
         if not important:
-            GObject.timeout_add(1000 * duration, self.close)
+            GLib.timeout_add(1000 * duration, self.close)
 
     def close(self):
         self.revealer.set_reveal_child(False)
@@ -223,7 +223,7 @@ class GUIHandler(logging.Handler):
         self.viewer = viewer
 
     def emit(self, record):
-        GObject.idle_add(self.viewer.add_text, self.format(record), record.levelno)
+        GLib.idle_add(self.viewer.add_text, self.format(record), record.levelno)
 
 
 class StatusMonitor(object):
@@ -271,10 +271,10 @@ class LogMonitor(object):
         self.prefix = ''
         color_chart = {
             logging.INFO: 'Black',
-            logging.CRITICAL: 'Red',
-            logging.DEBUG: 'Blue',
-            logging.ERROR: 'Red',
-            logging.WARNING: 'Magenta',
+            logging.CRITICAL: '#d2413a',
+            logging.DEBUG: '#3a7ca8',
+            logging.ERROR: '#D2413A',
+            logging.WARNING: '#e98b39',
         }
         self.tags = {}
         for key, v in list(color_chart.items()):
@@ -299,11 +299,12 @@ class LogMonitor(object):
             end_iter.forward_lines(10)
             self.text_buffer.delete(start_iter, end_iter)
 
-        _iter = self.text_buffer.get_end_iter()
-        tag = self.tags[level]
-        self.text_buffer.insert_with_tags(_iter, "%s%s\n" % (self.prefix, text), tag)
-        _iter = self.text_buffer.get_end_iter()
-        # self.view.scroll_to_iter(_iter, 0, True, 0.5, 0.5)
+        loc = self.text_buffer.get_end_iter()
+        if level == logging.INFO:
+            self.text_buffer.insert(loc, f"{self.prefix}{text}\n")
+        else:
+            tag = self.tags[level]
+            self.text_buffer.insert_with_tags(loc, f"{self.prefix}{text}\n", tag)
 
 
 class Tuner(object):

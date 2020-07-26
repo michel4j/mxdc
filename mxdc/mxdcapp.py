@@ -27,12 +27,16 @@ from mxdc.controllers.browser import Browser
 from mxdc.utils import excepthook, misc
 from mxdc.beamlines import build_beamline
 from mxdc.services import clients
+
+from matplotlib import pyplot
 from twisted.internet import reactor
 from twisted.spread import pb
+
 from . import version
 
 USE_TWISTED = True
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
+DARK_STYLE = os.path.join(conf.SHARE_DIR, 'dark.mplstyle')
 
 VERSION = version.get_version()
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
@@ -63,7 +67,6 @@ class AppBuilder(gui.Builder):
         stack.child_set(stack.props.visible_child, needs_attention=False)
 
 
-DOCS_URL = 'https://mxlive.lightsource.ca/users/feedback/Zm9kamU6U0lNMS0yMDIwMDcyNC14UzRWSzZsRQ==/new/'
 DOCS_URL = 'https://michel4j.github.io/mxdc/'
 
 
@@ -74,6 +77,9 @@ class Application(Gtk.Application):
         self.settings_active = False
         self.prefs = conf.load_cache('prefs')
         self.dark_mode = dark if dark else self.prefs.get('dark')
+        if self.prefs['dark']:
+            pyplot.style.use(DARK_STYLE)
+
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)

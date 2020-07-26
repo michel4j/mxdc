@@ -4905,6 +4905,7 @@
                                                 <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="primary_icon_sensitive">False</property>
+                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5006,6 +5007,7 @@
                                                 <property name="primary_icon_activatable">False</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="primary_icon_sensitive">False</property>
+                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5449,8 +5451,9 @@
                                                 <property name="width_chars">10</property>
                                                 <property name="text" translatable="yes">12.6567</property>
                                                 <property name="xalign">1</property>
-                                                <property name="secondary_icon_name">units-key-symbolic</property>
+                                                <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5500,6 +5503,7 @@
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5909,6 +5913,7 @@
                                                 <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
                                                 <property name="primary_icon_sensitive">False</property>
+                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>
@@ -5958,6 +5963,7 @@
                                                 <property name="xalign">1</property>
                                                 <property name="secondary_icon_name">units-kev-symbolic</property>
                                                 <property name="secondary_icon_activatable">False</property>
+                                                <property name="secondary_icon_sensitive">False</property>
                                                 <property name="input_purpose">number</property>
                                                 <style>
                                                   <class name="value-sp"/>

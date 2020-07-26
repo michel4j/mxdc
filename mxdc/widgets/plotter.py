@@ -1,10 +1,7 @@
-import os
 
 import numpy
-from scipy import interpolate
 
-from gi.repository import Gtk, GLib
-from matplotlib import rcParams
+from gi.repository import Gtk
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
@@ -15,7 +12,6 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, OldScalarFormatter
 from mxdc.utils import misc
 from mxdc.widgets import dialogs
-
 
 GRID_COLORMAP = 'viridis'
 GRID_INTERPOLATION = 'nearest'  # nearest
@@ -64,12 +60,9 @@ class PlotterToolbar(NavigationToolbar):
 
 class Plotter(Gtk.Alignment):
     def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=80):
-        super(Plotter, self).__init__()
+        super().__init__()
         self.set(0.5, 0.5, 1, 1)
-        rcParams['font.family'] = 'sans-serif'
-        rcParams['font.sans-serif'] = ['DejaVu Sans', 'Lucida Grande', 'Verdana']
-        rcParams['figure.facecolor'] = 'white'
-        rcParams['figure.edgecolor'] = 'white'
+
         self.format_x = FormatStrFormatter(xformat)
         self.ring_buffer = loop
         self.buffer_size = buffer_size
@@ -90,7 +83,7 @@ class Plotter(Gtk.Alignment):
         self.grid_norm = Normalize()
         self.grid_snake = False
 
-        self.fig = Figure(figsize=(10, 6), dpi=dpi, facecolor='w')
+        self.fig = Figure(figsize=(10, 6), dpi=dpi)
         self.clear()
 
         self.canvas = FigureCanvas(self.fig)  # a Gtk.DrawingArea
@@ -206,7 +199,7 @@ class Plotter(Gtk.Alignment):
         xmin_current, xmax_current = self.axis[axis].get_xlim()
         ymin_current, ymax_current = self.axis[axis].get_ylim()
         line, = self.axis[axis].plot(
-            xpoints, ypoints, 'o', ls=style, lw=lw, markersize=4, markerfacecolor='w',
+            xpoints, ypoints, '.', ls=style, lw=lw, markersize=8,
             label=name, alpha=alpha, markevery=markevery, color=color
         )
 
@@ -399,7 +392,7 @@ class Plotter(Gtk.Alignment):
             x, y = event.xdata, event.ydata
 
             if self.cursor_line is None:
-                self.cursor_line = default.axvline(x, lw=0.5, color='red', antialiased=None)
+                self.cursor_line = default.axvline(x, lw=1, color='#3a7ca8', antialiased=None)
                 for axis, lines in self.plot_scales.items():
                     for name in lines:
                         y_value = self.values(name, x)
@@ -410,7 +403,7 @@ class Plotter(Gtk.Alignment):
                                 ax.get_yticklabels()[0].get_transform(), ax.transData
                             )
                             self.cursor_points[name] = ax.text(
-                                1, y_value, "◀ {}".format(name), color=line.get_color(), transform=trans, ha="left",
+                                1, y_value, "< {}".format(name), color=line.get_color(), transform=trans, ha="left",
                                 va="center"
                             )
             else:

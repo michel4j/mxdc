@@ -37,8 +37,8 @@ class TickerChart(Gtk.Box):
     }
 
     def __init__(self, interval=100, view=20, keep=None, linewidth=1):
-        Gtk.Box.__init__(self)
-        self.fig = Figure(facecolor='w', dpi=72)
+        super().__init__()
+        self.fig = Figure(dpi=72)
         self.canvas = FigureCanvas(self.fig)
         self.pack_start(self.canvas, True, True, 0)
 

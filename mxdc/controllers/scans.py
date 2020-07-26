@@ -280,9 +280,9 @@ class XRFResultsManager(TreeManager):
 
     Types = [bool, str, str, float, str]
     Columns = ColumnSpec(
-        (Data.SYMBOL, '', ColumnType.TEXT, '{}', False),
+        (Data.SYMBOL, 'Symbol', ColumnType.TEXT, '{}', True),
         (Data.NAME, 'Element', ColumnType.TEXT, '{}', True),
-        (Data.PERCENT, 'Amount', ColumnType.NUMBER, '{:0.1f} %', False),
+        (Data.PERCENT, 'Amount', ColumnType.NUMBER, '{:0.1f} %', True),
         (Data.SELECTED, '', ColumnType.TOGGLE, '{}', False),
     )
     flat = True
