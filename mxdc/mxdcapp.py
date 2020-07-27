@@ -77,7 +77,7 @@ class Application(Gtk.Application):
         self.settings_active = False
         self.prefs = conf.load_cache('prefs')
         self.dark_mode = dark if dark else self.prefs.get('dark')
-        if self.prefs['dark']:
+        if self.dark_mode:
             pyplot.style.use(DARK_STYLE)
 
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))

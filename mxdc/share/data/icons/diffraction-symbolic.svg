@@ -28,6 +28,7 @@
   <defs
      id="defs2858" />
   <sodipodi:namedview
+     inkscape:lockguides="false"
      inkscape:document-rotation="0"
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -41,237 +42,136 @@
      inkscape:window-height="752"
      id="namedview2856"
      showgrid="false"
-     inkscape:zoom="1.65"
-     inkscape:cx="-1.5222724"
-     inkscape:cy="13.226262"
+     inkscape:zoom="35.0625"
+     inkscape:cx="8"
+     inkscape:cy="8"
      inkscape:window-x="335"
      inkscape:window-y="131"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg2854" />
   <g
-     color="#000"
-     fill="#2e3436"
-     id="g2852">
-    <g
-       transform="translate(0.04861063,-0.15894407)"
-       id="g1353">
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011"
-         cx="7.9822416"
-         cy="8.0868006"
-         rx="0.94215268"
-         ry="0.97116786" />
-      <ellipse
-         ry="0.68459785"
-         rx="0.66414434"
-         cy="8.0868006"
-         cx="11.313932"
-         id="path1011-1"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.69687206"
-         rx="0.67605191"
-         cy="5.1261158"
-         cx="9.546299"
-         id="path1011-7"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-5"
-         cx="6.2467451"
-         cy="5.1261158"
-         rx="0.67605191"
-         ry="0.69687206" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-9"
-         cx="4.6438355"
-         cy="8.0868006"
-         rx="0.67605191"
-         ry="0.69687206" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-6"
-         cx="6.2909374"
-         cy="11.066719"
-         rx="0.67605191"
-         ry="0.69687206" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-2"
-         cx="9.5911512"
-         cy="11.066719"
-         rx="0.67605191"
-         ry="0.69687206" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1"
-         cx="12.669016"
-         cy="5.1261158"
-         rx="0.49498859"
-         ry="0.51023269" />
-      <ellipse
-         ry="0.51023269"
-         rx="0.49498859"
-         cy="11.066719"
-         cx="12.548556"
-         id="path1011-7-1-7"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.51023269"
-         rx="0.49498859"
-         cy="11.066719"
-         cx="3.2434475"
-         id="path1011-7-1-5"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.51023269"
-         rx="0.49498859"
-         cy="5.1261158"
-         cx="3.2065237"
-         id="path1011-7-1-74"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.51023269"
-         rx="0.49498859"
-         cy="2.7309644"
-         cx="7.9698524"
-         id="path1011-7-1-1"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.51023269"
-         rx="0.49498859"
-         cy="13.586924"
-         cx="7.9698524"
-         id="path1011-7-1-8"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.39021167"
-         rx="0.37855342"
-         cy="13.586924"
-         cx="11.294727"
-         id="path1011-7-1-59"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1-59-3"
-         cx="11.33003"
-         cy="2.7309644"
-         rx="0.37855342"
-         ry="0.39021167" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1-59-8"
-         cx="4.6096745"
-         cy="2.7309644"
-         rx="0.37855342"
-         ry="0.39021167" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1-59-83"
-         cx="4.6465998"
-         cy="13.586924"
-         rx="0.37855342"
-         ry="0.39021167" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1-59-1"
-         cx="1.9141473"
-         cy="8.0868006"
-         rx="0.37855342"
-         ry="0.39021167" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1-59-89"
-         cx="13.988632"
-         cy="8.0868006"
-         rx="0.37855342"
-         ry="0.39021167" />
-      <ellipse
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill"
-         id="path1011-7-1-59-6"
-         cx="14.040028"
-         cy="13.586924"
-         rx="0.23807311"
-         ry="0.24540499" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="15.580875"
-         cx="9.5576286"
-         id="path1011-7-1-59-6-3"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="15.580875"
-         cx="6.3451509"
-         id="path1011-7-1-59-6-33"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="13.586924"
-         cx="1.9510725"
-         id="path1011-7-1-59-6-8"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="11.066719"
-         cx="0.51099503"
-         id="path1011-7-1-59-6-6"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="5.1261158"
-         cx="0.6217708"
-         id="path1011-7-1-59-6-0"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="2.7309644"
-         cx="1.9510725"
-         id="path1011-7-1-59-6-4"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="0.73701274"
-         cx="6.3451509"
-         id="path1011-7-1-59-6-88"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="0.73701274"
-         cx="9.5576286"
-         id="path1011-7-1-59-6-89"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="2.7309644"
-         cx="14.062483"
-         id="path1011-7-1-59-6-7"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="5.1261158"
-         cx="15.391784"
-         id="path1011-7-1-59-6-76"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-      <ellipse
-         ry="0.24540499"
-         rx="0.23807311"
-         cy="11.066719"
-         cx="15.391784"
-         id="path1011-7-1-59-6-43"
-         style="fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill" />
-    </g>
+     style="fill:#bebebe;fill-opacity:1;stroke:none"
+     id="g867">
+    <ellipse
+       ry="1.25"
+       rx="1.2500001"
+       cy="8.0576839"
+       cx="8.1641464"
+       id="path1011"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none" />
+    <circle
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-1"
+       cx="12.117172"
+       cy="8.0576839"
+       r="0.90000004" />
+    <circle
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7"
+       cx="9.9958286"
+       cy="4.505311"
+       r="0.90000004" />
+    <circle
+       cy="4.505311"
+       cx="6.0625196"
+       id="path1011-7-5"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.90000004" />
+    <circle
+       cy="8.0576839"
+       cx="4.1517348"
+       id="path1011-7-9"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.90000004" />
+    <ellipse
+       ry="0.90000004"
+       rx="0.86671555"
+       cy="11.586946"
+       cx="6.0625196"
+       id="path1011-7-6"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none" />
+    <circle
+       cy="11.586946"
+       cx="9.9958286"
+       id="path1011-7-2"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.90000004" />
+    <ellipse
+       ry="0.64999998"
+       rx="0.64999986"
+       cy="4.505311"
+       cx="13.684176"
+       id="path1011-7-1"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266668;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none" />
+    <ellipse
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266668;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7-1-7"
+       cx="13.684176"
+       cy="11.586946"
+       rx="0.64999986"
+       ry="0.64999998" />
+    <ellipse
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266668;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7-1-5"
+       cx="2.4482105"
+       cy="11.586946"
+       rx="0.64999992"
+       ry="0.64999998" />
+    <ellipse
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266668;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7-1-74"
+       cx="2.4482105"
+       cy="4.505311"
+       rx="0.64999992"
+       ry="0.64999998" />
+    <ellipse
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7-1-1"
+       cx="8.1641464"
+       cy="1.6726036"
+       rx="0.69999993"
+       ry="0.69999999" />
+    <circle
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7-1-8"
+       cx="8.1641464"
+       cy="14.613698"
+       r="0.69999999" />
+    <circle
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266666;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       id="path1011-7-1-59"
+       cx="12.117172"
+       cy="14.613698"
+       r="0.44999999" />
+    <circle
+       cy="1.6726036"
+       cx="12.117172"
+       id="path1011-7-1-59-3"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266666;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.44999999" />
+    <circle
+       cy="1.6726036"
+       cx="4.1517348"
+       id="path1011-7-1-59-8"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266666;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.44999999" />
+    <circle
+       cy="14.613698"
+       cx="4.1517348"
+       id="path1011-7-1-59-83"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266666;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.44999999" />
+    <circle
+       cy="8.0576839"
+       cx="0.8023864"
+       id="path1011-7-1-59-1"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.45000002" />
+    <circle
+       cy="8.0576839"
+       cx="15.196054"
+       id="path1011-7-1-59-89"
+       style="color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke-width:0.266667;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7;paint-order:stroke markers fill;stroke:none"
+       r="0.45000002" />
   </g>
 </svg>
