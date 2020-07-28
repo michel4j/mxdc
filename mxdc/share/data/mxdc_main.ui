@@ -7,7 +7,7 @@
     <property name="role">Mx Data Collector</property>
     <property name="resizable">False</property>
     <property name="window_position">center</property>
-    <property name="default_width">1310</property>
+    <property name="default_width">1380</property>
     <property name="icon">icon.png</property>
     <property name="gravity">center</property>
     <property name="show_menubar">False</property>
@@ -716,7 +716,7 @@
                             </child>
                           </object>
                           <packing>
-                            <property name="expand">True</property>
+                            <property name="expand">False</property>
                             <property name="fill">True</property>
                             <property name="position">0</property>
                           </packing>

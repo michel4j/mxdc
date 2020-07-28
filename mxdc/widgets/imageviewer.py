@@ -47,7 +47,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'detector_type': '{}',
     }
 
-    def __init__(self, size=640):
+    def __init__(self, size=680):
         super(ImageViewer, self).__init__()
         self.setup_gui()
         self.set(0.5, 0.5, 1, 1)

@@ -65,7 +65,7 @@ class AxisController(object):
         self.widget.hutch_zoom100_btn.connect('clicked', self.on_unzoom)
 
         # Video Area
-        self.video = VideoWidget(self.camera)
+        self.video = VideoWidget(self.camera, mode=VideoBox.PAD)
         self.widget.hutch_video_frame.add(self.video)
 
         # presets

@@ -70,7 +70,6 @@ class VideoWidget(Gtk.DrawingArea):
         self.connect('realize', self.on_realized)
         self.connect("unrealize", self.on_destroy)
         self.connect('configure-event', self.on_configure_event)
-        #self.override_background_color(Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=1, blue=0, alpha=1))
 
     def set_src(self, src):
         self.camera = src
@@ -144,18 +143,18 @@ class VideoWidget(Gtk.DrawingArea):
         video_aspect = float(vwidth) / vheight
         display_aspect = float(dwidth) / dheight
 
-        if display_aspect > video_aspect:
+        if display_aspect < video_aspect:
             width = dwidth
             self.scale = float(width) / vwidth
             height = int(round(width / video_aspect))
-            self.voffset = (dheight - height) // 2
-            self.hoffset = 0
+            self.voffset = 0
+            self.hoffset = (dwidth - width) // 2
         else:
             height = dheight
             self.scale = float(height) / vheight
             width = int(round(video_aspect * height))
-            self.hoffset = (dwidth - width) // 2
-            self.voffset = 0
+            self.hoffset = 0
+            self.voffset = (dheight - height) // 2
 
         self.display_width, self.display_height = width, height
 

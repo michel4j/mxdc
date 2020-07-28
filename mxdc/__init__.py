@@ -431,7 +431,8 @@ class Device(Object):
             self.__pending.append(component)
         if len(self.__pending) == 0:
             self.set_state(active=True, health=(0, 'active', ''))
-        else:
+        elif self.get_state('active'):
+            # only emit if current active
             self.set_state(active=False, health=(4, 'active', 'inactive components.'))
 
     def cleanup(self):

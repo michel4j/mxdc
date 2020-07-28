@@ -112,7 +112,7 @@ class Centering(Engine):
             )
         )
 
-    def center_external(self, low_trials=3, med_trials=2):
+    def center_external(self, low_trials=2, med_trials=2):
         """
         External centering device
         :param low_trials: Number of trials at low resolution
@@ -126,7 +126,6 @@ class Centering(Engine):
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
 
-        # Find tip of loop at low and high zoom
         max_trials = low_trials + med_trials
         trial_count = 0
         scores = []
@@ -137,19 +136,21 @@ class Centering(Engine):
 
             self.beamline.sample_video.zoom(zoom_level, wait=True)
 
-            for i in range(3):
+            for i in range(2):
                 trial_count += 1
-                found = self.device.wait(2)
-                if found:
-                    x, y, reliability, label = self.device.fetch()
-                    scores.append(reliability)
-                    logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
-                    xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-                else:
-                    failed = True
-                    break
+                for j in range(2):
+                    self.beamline.goniometer.stage.wait(start=False, stop=True)
+                    found = self.device.wait(2)
+                    if found:
+                        x, y, reliability, label = self.device.fetch()
+                        scores.append(reliability)
+                        logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
+                        xmm, ymm = self.screen_to_mm(x, y)
+                        self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                        logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+                    else:
+                        failed = True
+                        break
 
                 # final 90 rotation not needed
                 if trial_count < max_trials:
