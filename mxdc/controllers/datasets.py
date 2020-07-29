@@ -729,7 +729,9 @@ class DatasetsController(Object):
     def on_survey_closed(self, obj):
         logger.info('Survey closed ...')
         if not self.survey_submitted:
-            self.survey_hours /= 2
+            #self.survey_hours /= 2
+            self.survey_submitted = True
+            self.beamline.lims.session_info['survey'] = None
 
     def on_started(self, obj, wedge):
         if wedge is None:  # Overall start for all wedges
