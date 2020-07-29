@@ -229,10 +229,8 @@ class GUIHandler(logging.Handler):
 class StatusMonitor(object):
     def __init__(self, widget, devices=()):
         self.devices = set()
-        self.title = widget.status_context_lbl
         self.spinner = widget.spinner
         self.text = widget.status_lbl
-        self.messages = OrderedDict()
         for dev in devices:
             self.add(dev)
 
@@ -244,9 +242,8 @@ class StatusMonitor(object):
 
     def on_message(self, device, message):
         """ Set the message directly if spinner is busy otherwise set to blank"""
-        if message:
-            self.title.set_text(device.name)
-            self.text.set_text(message)
+        message = message if message else 'Busy ...'
+        self.text.set_text(f'{device.name} - {message}')
         self.check_busy()
 
     def check_busy(self, *args, **kwargs):
@@ -254,7 +251,6 @@ class StatusMonitor(object):
             self.spinner.start()
         else:
             self.spinner.stop()
-            self.title.set_text('Status')
             self.text.set_text('')
 
 
