@@ -9,6 +9,7 @@ import shlex
 import subprocess
 import sys
 import time
+import humanize
 
 import numpy
 
@@ -22,7 +23,7 @@ def _call_and_peek_output(cmd, shell=False):
     line = ""
     while True:
         try:
-            ch = os.read(master, 1)
+            ch = os.read(master, 1).decode()
         except OSError:
             # We get this exception when the spawn process closes all references to the
             # pty descriptor which we passed him to use for stdout
@@ -46,21 +47,18 @@ def call_and_print_output(cmd):
     return [out_txt for out_txt in _call_and_peek_output(cmd)]
 
 
-def get_directory_size(start_path='.'):
-    def _dir_size(arg, folder, files):
-        for f in files:
-            stats = os.stat(os.path.join(folder, f))
-            size = stats[6]
-            arg.append(size)
-
-    sizes = []
-    os.path.walk(start_path, _dir_size, sizes)
-    return sum(sizes)
+def get_directory_size(start_path = '.'):
+    return sum([
+        os.path.getsize(os.path.join(dirpath, f))
+        for dirpath, dirnames, filenames in os.walk(start_path)
+        for f in filenames
+        if not os.path.islink(os.path.join(dirpath, f))
+    ])
 
 
 class RsyncApp(object):
     def __init__(self, src, dest):
-        self.src = src.strip()
+        self.src = os.path.abspath(src.strip())
         self.dest = dest
         self.tgt = os.path.join(self.dest, os.path.basename(self.src))
 
@@ -69,12 +67,7 @@ class RsyncApp(object):
             self.src = self.src[:-1]
 
     def _humanize(self, sz):
-        symbols = ('', 'K', 'M', 'G', 'T', 'P')
-        base_sz = numpy.ones(len(symbols))
-        base_sz[1:] = 1 << (numpy.arange(len(symbols) - 1) + 1) * 10
-        idx = numpy.where(base_sz <= sz)[0][-1]
-        value = float(sz) / base_sz[idx]
-        return "%0.3f %sB" % (value, symbols[idx])
+        return humanize.naturalsize(sz, gnu=True)
 
     def _check_space(self, path):
         fs_stat = os.statvfs(path)
@@ -85,13 +78,13 @@ class RsyncApp(object):
 
     def get_disk_stats(self):
         src_sz = self._humanize(get_directory_size(self.src))
-        dst_avl, dst_pct = self._check_space(self.dest)[1:]
+        dst_avl, dst_tot, dst_pct = self._check_space(self.dest)
         tgt_sz = self._humanize(get_directory_size(self.tgt))
         # dst_sz = self.humanize(get_directory_size(self.dest))
         return src_sz, tgt_sz, dst_avl, dst_pct
 
     def run(self):
-        command = 'rsync -rt -hh --modify-window=2 --progress --exclude "*:*" %s %s' % (
+        command = 'rsync -rt -hh --modify-window=2 --progress %s %s' % (
         re.escape(self.src), re.escape(self.dest))
         if os.path.exists(self.src) and os.access(self.dest, os.W_OK):
             args = shlex.split(command)
@@ -123,7 +116,7 @@ class ArchiverApp(object):
                     src_sz, dst_sz, dst_avl, dst_pct = sync.get_disk_stats()
                     print('%40s: %10s' % (os.path.abspath(sync.src), src_sz))
                     print('%40s: %10s' % (target_dir, dst_sz))
-                    print('%40s: %10s, %0.1f %%' % ('Target Disk Usage', dst_avl, dst_pct))
+                    print('%40s: %10s, %0.1f %%' % ('Target Space Available', dst_avl, dst_pct))
                     print('Next synchronization in %d minute(s)' % (timeout // 60))
                     timeout -= 60
                     time.sleep(60)

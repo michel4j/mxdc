@@ -14,6 +14,7 @@ import uuid
 import ipaddress
 import numpy
 import math
+import unicodedata
 
 from abc import ABC
 from html.parser import HTMLParser
@@ -155,12 +156,27 @@ def multi_count(exposure, *counters):
         return tuple(counts)
 
 
-def slugify(s, empty=""):
-    valid_chars = "-_.()%s%s" % (string.ascii_letters, string.digits)
-    ns = ''.join([c for c in s if c in valid_chars])
-    if ns == "":
-        ns = empty
-    return ns
+# def slugify(s, empty=""):
+#     valid_chars = "-_.()%s%s" % (string.ascii_letters, string.digits)
+#     ns = ''.join([c for c in s if c in valid_chars])
+#     if ns == "":
+#         ns = empty
+#     return ns
+
+
+def slugify(value, empty="", allow_unicode=False):
+    """
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces to hyphens.
+    Remove characters that aren't alphanumerics, underscores, or hyphens.
+    Convert to lowercase. Also strip leading and trailing whitespace.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value).strip()
+    return re.sub(r'[-\s]+', '-', value)
 
 
 def format_partial(fmt, *args, **kwargs):

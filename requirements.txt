@@ -20,5 +20,6 @@ python-magic
 pytz
 ipython
 mxio
+humanize
 lorem
 backports-datetime-fromisoformat

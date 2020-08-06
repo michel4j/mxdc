@@ -92,7 +92,7 @@ def update_for_sample(info, sample=None, overwrite=True):
 
     params.update({
         'session': settings.get_session(),
-        'sample': sample.get('name', ''),
+        'sample': misc.slugify(sample.get('name', '')),
         'group': misc.slugify(sample.get('group', '')),
         'container': misc.slugify(sample.get('container', '')),
         'port': sample.get('port', ''),
