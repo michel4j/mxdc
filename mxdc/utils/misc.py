@@ -609,3 +609,12 @@ def calc_grid_size(width, height, aperture, tight=True):
     nX = max(2, numpy.ceil(nX+1))
     nY = max(2, numpy.ceil(tightness * numpy.ceil(nY+1)))
     return int(nX), int(nY)
+
+
+def natural_keys(text):
+    """
+    Convert a text string into a tuple for natural sorting
+    :param text: text string
+    :return: tuple of tokens with numbers separated out
+    """
+    return tuple([int(token) if token.isdigit() else token for token in re.split(r'(\d+)', f'{text}')])

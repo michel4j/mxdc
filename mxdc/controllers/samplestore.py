@@ -1,4 +1,5 @@
 import uuid
+import re
 from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
@@ -11,6 +12,7 @@ from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
 from mxdc.utils.automounter import Port, PortColors
 from mxdc.utils.decorators import async_call
+from mxdc.utils import misc
 from .automounter import DewarController
 
 
@@ -70,16 +72,35 @@ class GroupItem(Object):
         return '<Group: {}|{}>'.format(self.props.name, self.props.selected)
 
 
+def human_name_sort(model, a, b, column_id):
+    """
+    Sort function for human sorting of treeview columns
+    :param model: model to sort
+    :param a: iterator for first item
+    :param b: iterator for second item
+    :param column_id: column id
+    :return: -1, 0 or 1
+    """
+    a_value = misc.natural_keys(model[a][column_id])
+    b_value = misc.natural_keys(model[b][column_id])
+    if a_value < b_value:
+        return -1
+    elif a_value == b_value:
+        return 0
+    else:
+        return 1
+
+
 @implementer(ISampleStore)
 class SampleStore(Object):
     class Data(object):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
-            PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, DATA
-        ) = list(range(15))
+            PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, SORT_NAME, DATA
+        ) = list(range(16))
         TYPES = (
             bool, str, str, str, str, str, str, bool,
-            int, str, int, str, int, str, object
+            int, str, int, str, int, str, object, object
         )
 
     class Progress(object):
@@ -110,7 +131,7 @@ class SampleStore(Object):
         self.model = Gtk.ListStore(*self.Data.TYPES)
         self.search_model = self.model.filter_new()
         self.search_model.set_visible_func(self.search_data)
-        self.filter_model = Gtk.TreeModelSort(model=self.search_model)
+        self.sort_model = Gtk.TreeModelSort(model=self.search_model)
         self.group_model = Gio.ListStore(item_type=GroupItem)
         self.group_registry = {}
         self.prefetch_pending = False
@@ -132,7 +153,7 @@ class SampleStore(Object):
 
         self.view = view
         self.widget = widget
-        self.view.set_model(self.filter_model)
+        self.view.set_model(self.sort_model)
 
         self.beamline = Registry.get_utility(IBeamline)
 
@@ -163,7 +184,7 @@ class SampleStore(Object):
         for data, title in list(self.Column.items()):
             if data == self.Data.SELECTED:
                 renderer = Gtk.CellRendererToggle(activatable=True)
-                renderer.connect('toggled', self.on_row_toggled, self.filter_model)
+                renderer.connect('toggled', self.on_row_toggled, self.sort_model)
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, active=data)
                 column.set_fixed_width(30)
             elif data == self.Data.STATE:
@@ -177,10 +198,14 @@ class SampleStore(Object):
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, text=data)
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
                 column.set_expand(True)
+                if data in [self.Data.NAME, self.Data.PORT, self.Data.GROUP, self.Data.CONTAINER]:
+                    self.sort_model.set_sort_func(data, human_name_sort, data)
+
                 column.set_sort_column_id(data)
                 column.set_cell_data_func(renderer, self.format_progress)
                 if data in [self.Data.NAME, self.Data.GROUP]:
                     column.set_resizable(True)
+
             column.set_clickable(True)
             column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
             self.view.append_column(column)
@@ -194,8 +219,8 @@ class SampleStore(Object):
         self.view.set_search_column(self.Data.NAME)
         self.view.set_tooltip_column(self.Data.COMMENTS)
         self.view.set_search_column(self.Data.NAME)
-        self.model.set_sort_column_id(self.Data.PRIORITY, Gtk.SortType.ASCENDING)
-        self.model.connect('sort-column-changed', lambda x: self.roll_next_sample())
+        self.sort_model.set_sort_column_id(self.Data.PRIORITY, Gtk.SortType.ASCENDING)
+        self.sort_model.connect('sort-column-changed', lambda x: self.roll_next_sample())
         self.roll_next_sample()
 
         self.widget.auto_groups_box.bind_model(self.group_model, self.create_group_selector)
@@ -241,6 +266,7 @@ class SampleStore(Object):
             item.get('container_type', ''),
             self.Progress.NONE,
             item['uuid'],
+            re.split(r'(\d+)', item.get('name', 'unknown')),
             item
         ])
 
@@ -377,11 +403,11 @@ class SampleStore(Object):
             self.props.next_sample = {}
 
     def get_next(self):
-        itr = self.filter_model.get_iter_first()
-        while itr and not self.filter_model.get_value(itr, self.Data.SELECTED):
-            itr = self.filter_model.iter_next(itr)
+        itr = self.sort_model.get_iter_first()
+        while itr and not self.sort_model.get_value(itr, self.Data.SELECTED):
+            itr = self.sort_model.iter_next(itr)
         if itr:
-            return Gtk.TreeRowReference.new(self.filter_model, self.filter_model.get_path(itr))
+            return Gtk.TreeRowReference.new(self.sort_model, self.sort_model.get_path(itr))
 
     def find_by_port(self, port):
         for row in self.model:
@@ -431,7 +457,7 @@ class SampleStore(Object):
         self.emit('updated')
 
     def toggle_row(self, path):
-        path = self.filter_model.convert_path_to_child_path(path)
+        path = self.sort_model.convert_path_to_child_path(path)
         row = self.search_model[path]
         if row[self.Data.STATE] not in [Port.BAD, Port.EMPTY]:
             selected = not row[self.Data.SELECTED]
@@ -515,7 +541,7 @@ class SampleStore(Object):
         return self.widget.samples_search_entry.handle_event(event)
 
     def on_row_activated(self, cell, path, column):
-        path = self.filter_model.convert_path_to_child_path(path)
+        path = self.sort_model.convert_path_to_child_path(path)
         row = self.search_model[path]
         self.props.next_sample = row[self.Data.DATA]
 
@@ -567,7 +593,7 @@ class SampleQueue(Object):
         self.view = view
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = Registry.get_utility(ISampleStore)
-        self.model = self.sample_store.model
+        self.model = self.sample_store.sort_model
         self.auto_queue = self.model.filter_new()
         self.auto_queue.set_visible_func(self.queued_data)
         self.view.set_model(self.auto_queue)
@@ -595,7 +621,6 @@ class SampleQueue(Object):
             column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
             self.view.append_column(column)
         self.view.set_tooltip_column(SampleStore.Data.COMMENTS)
-        self.model.set_sort_column_id(SampleStore.Data.PRIORITY, Gtk.SortType.ASCENDING)
 
     def mark_progress(self, uuid, state):
         for item in self.auto_queue:
