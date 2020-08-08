@@ -428,7 +428,7 @@ class SampleStore(Object):
 
     def get_selected(self):
         return [
-            row[self.Data.DATA] for row in self.model
+            row[self.Data.DATA] for row in self.sort_model
             if row[self.Data.SELECTED] and row[self.Data.STATE] not in [Port.BAD, Port.EMPTY]
         ]
 
