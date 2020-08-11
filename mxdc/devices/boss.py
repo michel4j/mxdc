@@ -114,6 +114,7 @@ class BaseTuner(Device):
         """
 
 
+
 class BOSSTuner(BaseTuner):
     """
     Beam Tuner abstraction for the original ELETTRA Beamline Optimisation and Stabilization System (BOSS).
@@ -145,8 +146,13 @@ class BOSSTuner(BaseTuner):
         if control:
             self.control = self.add_pv(control)
             self.control.connect('changed', self.check_enable)
+
+        self.local_paused = False
         self._off_value = off_value
         self._pause_value = pause_value
+
+    def is_paused(self):
+        return self.beam_threshold.get() > 0.9 * self._pause_value
 
     def reset(self):
         self.stop()
@@ -157,13 +163,15 @@ class BOSSTuner(BaseTuner):
 
     def pause(self):
         logger.debug('Pausing BOSS')
-        if self.is_active() and self.is_enabled() and self.beam_threshold.get() != self._pause_value:
+        if self.is_active() and self.is_enabled() and not self.is_paused():
+            self.local_paused = True
             self._off_value = self.beam_threshold.get()
             self.beam_threshold.put(self._pause_value)
 
     def resume(self):
         logger.debug('Resuming BOSS')
-        if self.is_active():
+        if self.is_active() and self.is_paused() and self.local_paused:
+            self.local_paused = False
             self.beam_threshold.put(self._off_value)
 
     def start(self):
