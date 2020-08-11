@@ -641,9 +641,10 @@ class PilatusDetector(BaseDetector):
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
-        self.saved_frame_num = self.add_pv('{}:ArrayCounter_RBV'.format(name))
+        self.saved_frame_fbk = self.add_pv('{}:ArrayCounter_RBV'.format(name))
+        self.saved_frame = self.add_pv('{}:ArrayCounter'.format(name))
 
-        self.saved_frame_num.connect('changed', self.on_new_frame)
+        self.saved_frame_fbk.connect('changed', self.on_new_frame)
         self.state_value.connect('changed', self.on_state_change)
         self.armed_status.connect('changed', self.on_state_change)
         self.connected_status.connect('changed', self.on_connection_changed)
@@ -757,7 +758,7 @@ class PilatusDetector(BaseDetector):
                 self.settings[k].put(v, wait=True)
 
         self.mode_cmd.put(3)  # External Multi-Trigger Mode
-        self.saved_frame_num.put(0)  # reset frame counter
+        self.saved_frame.put(0)  # reset frame counter
 
     def on_connection_changed(self, obj, state):
         if state == 0:
