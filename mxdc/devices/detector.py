@@ -700,19 +700,20 @@ class PilatusDetector(BaseDetector):
         self.wait_until(States.IDLE)
 
     def on_new_frame(self, obj, frame_number):
-        template = self.file_format.get()
-        directory = self.settings['directory'].get()
-        directory += os.sep if not directory.endswith(os.sep) else ''
-        file_path = template % (
-            directory,
-            self.settings['file_prefix'].get(),
-            frame_number
-        )
-        self.monitor.add(file_path)
+        if frame_number > 0:
+            template = self.file_format.get()
+            directory = self.settings['directory'].get()
+            directory += os.sep if not directory.endswith(os.sep) else ''
+            file_path = template % (
+                directory,
+                self.settings['file_prefix'].get(),
+                frame_number
+            )
+            self.monitor.add(file_path)
 
-        # progress
-        num_frames = self.settings['num_frames'].get()
-        self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
+            # progress
+            num_frames = self.settings['num_frames'].get()
+            self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def on_state_change(self, obj, value):
         detector_state = self.state_value.get()
@@ -750,12 +751,13 @@ class PilatusDetector(BaseDetector):
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= self.READOUT_TIME
 
-        self.mode_cmd.put(3)  # External Multi-Trigger Mode
-
         for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
+
+        self.mode_cmd.put(3)  # External Multi-Trigger Mode
+        self.saved_frame_num.put(0)  # reset frame counter
 
     def on_connection_changed(self, obj, state):
         if state == 0:

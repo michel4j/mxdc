@@ -126,7 +126,7 @@ class BOSSTuner(BaseTuner):
     :param off_value: If the picoameter goes below this value, pause optimization
     :param pause_value: Set the threshold to this value when pausing.
     """
-    def __init__(self, name, picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e8):
+    def __init__(self, name, picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e13):
 
         super().__init__()
         self.name = name
