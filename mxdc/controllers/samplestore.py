@@ -623,7 +623,8 @@ class SampleQueue(Object):
         self.view.set_tooltip_column(SampleStore.Data.COMMENTS)
 
     def mark_progress(self, uuid, state):
-        for item in self.auto_queue:
+        model = self.sample_store.model
+        for item in model:
             if item[SampleStore.Data.UUID] == uuid:
                 item[SampleStore.Data.PROGRESS] = state
                 break
