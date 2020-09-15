@@ -31,17 +31,17 @@ Strategy = {
         'activity': 'data',
     },
     StrategyType.SCREEN_4: {
-        'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
+        'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°, 90°, 180°, 270°',
         'activity': 'screen'
     },
     StrategyType.SCREEN_3: {
-        'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
+        'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°, 45°, 90°',
         'activity': 'screen'
     },
     StrategyType.SCREEN_2: {
-        'delta': 1.0, 'range': 2, 'start': 0.0, 'inverse': False,
+        'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°, 90°',
         'activity': 'screen'
     },
