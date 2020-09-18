@@ -173,6 +173,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
         self.name = self.__class__.__name__
         self.__signal_types__ = _get_signal_properties(self)
         self.__state__ = {name: None for name in self.__signal_types__.keys()}
+        self.__identifier__ = ''
 
     def __str__(self):
         obj_id = hex(id(self))

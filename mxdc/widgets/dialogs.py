@@ -1,6 +1,6 @@
 import os
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 from gi.repository import Pango
 
 try:
@@ -28,7 +28,14 @@ def make_dialog(dialog_type, title, sub_header=None, details=None, buttons=Gtk.B
     msg_dialog.set_modal(modal)
     if isinstance(buttons, tuple):
         for button in buttons:
-            msg_dialog.add_buttons(*button)
+            if len(button) == 3:
+                text, response, tooltip = button
+            else:
+                text, response = button
+                tooltip = None
+            btn = msg_dialog.add_button(text, response)
+            if tooltip:
+                btn.set_tooltip_text(tooltip)
     else:
         msg_dialog.add_buttons(*BUTTON_TYPES[buttons])
     if sub_header:
@@ -40,7 +47,14 @@ def exception_dialog(title, message=None, details=None, buttons=Gtk.ButtonsType.
     msg_dialog = Gtk.MessageDialog(MAIN_WINDOW, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.NONE, title)
     if isinstance(buttons, tuple):
         for button in buttons:
-            msg_dialog.add_buttons(*button)
+            if len(button) == 3:
+                text, response, tooltip = button
+            else:
+                text, response = button
+                tooltip = None
+            btn =  msg_dialog.add_button(text, response)
+            if tooltip:
+                btn.set_tooltip_text(tooltip)
     else:
         msg_dialog.add_buttons(*BUTTON_TYPES[buttons])
     if message:
@@ -61,8 +75,29 @@ def exception_dialog(title, message=None, details=None, buttons=Gtk.ButtonsType.
     return msg_dialog
 
 
+class Timer(object):
+    """
+    An object used for displaying countdown timers and destroying dialogs after a given amount of time.
+    """
+    def __init__(self, countdown, dialog):
+        self.countdown = countdown
+        self.label = dialog.get_message_area().get_children()[-1]
+        self.dialog = dialog
+
+    def __call__(self):
+        self.countdown -= 1
+        self.label.set_text(f'{self.countdown} seconds')
+        if self.countdown <= 0:
+            self.dialog.destroy()
+        return self.countdown > 0
+
+
 def simple_dialog(*args, **kwargs):
+    countdown = kwargs.pop('countdown', None)
     msg_dialog = make_dialog(*args, **kwargs)
+    if countdown is not None:
+        GLib.timeout_add(1000, Timer(countdown, msg_dialog))
+
     result = msg_dialog.run()
     msg_dialog.destroy()
     return result

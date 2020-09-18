@@ -70,9 +70,10 @@ class EPICSShutter(BaseShutter):
     :param open_name: PV name for open command
     :param close_name: PV name for close command
     :param state_name: PV name for shutter state
+    :param name:  Descriptive name of shutter
     """
 
-    def __init__(self, open_name, close_name, state_name):
+    def __init__(self, open_name, close_name, state_name, name='Shutter'):
         super().__init__()
         # initialize variables
         self._open_cmd = self.add_pv(open_name)
@@ -80,7 +81,7 @@ class EPICSShutter(BaseShutter):
         self._state = self.add_pv(state_name)
         self._state.connect('changed', self._signal_change)
         self._messages = ['Opening', 'Closing']
-        self.name = open_name.split(':')[0]
+        self.name = name
 
     def open(self, wait=False):
         if self.get_state('changed'):
@@ -189,7 +190,8 @@ class ShutterGroup(BaseShutter):
             if misc.every([dev.get_state('changed') for dev in self._dev_list]):
                 self.set_state(changed=True, health=(0, 'state', ''))
         else:
-            self.set_state(changed=False, health=(2, 'state', 'Not Open!'))
+            not_open = ','.join([dev.name for dev in self._dev_list if not dev.is_open()])
+            self.set_state(changed=False, health=(2, 'state', f'{not_open} not open!'))
 
     @async_call
     def open(self, wait=False):
@@ -198,13 +200,11 @@ class ShutterGroup(BaseShutter):
 
     @async_call
     def close(self, wait=False):
-        newlist = self._dev_list[:]
-        newlist.reverse()
         if not self.close_last:
-            for i, dev in enumerate(newlist):
+            for dev in reversed(self._dev_list):
                 dev.close(wait=True)
         else:
-            newlist[0].close(wait=True)
+            self._dev_list[-1].close(wait=True)
 
 
 class SimShutter(BaseShutter):

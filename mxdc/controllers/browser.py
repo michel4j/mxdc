@@ -13,7 +13,7 @@ class Browser(gui.Builder):
         'data/browser': ['browser']
     }
 
-    def __init__(self, parent=None, title='MxDC Documentation', size=(820, 600)):
+    def __init__(self, parent=None, title='MxDC Documentation', size=(820, 600), modal=False):
         super().__init__()
         self.view = WebKit2.WebView()
         self.visible = False
@@ -21,9 +21,12 @@ class Browser(gui.Builder):
         self.size = size
         self.title = title
         self.parent = parent
+        self.modal = False if parent is None else modal
 
         self.header.set_title(self.title)
-        self.browser.set_keep_above(False)
+        self.browser.set_keep_above(self.modal)
+        if self.modal:
+            self.browser.props.modal = self.modal
         self.content_box.set_size_request(*self.size)
 
         self.setup()

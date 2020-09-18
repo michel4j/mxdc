@@ -3,7 +3,7 @@ import os
 import signal
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import gi
 
@@ -42,6 +42,13 @@ VERSION = version.get_version()
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)
+
+(
+    SHUTDOWN_RESTART,
+    SHUTDOWN_ENDSESSION,
+    SHUTDOWN_QUIT,
+    SHUTDOWN_CANCEL,
+) = list(range(4))
 
 
 class AppBuilder(gui.Builder):
@@ -111,6 +118,7 @@ class Application(Gtk.Application):
         if not self.window:
             self.window = self.builder.app_window
             self.window.connect('destroy', self.on_quit)
+            self.window.connect('delete-event', self.on_quit)
 
             # create actions
             actions = {
@@ -194,6 +202,38 @@ class Application(Gtk.Application):
         help_browser.go_to(DOCS_URL)
 
     def on_quit(self, *args, **kwargs):
+        countdown = 15
+        header = 'MxDC session will close automatically in'
+        sub_header = f'{countdown} seconds'
+        buttons = (
+            ('Quit', SHUTDOWN_QUIT, 'Exit immediately'),
+            ('End Session', SHUTDOWN_ENDSESSION, 'Finished data collection. Close shutters.'),
+        )
+
+        response = dialogs.warning(header, sub_header, buttons=buttons, countdown=countdown)
+        if response == SHUTDOWN_ENDSESSION:
+            self.beamline.all_shutters.close()
+
+            # show survey form here.
+            url = self.beamline.lims.session_info.get('survey')
+            if url:
+                logger.info('Showing user feedback survey ...')
+                survey_form = Browser(parent=self.window, title='Feedback', size=(640, 640), modal=True)
+                survey_form.view.connect('submit-form', self.on_submit_survey, survey_form)
+                survey_form.browser.connect('destroy', self.on_cancel_survey)
+                survey_form.go_to(url)
+        else:
+            self.quit()
+
+        return True
+
+    def on_submit_survey(self, view, request, window):
+        logger.info('Submitting user-survey to MxLIVE...')
+        request.submit()
+        window.destroy()
+        self.quit()
+
+    def on_cancel_survey(self, view):
         self.quit()
 
     def broadcast_service(self):
@@ -255,7 +295,6 @@ class Application(Gtk.Application):
         self.beamline.cleanup()
         clear_loggers()
 
-
 def clear_loggers():
     # disconnect all log handlers first
     logger = logging.getLogger('')
@@ -271,8 +310,8 @@ class MxDCApp(object):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.application.quit)
         if USE_TWISTED:
             reactor.registerGApplication(self.application)
-            reactor.run()
+            return reactor.run()
         else:
-            self.application.run(sys.argv)
+            return self.application.run(sys.argv)
 
 

@@ -53,7 +53,7 @@ class MXBeamline(Beamline):
         _shutter_list = []
         for nm in self.config['shutter_sequence']:
             _shutter_list.append(self.registry[nm])
-        self.registry['all_shutters'] = mxdc.devices.shutter.ShutterGroup(*tuple(_shutter_list))
+        self.registry['all_shutters'] = mxdc.devices.shutter.ShutterGroup(*tuple(_shutter_list), close_last=True)
 
         # Setup coordination between Beam tuner and energy changes
         if 'beam_tuner' in self.registry:

@@ -10,7 +10,6 @@ from mxdc import Registry, IBeamline
 logger = get_module_logger(__name__)
 
 
-
 class StatusPanel(object):
     def __init__(self, widget):
         self.widget = widget
@@ -26,7 +25,7 @@ class StatusPanel(object):
             common.PropertyMonitor(
                 self.beamline.synchrotron, 'current', self.widget.status_current_fbk, format='{:0.1f}'
             ),
-            common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch, openonly=True),
+            common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch),
             common.ShutterSwitcher(self.beamline.fast_shutter, self.widget.shutter_switch),
             common.ModeMonitor(self.beamline.manager, self.widget.mode_fbk, signal='mode'),
         ]

@@ -35,8 +35,6 @@ class BaseStorageRing(Device):
 
     def __init__(self):
         super().__init__()
-        for param in ['current', 'mode', 'state', 'message']:
-            self.connect('notify::{}'.format(param), self.check_ready)
 
     def check_ready(self, *args, **kwargs):
         return True
@@ -100,6 +98,7 @@ class StorageRing(BaseStorageRing):
             self.props.mode = self.mode_pv.get()
             self.props.state = self.state_pv.get()
             self.props.message = ', '.join([_f for _f in [msg.get().strip() for msg in self.messages] if _f])
+            self.check_ready()
 
 
 class SimStorageRing(BaseStorageRing):

@@ -639,7 +639,8 @@ class SampleQueue(Object):
     def clean(self):
         model = self.sample_store.model
         for item in model:
-            item[SampleStore.Data.SELECTED] = False
+            if item[SampleStore.Data.PROGRESS] != SampleStore.Progress.NONE:
+                item[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
 
     def format_state(self, column, cell, model, itr, data):
         processed = model[itr][SampleStore.Data.PROGRESS]
