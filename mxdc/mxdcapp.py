@@ -203,7 +203,7 @@ class Application(Gtk.Application):
 
     def on_quit(self, *args, **kwargs):
         countdown = 15
-        header = 'MxDC is about to close. Select "End Session" if you are done with data collection.'
+        header = 'MxDC is about to close. Select "End Session" \nif you are done with data collection.'
         sub_header = f'{countdown} seconds'
         buttons = (
             ('Quit', SHUTDOWN_QUIT, 'Exit immediately'),
