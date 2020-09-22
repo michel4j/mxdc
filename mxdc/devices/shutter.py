@@ -232,10 +232,10 @@ class Shutter(EPICSShutter):
     CLS EPICS Shutter
     """
 
-    def __init__(self, name):
-        open_name = "{}:opr:open".format(name)
-        close_name = "{}:opr:close".format(name)
-        state_name = "{}:state".format(name)
+    def __init__(self, root):
+        open_name = "{}:opr:open".format(root)
+        close_name = "{}:opr:close".format(root)
+        state_name = "{}:state".format(root)
         super().__init__(open_name, close_name, state_name)
 
 
