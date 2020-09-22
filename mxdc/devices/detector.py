@@ -736,7 +736,6 @@ class PilatusDetector(BaseDetector):
 
         if armed == 1:
             state = States.ARMED
-        logger.info(f'Detector state: {state}')
         self.set_state(state=state)
 
     def configure(self, **kwargs):
