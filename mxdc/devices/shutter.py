@@ -232,11 +232,11 @@ class Shutter(EPICSShutter):
     CLS EPICS Shutter
     """
 
-    def __init__(self, root):
+    def __init__(self, root, name='Shutter'):
         open_name = "{}:opr:open".format(root)
         close_name = "{}:opr:close".format(root)
         state_name = "{}:state".format(root)
-        super().__init__(open_name, close_name, state_name)
+        super().__init__(open_name, close_name, state_name, name=name)
 
 
 class InvertedShutter(EPICSShutter):
@@ -244,8 +244,8 @@ class InvertedShutter(EPICSShutter):
     CLS EPICS Shutter
     """
 
-    def __init__(self, name):
-        open_name = "{}:opr:close".format(name)
-        close_name = "{}:opr:open".format(name)
-        state_name = "{}:state".format(name)
-        super().__init__(open_name, close_name, state_name)
+    def __init__(self, root, name='Shutter'):
+        open_name = "{}:opr:close".format(root)
+        close_name = "{}:opr:open".format(root)
+        state_name = "{}:state".format(root)
+        super().__init__(open_name, close_name, state_name, name=name)
