@@ -1,8 +1,8 @@
 import time
 
 import numpy
-from gi.repository import GObject
 from zope.interface import implementer
+
 from mxdc import Signal, Device
 from mxdc.utils.log import get_module_logger
 from .interfaces import IDevice

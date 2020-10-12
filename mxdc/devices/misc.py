@@ -7,10 +7,10 @@ from zope.interface import implementer
 
 from mxdc import Registry, Signal, Device
 from mxdc.com.ca import PV
+from mxdc.devices.interfaces import IPositioner, IOnOff, IMotor
 from mxdc.devices.motor import BaseMotor
 from mxdc.utils import converter
 from mxdc.utils.log import get_module_logger
-from .interfaces import *
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)

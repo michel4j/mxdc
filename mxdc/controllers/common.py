@@ -1,10 +1,10 @@
 import logging
 import operator
-from collections import OrderedDict
 
 from gi.repository import Gtk, Pango, GLib
-from mxdc.widgets import timer
+
 from mxdc.devices.manager import BaseManager
+from mxdc.widgets import timer
 
 
 def value_class(val, warning, error):

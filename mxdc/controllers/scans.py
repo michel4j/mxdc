@@ -87,7 +87,6 @@ class ScanController(Object):
         self.setup()
 
     def setup(self):
-        #self.connect('notify::config', self.on_config_changed)
         self.scanner.connect('started', self.on_started)
         self.scanner.connect('new-point', self.on_new_point)
         self.scanner.connect('progress', self.on_progress)
@@ -381,7 +380,7 @@ class MADScanController(ScanController):
             self.plotter.set_labels(x_label='Energy (keV)', y1_label='Fluorescence')
 
         for choice in choices:
-            parent, child = self.results.add_item({
+            self.results.add_item({
                 'edge': scanner.config['edge'],
                 'name': scanner.config['name'],
                 'label': choice['label'],
@@ -442,7 +441,6 @@ class XRFScanController(ScanController):
         self.annotations = {}
         data = scanner.data
         analysis = scanner.results
-        ys = analysis['counts']
         energy = scanner.config['energy']
         assignments = analysis['assignments']
 
@@ -542,7 +540,7 @@ class XASScanController(ScanController):
 
     def on_new_scan(self, scanner, scan):
         self.axis = scan
-        parent, child = self.results.add_item(scanner.results['scans'][-1])
+        self.results.add_item(scanner.results['scans'][-1])
 
     def on_scan_selected(self, *args, **kwargs):
         if self.results.props.directory:

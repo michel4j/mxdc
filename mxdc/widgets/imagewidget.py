@@ -11,7 +11,6 @@ from queue import Queue
 
 from gi.repository import Gdk
 from gi.repository import Gtk
-from matplotlib import cm, gridspec
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 
@@ -33,8 +32,8 @@ MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for file to be
 
 
 def cmap(name):
-    c_map = cm.get_cmap(name, 256)
-    rgba_data = cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
+    c_map = matplotlib.cm.get_cmap(name, 256)
+    rgba_data = matplotlib.cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
     rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
     return rgba_data[:, :, ::-1]
 
@@ -337,7 +336,7 @@ class ImageWidget(Gtk.DrawingArea):
         color = colors.Category.CAT20C[0]
         matplotlib.rcParams.update({'font.size': 9.5})
         figure = Figure(frameon=False, figsize=(4, 2), dpi=72, edgecolor=color)
-        specs = gridspec.GridSpec(ncols=8, nrows=1, figure=figure)
+        specs = matplotlib.gridspec.GridSpec(ncols=8, nrows=1, figure=figure)
         plot = figure.add_subplot(specs[0,1:7])
         plot.patch.set_alpha(1.0)
         adjust_spines(plot, ['left'], color)

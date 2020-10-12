@@ -1,6 +1,6 @@
-from gi.repository import GObject, GdkPixbuf, Gtk, GLib
-from mxdc import Registry, IBeamline, Object, Property
+from gi.repository import GdkPixbuf, Gtk, GLib
 
+from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from . import common

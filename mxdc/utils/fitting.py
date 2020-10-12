@@ -14,7 +14,6 @@ from scipy.special import erf
 def step_func(x, coeffs):
     H, L, P = coeffs[:3]
     d = coeffs[3]
-    sigma = L / 2.35482
     y = 0.5 * H * (0.5 + (1.0 / numpy.pi) * scipy.arctan((x - P) / (0.5 * L))) + d
     return y
 
@@ -105,7 +104,7 @@ TARGET_FUNC = {
 
 
 class PeakFitter(object):
-    def __init__(self, default=[1., 1., 0., 0.]):
+    def __init__(self, default=(1., 1., 0., 0.)):
         self.success = False
         self.default = default
 

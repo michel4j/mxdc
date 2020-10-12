@@ -5,12 +5,11 @@ import array
 import sys
 
 
-def add_decorations(img, x, y, bw, bh):
+def add_decorations(img, x, y, bh):
     tick = 8
     img = img.convert('RGBA')
     
     w, h = img.size
-    hw = bw/2
     hh = bh/2
     src = numpy.fromstring(img.tobytes('raw', 'RGBA', 0, 1))
     surface = cairo.ImageSurface.create_for_data(src, cairo.FORMAT_ARGB32, w, h, w*4)

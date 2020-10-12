@@ -236,7 +236,7 @@ class MxLIVEClient(BaseService):
 
         if update:
             try:
-                reply = self.post('/project/', data={'public': self.keys['public']})
+                self.post('/project/', data={'public': self.keys['public']})
                 logger.info('MxLIVE Service configured for {}'.format(self.address))
                 settings.save_keys(self.keys)
             except (IOError, ValueError, requests.HTTPError) as e:

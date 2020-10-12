@@ -1,7 +1,6 @@
 import atexit
 import threading
 import reprlib
-import copy
 
 from gi.repository import GObject, GLib
 from gi.types import GObjectMeta
@@ -120,7 +119,7 @@ def _get_signal_ids(itype):
     try:
         parent_type = GObject.type_parent(itype)
         parent_signals = _get_signal_ids(parent_type)
-    except:
+    except RuntimeError:
         parent_signals = []
     return GObject.signal_list_ids(itype) + parent_signals
 
@@ -617,4 +616,4 @@ class Engine(Object):
         This method should contain the implementation details of the engine operation.
         It should appropriately monitor the stopped and paused variables and act accordingly.
         """
-        raise NotImplemented('Must be implemented by subclasses')
+        raise NotImplementedError('Must be implemented by subclasses')

@@ -1,18 +1,18 @@
-import uuid
 import re
+import uuid
 from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
 
-from gi.repository import Gio, Gtk, Gdk, Pango, GObject, GLib
-from mxdc import Registry, Signal, Object, IBeamline, Property
+from gi.repository import Gio, Gtk, Gdk, Pango
 from zope.interface import Interface, implementer
 
+from mxdc import Registry, Signal, Object, IBeamline, Property
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines import auto
+from mxdc.utils import misc
 from mxdc.utils.automounter import Port, PortColors
 from mxdc.utils.decorators import async_call
-from mxdc.utils import misc
 from .automounter import DewarController
 
 
@@ -143,11 +143,8 @@ class SampleStore(Object):
         self.props.ports = set()
         self.props.containers = set()
 
-        try:
-            cache = load_cache('samples')
-            self.props.cache = set() if not cache else set(cache)
-        except:
-            self.props.cache = set()
+        cache = load_cache('samples')
+        self.props.cache = set() if not cache else set(cache)
 
         self.filter_text = ''
 

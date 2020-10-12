@@ -43,6 +43,7 @@ class Application(Gtk.Application):
         self.window = None
         self.terminal = None
         self.ipshell = None
+        self.shell_vars = []
         self.shell_config = Config()
         # initialize beamline
         self.beamline = build_beamline(console=True)
@@ -91,12 +92,14 @@ class Application(Gtk.Application):
 
         plot = self.plot
         fit = self.plot.fit
+        self.shell_vars = {'plot': plot, 'fit': fit}
         self.builder.scan_beamline_lbl.set_text(bl.name)
         self.ipshell = InteractiveShellEmbed.instance(config=self.shell_config)
         self.ipshell.magic('%gui gtk3')
         self.ipshell()
         print('Stopping ...')
         self.window.destroy()
+
         reactor.stop()
 
     def on_quit(self, *args, **kwargs):

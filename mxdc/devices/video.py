@@ -5,17 +5,16 @@ import threading
 import time
 from io import BytesIO, StringIO
 
-
 import numpy
 import redis
 import requests
 from PIL import Image
-from .interfaces import ICamera, IZoomableCamera, IPTZCameraController, IMotor
+from zope.interface import implementer
+
 from mxdc import Signal, Device
 from mxdc import conf
 from mxdc.utils.log import get_module_logger
-
-from zope.interface import implementer
+from .interfaces import ICamera, IZoomableCamera, IPTZCameraController
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)

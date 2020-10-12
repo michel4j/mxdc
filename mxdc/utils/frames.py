@@ -1,16 +1,17 @@
+import json
 import os
 import time
-import zmq
-import numpy
-import cv2
-import lz4.block, lz4.frame
-
-import json
 from queue import Queue
 
-from mxdc import Engine, Signal
+import cv2
+import lz4.block
+import lz4.frame
+import numpy
+import zmq
 from mxio import read_image
 from mxio.formats import DataSet
+
+from mxdc import Engine
 
 MAX_FILE_FREQUENCY = 5
 

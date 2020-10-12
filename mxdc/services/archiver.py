@@ -99,7 +99,6 @@ class ArchiverApp(object):
         if len(sys.argv) == 3:
             sync = RsyncApp(sys.argv[1], sys.argv[2])
             proceed = True
-            timeout = SYNC_TIME
             target_dir = os.path.join(sync.dest, os.path.basename(sync.src))
 
             while proceed:

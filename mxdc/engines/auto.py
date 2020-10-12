@@ -1,7 +1,4 @@
-import time
-
-from mxdc.engines import centering
-from mxdc.utils.decorators import ca_thread_enable, async_call
+from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)

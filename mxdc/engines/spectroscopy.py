@@ -1,17 +1,20 @@
 """This module defines classes aid interfaces for X-Ray fluorescence."""
 import copy
 import time
+import os
+import numpy
+import json
 from datetime import datetime
 
 import pytz
 
-from mxdc import Signal
 from mxdc.engines.chooch import AutoChooch
 from mxdc.engines.scanning import BasicScan
+from mxdc.utils import converter
 from mxdc.utils import scitools, misc, datatools
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import multi_count
-from mxdc.utils.scitools import *
+
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -27,7 +30,7 @@ class XRFScan(BasicScan):
     def configure(self, **kwargs):
         super().configure(**kwargs)
         self.config.update(
-            filename=os.path.join(self.config.directory, "{}.xdi".format(self.config.name, self.config.energy)),
+            filename=os.path.join(self.config.directory, "{}.xdi".format(self.config.name)),
             user=misc.get_project_name(),
         )
 
@@ -153,7 +156,7 @@ class MADScan(BasicScan):
 
     def __init__(self):
         super().__init__()
-        self.emissions = get_energy_database()
+        self.emissions = scitools.get_energy_database()
         self.chooch = AutoChooch()
         self.results = {}
 
@@ -163,7 +166,7 @@ class MADScan(BasicScan):
         self.config.update(
             edge_energy=edge_energy,
             roi_energy=roi_energy,
-            positions=xanes_targets(edge_energy),
+            positions=scitools.xanes_targets(edge_energy),
             user=misc.get_project_name(),
             filename=os.path.join(self.config.directory, "{}.xdi".format(self.config.name))
         )
@@ -317,7 +320,7 @@ class XASScan(BasicScan):
 
     def __init__(self):
         super().__init__()
-        self.emissions = get_energy_database()
+        self.emissions = scitools.get_energy_database()
         self.total_time = 0
         self.scan_index = 0
 
@@ -326,7 +329,7 @@ class XASScan(BasicScan):
         self.config['edge_energy'], self.config['roi_energy'] = self.emissions[info['edge']]
         self.config['frame_template'] = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '{:0>3d}')
         self.config['frame_glob'] = '{}-{}_{}.xdi'.format(info['name'], info['edge'], '*')
-        self.config['targets'] = exafs_targets(self.config['edge_energy'], kmax=info['kmax'])
+        self.config['targets'] = scitools.exafs_targets(self.config['edge_energy'], kmax=info['kmax'])
         self.config['user'] = misc.get_project_name()
         self.results = {}
         if not os.path.exists(self.config['directory']):

@@ -152,7 +152,6 @@ class DataForm(gui.FormManager):
 
     def on_change(self, field, event, name):
         super().on_change(field, event, name)
-        spec = self.fields[name]
 
         if name == 'delta':
             delta = self.get_value('delta')

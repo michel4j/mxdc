@@ -1,11 +1,9 @@
-import threading
-import time
 import importlib
+import time
 
-from gi.repository import GObject, GLib
-from mxdc import Registry, Signal, Engine, IBeamline
 from zope.interface import Interface, Attribute, implementer
 
+from mxdc import Signal, Engine
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger
 

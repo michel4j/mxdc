@@ -2,12 +2,12 @@
 
 from datetime import datetime
 
-from gi.repository import Gdk, GObject, Gtk, GLib
+from gi.repository import Gdk, Gtk
+
+from mxdc import Registry, Object, Property, Signal, IBeamline
 from mxdc.utils.automounter import Port
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
-
-from mxdc import Registry, Object, Property, Signal, IBeamline
 
 logger = get_module_logger(__name__)
 
@@ -144,7 +144,6 @@ class DewarController(Object):
             self.emit('selected', port)
 
     def on_state_changed(self, obj, *args):
-        health = self.beamline.automounter.get_state('health')
         status = self.beamline.automounter.get_state('status')
 
         if status.name in ['IDLE', ]:

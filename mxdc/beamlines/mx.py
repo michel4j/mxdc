@@ -1,6 +1,6 @@
 import mxdc.devices.shutter
 from mxdc.beamlines import Beamline
-from mxdc.devices import stages, misc, diagnostics, motor, video
+from mxdc.devices import misc, diagnostics, motor, video
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -65,7 +65,7 @@ class MXBeamline(Beamline):
                 self.beam_tuner.resume()
 
             self.energy.connect('starting', on_bt_pause)
-            self.energy.connect('done', on_bt_pause)
+            self.energy.connect('done', on_bt_resume)
 
         # default detector cover
         if not 'detector_cover' in self.registry:

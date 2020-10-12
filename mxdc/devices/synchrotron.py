@@ -1,12 +1,12 @@
-import time
-import numpy
 import random
+import time
 
-from gi.repository import GObject
+import numpy
+from zope.interface import implementer
+
+from mxdc import Signal, Device, Property
 from mxdc.devices.interfaces import IStorageRing
 from mxdc.devices.misc import logger
-from mxdc import Signal, Device, Property
-from zope.interface import implementer
 
 
 @implementer(IStorageRing)

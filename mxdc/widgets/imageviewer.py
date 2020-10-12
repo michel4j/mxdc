@@ -124,7 +124,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_data.set_alignment(1, 0.5)
 
     def on_data_loaded(self, obj=None):
-        color = 'DarkSlateGray'  # colors.Category.CAT20C[0]
         self.dataset = self.canvas.get_image_info()
         if self.dataset.header.get('dataset'):
             self.directory = self.dataset.header['dataset']['directory']

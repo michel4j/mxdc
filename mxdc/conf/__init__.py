@@ -17,6 +17,7 @@ logger = get_module_logger(__name__)
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHARE_DIR = os.path.join(APP_DIR, 'share')
 CONFIG_DIR = os.path.expanduser(os.environ.get('MXDC_CONFIG', os.path.join(APP_DIR, '../deploy')))
+
 DOCS_DIR = os.path.join(APP_DIR, '../docs/build/html')
 
 
@@ -32,10 +33,8 @@ def _extract_variable(mod_path, variable, default=None):
     import ast
     with open(mod_path, "r") as file_mod:
         data = file_mod.read()
-    try:
-        ast_data = ast.parse(data, filename=mod_path)
-    except:
-        return default
+
+    ast_data = ast.parse(data, filename=mod_path)
 
     if ast_data:
         for body in ast_data.body:
@@ -45,10 +44,7 @@ def _extract_variable(mod_path, variable, default=None):
                 getattr(body.targets[0], "id", "") == variable
             )
             if proceed:
-                try:
-                    return ast.literal_eval(body.value)
-                except:
-                    return default
+                return ast.literal_eval(body.value)
     return default
 
 

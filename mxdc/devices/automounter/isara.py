@@ -1,9 +1,8 @@
-import re
 import time
+
 from gi.repository import GLib
 from mxdc.devices.automounter import AutoMounter, State, logger
 from mxdc.utils.automounter import Port, Puck
-from mxdc.utils.misc import Chain
 from mxdc.utils.decorators import async_call
 
 ISARA_DEWAR = {

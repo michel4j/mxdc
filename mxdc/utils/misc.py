@@ -1,5 +1,7 @@
 import hashlib
+import ipaddress
 import json
+import math
 import os
 import pwd
 import re
@@ -10,19 +12,16 @@ import struct
 import subprocess
 import threading
 import time
-import uuid
-import ipaddress
-import numpy
-import math
 import unicodedata
-
+import uuid
 from abc import ABC
 from html.parser import HTMLParser
+from importlib import import_module
 
+import numpy
 from gi.repository import GLib
 from scipy import interpolate
-from importlib import import_module
-from threading import Lock
+
 from mxdc.com import ca
 from . import decorators
 from . import log
@@ -57,7 +56,7 @@ SUPERSCRIPTS_TRANS = str.maketrans('0123456789+-', '⁰¹²³⁴⁵⁶⁷⁸⁹�
 
 def sci_fmt(number, digits=3):
     exp = 0 if number == 0 else math.floor(math.log10(abs(number)))
-    value = number*(10**-exp)
+    value = number * (10 ** -exp)
     exp_text = f'{exp}'.translate(SUPERSCRIPTS_TRANS)
     val_fmt = f'{{:0.{digits}f}}'
     val_text = val_fmt.format(value)
@@ -180,8 +179,6 @@ def slugify(value, empty="", allow_unicode=False):
 
 
 def format_partial(fmt, *args, **kwargs):
-    import string
-
     class SafeDict(dict):
         def __missing__(self, key):
             return '{' + key + '}'
@@ -213,7 +210,7 @@ def open_terminal(directory=None):
         '--geometry=132x24',
         '--working-directory={}'.format(directory),
     ]
-    p = subprocess.Popen(commands)
+    subprocess.Popen(commands)
 
 
 def save_metadata(metadata, filename):
@@ -259,7 +256,7 @@ def get_address():
 
 def get_free_tcp_port():
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp.bind(('', 0))
+    tcp.bind(('localhost', 0))
     addr, port = tcp.getsockname()
     tcp.close()
     return port
@@ -351,7 +348,7 @@ class RecordArray(object):
 
     def __init__(self, dtype, size=10, loop=False, data=None):
         self.dtype = numpy.dtype(dtype)
-        self.lock = Lock()
+        self.lock = threading.Lock()
         self.loop = loop
         self.length = 0
         self.size = size
@@ -578,8 +575,8 @@ def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=Tr
     nX, nY = size
     radius = step / 2
 
-    xi = (numpy.arange(0, nX) - (nX-1)/2) * step + cX
-    yi = (numpy.arange(0, nY) - (nY-1)/2) * step + cY
+    xi = (numpy.arange(0, nX) - (nX - 1) / 2) * step + cX
+    yi = (numpy.arange(0, nY) - (nY - 1) / 2) * step + cY
     x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
 
     if snake:
@@ -606,8 +603,8 @@ def calc_grid_size(width, height, aperture, tight=True):
     tightness = numpy.sqrt(2) if tight else 1.0
     size = numpy.array([width, height])
     nX, nY = size / aperture
-    nX = max(2, numpy.ceil(nX+1))
-    nY = max(2, numpy.ceil(tightness * numpy.ceil(nY+1)))
+    nX = max(2, numpy.ceil(nX + 1))
+    nY = max(2, numpy.ceil(tightness * numpy.ceil(nY + 1)))
     return int(nX), int(nY)
 
 

@@ -343,7 +343,57 @@ class SimDetector(BaseDetector):
         self._select_dir()
 
 
-class RayonixDetector(BaseDetector):
+class ADGenericMixin(object):
+    """
+    Common methods for AreaDetector type detectors
+    """
+
+    def on_state_value(self, obj, value):
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            2: States.ACQUIRING,
+            3: States.STANDBY,
+            4: States.STANDBY,
+            5: States.STANDBY,
+            6: States.ERROR,
+            7: States.STANDBY,
+            8: States.INITIALIZING,
+            9: States.ERROR,
+            10: States.IDLE,
+        }.get(value, States.IDLE)
+        self.set_state(state=state)
+
+
+class ADDectrisMixin(object):
+    """
+    Common methods for Dectris AreaDetector type detectors
+    """
+
+    def on_state_value(self, obj, value):
+        detector_state = self.state_value.get()
+        armed = self.armed_status.get()
+
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            2: States.ACQUIRING,
+            3: States.ACQUIRING,
+            4: States.ACQUIRING,
+            5: States.ACQUIRING,
+            6: States.IDLE,
+            7: States.ACQUIRING,
+            8: States.INITIALIZING,
+            9: States.ERROR,
+            10: States.IDLE,
+        }.get(detector_state, States.IDLE)
+
+        if armed == 1:
+            state = States.ARMED
+        self.set_state(state=state)
+
+
+class RayonixDetector(ADGenericMixin, BaseDetector):
     """
     Rayonix Detector devices controlled through the AreaDetector MarCCD EPICS driver.
 
@@ -446,22 +496,6 @@ class RayonixDetector(BaseDetector):
             file_path = self.saved_filename.get()
             self.monitor.add(file_path)
 
-    def on_state_value(self, obj, value):
-        state = {
-            0: States.IDLE,
-            1: States.ACQUIRING,
-            2: States.ACQUIRING,
-            3: States.STANDBY,
-            4: States.STANDBY,
-            5: States.STANDBY,
-            6: States.ERROR,
-            7: States.STANDBY,
-            8: States.INITIALIZING,
-            9: States.ERROR,
-            10: States.IDLE,
-        }.get(value, States.IDLE)
-        self.set_state(state=state)
-
     def configure(self, **kwargs):
         if not self.initialized:
             self.initialize(True)
@@ -473,7 +507,7 @@ class RayonixDetector(BaseDetector):
                 self.settings[k].put(v, wait=True)
 
 
-class ADSCDetector(BaseDetector):
+class ADSCDetector(ADGenericMixin, BaseDetector):
     """
     ADSC Detector devices for the AreaDetector EPICS driver.
 
@@ -575,22 +609,6 @@ class ADSCDetector(BaseDetector):
         else:
             self.set_state(health=(0, 'socket', ''))
 
-    def on_state_value(self, obj, value):
-        state = {
-            0: States.IDLE,
-            1: States.ACQUIRING,
-            2: States.ACQUIRING,
-            3: States.ERROR,
-            4: States.STANDBY,
-            5: States.STANDBY,
-            6: States.STANDBY,
-            7: States.STANDBY,
-            8: States.INITIALIZING,
-            9: States.ERROR,
-            10: States.IDLE,
-        }.get(value, States.IDLE)
-        self.set_state(state=state)
-
     def on_new_frame(self, obj, path):
         file_path = self.saved_filename.get()
         self.monitor.add(file_path)
@@ -606,7 +624,7 @@ class ADSCDetector(BaseDetector):
                 self.settings[k].put(v, wait=True)
 
 
-class PilatusDetector(BaseDetector):
+class PilatusDetector(ADDectrisMixin, BaseDetector):
     """
     Pilatus Detector devices from DECTRIS controlled through the AreaDetector Pilaltus EPICS driver.
 
@@ -646,8 +664,8 @@ class PilatusDetector(BaseDetector):
         self.saved_frame = self.add_pv('{}:ArrayCounter'.format(name))
 
         self.saved_frame_fbk.connect('changed', self.on_new_frame)
-        self.state_value.connect('changed', self.on_state_change)
-        self.armed_status.connect('changed', self.on_state_change)
+        self.state_value.connect('changed', self.on_state_value)
+        self.armed_status.connect('changed', self.on_state_value)
         self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
@@ -718,28 +736,6 @@ class PilatusDetector(BaseDetector):
             num_frames = self.settings['num_frames'].get()
             self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
-    def on_state_change(self, obj, value):
-        detector_state = self.state_value.get()
-        armed = self.armed_status.get()
-
-        state = {
-            0: States.IDLE,
-            1: States.ACQUIRING,
-            2: States.ACQUIRING,
-            3: States.ACQUIRING,
-            4: States.ACQUIRING,
-            5: States.ACQUIRING,
-            6: States.IDLE,
-            7: States.ACQUIRING,
-            8: States.INITIALIZING,
-            9: States.ERROR,
-            10: States.IDLE,
-        }.get(detector_state, States.IDLE)
-
-        if armed == 1:
-            state = States.ARMED
-        self.set_state(state=state)
-
     def configure(self, **kwargs):
         params = {}
         params.update(kwargs)
@@ -768,7 +764,7 @@ class PilatusDetector(BaseDetector):
             self.set_state(health=(0, 'socket', ''))
 
 
-class EigerDetector(BaseDetector):
+class EigerDetector(ADDectrisMixin, BaseDetector):
     """
     Eiger Detector devices from DECTRIS controlled through the AreaDetector EPICS driver.
 
@@ -808,8 +804,8 @@ class EigerDetector(BaseDetector):
         self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
         self.num_images = self.add_pv('{}:NumImages'.format(name))
 
-        self.state_value.connect('changed', self.on_state_change)
-        self.armed_status.connect('changed', self.on_state_change)
+        self.state_value.connect('changed', self.on_state_value)
+        self.armed_status.connect('changed', self.on_state_value)
         self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
@@ -889,18 +885,6 @@ class EigerDetector(BaseDetector):
         for k, v in list(params.items()):
             if k in self.settings:
                 self.settings[k].put(v, wait=True)
-
-    def on_state_change(self, obj, value):
-        state = {
-            0: States.IDLE,
-            1: States.ACQUIRING,
-            6: States.ERROR,
-            8: States.INITIALIZING,
-        }.get(self.state_value.get(), States.IDLE)
-        armed = self.armed_status.get()
-        if armed == 1:
-            state = States.ARMED
-        self.set_state(state=state)
 
     def on_connection_changed(self, obj, state):
         if state == 0:

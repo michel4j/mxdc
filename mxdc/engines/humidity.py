@@ -1,14 +1,11 @@
 import os
-import re
-import threading
 
 from gi.repository import GLib
 from twisted.internet.defer import returnValue, inlineCallbacks
-from mxdc import Registry, Signal, Engine
 
-from mxdc.com import ca
+from mxdc import Registry, Signal, Engine
 from mxdc.engines.interfaces import IAnalyst
-from mxdc.utils import datatools, misc
+from mxdc.utils import misc
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 

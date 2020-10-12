@@ -1,16 +1,14 @@
 import os
 import uuid
-import json
-import time
 
-from gi.repository import GObject
-from mxdc import Registry, Signal, Engine, IBeamline
-from twisted.internet.defer import  inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
+
+from mxdc import Registry, Signal, Engine, IBeamline
+from mxdc.conf import settings
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc, datatools
 from mxdc.utils.log import get_module_logger
-from mxdc.conf import settings
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -18,7 +16,6 @@ logger = get_module_logger(__name__)
 
 @implementer(IAnalyst)
 class Analyst(Engine):
-
     class Signals:
         report = Signal('new-report', arg_types=(str, object))
 
@@ -50,7 +47,7 @@ class Analyst(Engine):
             'type': metadata['type'],
         }
         params = datatools.update_for_sample(params, sample, overwrite=False)
-        parent, child = self.manager.add_item(params, False)
+        self.manager.add_item(params, False)
         try:
             report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
         except Exception as e:
@@ -92,7 +89,7 @@ class Analyst(Engine):
             'type': metadata['type'],
         }
         params = datatools.update_for_sample(params, sample, overwrite=False)
-        parent, child = self.manager.add_item(params, False)
+        self.manager.add_item(params, False)
 
         try:
             report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
@@ -126,7 +123,7 @@ class Analyst(Engine):
             'type': metadata['type'],
         }
         params = datatools.update_for_sample(params, sample, overwrite=False)
-        parent, child = self.manager.add_item(params, False)
+        self.manager.add_item(params, False)
         method = settings.get_string('screening-method').lower()
 
         try:
@@ -184,7 +181,7 @@ class Analyst(Engine):
             'type': metadata['type'],
         }
         params = datatools.update_for_sample(params, sample, overwrite=False)
-        parent, child = self.manager.add_item(params, False)
+        self.manager.add_item(params, False)
         try:
             report = yield self.beamline.dps.process_xrd(params, params['directory'], misc.get_project_name())
         except Exception as e:

@@ -1,6 +1,6 @@
 import threading
 import time
-
+from functools import wraps
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -9,18 +9,19 @@ logger = get_module_logger(__name__)
 def memoize(f):
     """ Memoization decorator for functions taking one or more arguments. """
 
-    class memodict(dict):
+    class Memodict(object):
         def __init__(self, f):
+            self.store = {}
             self.f = f
 
         def __call__(self, *args):
-            return self[args]
+            if args in self.store:
+                return self.store[args]
+            else:
+                ret = self.store[args] = self.f(*args)
+                return ret
 
-        def __missing__(self, key):
-            ret = self[key] = self.f(*key)
-            return ret
-
-    return memodict(f)
+    return Memodict(f)
 
 
 def async_call(f):
@@ -34,13 +35,13 @@ def async_call(f):
         threads_init()  # enable epics environment to be active within thread
         return f(*args, **kwargs)
 
+    @wraps(f)
     def _f(*args, **kwargs):
         worker = threading.Thread(target=new_f, args=args, kwargs=kwargs)
         worker.setDaemon(True)
         worker.setName('Async Call: {}'.format(f.__name__))
         worker.start()
 
-    _f.__name__ = f.__name__
     return _f
 
 
@@ -51,11 +52,11 @@ def ca_thread_enable(f):
     """
     from mxdc.com.ca import threads_init
 
+    @wraps(f)
     def _f(*args, **kwargs):
         threads_init()
         return f(*args, **kwargs)
 
-    _f.__name__ = f.__name__
     return _f
 
 

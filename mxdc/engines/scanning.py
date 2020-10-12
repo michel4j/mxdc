@@ -164,7 +164,7 @@ class BasicScan(Engine):
         """
         Scan implementation. Details must be implemented by sub-classes
         """
-        NotImplementedError('Derived classes must implement scan method')
+        raise NotImplementedError('Derived classes must implement scan method')
 
     def prepare_xdi(self):
         """

@@ -1,15 +1,14 @@
 import math
 import os
 
-
-from gi.repository import Gtk, Gdk, GLib
-import numpy
 import cairo
-from mxdc import Registry, IBeamline, Object, Property
+import numpy
+from gi.repository import Gtk, Gdk
 from zope.interface import Interface, Attribute, implementer
-from mxdc.devices.interfaces import ICenter
 
+from mxdc import Registry, IBeamline, Object, Property
 from mxdc.conf import save_cache, load_cache
+from mxdc.devices.interfaces import ICenter
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
 from mxdc.utils import imgproc, colors, misc

@@ -61,7 +61,7 @@ class ConfigDisplay(object):
 
     def on_item_changed(self, item, param):
         for name, format in list(self.Formats.items()):
-            field_name = '{}_{}_lbl'.format(self.prefix, name, name)
+            field_name = '{}_{}_lbl'.format(self.prefix, name)
             field = getattr(self.widget, field_name, None)
             if field and name in self.item.props.info:
                 field.set_text(format.format(self.item.props.info[name]))
@@ -276,7 +276,7 @@ class AutomationController(Object):
                     Gtk.MessageType.WARNING, 'Automation Paused', reason,
                     buttons=(('OK', Gtk.ResponseType.OK),)
                 )
-                response = self.pause_info.run()
+                self.pause_info.run()
                 if self.pause_info:
                     self.pause_info.destroy()
                     self.pause_info = None
@@ -604,7 +604,7 @@ class DatasetsController(Object):
             })
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.DRAFT)
             new_item.props.info = info
-            pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+            self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
         self.check_run_store()
 
     def open_terminal(self, button):

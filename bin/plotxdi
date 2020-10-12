@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
+
 import matplotlib
 
 matplotlib.use('Gtk3Agg')
-from matplotlib import colors, gridspec, rcParams
+from matplotlib import rcParams
 from matplotlib import pyplot as plt
 
 from mxdc.utils import xdi

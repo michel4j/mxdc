@@ -1,6 +1,5 @@
 import cv2
 import numpy
-from PIL import Image
 from PIL import ImageChops
 from PIL import ImageFilter
 from mxdc.utils.scitools import find_peaks
@@ -8,40 +7,13 @@ from scipy import signal
 
 THRESHOLD = 20
 BORDER = 10
+EDGE_TOLERANCE = 5
 
 
 def image_deviation(img1, img2):
     img = ImageChops.difference(img1, img2).filter(ImageFilter.BLUR)
     ab = numpy.asarray(img.convert('L'))
     return ab.std()
-
-
-def _centroid(a):
-    if a.sum() == 0.0:
-        return -1
-    else:
-        return int((numpy.array(list(range(len(a)))) * a).sum() / a.sum())
-
-
-def _get_object(a):
-    p = list(a > THRESHOLD)
-
-    if True in p:
-        mid = _centroid(a)
-        pl = p.index(True)
-        pr = len(p) - p[::-1].index(True) - 1
-        span = abs(pr - pl)
-        mid = (pr + pl) * 0.5
-    else:
-        mid, span = -1, 1
-    return mid, max(span, 1)
-
-
-def xconv(x, max_x, dir='left'):
-    if dir == 'left':
-        return x
-    else:
-        return max_x - x
 
 
 def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
@@ -146,15 +118,6 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
         if 'peaks' in info:
             info['peaks'] = [(x_max - x, y) for x, y in info['peaks']]
     return info
-
-
-
-def _normalize(data):
-    data = data - data.min()
-    return (100.0 * data) / data.max()
-
-
-EDGE_TOLERANCE = 5
 
 
 def dist(p1, p2):

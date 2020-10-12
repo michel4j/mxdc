@@ -164,18 +164,19 @@ TAGS = {
 def memoize(f):
     """ Memoization decorator for functions taking one or more arguments. """
 
-    class memodict(dict):
+    class Memodict(object):
         def __init__(self, f):
+            self.store = {}
             self.f = f
 
         def __call__(self, *args):
-            return self[args]
+            if args in self.store:
+                return self.store[args]
+            else:
+                ret = self.store[args] = self.f(*args)
+                return ret
 
-        def __missing__(self, key):
-            ret = self[key] = self.f(*key)
-            return ret
-
-    return memodict(f)
+    return Memodict(f)
 
 
 @memoize

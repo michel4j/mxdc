@@ -6,7 +6,7 @@ from gi.repository import Pango
 try:
     from mxdc.conf import settings
     DEFAULT_DIRECTORY = os.path.join(os.environ['HOME'], settings.get_session())
-except:
+except Exception:
     DEFAULT_DIRECTORY = os.environ['HOME']
 
 

@@ -133,7 +133,6 @@ class NameManager(object):
         m = re.match(rf'({self.sample}.+)(\d+)', name)
         if m:
             root = m.group(1)
-            index = int(m.group(2))
             if name in self.names:
                 new_name = "{}{}".format(root, self.history[root])
             self.history[root] += 1
@@ -353,7 +352,6 @@ def grid_frames(params: dict):
     :param params: run parameters
     :return: list of dictionaries representing a frame each
     """
-    frame_template = make_file_template(params['name'])
     return (
         {
             'name': params['name'],

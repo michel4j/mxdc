@@ -89,7 +89,6 @@ class DeiceGonio(Script):
 
     def run(self):
         if 'deicer' in self.beamline.registry:
-            pos = self.beamline.goniometer.omega.get_position()
             self.beamline.deicer.on()
             config = self.beamline.goniometer.omega.get_config()
             self.beamline.goniometer.configure(speed=1)

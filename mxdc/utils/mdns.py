@@ -56,7 +56,7 @@ class SimpleProvider(object):
         """
         try:
             ZCONF.register_service(self.info)
-        except:
+        except Collision:
             logger.error('Service Name Collision: {}'.format(self.info.name))
 
     def __del__(self):

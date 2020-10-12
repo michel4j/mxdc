@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-import numpy
 from gi.repository import Gtk
 
 from mxdc import Registry, IBeamline, Object, Property

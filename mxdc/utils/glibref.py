@@ -1,6 +1,5 @@
 import ctypes
 import gi
-from ctypes import pythonapi
 
 class _PyGObject_Functions(ctypes.Structure):
     _fields_ = [
@@ -22,17 +21,17 @@ class PyGObjectCAPI(object):
 
     @classmethod
     def _capsule_name(cls, capsule):
-        pythonapi.PyCapsule_GetName.restype = ctypes.c_char_p
-        pythonapi.PyCapsule_GetName.argtypes = [ctypes.py_object]
-        return pythonapi.PyCapsule_GetName(capsule)
+        ctypes.pythonapi.PyCapsule_GetName.restype = ctypes.c_char_p
+        ctypes.pythonapi.PyCapsule_GetName.argtypes = [ctypes.py_object]
+        return ctypes.pythonapi.PyCapsule_GetName(capsule)
 
     @classmethod
     def _as_void_ptr(cls, capsule):
         name = cls._capsule_name(capsule)
-        pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
-        pythonapi.PyCapsule_GetPointer.argtypes = [
+        ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+        ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [
             ctypes.py_object, ctypes.c_char_p]
-        return pythonapi.PyCapsule_GetPointer(capsule, name)
+        return ctypes.pythonapi.PyCapsule_GetPointer(capsule, name)
 
     def to_object(self, addr):
         return self._api.pygobject_new(addr)

@@ -5,8 +5,7 @@ from gi.repository import Gtk
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
-from matplotlib import cm
-import matplotlib.transforms as transforms
+from matplotlib import cm, transforms
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, OldScalarFormatter
@@ -388,7 +387,6 @@ class Plotter(Gtk.Alignment):
         default = self.axis.get('default')
 
         if event.inaxes and self.lines and not self.grid_mode:
-            x_name = self.data_type['names'][0]
             x, y = event.xdata, event.ydata
 
             if self.cursor_line is None:

@@ -1,8 +1,8 @@
 from twisted.application import service
 from twisted.internet import reactor
-from twisted.python import components
 from twisted.spread import pb
 from zope.interface import Interface, implementer
+
 from mxdc import Registry
 from mxdc.utils.log import get_module_logger
 

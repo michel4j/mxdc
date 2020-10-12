@@ -214,7 +214,6 @@ def find_valleys(x, y, width=9, sensitivity=0.01, smooth=True):
         return x[pos], yfunc(pos)
 
     peak_positions = [get_peak(m.start() + offset) for m in re.finditer(peak_str, data_str)]
-    ymax = max(ys)
     peaks = [v for v in peak_positions]
     return peaks
 
@@ -357,7 +356,6 @@ def interprete_xrf(xo, yo, energy, speedup=4):
         if sz % i == 0: sp = i
     yfunc = interpolate.interp1d(xo, yo, kind='cubic', fill_value=0.0, copy=False, bounds_error=False)
     xc = numpy.linspace(xo.min(), xo.max(), 1+ sz//sp)
-    yc = yfunc(xc)
 
     coeffs = numpy.zeros((len(elements) + 1))
     coeffs[-1] = 1.0  # scale
@@ -369,7 +367,8 @@ def interprete_xrf(xo, yo, energy, speedup=4):
 
     # Fit L peaks keeping K-coefficients constant
     new_coeffs, _ = optimize.leastsq(
-        model_err, k_coeffs[:], args=(xc, yfunc, template, lonly==0.0, k_coeffs), maxfev=25000
+        model_err, k_coeffs[:], args=(xc, yfunc, template, lonly==0.0, k_coeffs),
+        maxfev=25000
     )
     final_template = calc_template(xo, elements) * new_coeffs[:-1]
     return elements, final_template, new_coeffs
