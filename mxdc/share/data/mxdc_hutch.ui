@@ -1565,26 +1565,9 @@
                                               <object class="GtkBox">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
-                                                <property name="margin_left">12</property>
-                                                <property name="margin_right">12</property>
                                                 <property name="margin_top">6</property>
                                                 <property name="margin_bottom">6</property>
-                                                <child>
-                                                  <object class="GtkLabel" id="tuner_left_lbl">
-                                                    <property name="visible">True</property>
-                                                    <property name="can_focus">False</property>
-                                                    <property name="halign">start</property>
-                                                    <attributes>
-                                                      <attribute name="scale" value="0.90000000000000002"/>
-                                                    </attributes>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">True</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
+                                                <child type="center">
                                                   <object class="GtkBox" id="tuner_control_box">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
@@ -1605,6 +1588,7 @@
                                                       <packing>
                                                         <property name="expand">True</property>
                                                         <property name="fill">True</property>
+                                                        <property name="pack_type">end</property>
                                                         <property name="position">1</property>
                                                       </packing>
                                                     </child>
@@ -1653,7 +1637,23 @@
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">1</property>
+                                                    <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkLabel" id="tuner_left_lbl">
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="use_markup">True</property>
+                                                    <style>
+                                                      <class name="tuner-fbk"/>
+                                                    </style>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">True</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">0</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -1664,10 +1664,14 @@
                                                     <attributes>
                                                       <attribute name="scale" value="0.90000000000000002"/>
                                                     </attributes>
+                                                    <style>
+                                                      <class name="tuner-fbk"/>
+                                                    </style>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">True</property>
                                                     <property name="fill">True</property>
+                                                    <property name="pack_type">end</property>
                                                     <property name="position">2</property>
                                                   </packing>
                                                 </child>
