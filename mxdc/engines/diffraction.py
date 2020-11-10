@@ -197,8 +197,8 @@ class DataCollector(Engine):
 
     def run_shutterless(self):
         is_first_frame = True
-        # Perform scan
 
+        # Perform scan
         for wedge in datatools.interleave(*self.config['datasets'].values()):
             self.emit('started', wedge)
             self.current_wedge = wedge

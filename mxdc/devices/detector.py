@@ -337,7 +337,7 @@ class SimDetector(BaseDetector):
             data_files = sorted(fnmatch.filter(files, f'*_*.{self.file_extension}'))
             for file in data_files:
                 if self._stopped: break
-                key = os.path.join(root, file.replace('_001.', '_{:03d}.'))
+                key = os.path.join(root, file.replace('_0001.', '_{:04d}.'))
                 if len(data_files) >= 60:
                     self._datasets[key] = len(data_files)
         self._select_dir()

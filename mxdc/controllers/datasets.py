@@ -761,6 +761,7 @@ class DatasetsController(Object):
                 dialogs.warning(msg1, msg2)
                 return
             success, checked_runs, existing = self.check_runlist(runs)
+
             if success:
                 self.collecting = True
                 self.widget.collect_btn_icon.set_from_icon_name(

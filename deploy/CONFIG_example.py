@@ -56,7 +56,7 @@ DEVICES = {
     'detector_z': tmp1,
     'two_theta': motor.SimMotor('Detector Two Theta', 0.0, 'deg', speed=5.0),
     'detector': detector.SimDetector(
-        'Simulated Detector', images="/users/michel/Work/data-processing/", extension='img',
+        'Simulated Detector', images="/data/Xtal", extension='cbf',
         trigger=trig1, size=(2463, 2527), pixel_size=0.172
     ),
 
