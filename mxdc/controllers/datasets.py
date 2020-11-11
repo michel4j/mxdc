@@ -368,12 +368,8 @@ class DatasetsController(Object):
     def import_from_cache(self):
         runs = load_cache('runs')
         if runs:
-            points = set()
+            self.run_editor.set_points(self.microscope.props.points)
             for run in runs:
-                if run.get('p0') and not run['p0'] in points:
-                    self.microscope.add_point(run['p0'])
-                if run.get('p1') and not run['p1'] in points:
-                    self.microscope.add_point(run['p1'])
                 new_item = datawidget.RunItem(
                     run['info'], state=run['state'], created=run['created'], uid=run['uuid']
                 )
@@ -401,7 +397,6 @@ class DatasetsController(Object):
         self.sample_store = Registry.get_utility(ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
 
-        self.on_points()
         self.import_from_cache()
 
         new_item = datawidget.RunItem(state=datawidget.RunItem.StateType.ADD)
@@ -495,6 +490,17 @@ class DatasetsController(Object):
             if item.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 run = {'uuid': item.uuid}
                 run.update(item.info)
+
+                # convert points to coordinates and then
+                # make sure point is not empty if end_point is set
+                for name in ['p0', 'p1']:
+                    if run.get(name) not in [-1, 0, None]:
+                        run[name] = self.run_editor.get_point(run[name])
+                    elif name in run:
+                        del run[name]
+                if 'p1' in run and 'p0' not in run:
+                    run['p0'] = run.pop('p1')
+
                 run = datatools.update_for_sample(run, sample)
                 runs.append(run)
             pos += 1

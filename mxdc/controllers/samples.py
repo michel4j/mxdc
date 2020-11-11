@@ -1,3 +1,4 @@
+import time
 from mxdc import Registry, IBeamline, Object, Property
 
 from mxdc.controllers import microscope, samplestore, humidity, rastering, automounter
@@ -11,7 +12,7 @@ logger = get_module_logger(__name__)
 class SamplesController(Object):
     def __init__(self, widget):
         super().__init__()
-        self.automounter_ready = False
+        self.init_start = time.time()
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.microscope = microscope.Microscope(self.widget)
@@ -24,9 +25,9 @@ class SamplesController(Object):
         self.setup()
 
     def on_sample_mounted(self, obj, sample):
-        if not self.automounter_ready:
+        if time.time() - self.init_start > 30:
             self.microscope.clear_objects()
-            self.automounter_ready = True
+
 
     def setup(self):
         # create and pack devices into settings frame

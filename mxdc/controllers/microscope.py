@@ -202,6 +202,8 @@ class Microscope(Object):
             for name, value in list(cache.items()):
                 if name == 'grid-xyz':
                     value = None if not isinstance(value, list) else numpy.array(value)
+                if name == 'points':
+                    value = [tuple(point) for point in value]
                 self.set_property(name, value)
 
     def save_image(self, filename):

@@ -680,8 +680,8 @@ class FieldSpec(object):
             elif self.suffix == 'spin':
                 field.set_value(new_value)
             elif self.suffix == 'mbox' and field.get_model():
-                if new_value is not None:
-                    field.set_active(new_value)
+                new_value = -1 if new_value in [0, None] else new_value
+                field.set_active(new_value)
 
     def connect_to(self, builder, prefix, callback):
         """

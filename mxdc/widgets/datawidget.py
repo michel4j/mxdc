@@ -296,16 +296,6 @@ class DataEditor(gui.BuilderMixin):
             'activity': Strategy[info['strategy']]['activity'],
         })
 
-        # convert points to coordinates and then
-        # make sure point is not empty if end_point is set
-        for name in ['p0', 'p1']:
-            if info.get(name) not in [-1, 0, None]:
-                info[name] = self.get_point(info[name])
-            elif name in info:
-                del info[name]
-        if 'p1' in info and 'p0' not in info:
-            info['p0'] = info.pop('p1')
-
         return info
 
     def get_default(self, strategy_type=StrategyType.SINGLE):
@@ -332,7 +322,7 @@ class DataEditor(gui.BuilderMixin):
         self.points.clear()
         self.points.append([0, '', None])
         for i, point in enumerate(points):
-            self.points.append([i, 'P{}'.format(i + 1), points[i]])
+            self.points.append([i, 'P{}'.format(i + 1), tuple(point)])
 
     def get_point(self, index):
         for i, row in enumerate(self.points):
