@@ -232,7 +232,7 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('inverse', 'check', '{}', Validator.Bool(False)),
         gui.FieldSpec('p0', 'mbox', '{}', Validator.Int(None, None)),
         gui.FieldSpec('p1', 'mbox', '{}', Validator.Int(None, None)),
-        gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(2, 100, 10)),
+        gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(1, 100, 10)),
     )
     disabled = ()
     use_dialog = False
@@ -373,7 +373,7 @@ class RunEditor(DataEditor):
         self.points.connect('row-deleted', self.on_points_updated)
         self.points.connect('row-inserted', self.on_points_updated)
 
-        adjustment = Gtk.Adjustment(10, 2, 100, 1, 5, 0)
+        adjustment = Gtk.Adjustment(10, 1, 100, 1, 5, 0)
         self.data_vector_size_spin.set_adjustment(adjustment)
         self.data_p1_mbox.bind_property(
             'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda *args: bool(args[1])

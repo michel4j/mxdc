@@ -255,9 +255,12 @@ class MD2Gonio(BaseGoniometer):
         }
 
         self.helix_settings = {
-            'time': self.add_pv(f"{root}:startScan4DEx:exposure_time"),
-            'range': self.add_pv(f"{root}:startScan4DEx:scan_range"),
-            'angle': self.add_pv(f"{root}:startScan4DEx:start_angle"),
+            #'time': self.add_pv(f"{root}:startScan4DEx:exposure_time"),
+            #'range': self.add_pv(f"{root}:startScan4DEx:scan_range"),
+            #'angle': self.add_pv(f"{root}:startScan4DEx:start_angle"),
+            'time': self.add_pv(f"{root}:ScanExposureTime"),
+            'range': self.add_pv(f"{root}:ScanRange"),
+            'angle': self.add_pv(f"{root}:ScanStartAngle"),
             'frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
 
             # Start position
@@ -333,6 +336,8 @@ class MD2Gonio(BaseGoniometer):
         ))
         if is_helical:
             kind = 'helical'
+        elif kwargs.get('start_pos'):
+            self.stage.move_xyz(*kwargs['start_pos'], wait=True)
 
         success = self.wait(stop=True, start=False, timeout=10)
 
