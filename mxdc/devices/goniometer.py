@@ -262,16 +262,16 @@ class MD2Gonio(BaseGoniometer):
 
             # Start position
             'start_pos': (
+                self.add_pv(f'{root}:startScan4DEx:start_y'),
                 self.add_pv(f'{root}:startScan4DEx:start_cy'),
                 self.add_pv(f'{root}:startScan4DEx:start_cx'),
-                self.add_pv(f'{root}:startScan4DEx:start_z'),
             ),
 
             # Stop position
             'end_pos': (
-                self.add_pv(f'{root}:startScan4DEx:stop_cy'),
-                self.add_pv(f'{root}:startScan4DEx:stop_cx'),
-                self.add_pv(f'{root}:startScan4DEx:stop_z')
+                self.add_pv(f'{root}:startScan4DEx:start_y'),
+                self.add_pv(f'{root}:startScan4DEx:start_cy'),
+                self.add_pv(f'{root}:startScan4DEx:start_cx'),
             ),
         }
 
