@@ -1,8 +1,8 @@
 
 import numpy
 
-from gi.repository import Gtk
-from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
+from gi.repository import Gtk, GObject
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
 from matplotlib import cm, transforms
@@ -16,45 +16,66 @@ GRID_COLORMAP = 'viridis'
 GRID_INTERPOLATION = 'nearest'  # nearest
 
 
-class PlotterToolbar(NavigationToolbar):
+class PlotterToolbar(NavigationToolbar2GTK3):
+
     toolitems = (
-        ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
-        ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
-        ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
+        ('Home', 'Reset original view', 'go-home', 'home'),
+        ('Back', 'Back to  previous view', 'go-previous', 'back'),
+        ('Forward', 'Forward to next view', 'go-next', 'forward'),
         (None, None, None, None),
-        ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
-        ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
+        ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen', 'pan'),
+        ('Zoom', 'Zoom to rectangle', 'zoom-fit-best', 'zoom'),
         (None, None, None, None),
-        ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
+        ('Save', 'Save the figure', 'media-floppy', 'save_figure'),
     )
 
-    def _init_toolbar(self):
-        self.set_style(Gtk.ToolbarStyle.ICONS)
+    def __init__(self, canvas, window):
+        super().__init__(canvas, window)
+        for i, toolitem in enumerate(self):
+            if isinstance(toolitem, Gtk.ToolButton):
+                icon_name = f'{self.toolitems[i][2]}-symbolic'
+                image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)
+                toolitem.set_icon_widget(image)
 
-        self._gtk_ids = {}
-        for text, tooltip_text, icon, callback in self.toolitems:
-            if text is None:
-                self.insert(Gtk.SeparatorToolItem(), -1)
-                continue
-            self._gtk_ids[text] = tbutton = Gtk.ToolButton.new(
-                Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.SMALL_TOOLBAR)
-            )
-            tbutton.set_label(text)
-            self.insert(tbutton, -1)
-            tbutton.connect('clicked', getattr(self, callback))
-            tbutton.set_tooltip_text(tooltip_text)
 
-        toolitem = Gtk.SeparatorToolItem()
-        self.insert(toolitem, -1)
-        toolitem.set_draw(False)
-        toolitem.set_expand(True)
-
-        toolitem = Gtk.ToolItem()
-        self.insert(toolitem, -1)
-        self.message = Gtk.Label()
-        toolitem.add(self.message)
-        self.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
-        self.show_all()
+    # toolitems = (
+    #     ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
+    #     ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
+    #     ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
+    #     (None, None, None, None),
+    #     ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
+    #     ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
+    #     (None, None, None, None),
+    #     ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
+    # )
+    #
+    # def _init_toolbar(self):
+    #     self.set_style(Gtk.ToolbarStyle.ICONS)
+    #
+    #     self._gtk_ids = {}
+    #     for text, tooltip_text, icon, callback in self.toolitems:
+    #         if text is None:
+    #             self.insert(Gtk.SeparatorToolItem(), -1)
+    #             continue
+    #         self._gtk_ids[text] = tbutton = Gtk.ToolButton.new(
+    #             Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.SMALL_TOOLBAR)
+    #         )
+    #         tbutton.set_label(text)
+    #         self.insert(tbutton, -1)
+    #         tbutton.connect('clicked', getattr(self, callback))
+    #         tbutton.set_tooltip_text(tooltip_text)
+    #
+    #     toolitem = Gtk.SeparatorToolItem()
+    #     self.insert(toolitem, -1)
+    #     toolitem.set_draw(False)
+    #     toolitem.set_expand(True)
+    #
+    #     toolitem = Gtk.ToolItem()
+    #     self.insert(toolitem, -1)
+    #     self.message = Gtk.Label()
+    #     toolitem.add(self.message)
+    #     self.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
+    #     self.show_all()
 
 
 class Plotter(Gtk.Alignment):
