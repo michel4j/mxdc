@@ -33,9 +33,7 @@ Auto mounters provide abstractions for robotic sample mounting systems for loadi
 .. autosummary::
 
     sam.UncleSAM
-    sam.SAM
     isara.AuntISARA
-    isara.ISARA
     cats.CATS
     sim.SimSAM
 

@@ -1,15 +1,18 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Objects &mdash; MxDC 2020.5.58 documentation</title>
+  <title>Objects &mdash; MxDC 2020.8.21 documentation</title>
   
+
+  
+  <link rel="stylesheet" href="../_static/css/styles.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
 
   
   
@@ -17,7 +20,9 @@
   
 
   
-  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -29,10 +34,6 @@
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="../_static/styles.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Devices" href="devices.html" />
@@ -50,7 +51,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home"> MxDC
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> MxDC
           
 
           
@@ -60,7 +61,7 @@
             
             
               <div class="version">
-                2020.5.58
+                2020.8.21
               </div>
             
           
@@ -77,6 +78,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -116,6 +118,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -154,7 +157,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../index.html">Docs</a> &raquo;</li>
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Objects</li>
     
@@ -242,13 +245,14 @@ callbacks.</p>
 </div>
 <dl class="py method">
 <dt id="mxdc.Object.emit">
-<code class="sig-name descname">emit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">signal</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Object.emit" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">emit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">signal</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Object.emit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Emit the signal. Signal emissions are thread safe and will be handled in the main thread.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>signal</strong> – Signal name</p></li>
 <li><p><strong>args</strong> – list of signal parameters</p></li>
+<li><p><strong>force</strong> – if True emit the signal even if the value is the same as before</p></li>
 </ul>
 </dd>
 </dl>
@@ -311,6 +315,7 @@ neccessarily usable as kwargs for set_state due to the ‘_’ to ‘-‘ transf
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2006-2020, Canadian Light Source, Inc
 
     </p>
@@ -325,7 +330,6 @@ neccessarily usable as kwargs for set_state due to the ‘_’ to ‘-‘ transf
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {

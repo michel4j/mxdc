@@ -1,15 +1,18 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8">
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Devices &mdash; MxDC 2020.5.58 documentation</title>
+  <title>Devices &mdash; MxDC 2020.8.21 documentation</title>
   
+
+  
+  <link rel="stylesheet" href="../_static/css/styles.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
 
   
   
@@ -17,7 +20,9 @@
   
 
   
-  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
@@ -29,10 +34,6 @@
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
     
-
-  
-  <link rel="stylesheet" href="../_static/styles.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Engines" href="engines.html" />
@@ -50,7 +51,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home"> MxDC
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> MxDC
           
 
           
@@ -60,7 +61,7 @@
             
             
               <div class="version">
-                2020.5.58
+                2020.8.21
               </div>
             
           
@@ -77,6 +78,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -131,6 +133,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -169,7 +172,7 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../index.html">Docs</a> &raquo;</li>
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Devices</li>
     
@@ -325,10 +328,10 @@ of pending components.</p>
 <dl class="py method">
 <dt id="mxdc.Device.supports">
 <code class="sig-name descname">supports</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">features</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.Device.supports" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if device supports all of the features in specified</p>
+<dd><p>Check if device supports all of the features specified</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>features</strong> – features to check</p>
+<dd class="field-odd"><p><strong>features</strong> – one or more features to check</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>bool</p>
@@ -502,6 +505,42 @@ and dismounting any mounted samples before mounting</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.wait_until">
+<code class="sig-name descname">wait_until</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">states</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">20.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.wait_until" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for a maximum amount of time until the state is one of the specified states, or busy
+if no states are specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> – states to check for. Attaining any of the states will terminate the wait</p></li>
+<li><p><strong>timeout</strong> – Maximum time in seconds to wait</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if state was attained, False if timeout was reached.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.automounter.AutoMounter.wait_while">
+<code class="sig-name descname">wait_while</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">states</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">20.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.wait_while" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for a maximum amount of time while the state is one of the specified states, or not busy
+if no states are specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – states to check for. Attaining a state other than any of the states will terminate the wait</p></li>
+<li><p><strong>timeout</strong> – Maximum time in seconds to wait</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if state was attained, False if timeout was reached.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <p class="rubric">Sub-classes</p>
@@ -514,14 +553,8 @@ and dismounting any mounted samples before mounting</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sam.UncleSAM</span></code>(root)</p></td>
 <td><p>Auto mounter Device based on the UncleSAM EPICS driver without Blu-ICE.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sam.SAM</span></code>(root)</p></td>
-<td><p>Auto mounter Device based on the old EPICS/DCSS/Blu-ICE driver .</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">isara.AuntISARA</span></code>(root)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">isara.AuntISARA</span></code>(root)</p></td>
 <td><p>Auto mounter Device for the IRELEC ISARA based on the newer AunISARA python-based EPICS driver.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">isara.ISARA</span></code>(root)</p></td>
-<td><p>Auto mounter Device for the IRELEC ISARA based on the original EPICS driver.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cats.CATS</span></code>(root)</p></td>
 <td><p>An abstraction fot the IRELEC CATS Auto Mounter</p></td>
@@ -644,6 +677,18 @@ vacuum pressure, etc. Counters provide mechanisms for averaging or integrating t
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>accumulated value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mxdc.devices.counter.BaseCounter.count_async">
+<code class="sig-name descname">count_async</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.count_async" title="Permalink to this definition">¶</a></dt>
+<dd><p>Non-blocking averaging of the value for the specified amount of time. The result of the count
+will be available in the “average_count” attribute</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>t</strong> – total time to count</p>
 </dd>
 </dl>
 </dd></dl>
@@ -872,11 +917,21 @@ acquiring data.</p>
 
 <dl class="py method">
 <dt id="mxdc.devices.goniometer.BaseGoniometer.scan">
-<code class="sig-name descname">scan</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="o">=</span><span class="default_value">'simple'</span></em>, <em class="sig-param"><span class="n">wait</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">timeout</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.scan" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">scan</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.scan" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configure and perform the scan
 :keyword type: Scan type (str), one of (‘simple’, ‘shutterless’, ‘helical’, ‘vector’, ‘raster’)
-:keyword wait:
-:keyword timeout:</p>
+:keyword wait: boolean whether to wait or not
+:keyword timeout: maximum time to wait for scan.
+:keyword time: exposure time
+:keyword range: scan range in degrees
+:keyword angle: starting angle for scan
+:keyword frames: number of frames to acquire during scan, per line for raster scans
+:keyword start_pos: starting position
+:keyword end_pos: ending position
+:keyword passes:  Number of exposures per frame
+:keyword lines: Number of lines for raster scans
+:keyword width: horizontal size of raster grid
+:keyword height: vertical size of raster grid</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1324,6 +1379,19 @@ the values are not available (-1, -1) is substituted</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="mxdc.devices.mca.BaseMCA.get_dark_counts">
+<code class="sig-name descname">get_dark_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.get_dark_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the counts for the region of interest for each element of the
+detector for the dark data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Array(float). The array contains as many elements as the number of
+elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="mxdc.devices.mca.BaseMCA.get_roi">
 <code class="sig-name descname">get_roi</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">energy</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.mca.BaseMCA.get_roi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get region of interest tuple for the given energy</p>
@@ -1342,7 +1410,7 @@ detector for the last performed data acquisition.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Array(float). The array contains as many elements as the number of
-elements plus one. The first entry is an average of all elements combined.</p>
+elements.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1404,7 +1472,7 @@ of the sample environment suitable for a specific type of activity. Examples of 
 </ul>
 <dl class="py class">
 <dt id="mxdc.devices.manager.BaseManager.ModeType">
-<em class="property">class </em><code class="sig-name descname">ModeType</code><a class="headerlink" href="#mxdc.devices.manager.BaseManager.ModeType" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-name descname">ModeType</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.ModeType" title="Permalink to this definition">¶</a></dt>
 <dd><p>An enumeration.</p>
 </dd></dl>
 
@@ -1696,7 +1764,7 @@ relative amount.</p>
 </table>
 <dl class="py class">
 <dt id="mxdc.devices.misc.OnOffToggle">
-<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">OnOffToggle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pv_name</span></em>, <em class="sig-param"><span class="n">values</span><span class="o">=</span><span class="default_value">1, 0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">OnOffToggle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pv_name</span></em>, <em class="sig-param"><span class="n">values</span><span class="o">=</span><span class="default_value">(1, 0)</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.OnOffToggle" title="Permalink to this definition">¶</a></dt>
 <dd><p>A Device that can be toggled on/off.</p>
 <p class="rubric">Signals</p>
 <ul class="simple">
@@ -1799,7 +1867,7 @@ relative amount.</p>
 
 <dl class="py class">
 <dt id="mxdc.devices.misc.DiskSpaceMonitor">
-<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">DiskSpaceMonitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">descr</span></em>, <em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">warn</span><span class="o">=</span><span class="default_value">0.05</span></em>, <em class="sig-param"><span class="n">critical</span><span class="o">=</span><span class="default_value">0.025</span></em>, <em class="sig-param"><span class="n">freq</span><span class="o">=</span><span class="default_value">5.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.DiskSpaceMonitor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">mxdc.devices.misc.</code><code class="sig-name descname">DiskSpaceMonitor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">descr</span></em>, <em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">warn</span><span class="o">=</span><span class="default_value">0.05</span></em>, <em class="sig-param"><span class="n">critical</span><span class="o">=</span><span class="default_value">0.025</span></em>, <em class="sig-param"><span class="n">freq</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.misc.DiskSpaceMonitor" title="Permalink to this definition">¶</a></dt>
 <dd><p>A device which periodically monitors a given path for available space.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1953,10 +2021,10 @@ relative amount.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToggleShutter</span></code>(name[, reversed])</p></td>
 <td><p>A Toggle shutter controlled by a single process variable</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShutterGroup</span></code>(*shutters)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShutterGroup</span></code>(*shutters[, close_last])</p></td>
 <td><p>Meta Shutter controlling a sequence of shutters</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Shutter</span></code>(name)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Shutter</span></code>(root[, name])</p></td>
 <td><p>CLS EPICS Shutter</p></td>
 </tr>
 </tbody>
@@ -2272,6 +2340,7 @@ and updates each one when the video frame changes.</p>
 
   <div role="contentinfo">
     <p>
+        
         &copy; Copyright 2006-2020, Canadian Light Source, Inc
 
     </p>
@@ -2286,7 +2355,6 @@ and updates each one when the video frame changes.</p>
 
   </div>
   
-
 
   <script type="text/javascript">
       jQuery(function () {
