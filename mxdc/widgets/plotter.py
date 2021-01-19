@@ -2,13 +2,13 @@
 import numpy
 
 from gi.repository import Gtk, GObject
-from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3, ToolbarGTK3
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
 from matplotlib import cm, transforms
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
-from matplotlib.ticker import FormatStrFormatter, OldScalarFormatter
+from matplotlib.ticker import FormatStrFormatter, ScalarFormatter
 from mxdc.utils import misc
 from mxdc.widgets import dialogs
 
@@ -137,7 +137,7 @@ class Plotter(Gtk.Alignment):
 
         ax = self.fig.add_subplot(111)
         ax.yaxis.tick_right()
-        ax.yaxis.set_major_formatter(OldScalarFormatter())
+        ax.yaxis.set_major_formatter(ScalarFormatter())
         self.axis = {'default': ax}
 
 
@@ -179,7 +179,7 @@ class Plotter(Gtk.Alignment):
         self.fig.subplots_adjust(right=self.axis_space ** index)
         ax = self.fig.add_axes(default.get_position(), sharex=default, frameon=False)
         ax.spines['right'].set_position(('axes', axis_position))
-        ax.yaxis.set_major_formatter(OldScalarFormatter())
+        ax.yaxis.set_major_formatter(ScalarFormatter())
         ax.set_frame_on(True)
         ax.patch.set_visible(False)
 

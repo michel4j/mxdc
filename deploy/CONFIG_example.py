@@ -13,7 +13,7 @@ CONFIG = {
     'mono_unit_cell': 5.4297575,
     'source': 'CLS Sim SGU',
     'type': 'mxdc.beamlines.mx.MXBeamline',
-    'subnet': '192.168.0.0/16',
+    'subnet': '0.0.0.0/0',
 
     'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
 
@@ -98,8 +98,8 @@ DEVICES = {
 
 SERVICES = {
     'dss': clients.LocalDSSClient(),
-    #'lims': clients.MxLIVEClient('http://localhost:8000'),
-    'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
+    'lims': clients.MxLIVEClient('http://localhost:8000'),
+    #'lims': clients.MxLIVEClient('https://mxlive.lightsource.ca'),
     'dps': clients.DPSClient(),
     'messenger': clients.SimMessenger()
 }

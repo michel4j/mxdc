@@ -16,7 +16,7 @@ logger = get_module_logger(__name__)
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHARE_DIR = os.path.join(APP_DIR, 'share')
-CONFIG_DIR = os.path.expanduser(os.environ.get('MXDC_CONFIG', os.path.join(APP_DIR, '../deploy')))
+CONFIG_DIR = os.path.abspath(os.environ.get('MXDC_CONFIG', os.path.join(APP_DIR, '../deploy')))
 
 DOCS_DIR = os.path.join(APP_DIR, '../docs/build/html')
 
