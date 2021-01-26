@@ -105,13 +105,13 @@ class CryoJetBase(Device):
         flow rate is saved.
         """
         self._previous_flow = self.sample_fbk.get()
-        self.sample_sp.set(0.0)
+        self.sample_sp.put(0.0)
 
     def resume_flow(self):
         """
         Restores the flow rate to the previously saved setting.
         """
-        self.sample_sp.set(self._previous_flow)
+        self.sample_sp.put(self._previous_flow)
 
     def on_temp(self, obj, val):
         if val < 110:
@@ -233,13 +233,13 @@ class SimCryoJet(CryoJetBase):
         flow rate is saved.
         """
         self._previous_flow = self.sample_fbk.get()
-        self.sample_fbk.set(0.0)
+        self.sample_fbk.put(0.0)
 
     def resume_flow(self):
         """
         Restores the flow rate to the previously saved setting.
         """
-        self.sample_fbk.set(self._previous_flow)
+        self.sample_fbk.put(self._previous_flow)
 
 
 __all__ = ['CryoJet', 'CryoJet5', 'SimCryoJet']
