@@ -63,6 +63,7 @@ class DataCollector(Engine):
         :param anomalous: bool, enable analysis mode for data analysis
         """
 
+        print(run_data)
         self.config['analysis'] = analysis
         self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots

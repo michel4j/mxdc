@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import pathlib
 import threading
 import time
 import cv2
@@ -118,15 +119,13 @@ class DataLoader(Object):
         attempts = 0
         success = False
         while not success and attempts < 10:
-            loadable = (
-                os.path.exists(path) and time.time() - os.path.getmtime(path) > MAX_SAVE_JITTER
-            )
-            if loadable:
+            path_obj = pathlib.Path(path)
+            if path_obj.exists() and path_obj.stat().st_ctime < time.time() - MAX_SAVE_JITTER:
                 try:
                     dataset = read_image(path)
                     self.show(dataset)
                     success = True
-                except (ValueError, KeyError):
+                except (ValueError, KeyError) as err:
                     success = False
             attempts += 1
             time.sleep(0.1)

@@ -197,8 +197,17 @@ class DataForm(gui.FormManager):
             inverse.set_sensitive((strategy == StrategyType.FULL and 'inverse' not in self.disabled))
             self.set_values(defaults)
 
-        if name in ['delta', 'strategy', 'range']:
+        if name == 'inverse':
+            inverse = self.get_value('inverse')
+            if inverse:
+                self.set_value('range', min(180., self.get_value('range')))
+
+        if name in ['delta', 'strategy', 'range', 'inverse']:
             range = self.get_value('range')
+            inverse = self.get_value('inverse')
+            if inverse:
+                range = min(180., range)
+                self.set_value('range', range)
             strategy = self.get_value('strategy')
             delta = self.get_value('delta')
             first = self.get_value('first')

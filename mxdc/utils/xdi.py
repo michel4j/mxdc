@@ -79,7 +79,7 @@ class OffsetTZ(tzinfo):
 
 
 def isotime(text):
-    patt = re.compile('(?P<date_text>[\d-]{8,10}T[\d:]{6,8}(?:\.\d+)?)Z?(?:(?P<sign>[+-])(?P<offset>\d{2}:\d{2}))?')
+    patt = re.compile('(?P<date_text>[\d-]{8,10}[T ][\d:]{6,8}(?:\.\d+)?)Z?(?:(?P<sign>[+-])(?P<offset>\d{2}:\d{2}))?')
     m = patt.match(text)
     if m:
         info = m.groupdict()
@@ -207,10 +207,9 @@ def format_field(field):
     
 
 XDI_PATTERN = re.compile(
-    '#\s*XDI/1.0\s*(?P<version_text>[^\n]*)\n'
+    '#\s*(?P<version_text>XDI/[^\n]*)\n'
     '(?P<header_text>(?:#\s*[^\n]*\n)+?)'
-    '#\s*/{3,}\n'
-    '(?P<comments_text>.*?)'
+    '(?:#\s*/{3,}\n(?P<comments_text>.*?))?'
     '#\s*-{3,}\n'
     '#\s*(?P<columns_text>[^\n]*)\n'
     '(?P<data_text>.+)',
@@ -222,7 +221,7 @@ HEADER_PATTERN = re.compile('#\s*(?P<namespace>[a-zA-Z]\w+).(?P<tag>[\w-]+):\s*(
 
 class XDIData(object):
     def __init__(self, header=None, data=None, comments='', version=''):
-        self.header = header or collections.OrderedDict()
+        self.header = header or {}
         self.data = data
         self.comments = comments
         self.version = version
@@ -269,7 +268,7 @@ class XDIData(object):
                     namespace = key.split('.')[0]  # preserve case for non-standard namespaces
                 field = Field(value=value, units=unit)
             if namespace not in self.header:
-                self.header[namespace] = collections.OrderedDict()
+                self.header[namespace] = {}
             self.header[namespace][tag] = field
 
     def save(self, filename):
@@ -293,7 +292,7 @@ class XDIData(object):
             raw = XDI_PATTERN.match(handle.read().decode('utf8')).groupdict()
         self.version = raw['version_text']
 
-        self.header = collections.OrderedDict()
+        self.header = {}
         header_rows = [m.groupdict() for m in HEADER_PATTERN.finditer(raw['header_text'])]
         for row in header_rows:
             namespace = row['namespace'].lower()
@@ -320,13 +319,13 @@ class XDIData(object):
                     namespace = row['namespace']  # preserve capitalization for non-standard namespaces
                 field = Field(value=row['text'].strip())
             if namespace not in self.header:
-                self.header[namespace] = collections.OrderedDict()
+                self.header[namespace] = {}
             self.header[namespace][tag] = field
 
-        columns = list(collections.OrderedDict(sorted(self.header['column'].items())).values())
+        columns = list(dict(sorted(self.header['column'].items())).values())
         header_columns = [col.value for col in columns]
 
-        self.comments = ' '.join(raw['comments_text'].replace('#', '').split())
+        self.comments = '' if not raw['comments_text'] else ' '.join(raw['comments_text'].replace('#', '').split())
         data_columns = raw['columns_text'].split()
 
         if data_columns != header_columns:
