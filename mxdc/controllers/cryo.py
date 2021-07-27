@@ -103,10 +103,9 @@ class CryoController(Object):
                 self.props.anneal_active = True
                 duration = 100
                 GLib.timeout_add(duration, self.monitor_annealing, duration)
-                self.cryojet.stop_flow()
+                self.cryojet.anneal()
 
     def stop_annealing(self):
-        self.cryojet.resume_flow()
         self.props.anneal_active = False
         self.stopped = True
 

@@ -39,6 +39,15 @@ class BaseCounter(Device):
         """
         raise NotImplementedError('Subclasses must implement this method')
 
+    def average(self, duration):
+        """
+        Average of the value for the specified amount of time. Blocks while counting
+
+        :param duration: total time duration in seconds to average
+        :return: average value
+        """
+        raise NotImplementedError('Subclasses must implement this method')
+
     def start(self):
         """
         Start counting as fast as possible until stopped. Values are be emitted as the "count" signal.
@@ -89,9 +98,17 @@ class Counter(BaseCounter):
         self.set_state(changed=val)
     
     def count(self, duration):
+        average = self.average(duration)
+        interval=0.01
+        total = (duration / interval) * average
+        logger.debug('(%s) Returning integrated values for %0.2f sec.' % (self.name, duration))
+        self.set_state(count=total)
+        return total
+
+    def average(self, duration):
         if duration <= 0.0:
             return self.value.get() - self.zero
-            
+
         logger.debug('Averaging detector (%s) for %0.2f sec.' % (self.name, duration))
         interval=0.01
         values = []
@@ -100,10 +117,7 @@ class Counter(BaseCounter):
             values.append( self.value.get() )
             time.sleep(interval)
             time_left -= interval
-        total = (duration / interval) * (sum(values, 0.0) / len(values)) - self.zero
-        logger.debug('(%s) Returning integrated values for %0.2f sec.' % (self.name, duration))
-        self.set_state(count=total)
-        return total
+        return sum(values, 0.0) / len(values) - self.zero
 
     @decorators.async_call
     def start(self):
@@ -165,6 +179,9 @@ class SimCounter(BaseCounter):
         value = self.fetch_value()
         self.set_state(count=value)
         return value
+
+    def average(self, duration):
+        return self.count(duration)
 
     @decorators.async_call
     def start(self):

@@ -1,5 +1,5 @@
 from enum import Enum
-from gi.repository import GObject
+from gi.repository import GLib
 from zope.interface import implementer
 
 import mxdc.devices.shutter
@@ -99,19 +99,13 @@ class CryoJetBase(Device):
     def setup(self, *args, **kwargs):
         pass
 
-    def stop_flow(self):
+    def anneal(self, duration):
         """
-        Stop the flow of the cold nitrogen stream. The current setting for
-        flow rate is saved.
-        """
-        self._previous_flow = self.sample_fbk.get()
-        self.sample_sp.put(0.0)
+        Anneal for the specified duration
 
-    def resume_flow(self):
+        :param duration: duration in seconds to stop cooling
         """
-        Restores the flow rate to the previously saved setting.
-        """
-        self.sample_sp.put(self._previous_flow)
+        pass
 
     def on_temp(self, obj, val):
         if val < 110:
@@ -183,6 +177,11 @@ class CryoJet(CryoJetBase):
             self.set_state(health=(0, 'cryo', ''))
         self.set_property('level', val/10.)
 
+    def anneal(self, duration):
+        previous_flow = self.sample_fbk.get()
+        self.sample_sp.put(0.0)
+        GLib.timeout_add(duration*1000, self.sample_sp.put, previous_flow)
+
 
 class CryoJet5(CryoJetBase):
     def setup(self, name, nozzle_name):
@@ -202,6 +201,7 @@ class CryoJet5(CryoJetBase):
         self.nozzle.connect('changed', self.on_nozzle)
 
 
+
 class SimCryoJet(CryoJetBase):
     def setup(self, *args, **kwargs):
         self.nozzle = mxdc.devices.shutter.SimShutter('Sim Cryo Nozzle')
@@ -219,7 +219,6 @@ class SimCryoJet(CryoJetBase):
         self.shield_fbk.connect('changed', self.on_shield)
         self.nozzle.connect('changed', self.on_nozzle)
 
-
     def _simulate_nozzle(self, *args, **kwargs):
         if self.nozzle.is_open():
             self.nozzle.close()
@@ -227,19 +226,10 @@ class SimCryoJet(CryoJetBase):
             self.nozzle.open()
         return True
 
-    def stop_flow(self):
-        """
-        Stop the flow of the cold nitrogen stream. The current setting for
-        flow rate is saved.
-        """
-        self._previous_flow = self.sample_fbk.get()
-        self.sample_fbk.put(0.0)
-
-    def resume_flow(self):
-        """
-        Restores the flow rate to the previously saved setting.
-        """
-        self.sample_fbk.put(self._previous_flow)
+    def anneal(self, duration):
+        previous_flow = self.sample_fbk.get()
+        self.sample_sp.put(0.0)
+        GLib.timeout_add(duration*1000, self.sample_fbk.put, previous_flow)
 
 
 __all__ = ['CryoJet', 'CryoJet5', 'SimCryoJet']
