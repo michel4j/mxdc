@@ -209,14 +209,17 @@ class BESTTuner(BaseTuner):
     :param picoameter: Picoameter Process variable name
     :param current: Ring current process variable name
     :param reference: Optional reference process variable
+    :param tune_step: Step size for tuning
     """
-    def __init__(self, name, current, reference=None, control=None):
+    def __init__(self, name, current, reference=None, tune_step=0.05):
 
         super().__init__()
         self.tunable = True
         self.name = name
+        self.tune_step = tune_step
         self.enable_cmd = self.add_pv('{}:PID:Enable'.format(name))
         self.reset_cmd = self.add_pv('{}:PID:Reset'.format(name))
+        self.tune_pos = self.add_pv('{}:PID:SetpointY'.format(name))
         self.status_fbk = self.add_pv('{}:PID:Status'.format(name))
         self.value_fbk = self.add_pv('{}:BPM0:AvgInt'.format(name))
         self.current_fbk = self.add_pv(current)
@@ -227,12 +230,14 @@ class BESTTuner(BaseTuner):
         else:
             self.reference_fbk = self.value_fbk
 
-        if control:
-            self.control = self.add_pv(control)
-            self.control.connect('changed', self.check_enable)
-
     def is_paused(self):
         return self.status_fbk.get() in [0, 1, 2]
+
+    def tune_up(self):
+        self.tune_pos.put(self.tune_pos.get() + self.tune_step, wait=True)
+
+    def tune_down(self):
+        self.tune_pos.put(self.tune_pos.get() - self.tune_step, wait=True)
 
     def reset(self):
         self.reset_cmd.put(1)
@@ -256,12 +261,6 @@ class BESTTuner(BaseTuner):
         logger.debug('Disabling Beam Stabilization')
         if self.is_active():
             self.enable_cmd.put(0)
-
-    def check_enable(self, obj, val):
-        if val:
-            self.resume()
-        else:
-            self.pause()
 
     def on_state_changed(self, obj, val):
         self.set_state(enabled=(val == 3))
