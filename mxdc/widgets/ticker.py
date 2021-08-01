@@ -61,7 +61,7 @@ class TickerChart(Gtk.Box):
 
         self.keep_size = int(self.keep_range * 1000 / self.interval)
         self.view_step = view // 2
-        self.deviation = 10
+        self.deviation = 20
 
         self.view_time = time.time()
         self.add_data('time')

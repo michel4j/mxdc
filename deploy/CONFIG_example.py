@@ -81,9 +81,9 @@ DEVICES = {
     'enclosures': misc.SimEnclosures('Beamline Enclosures'),
 
     # Intensity monitors, shutter, attenuation, mca etc
-    'i0': counter.SimCounter('i0', zero=26931),
-    'i1': counter.SimCounter('i1', zero=35019),
-    'i2': counter.SimCounter('i2', zero=65228),
+    'i0': counter.SimCounter('i0', offset=26931),
+    'i1': counter.SimCounter('i1', offset=35019),
+    'i2': counter.SimCounter('i2', offset=65228),
 
     # Misc: Automounter, HC1 etc
     'automounter': sim.SimSAM(),

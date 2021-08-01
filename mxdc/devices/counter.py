@@ -75,13 +75,14 @@ class Counter(BaseCounter):
     process variables over given time periods.
 
     :param pv_name: process variable name
-    :param zero:   zero offset value.
+    :param offset:   zero offset value.
     """
 
-    def __init__(self, pv_name, zero=0.0):
+    def __init__(self, pv_name, offset=0.0, scale=1.0):
         super().__init__()
         self.name = pv_name
-        self.zero = float(zero)
+        self.offset = float(offset)
+        self.scale = float(scale)
         self.stopped = True
 
         self.value = self.add_pv(pv_name)
@@ -95,7 +96,7 @@ class Counter(BaseCounter):
             self.name = val
 
     def on_value(self, pv, val):
-        self.set_state(changed=val)
+        self.set_state(changed=(val*self.scale - self.offset))
     
     def count(self, duration):
         average = self.average(duration)
@@ -107,7 +108,7 @@ class Counter(BaseCounter):
 
     def average(self, duration):
         if duration <= 0.0:
-            return self.value.get() - self.zero
+            return self.value.get() * self.scale - self.offset
 
         logger.debug('Averaging detector (%s) for %0.2f sec.' % (self.name, duration))
         interval=0.01
@@ -117,7 +118,7 @@ class Counter(BaseCounter):
             values.append( self.value.get() )
             time.sleep(interval)
             time_left -= interval
-        return sum(values, 0.0) / len(values) - self.zero
+        return sum(values, 0.0) / len(values) - self.offset
 
     @decorators.async_call
     def start(self):
@@ -154,17 +155,18 @@ class SimCounter(BaseCounter):
 
     SIM_COUNTER_DATA = gen_sim_data()
 
-    def __init__(self, name, zero=12345):
+    def __init__(self, name, offset=12345, scale=1.0):
         super().__init__()
         from mxdc.devices.misc import SimPositioner
-        self.zero = float(zero)
+        self.offset = float(offset)
+        self.scale = float(scale)
         self.name = name
         self.stopped = True
-        self.value = SimPositioner('PV', self.zero, '', noise=0.5)
+        self.value = SimPositioner('PV', self.offset, '', noise=0.5)
         self.set_state(active=True, health=(0, '', ''))
         self.value.connect('changed', self.on_value)
         self.counter_position = random.randrange(0, self.SIM_COUNTER_DATA.shape[0] ** 2)
-        self.prev_value = self.zero
+        self.prev_value = self.offset
 
     def fetch_value(self):
         i, j = divmod(self.counter_position, self.SIM_COUNTER_DATA.shape[0])

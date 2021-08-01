@@ -67,7 +67,7 @@ class SetupController(object):
         logging.getLogger('').addHandler(log_handler)
 
         # Beam Tuner
-        self.tuner = ChartManager(interval=100, view=10)
+        self.tuner = ChartManager(interval=100, view=30)
         self.widget.tuner_box.pack_start(self.tuner.chart, True, True, 0)
         self.tuner.add_plot(self.beamline.beam_tuner, 'Beam Intensity (%)', signal='percent')
         self.tuner_monitors = [
