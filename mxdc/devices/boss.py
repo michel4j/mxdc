@@ -210,7 +210,7 @@ class BESTTuner(BaseTuner):
     :param current: Ring current process variable name
     :param reference: Optional reference process variable
     """
-    def __init__(self, name, current, reference=None):
+    def __init__(self, name, current, reference=None, control=None):
 
         super().__init__()
         self.tunable = True
@@ -226,6 +226,10 @@ class BESTTuner(BaseTuner):
             self.reference_fbk = self.add_pv(reference)
         else:
             self.reference_fbk = self.value_fbk
+
+        if control:
+            self.control = self.add_pv(control)
+            self.control.connect('changed', self.check_enable)
 
     def is_paused(self):
         return self.status_fbk.get() in [0, 1, 2]
@@ -252,6 +256,12 @@ class BESTTuner(BaseTuner):
         logger.debug('Disabling Beam Stabilization')
         if self.is_active():
             self.enable_cmd.put(0)
+
+    def check_enable(self, obj, val):
+        if val:
+            self.resume()
+        else:
+            self.pause()
 
     def on_state_changed(self, obj, val):
         self.set_state(enabled=(val == 3))
