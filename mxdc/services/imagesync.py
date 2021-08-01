@@ -170,9 +170,10 @@ class DSService(service.Service):
     def setup_folder(self, folder, user_name):
         folder = folder.strip()
         try:
-            with Impersonator(user_name):
-                if not os.path.exists(folder):
-                    subprocess.check_output(['mkdir', '-p', folder])
+            if not os.path.exists(folder):
+                imp = pwd.getpwnam(user_name)
+                subprocess.check_output(['mkdir', '-p', folder])
+                subprocess.check_output(['chown', '-R', f'{imp.pw_uid}:{imp.pw_gid}', folder])
         except subprocess.CalledProcessError as e:
             logger.error('Error setting up folder: {}'.format(e))
         os.chmod(folder, self.FILE_MODE)
@@ -180,10 +181,11 @@ class DSService(service.Service):
         backup_dir = self.ARCHIVE_ROOT + folder
         archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
         try:
-            with Impersonator(user_name):
-                for path in [archive_home, backup_dir]:
-                    if not os.path.exists(path):
-                        subprocess.check_output(['mkdir', '-p', path])
+            for path in [archive_home, backup_dir]:
+                if not os.path.exists(path):
+                    imp = pwd.getpwnam(user_name)
+                    subprocess.check_output(['mkdir', '-p', path])
+                    subprocess.check_output(['chown', '-R', f'{imp.pw_uid}:{imp.pw_gid}', folder])
         except subprocess.CalledProcessError as e:
             logger.error('Error setting up folder: {}'.format(e))
         os.chmod(archive_home, 0o701)
