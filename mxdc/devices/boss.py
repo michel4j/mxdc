@@ -201,6 +201,69 @@ class BOSSTuner(BaseTuner):
         self.set_state(changed=val, percent=perc)
 
 
+class BESTTuner(BaseTuner):
+    """
+    Beam Tuner abstraction for the original CAENELS Beamline Enhanced Stabilization System (BEST).
+
+    :param name: Device name, i.e. root name for all process variables
+    :param picoameter: Picoameter Process variable name
+    :param current: Ring current process variable name
+    :param reference: Optional reference process variable
+    """
+    def __init__(self, name, current, reference=None):
+
+        super().__init__()
+        self.tunable = True
+        self.name = name
+        self.enable_cmd = self.add_pv('{}:PID:Enable'.format(name))
+        self.reset_cmd = self.add_pv('{}:PID:Reset'.format(name))
+        self.status_fbk = self.add_pv('{}:PID:Status'.format(name))
+        self.value_fbk = self.add_pv('{}:BPM0:AvgInt'.format(name))
+        self.current_fbk = self.add_pv(current)
+        self.status_fbk.connect('changed', self.on_state_changed)
+        self.value_fbk.connect('changed', self.on_value_changed)
+        if reference:
+            self.reference_fbk = self.add_pv(reference)
+        else:
+            self.reference_fbk = self.value_fbk
+
+    def is_paused(self):
+        return self.status_fbk.get() in [0, 1, 2]
+
+    def reset(self):
+        self.reset_cmd.put(1)
+
+    def get_value(self):
+        return self.value_fbk.get()
+
+    def pause(self):
+        self.enable_cmd.put(0)
+
+    def resume(self):
+        logger.debug('Resuming BEST')
+        self.enable_cmd.put(1)
+
+    def start(self):
+        logger.debug('Enabling BEST')
+        self.reset_cmd.put(1, wait=True)
+        self.enable_cmd.put(1)
+
+    def stop(self):
+        logger.debug('Disabling Beam Stabilization')
+        if self.is_active():
+            self.enable_cmd.put(0)
+
+    def on_state_changed(self, obj, val):
+        self.set_state(enabled=(val == 3))
+
+    def on_value_changed(self, obj, val):
+        ref = self.reference_fbk.get()
+        cur = self.current_fbk.get()
+        tgt = 0.0 if cur == 0 else val * 220 / cur
+        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
+        self.set_state(changed=val, percent=perc)
+
+
 class MOSTABTuner(BaseTuner):
     """
     Beam Tuner abstraction for the D-MOSTAB beam stabilisation hardware.
