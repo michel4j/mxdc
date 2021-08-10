@@ -336,7 +336,7 @@ class MD2Gonio(BaseGoniometer):
         ))
         if is_helical:
             kind = 'helical'
-        elif kwargs.get('start_pos'):
+        elif kwargs.get('start_pos') is not None:
             self.stage.move_xyz(*kwargs['start_pos'], wait=True)
 
         success = self.wait(stop=True, start=False, timeout=10)

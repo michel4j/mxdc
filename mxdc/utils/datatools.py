@@ -405,7 +405,11 @@ def make_wedges(run: dict):
     first = run.get('first', 1)
 
     # reconcile vector_size with requested wedge size. vector_size should be 1 for 4D helical scans
-    vector_slice = total // run['vector_size'] if run.get('vector_size') > 1 and run.get('p1') else total
+    if run.get('vector_size') and run['vector_size'] > 1 and run.get('p1') is not None:
+        vector_slice = total // run['vector_size']
+    else:
+        vector_slice = total
+
     slice = min(vector_slice, run.get('wedge', 180), total)
 
     # determine start point,  end point and list of frames for each wedge
