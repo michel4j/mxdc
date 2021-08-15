@@ -24,6 +24,7 @@ class Fit(object):
             'gaussian': fitting.gauss,
             'lorentz': fitting.lorentz,
             'voigt': fitting.voigt,
+            'step': fitting.step
         }
 
     def __getattr__(self, key):
@@ -93,6 +94,8 @@ class Fit(object):
     def voigt(self, column=None):
         return self.do_fit('voigt', column)
 
+    def step(self, column=None):
+        return self.do_fit('step', column)
 
 @implementer(IScanPlotter)
 class ScanPlotter(object):

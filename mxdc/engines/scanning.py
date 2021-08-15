@@ -324,8 +324,8 @@ class SlewScan(BasicScan):
             if values.shape < ref_values.shape:
                 ref_name, ref_values, ref_indices, ref_counts = name, values, indices, counts
 
-        self.data = numpy.empty(values.shape, self.step_data.dtype)
-        self.data[ref_name] = values
+        self.data = numpy.empty(ref_values.shape, self.step_data.dtype)
+        self.data[ref_name] = ref_values
         for name in self.step_data.dtype.names[1:]:
             self.data[name] = numpy.bincount(ref_indices, self.step_data[name])/ref_counts
 
