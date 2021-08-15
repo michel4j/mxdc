@@ -285,7 +285,7 @@ class Plotter(Gtk.Alignment):
                         ymin, ymax = ymin, ymax
 
                 # adjust axes limits as necessary
-                if ax is not None:
+                if ax is not None and xmin != xmax and ymin != ymax:
                     offset = (ymax - ymin) * .1
                     ax.set_ylim(ymin - offset, ymax + offset)
                     ax.set_xlim(xmin, xmax)

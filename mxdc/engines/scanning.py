@@ -118,8 +118,6 @@ class BasicScan(Engine):
     def finalize(self):
         """
         Convert the data after the scan is complete and finalize before wrapping up
-
-        :param data: a list of tuples representing the acquired data
         """
         self.data = numpy.array(self.raw_data, self.data_type)
 
@@ -166,14 +164,16 @@ class BasicScan(Engine):
         """
         raise NotImplementedError('Derived classes must implement scan method')
 
-    def prepare_xdi(self):
+    def prepare_xdi(self, data=None):
         """
         Prepare XDI file for saving
-
+        :param data: If provided, use this data instead of self.data
         :return: xdi_data object
         """
+
+        data = self.data if data is None else data
         comments = inspect.getdoc(self)
-        xdi_data = xdi.XDIData(data=self.data, comments=comments, version='MxDC')
+        xdi_data = xdi.XDIData(data=data, comments=comments, version='MxDC')
         xdi_data['Facility.name'] = self.beamline.config['facility']
         xdi_data['Facility.xray_source'] = self.beamline.config['source']
         xdi_data['Beamline.name'] = self.beamline.name
@@ -193,15 +193,16 @@ class BasicScan(Engine):
             xdi_data[key] = (name, self.data_units.get(name))
         return xdi_data
 
-    def save(self, filename=None):
+    def save(self, filename=None, suffix=''):
         """
         Save the scan data.
 
         :param filename: full path to data file. If None, a file name will be generated.
+        :param suffix:  text to add to filename before extension
         :return: the file name of the saved file
         """
         if filename is None:
-            # save in ~/Scans/YYYY/Mmm/HHMMSS.xdi.gz
+            # save in ~/Scans/YYYY/Mmm/HHMMSS{suffix}.xdi.gz
             directory = self.config.get(
                 'directory',
                 os.path.join(
@@ -211,7 +212,7 @@ class BasicScan(Engine):
                     time.strftime('%b')
                 )
             )
-            name = '{}-{}.xdi.gz'.format(self.data_type['names'][0], time.strftime('%H%M%S'))
+            name = '{}-{}{}.xdi.gz'.format(self.data_type['names'][0], time.strftime('%H%M%S'), suffix)
             if not os.path.exists(directory):
                 os.makedirs(directory)
             filename = os.path.join(directory, name)
@@ -247,6 +248,7 @@ class SlewScan(BasicScan):
         )
         self.setup((self.config.m1,), self.config.counters, i0)
         self.last_update = time.time()
+        self.step_data = None
 
     def on_data(self, device, value, channel):
         self.data_row[channel] = value
@@ -300,6 +302,35 @@ class SlewScan(BasicScan):
 
         # return motor to previous configuration
         self.config.m1.configure(**motor_conf)
+
+    def finalize(self):
+        """
+        Slew Scan needs special processing to average duplicates
+        """
+
+        self.data = numpy.array(self.raw_data, self.data_type)
+        self.save(suffix='-raw')
+        self.step_data = self.data
+
+        # use column with smallest variability to average data otherwise data with have step features
+        # original data remains in self.step_data
+
+        ref_name = self.step_data.dtype.names[0]
+        ref_values, ref_indices, ref_counts = numpy.unique(
+            self.step_data[ref_name], return_inverse=True, return_counts=True
+        )
+        for name in self.step_data.dtype.names[1:]:
+            values, indices, counts = numpy.unique(self.step_data[name], return_inverse=True, return_counts=True)
+            if values.shape < ref_values.shape:
+                ref_name, ref_values, ref_indices, ref_counts = name, values, indices, counts
+
+        self.data = numpy.empty(values.shape, self.step_data.dtype)
+        self.data[ref_name] = values
+        for name in self.step_data.dtype.names[1:]:
+            self.data[name] = numpy.bincount(ref_indices, self.step_data[name])/ref_counts
+
+        # save raw data. Smoothed data is be saved by default.
+        self.save(suffix='-raw')
 
 
 class AbsScan(BasicScan):
