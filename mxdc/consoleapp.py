@@ -82,6 +82,7 @@ class Application(Gtk.Application):
         from mxdc.engines.scripting import get_scripts
         from mxdc.engines.scanning import AbsScan, AbsScan2, RelScan, RelScan2, GridScan, SlewScan, SlewGridScan
         from mxdc.utils import fitting
+        from mxdc.utils.recorder import DataSaver
         from mxdc.com.ca import PV
 
         self.shell_config.InteractiveShellEmbed.colors = 'Neutral'

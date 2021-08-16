@@ -55,7 +55,7 @@ class Fit(object):
         data = self.scan.data
 
         # only run if values are available
-        if len(data):
+        if not len(data):
             return
 
         names = list(values.dtype.fields.keys())

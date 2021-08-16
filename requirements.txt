@@ -22,4 +22,5 @@ ipython
 mxio
 humanize
 lorem
+pandas
 backports-datetime-fromisoformat
