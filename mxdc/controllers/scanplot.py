@@ -42,17 +42,26 @@ class Fit(object):
             f"\n/>"
         )
 
+    def set_scan(self, scan):
+        """
+        Set the current scan object
+
+        :param scan: the scan
+        """
+        self.scan = scan
+
     def do_fit(self, method, column):
         values = self.plotter.get_records()
+        data = self.scan.data
 
         # only run if values are available
-        if not values:
+        if len(data):
             return
 
         names = list(values.dtype.fields.keys())
         x_name = names[0]
         y_name = column if column is not None else names[1]
-        xo, yo = values.data[x_name], values.data[y_name]
+        xo, yo = data[x_name], data[y_name]
         coeffs, success = fitting.peak_fit(xo, yo, method)
         ymax, fwhm, midp = coeffs[:3]
         hist_coeffs, success = fitting.histogram_fit(xo, yo)
@@ -97,6 +106,7 @@ class Fit(object):
     def step(self, column=None):
         return self.do_fit('step', column)
 
+
 @implementer(IScanPlotter)
 class ScanPlotter(object):
 
@@ -125,6 +135,7 @@ class ScanPlotter(object):
             self.scan.disconnect(link)
 
         self.scan = scan
+        self.fit.set_scan(scan)
         # connect signals.
         self.scan_links = [
             self.scan.connect(sig, callback) for sig, callback in self.scan_callbacks.items()

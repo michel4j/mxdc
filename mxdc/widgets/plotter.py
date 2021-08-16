@@ -140,7 +140,6 @@ class Plotter(Gtk.Alignment):
         ax.yaxis.set_major_formatter(ScalarFormatter())
         self.axis = {'default': ax}
 
-
         if specs:
             names = self.data_type['names'][1:]
             scales = specs.get('data_scale')
