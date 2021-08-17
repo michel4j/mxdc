@@ -249,7 +249,7 @@ class BaseMotor(Device):
                 return False
         return True
 
-    def wait_stop(self, target=None, timeout=120, poll=0.05):
+    def wait_stop(self, target=None, timeout=60*5, poll=0.05):
         """
         Wait for motor to stop moving.
 
@@ -571,7 +571,8 @@ class PseudoMotor(VMEMotor):
 
     def configure(self, speed=None, accel=None, precision=None):
         # not relevant for pseudo motors
-        self.prec_val.put(precision)
+        # self.prec_val.put(precision)
+        pass
 
     def connect_monitors(self):
         super().connect_monitors()

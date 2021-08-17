@@ -308,9 +308,7 @@ class SlewScan(BasicScan):
         Slew Scan needs special processing to average duplicates
         """
 
-        self.data = numpy.array(self.raw_data, self.data_type)
-        self.save(suffix='-raw')
-        self.step_data = self.data
+        self.step_data = numpy.array(self.raw_data, self.data_type)
 
         # use column with smallest variability to average data otherwise data with have step features
         # original data remains in self.step_data
@@ -328,9 +326,6 @@ class SlewScan(BasicScan):
         self.data[ref_name] = ref_values
         for name in self.step_data.dtype.names[1:]:
             self.data[name] = numpy.bincount(ref_indices, self.step_data[name])/ref_counts
-
-        # save raw data. Smoothed data is be saved by default.
-        self.save(suffix='-raw')
 
 
 class AbsScan(BasicScan):
