@@ -312,20 +312,14 @@ class SlewScan(BasicScan):
         self.save(suffix='-raw')
         self.step_data = self.data
 
-        # use column with smallest variability to average data otherwise data with have step features
-        # original data remains in self.step_data
-
+        # first column should be unique
         ref_name = self.step_data.dtype.names[0]
         ref_values, ref_indices, ref_counts = numpy.unique(
             self.step_data[ref_name], return_inverse=True, return_counts=True
         )
-        for name in self.step_data.dtype.names[1:]:
-            values, indices, counts = numpy.unique(self.step_data[name], return_inverse=True, return_counts=True)
-            if values.shape < ref_values.shape:
-                ref_name, ref_values, ref_indices, ref_counts = name, values, indices, counts
-
         self.data = numpy.empty(ref_values.shape, self.step_data.dtype)
         self.data[ref_name][:] = ref_values
+
         for name in self.step_data.dtype.names[1:]:
             self.data[name][:] = numpy.bincount(ref_indices, self.step_data[name])/ref_counts
 
