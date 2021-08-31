@@ -156,6 +156,10 @@ class DataCollector(Engine):
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
 
+            # notify automounter that we will be busy for a while
+            free_time = wedge['exposure'] * wedge['num_frames']
+            self.beamline.automounter.standby(duration=free_time)
+
             for i, frame in enumerate(datatools.generate_frames(wedge)):
                 if self.stopped or self.paused: break
                 # Prepare image header
@@ -230,6 +234,10 @@ class DataCollector(Engine):
             logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start(first=is_first_frame)
+
+            # notify automounter that we will be busy for a while
+            free_time = wedge['exposure'] * wedge['num_frames']
+            self.beamline.automounter.standby(duration=free_time)
 
             logger.debug('Starting scan ...')
             self.beamline.goniometer.scan(

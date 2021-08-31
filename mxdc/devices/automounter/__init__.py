@@ -99,6 +99,15 @@ class AutoMounter(Device):
         """
         pass
 
+    def standby(self, duration):
+        """
+        Used to notify the Automatounter that it is free to perform housekeeping tasks
+        for the specified duration and will not be called upon during that time to do any commands.
+
+        :param duration: duration in seconds
+        """
+        pass
+
     def prepare(self):
         """
         Get ready to start.

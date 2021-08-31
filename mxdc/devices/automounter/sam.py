@@ -66,6 +66,10 @@ class UncleSAM(AutoMounter):
         self.enabled_fbk = self.add_pv('{}:ENABLED'.format(root))
         self.status_fbk = self.add_pv('{}:STATUS'.format(root))
         self.position_fbk = self.add_pv(f'{root}:STATE:POS')
+        self.reheat_fbk = self.add_pv(f'{root}:TIMER:REHEAT')
+        self.reheat_time = self.add_pv(f'{root}:ATTR:REHEATTIME')
+        self.cool_time = self.add_pv(f'{root}:ATTR:COOLTIME')
+        self.smpl_count = self.add_pv(f'{root}:TIMER:SAMPLES')
 
         # commands
         self.mount_cmd = self.add_pv('{}:CMD:mount'.format(root))
@@ -73,6 +77,7 @@ class UncleSAM(AutoMounter):
         self.dismount_cmd = self.add_pv('{}:CMD:dismount'.format(root))
         self.prefetch_cmd = self.add_pv('{}:CMD:prefetch'.format(root))
         self.abort_cmd = self.add_pv('{}:CMD:abort'.format(root))
+        self.dry_cmd = self.add_pv('{}:CMD:dry'.format(root))
 
         self.ports_fbk.connect('changed', self.on_ports_changed)
         self.sample_fbk.connect('changed', self.on_sample_changed)
@@ -159,6 +164,13 @@ class UncleSAM(AutoMounter):
                 return success
             else:
                 return True
+
+    def standby(self, duration):
+        dry_time = self.reheat_time.get() + self.cool_time.get() + 60
+        samples_left = self.smpl_count.get()
+        dry_countdown = self.reheat_fbk.get()
+        if duration >= dry_time and ((samples_left < 2) or (dry_countdown < dry_time)):
+            self.dry_cmd.put(1)
 
     def prefetch(self, port, wait=False):
         if self.prefetched_fbk.get():
