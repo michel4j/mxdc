@@ -96,7 +96,11 @@ class Counter(BaseCounter):
             self.name = val
 
     def on_value(self, pv, val):
-        self.set_state(changed=(val*self.scale - self.offset))
+        value = (val*self.scale - self.offset)
+        if not self.stopped:
+            self.set_state(changed=value, count=value)
+        else:
+            self.set_state(changed=value)
     
     def count(self, duration):
         average = self.average(duration)
@@ -120,13 +124,8 @@ class Counter(BaseCounter):
             time_left -= interval
         return sum(values, 0.0) / len(values) - self.offset
 
-    @decorators.async_call
     def start(self):
         self.stopped = False
-        while not self.stopped:
-            val = self.value.get()
-            self.set_state(count=val)
-            time.sleep(.01)  # 10 ms
 
     def stop(self):
         self.stopped = True
