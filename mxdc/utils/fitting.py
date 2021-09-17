@@ -19,8 +19,8 @@ def step_func(x, coeffs):
 
 
 def step(x, coeffs):
-    H, W, P = coeffs[:3]
-    return H * 0.5 * (1 + erf((x - P) / (W * numpy.sqrt(2))))
+    H, W, P, O = coeffs[:4]
+    return O + H * 0.5 * (1 + erf((x - P) / (W * numpy.sqrt(2))))
 
 
 def step_response(x, coeffs):

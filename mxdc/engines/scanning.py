@@ -249,8 +249,14 @@ class SlewScan(BasicScan):
         self.setup((self.config.m1,), self.config.counters, i0)
         self.last_update = time.time()
         self.step_data = None
+        self.first = True
 
     def on_data(self, device, value, channel):
+        if self.first:
+            self.first = False
+            self.last_update = time.time()
+            return
+
         self.data_row[channel] = value
         # When i0 is specified, add scaled value of first channel, last channel is i0
         if self.config.i0 and channel == self.config.start_channel and len(self.raw_data):
