@@ -249,23 +249,21 @@ class SlewScan(BasicScan):
         self.setup((self.config.m1,), self.config.counters, i0)
         self.last_update = time.time()
         self.step_data = None
-        self.first = True
 
     def on_data(self, device, value, channel):
-        if self.first:
-            self.first = False
-            self.last_update = time.time()
-            return
 
         self.data_row[channel] = value
         # When i0 is specified, add scaled value of first channel, last channel is i0
         if self.config.i0 and channel == self.config.start_channel and len(self.raw_data):
             self.data_row[1] = value * self.raw_data[0][-1] / self.data_row[-1]
         row = tuple(self.data_row)
-        self.raw_data.append(row)
-
         progress = abs((self.data_row[0] - self.config.p1)/(self.config.p2 - self.config.p1))
-        self.set_state(new_point=(row,), progress=(progress, ''))
+
+        # only emit when non-motor row changes value
+        if channel != 0:
+            self.raw_data.append(row)
+            self.set_state(new_point=(row,))
+        self.set_state(progress=(progress, ''))
         self.last_update = time.time()
 
     def extend(self, amount):
