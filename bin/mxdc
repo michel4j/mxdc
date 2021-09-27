@@ -11,6 +11,7 @@ from mxdc.utils import log
 parser = argparse.ArgumentParser(description='Mx Data Collector')
 parser.add_argument('-v',  action='store_true', help='Verbose Logging')
 parser.add_argument('-d',  action='store_true', help='Prefer Dark Mode if available')
+parser.add_argument('-b',  type=str, help='Beamline Name')
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     else:
         log.log_to_console(logging.INFO)
 
-    conf.initialize()
+    conf.initialize(name=args.b)
     from mxdc.mxdcapp import MxDCApp
 
     app = MxDCApp(dark=args.d)

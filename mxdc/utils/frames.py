@@ -116,8 +116,7 @@ class StreamMonitor(DataMonitor):
         'beam_center': ('beam_center_x', 'beam_center_y'),
         'energy': 'photon_energy',
         'sensor_thickness': 'sensor_thickness',
-        'detector_size': ('x_pixels_in_detector',
-                          'y_pixels_in_detector'),
+        'detector_size': ('x_pixels_in_detector', 'y_pixels_in_detector'),
 
     }
     CONVERTERS = {
