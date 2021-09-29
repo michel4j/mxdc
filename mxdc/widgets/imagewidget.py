@@ -125,7 +125,7 @@ class DataLoader(Object):
                     dataset = read_image(path)
                     self.show(dataset)
                     success = True
-                except (ValueError, KeyError) as err:
+                except Exception as err:
                     success = False
             attempts += 1
             time.sleep(0.1)
