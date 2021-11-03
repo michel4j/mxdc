@@ -14,8 +14,7 @@ from zope.interface import implementer
 from gi.repository import GLib
 
 from mxdc import Signal, Device, Object
-from mxdc.utils import decorators
-from mxdc.utils import frames
+from mxdc.utils import frames, decorators, misc
 from mxdc.utils.log import get_module_logger
 from .interfaces import IImagingDetector
 
@@ -804,6 +803,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
         self.frame_counter = self.add_pv('{}:ArrayCounter'.format(name))
         self.num_images = self.add_pv('{}:NumImages'.format(name))
+        self.stream_enable = self.add_pv('{}:StreamEnable'.format(name))
 
         self.state_value.connect('changed', self.on_state_value)
         self.armed_status.connect('changed', self.on_state_value)
@@ -884,8 +884,13 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         if 'distance' in params:
             params['distance'] /= 1000. # convert distance to meters
 
+        if 'num_frames' in params:
+            frame_factors = misc.factorize(params['num_frames'], maximum=200)
+            params['batch_size'] = frame_factors[-1] # Adjust batch size
+
         self.mode_cmd.put(3)  # External Trigger Mode
-        self.num_images.put(1)
+        self.num_images.put(1)  # Uses "num_frames" to set number of actual frames acquired
+        self.stream_enable.put(1, wait=True)  # Enable Stream interface
 
         for k, v in list(params.items()):
             if k in self.settings:

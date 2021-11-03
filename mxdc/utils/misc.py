@@ -612,3 +612,17 @@ def natural_keys(text):
     :return: tuple of tokens with numbers separated out
     """
     return tuple([int(token) if token.isdigit() else token for token in re.split(r'(\d+)', f'{text}')])
+
+
+def factorize(n, minimum=None, maximum=None):
+    """
+    Return all factors of the given number between the given range.
+    :param n: number to factorize
+    :param minimum: minimum factor or None for no minimum
+    :param maximum: maximum factor or None for a maximum of n/2
+    :return: numpy array of factors
+    """
+    minimum = 1 if minimum is None else minimum
+    maximum = n//2 if maximum is None else maximum
+    candidates = numpy.arange(minimum, maximum + 1)
+    return candidates[(n % candidates) == 0]

@@ -12,6 +12,9 @@ from mxio import read_image
 from mxio.formats import DataSet
 
 from mxdc import Engine
+from mxdc.utils import log
+
+logger = log.get_module_logger('frames')
 
 MAX_FILE_FREQUENCY = 5
 
@@ -143,7 +146,6 @@ class StreamMonitor(DataMonitor):
         self.metadata = {}
 
     def parse_header(self, info, msg):
-        print('HEADER', info, msg)
         header = json.loads(msg[1])
         for key, field in self.HEADER_FIELDS.items():
             converter = self.CONVERTERS.get(key, lambda v: v)
@@ -168,8 +170,7 @@ class StreamMonitor(DataMonitor):
 
     def parse_image(self, info, msg):
         # only display at most MAX_FILE_FREQUENCY images every second, except the last image
-        print('IMAGE', info, msg)
-        if time.time() - self.last_time > 1/MAX_FILE_FREQUENCY or info['frame'] == self.metadata['num_images']:
+        if time.time() - self.last_time > 1/MAX_FILE_FREQUENCY or info['frame'] == self.metadata['num_images'] - 1:
             frame = json.loads(msg[1])
             size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
             raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
@@ -191,7 +192,7 @@ class StreamMonitor(DataMonitor):
                 header['min_intensity'] = stats_data.min()
                 header['max_intensity'] = stats_data.max()
                 header['overloads'] = 0
-                header['frame_number'] = int(info['frame'])
+                header['frame_number'] = int(info['frame']) + 1
                 header['filename'] = 'Stream'
                 header['name'] = 'Stream'
                 header['start_angle'] += header['frame_number'] * header['delta_angle']
@@ -205,8 +206,7 @@ class StreamMonitor(DataMonitor):
                 self.set_state(progress=(header['frame_number']/header['num_images'], 'frames collected'))
                 self.last_time = time.time()
             except cv2.error:
-                print(header)
-                print('Error reading stream')
+                logger.error('Error reading stream')
 
     def parse_footer(self, info, msg):
         self.stop()
