@@ -802,6 +802,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
 
         self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
+        self.frame_counter = self.add_pv('{}:ArrayCounter'.format(name))
         self.num_images = self.add_pv('{}:NumImages'.format(name))
 
         self.state_value.connect('changed', self.on_state_value)
@@ -836,6 +837,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def start(self, first=False):
         logger.debug(f'"{self.name}" Arming detector ...')
         self.monitor.start()
+        self.frame_counter.put(0)
         self.acquire_cmd.put(1)
         self.wait_until(States.ARMED)
 
@@ -878,6 +880,9 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
         params['acquire_period'] = params['exposure_time']
+
+        if 'distance' in params:
+            params['distance'] /= 1000. # convert distance to meters
 
         self.mode_cmd.put(3)  # External Trigger Mode
         self.num_images.put(1)

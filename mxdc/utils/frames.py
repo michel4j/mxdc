@@ -205,7 +205,8 @@ class StreamMonitor(DataMonitor):
                 self.set_state(progress=(header['frame_number']/header['num_images'], 'frames collected'))
                 self.last_time = time.time()
             except cv2.error:
-                pass
+                print(header)
+                print('Error reading stream')
 
     def parse_footer(self, info, msg):
         self.stop()
