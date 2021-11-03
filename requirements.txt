@@ -3,6 +3,7 @@ lz4
 pyzmq
 cryptography
 gepics
+pyepics
 h5py
 hdf5plugin
 matplotlib

@@ -143,6 +143,7 @@ class StreamMonitor(DataMonitor):
         self.metadata = {}
 
     def parse_header(self, info, msg):
+        print('HEADER', info, msg)
         header = json.loads(msg[1])
         for key, field in self.HEADER_FIELDS.items():
             converter = self.CONVERTERS.get(key, lambda v: v)
@@ -167,6 +168,7 @@ class StreamMonitor(DataMonitor):
 
     def parse_image(self, info, msg):
         # only display at most MAX_FILE_FREQUENCY images every second, except the last image
+        print('IMAGE', info, msg)
         if time.time() - self.last_time > 1/MAX_FILE_FREQUENCY or info['frame'] == self.metadata['num_images']:
             frame = json.loads(msg[1])
             size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
