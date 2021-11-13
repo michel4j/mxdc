@@ -4,7 +4,7 @@ import os
 import re
 from subprocess import CalledProcessError, check_output
 
-NAME = 'mxdc'
+NAME = __name__.split('.')[0]
 PREFIX = 'v'
 
 tag_re = re.compile(rf'\btag: {PREFIX}([0-9][^,]*)\b')

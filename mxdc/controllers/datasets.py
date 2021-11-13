@@ -753,13 +753,13 @@ class DatasetsController(Object):
         self.first_frame = False
 
     def on_collect_btn(self, obj):
-        self.auto_save_run()
         self.widget.datasets_collect_btn.set_sensitive(False)
         if self.collecting:
             self.stopping = True
             self.widget.collect_progress_lbl.set_text("Stopping acquisition ...")
             self.collector.stop()
         else:
+            self.auto_save_run()
             runs = self.generate_run_list()
             if not runs:
                 msg1 = 'Run list is empty!'
