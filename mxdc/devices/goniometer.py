@@ -283,16 +283,16 @@ class MD2Gonio(BaseGoniometer):
             'range': self.add_pv(f"{root}:ScanRange"),
             'angle': self.add_pv(f"{root}:ScanStartAngle"),
 
-            # 'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
-            # 'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
-            # 'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
-            # 'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
+            'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
+            'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
+            'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
+            'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
         }
 
         # semi constant but need to be re-applied each scan
         self.extra_settings = {
             'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
-            'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
+            'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
             'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
             'z_pos': (
                 self.add_pv(f'{root}:startScan4DEx:stop_z'),
@@ -359,10 +359,10 @@ class MD2Gonio(BaseGoniometer):
         elif kind == 'raster':
             misc.set_settings(self.raster_settings, **kwargs)
             params = [
-                kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,  # convert to mm
-                kwargs['lines'], kwargs['frames'], 1
+                '{}'.format(kwargs['height'] * 1e-3), '{}'.format(kwargs['width'] * 1e-3),  # convert to mm
+                '{}'.format(kwargs['lines']), '{}'.format(kwargs['frames']), '1'
             ]
-            self.raster_cmd.put(params)
+            self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or 2 * kwargs['time']
 
