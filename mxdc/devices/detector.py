@@ -705,8 +705,8 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
-        self.acquire_cmd.put(0)
-        self.wait_until(States.IDLE)
+        self.acquire_cmd.put(0, wait=True)
+        self.wait_while()
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
@@ -843,8 +843,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def stop(self):
         logger.debug('"{}" Disarming detector ...'.format(self.name))
-        self.acquire_cmd.put(0)
-        self.wait_until(States.IDLE)
+        self.acquire_cmd.put(0, wait=True)
+        self.wait_while()
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2

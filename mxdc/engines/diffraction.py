@@ -10,7 +10,7 @@ from mxdc import Registry, Signal, Engine
 from mxdc.devices.detector import DetectorFeatures
 from mxdc.devices.goniometer import GonioFeatures
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
-from mxdc.utils import datatools, misc
+from mxdc.utils import datatools, misc, decorators
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 
@@ -63,7 +63,6 @@ class DataCollector(Engine):
         :param anomalous: bool, enable analysis mode for data analysis
         """
 
-        print(run_data)
         self.config['analysis'] = analysis
         self.config['anomalous'] = anomalous
         self.config['take_snapshots'] = take_snapshots
@@ -373,11 +372,13 @@ class DataCollector(Engine):
             self.emit('paused', False, message)
             GLib.timeout_add(30000, self.resume_sequence)
 
+    @decorators.async_call
     def pause(self, reason=''):
         super().pause(reason)
         self.beamline.detector.stop()
         self.beamline.goniometer.stop()
 
+    @decorators.async_call
     def stop(self):
         super().stop()
         self.beamline.detector.stop()
