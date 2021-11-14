@@ -67,7 +67,7 @@ class RasterCollector(Engine):
         return self.config['params'].get('grid')
 
     def prepare(self, params):
-        self.beamline.detector_cover.open(wait=True)
+
         self.total_frames = self.config['params']['frames'] * self.config['params']['lines']
         self.pending_results = set()
         self.results = {}
@@ -118,7 +118,6 @@ class RasterCollector(Engine):
             self.emit('done', None)
             self.save_metadata()
         self.beamline.attenuator.set(current_attenuation)  # restore attenuation
-        self.beamline.detector_cover.close()
         self.unwatch_frames()
 
     def acquire_step(self):
