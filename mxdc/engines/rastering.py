@@ -216,7 +216,7 @@ class RasterCollector(Engine):
             height=params['height'],
             start_pos=params['grid'][0],
             wait=True,
-            timeout=params['exposure'] * self.total_frames * 3,
+            timeout=params['exposure'] * self.total_frames * params['lines'] * 2,
         )
         self.beamline.detector.save()
         time.sleep(0)
