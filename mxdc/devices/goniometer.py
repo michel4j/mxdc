@@ -278,19 +278,6 @@ class MD2Gonio(BaseGoniometer):
             ),
         }
 
-        self.raster_settings1 = {
-            'time': self.add_pv(f"{root}:ScanExposureTime"),
-            'range': self.add_pv(f"{root}:ScanRange"),
-            'angle': self.add_pv(f"{root}:ScanStartAngle"),
-
-            'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
-            'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
-            'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
-            'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
-            'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
-            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
-        }
-
         self.raster_settings = {
             'time': self.add_pv(f"{root}:startRasterScanEx:exposure_time"),
             'range': self.add_pv(f"{root}:startRasterScanEx:omega_range"),
@@ -351,7 +338,8 @@ class MD2Gonio(BaseGoniometer):
         ))
         if is_helical:
             kind = 'helical'
-        elif kwargs.get('start_pos') is not None:
+
+        if kind not in ['helical', 'raster'] and kwargs.get('start_pos') is not None:
             self.stage.move_xyz(*kwargs['start_pos'], wait=True)
 
         success = self.wait(stop=True, start=False, timeout=10)
@@ -379,10 +367,6 @@ class MD2Gonio(BaseGoniometer):
             kwargs['height'] = min(shape) * 1e-3    # convert to mm
             kwargs['use_table'] = 0
             misc.set_settings(self.raster_settings, **kwargs)
-            # params = [
-            #     kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,  # convert to mm
-            #     kwargs['lines'], kwargs['frames'], 1
-            # ]
             self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or 2 * kwargs['time']
