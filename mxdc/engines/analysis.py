@@ -51,7 +51,7 @@ class Analyst(Engine):
         try:
             report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
         except Exception as e:
-            logger.error('MX analysis failed: {}'.format(str(e)))
+            logger.error('MX analysis failed: {}'.format(e.__name__))
             self.failed(e, params['uuid'], self.ResultType.MX)
             returnValue({})
         else:
@@ -94,7 +94,7 @@ class Analyst(Engine):
         try:
             report = yield self.beamline.dps.process_mx(params, params['directory'], misc.get_project_name())
         except Exception as e:
-            logger.error('MX analysis failed: {}'.format(str(e)))
+            logger.error('MX analysis failed: {}'.format(e.__name__))
             self.failed(e, params['uuid'], self.ResultType.MX)
             returnValue({})
         else:
@@ -132,7 +132,7 @@ class Analyst(Engine):
             else:
                 report = yield self.beamline.dps.process_misc(params, params['directory'], misc.get_project_name())
         except Exception as e:
-            logger.error('MX analysis failed: {}'.format(str(e)))
+            logger.error('MX analysis failed: {}'.format(e.__name__))
             self.failed(e, params['uuid'], self.ResultType.MX)
             returnValue({})
         else:
@@ -152,7 +152,7 @@ class Analyst(Engine):
         try:
             report = yield self.beamline.dps.analyse_frame(params['filename'], misc.get_project_name(), rastering=True)
         except Exception as e:
-            logger.error('Raster analysis failed: {}'.format(str(e)))
+            logger.error('Raster analysis failed: {}'.format(e.__name__))
             self.failed(e, params['uuid'], self.ResultType.RASTER)
             returnValue({})
         else:
@@ -185,7 +185,7 @@ class Analyst(Engine):
         try:
             report = yield self.beamline.dps.process_xrd(params, params['directory'], misc.get_project_name())
         except Exception as e:
-            logger.error('XRD analysis failed: {}'.format(str(e)))
+            logger.error('XRD analysis failed: {}'.format(e.__name__))
             self.failed(e, params['uuid'], self.ResultType.XRD)
             returnValue({})
         else:
