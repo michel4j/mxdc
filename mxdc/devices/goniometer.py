@@ -215,7 +215,7 @@ class MD2Gonio(BaseGoniometer):
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
         self.helix_cmd = self.add_pv(f"{root}:startScan4D")
-        self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
+        self.raster_cmd = self.add_pv(f"{root}:startRasterScanEx")
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
         self.save_pos_cmd = self.add_pv(f"{root}:saveCentringPositions")
@@ -278,7 +278,7 @@ class MD2Gonio(BaseGoniometer):
             ),
         }
 
-        self.raster_settings = {
+        self.raster_settings1 = {
             'time': self.add_pv(f"{root}:ScanExposureTime"),
             'range': self.add_pv(f"{root}:ScanRange"),
             'angle': self.add_pv(f"{root}:ScanStartAngle"),
@@ -289,6 +289,25 @@ class MD2Gonio(BaseGoniometer):
             'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
             'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
             'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
+        }
+
+        self.raster_settings = {
+            'time': self.add_pv(f"{root}:startRasterScanEx:exposure_time"),
+            'range': self.add_pv(f"{root}:startRasterScanEx:omega_range"),
+            'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
+
+            'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
+            'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
+            'width': self.add_pv(f"{root}:startRasterScanEx:line_range"),
+            'height': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
+            'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
+            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
+            'start_pos': (
+                self.add_pv(f'{root}:startRasterScanEx:start_y'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cy'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cx'),
+            ),
+            'z_pos': self.add_pv(f'{root}:startRasterScanEx:start_z'),
         }
 
         # semi constant but need to be re-applied each scan
@@ -357,6 +376,7 @@ class MD2Gonio(BaseGoniometer):
         elif kind == 'raster':
             kwargs['snake'] = 1
             kwargs['shutterless'] = 1
+            kwargs['width'], kwargs['height'] = sorted(kwargs['width'], kwargs['height'])
             misc.set_settings(self.raster_settings, **kwargs)
             # params = [
             #     kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,  # convert to mm
