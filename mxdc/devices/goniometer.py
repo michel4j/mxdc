@@ -373,10 +373,10 @@ class MD2Gonio(BaseGoniometer):
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             kwargs['snake'] = 1
-            kwargs['shutterless'] = 1
+            kwargs['shutterless'] = 0
             shape = [kwargs['width'], kwargs['height']]
-            kwargs['width'] = max(shape)
-            kwargs['height'] = min(shape)
+            kwargs['width'] = max(shape) * 1e-3     # convert to mm
+            kwargs['height'] = min(shape) * 1e-3    # convert to mm
             kwargs['use_table'] = 0
             misc.set_settings(self.raster_settings, **kwargs)
             # params = [
