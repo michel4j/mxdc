@@ -496,7 +496,7 @@ def set_settings(settings, **kwargs):
     changed = []
     for key, value in kwargs.items():
         if key in settings and value is not None:
-            if isinstance(settings[key], tuple) and isinstance(value, (tuple, list)):
+            if isinstance(settings[key], tuple):
                 for p, v in zip(settings[key], value):
                     p.put(v, wait=True)
             else:

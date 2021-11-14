@@ -298,8 +298,8 @@ class MD2Gonio(BaseGoniometer):
 
             'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
             'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
-            'width': self.add_pv(f"{root}:startRasterScanEx:line_range"),
-            'height': self.add_pv(f"{root}:startRasterScanEx:total_uturn_range"),
+            'width': self.add_pv(f"{root}:startRasterScanEx:horizontal_range"),
+            'height': self.add_pv(f"{root}:startRasterScanEx:vertical_range"),
             'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
             'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
             'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
@@ -374,7 +374,9 @@ class MD2Gonio(BaseGoniometer):
         elif kind == 'raster':
             kwargs['snake'] = 1
             kwargs['shutterless'] = 1
-            kwargs['width'], kwargs['height'] = sorted(kwargs['width'], kwargs['height'])
+            shape = [kwargs['width'], kwargs['height']]
+            kwargs['width'] = max(shape)
+            kwargs['height'] = min(shape)
             kwargs['use_table'] = 0
             misc.set_settings(self.raster_settings, **kwargs)
             # params = [
