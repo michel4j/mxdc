@@ -287,12 +287,12 @@ class MD2Gonio(BaseGoniometer):
             'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
             'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
             'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
+            'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
+            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
         }
 
         # semi constant but need to be re-applied each scan
         self.extra_settings = {
-            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
-            'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
             'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
             'z_pos': (
                 self.add_pv(f'{root}:startScan4DEx:stop_z'),
@@ -301,8 +301,6 @@ class MD2Gonio(BaseGoniometer):
             )
         }
         self.extra_values = {
-            'shutterless': 1,
-            'snake': 1,
             'use_table': 1,
             'z_pos': None,
         }
@@ -357,11 +355,13 @@ class MD2Gonio(BaseGoniometer):
             misc.set_settings(self.extra_settings, **self.extra_values)
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
+            kwargs['snake'] = 1
+            kwargs['shutterless'] = 1
             misc.set_settings(self.raster_settings, **kwargs)
-            params = [
-                '{}'.format(kwargs['height'] * 1e-3), '{}'.format(kwargs['width'] * 1e-3),  # convert to mm
-                '{}'.format(kwargs['lines']), '{}'.format(kwargs['frames']), '1'
-            ]
+            # params = [
+            #     kwargs['height'] * 1e-3, kwargs['width'] * 1e-3,  # convert to mm
+            #     kwargs['lines'], kwargs['frames'], 1
+            # ]
             self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or 2 * kwargs['time']
