@@ -392,7 +392,20 @@ class Motor(BaseMotor):
         raise NotImplementedError
 
     def on_desc(self, obj, descr):
+        """
+        Update description
+        :param obj: Process variable
+        :param descr: new description
+        """
         self.description = descr
+
+    def on_egu(self, obj, egu):
+        """
+        Update engineering units
+        :param obj: Process variable
+        :param egu: new engineering units
+        """
+        self.units = egu
 
     def on_log(self, obj, message):
         msg = "'{}' {}".format(self.name, message)
@@ -489,6 +502,7 @@ class APSMotor(VMEMotor):
     """
 
     def setup(self):
+        self.units = ""
         self.moving_value = 0
         self.calibrated_value = 0
         self.disabled_value = 1
@@ -508,6 +522,9 @@ class APSMotor(VMEMotor):
         self.accel_fbk = self.accel_tgt
         self.speed_tgt = self.add_pv("{}.VELO".format(self.name))
         self.speed_fbk = self.speed_tgt
+
+        self.egu_val.connect('changed', self.on_egu)
+
 
 
 class CLSMotor(VMEMotor):
@@ -530,6 +547,8 @@ class CLSMotor(VMEMotor):
         self.calib_fbk = self.add_pv("{}:isCalib".format(self.name_root))
         self.status_fbk = self.add_pv("{}:state".format(self.name_root))
         self.enable_fbk = self.calib_fbk
+
+        self.egu_val.connect('changed', self.on_egu)
 
 
 class PseudoMotor(VMEMotor):

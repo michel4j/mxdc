@@ -324,6 +324,7 @@ class AuntISARA(AutoMounter):
         auto_mode = (self.mode_fbk.get() == 1)
         status_value = self.status_fbk.get()
         cryo_good = (self.autofill_fbk.get() == 0) or (2 <= self.cryo_fbk.get() <= 4)  # good if autofill disabled
+        cur_status = self.get_state('status')
 
         if connected:
             if not enabled:
@@ -337,7 +338,7 @@ class AuntISARA(AutoMounter):
             elif status_value == 4:
                 status = State.ERROR
             else:
-                status = State.PREPARING if self.status == State.PREPARING else State.IDLE
+                status = State.PREPARING if cur_status == State.PREPARING else State.IDLE
         elif not auto_mode:
             status = State.ERROR
             self.set_state(message='Staff Needed! Wrong Mode/Tool.')
