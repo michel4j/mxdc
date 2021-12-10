@@ -456,7 +456,7 @@ class TreeManager(GObject.GObject):
 
 class FilteredTreeManager(TreeManager):
     def __init__(self, view, model=None, colormap=None):
-        super().__init__()
+        super().__init__(view, model=model, colormap=colormap)
         if not model:
             self.src_model = Gtk.TreeStore(*self.Types)  # make a new model if none is provided
         else:

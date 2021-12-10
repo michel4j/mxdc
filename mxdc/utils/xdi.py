@@ -179,7 +179,6 @@ def memoize(f):
     return Memodict(f)
 
 
-@memoize
 def find_spec(namespace, tag):
     """
     Find the specifications for a given field

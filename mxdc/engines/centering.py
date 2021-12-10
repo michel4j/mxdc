@@ -5,13 +5,11 @@ from datetime import datetime
 
 import cv2
 import numpy
-from gi.repository import GLib
 
 from mxdc import Registry, Engine
+from mxdc.devices.interfaces import ICenter
 from mxdc.utils import imgproc, datatools, misc, converter
 from mxdc.utils.log import get_module_logger
-
-from mxdc.devices.interfaces import ICenter
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)

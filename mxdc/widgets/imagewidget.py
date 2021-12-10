@@ -1,27 +1,25 @@
 import logging
 import math
-import os
 import pathlib
 import threading
 import time
-import cv2
-import cairo
-import matplotlib
-import numpy
 from queue import Queue
 
+import cairo
+import cv2
+import matplotlib
+import numpy
 from gi.repository import Gdk
 from gi.repository import Gtk
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
-
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 from mxio import read_image
+
+from mxdc import Signal, Object
 from mxdc.utils import cmaps, colors
 from mxdc.utils.frames import line, bounding_box
 from mxdc.utils.gui import color_palette
-
-from mxdc import Signal, Object
 
 logger = logging.getLogger('mxdc.imagewidget')
 

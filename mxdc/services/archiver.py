@@ -9,9 +9,8 @@ import shlex
 import subprocess
 import sys
 import time
-import humanize
 
-import numpy
+import humanize
 
 SYNC_TIME = 2 * 60  # 2 minutes
 

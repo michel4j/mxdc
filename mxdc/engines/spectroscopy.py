@@ -111,7 +111,7 @@ class XRFScan(BasicScan):
         filename = os.path.join(self.config['directory'], '{}.xrf'.format(self.config['name']))
         with open(filename, 'w') as handle:
             json.dump(self.results, handle)
-            logger.info("XRF Analysis Saved: {}".format(filename))
+            logger.info("XRF Analysis Saved: {}".format(self.config['name']))
 
     def prepare_xdi(self):
         xdi_data = super().prepare_xdi()
@@ -512,7 +512,7 @@ class XASScan(BasicScan):
                 'beam_size': self.beamline.aperture.get_position(),
             }
             filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-            logger.debug('Saving meta-data: {}'.format(filename))
+            logger.debug('Saving meta-data: {}'.format(metadata['name']))
             misc.save_metadata(metadata, filename)
 
             if upload:

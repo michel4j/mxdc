@@ -1,12 +1,12 @@
 from enum import Enum
+
 from gi.repository import GLib
 from zope.interface import implementer
 
 import mxdc.devices.shutter
-from mxdc.devices import misc
 from mxdc import Device, Signal, Property
+from mxdc.devices import misc
 from mxdc.utils.log import get_module_logger
-
 from .interfaces import ICryostat
 
 logger = get_module_logger(__name__)

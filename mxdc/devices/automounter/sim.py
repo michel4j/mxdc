@@ -1,4 +1,3 @@
-import copy
 import re
 import time
 from gi.repository import GLib

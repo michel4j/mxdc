@@ -2,9 +2,9 @@
 
 import argparse
 
-import matplotlib
+from matplotlib import use
+use('Gtk3Agg')
 
-matplotlib.use('Gtk3Agg')
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
 

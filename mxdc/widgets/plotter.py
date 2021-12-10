@@ -1,14 +1,14 @@
 
 import numpy
-
-from gi.repository import Gtk, GObject
-from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3, ToolbarGTK3
+from gi.repository import Gtk
+from matplotlib import cm, transforms
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.colors import Normalize
-from matplotlib import cm, transforms
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, ScalarFormatter
+
 from mxdc.utils import misc
 from mxdc.widgets import dialogs
 

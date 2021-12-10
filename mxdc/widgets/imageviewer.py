@@ -118,8 +118,8 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_mouse_motion(self, widget, event):
         ix, iy, ires, ivalue = self.canvas.get_position(event.x, event.y)
-        self.info_pos.set_markup("<tt><small>X:{0:5}\nY:{1:5}</small></tt>".format(ix, iy))
-        self.info_data.set_markup("<tt><small>I:{0:5}\nÅ:{1:5.1f}</small></tt>".format(ivalue, ires))
+        self.info_pos.set_markup("<tt><small>X:{0:6}\nY:{1:6}</small></tt>".format(ix, iy))
+        self.info_data.set_markup("<tt><small>I:{0:6}\nÅ:{1:6.2f}</small></tt>".format(ivalue, ires))
         self.info_pos.set_alignment(1, 0.5)
         self.info_data.set_alignment(1, 0.5)
 

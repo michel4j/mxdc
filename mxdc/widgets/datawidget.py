@@ -164,7 +164,6 @@ class DataForm(gui.FormManager):
         elif name == 'energy':
             # calculate resolution limits based on energy
             energy = self.get_value('energy')
-            resolution = self.get_value('resolution')
             min_res = converter.dist_to_resol(
                 self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, energy
             )
@@ -203,16 +202,16 @@ class DataForm(gui.FormManager):
                 self.set_value('range', min(180., self.get_value('range')))
 
         if name in ['delta', 'strategy', 'range', 'inverse']:
-            range = self.get_value('range')
+            range_ = self.get_value('range')
             inverse = self.get_value('inverse')
             if inverse:
-                range = min(180., range)
-                self.set_value('range', range)
+                range_ = min(180., range_)
+                self.set_value('range', range_)
             strategy = self.get_value('strategy')
             delta = self.get_value('delta')
             first = self.get_value('first')
-            skip = calculate_skip(strategy, range, delta, first)
-            frames = datatools.calc_num_frames(strategy, delta, range, skip=skip)
+            skip = calculate_skip(strategy, range_, delta, first)
+            frames = datatools.calc_num_frames(strategy, delta, range_, skip=skip)
             self.set_value('frames', frames)
 
 

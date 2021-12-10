@@ -84,9 +84,6 @@ class ScanController(Object):
         self.scan_links = []
 
         self.results = self.result_class(self.results_view)
-        self.setup()
-
-    def setup(self):
         self.scanner.connect('started', self.on_started)
         self.scanner.connect('new-point', self.on_new_point)
         self.scanner.connect('progress', self.on_progress)
@@ -335,8 +332,11 @@ class MADScanController(ScanController):
     prefix = 'mad'
     result_class = MADResultsManager
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setup()
+
     def setup(self):
-        super().setup()
         self.datasets = Registry.get_utility(IDatasets)
         self.widget.mad_runs_btn.connect('clicked', self.add_mad_runs)
         self.results.connect('notify::run-info', self.on_run_info)
@@ -421,8 +421,11 @@ class XRFScanController(ScanController):
     prefix = 'xrf'
     result_class = XRFResultsManager
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setup()
+
     def setup(self):
-        super().setup()
         # fix adjustments
         self.annotations = {}
         self.results.model.connect('row-changed', self.on_annotation)
@@ -526,8 +529,11 @@ class XASScanController(ScanController):
     prefix = 'xas'
     result_class = XASResultsManager
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setup()
+
     def setup(self):
-        super(XASScanController, self).setup()
         # fix adjustments
         self.kmax_spin.set_adjustment(
             Gtk.Adjustment(value=8, lower=1, upper=16, step_increment=1, page_increment=1, page_size=0)
