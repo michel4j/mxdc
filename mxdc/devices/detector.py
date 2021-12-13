@@ -849,8 +849,9 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
 
+
     def get_template(self, prefix):
-        return f'{prefix}_master.h5'
+        return f'{prefix}_master.h5/{{:0{self.FRAME_DIGITS}d}}'
 
     def save(self, wait=False):
         time.sleep(2)
@@ -858,7 +859,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         return
 
     def delete(self, directory, prefix, frames=()):
-        master_file = self.get_template(prefix)
+        master_file = f'{prefix}_master.h5'
         data_glob = re.sub(r'master', 'data_*', master_file)
         dataset_files = [
                             os.path.join(directory, master_file)
