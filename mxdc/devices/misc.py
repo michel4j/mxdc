@@ -164,13 +164,15 @@ class ChoicePositioner(BasePositioner):
 
     kwargs:
         - choices: tuple of values to translate to
+        - values: optional tuple of values to send to device, defaults to 0-indexed integers
         - units: device units
     """
-    def __init__(self, pv, choices=(), units=""):
+    def __init__(self, pv, choices=(), values=None, units=""):
         super().__init__()
         self.units = units
         self.dev = self.add_pv(pv)
         self.choices = choices
+        self.values = values if values is not None else list(range(len(choices)))
         self.set_state(enabled=True)
         self.dev.connect('changed', self.signal_change)
 

@@ -2,6 +2,7 @@ import copy
 import glob
 import os
 import re
+from pathlib import Path
 from collections import defaultdict
 from datetime import date
 from datetime import datetime
@@ -309,6 +310,11 @@ def dataset_from_reference(directory, reference_file):
         'start_time':  start time for the dataset
         'frames':  A frame list string, eg '1-5,8-10' or '1'
     """
+
+    #container reference frames contain sub paths ignore them
+    path = Path(reference_file)
+    if re.match(r'\d+', path.name):
+        reference_file = str(path.parent)
 
     header = read_header(os.path.join(directory, reference_file))
     sequence = header['dataset'].get('sequence', [])
