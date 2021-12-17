@@ -2,7 +2,7 @@ import copy
 import glob
 import os
 import re
-from pathlib import Path
+
 from collections import defaultdict
 from datetime import date
 from datetime import datetime
@@ -300,23 +300,17 @@ def dataset_from_files(directory, file_glob):
     }
 
 
-def dataset_from_reference(directory, reference_file):
+def dataset_from_reference(reference_file):
     """
     Given a reference file and directory, read the header and dataset information for the dataset on disk
 
-    :param directory: directory containing the dataset
     :param reference_file: representative file from the dataset
     :return:  dataset dictionary. Expected fields are
         'start_time':  start time for the dataset
         'frames':  A frame list string, eg '1-5,8-10' or '1'
     """
 
-    #container reference frames contain sub paths ignore them
-    path = Path(reference_file)
-    if re.match(r'\d+', path.name):
-        reference_file = str(path.parent)
-
-    header = read_header(os.path.join(directory, reference_file))
+    header = read_header(reference_file)
     sequence = header['dataset'].get('sequence', [])
     return {
         'start_time': header['dataset'].get('start_time', datetime.now(tz=pytz.utc)),

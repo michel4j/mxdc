@@ -219,13 +219,17 @@ class StreamMonitor(DataMonitor):
         while not self.stopped:
             msg = self.receiver.recv_multipart()
             msg_type = json.loads(msg[0])
+            logger.debug(msg_type)
             if msg_type['htype'] == 'dheader-1.0':
                 self.parse_header(msg_type, msg)
             elif msg_type['htype'] == 'dimage-1.0':
-                self.parse_image(msg_type, msg)
+                try:
+                    self.parse_image(msg_type, msg)
+                except:
+                    pass
             elif msg_type['htype'] == 'dseries_end-1.0':
                 self.parse_footer(msg_type, msg)
-            time.sleep(0.01)
+            time.sleep(0.001)
 
 
 def line(x1, y1, x2, y2):

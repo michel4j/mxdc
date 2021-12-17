@@ -279,7 +279,7 @@ class SimDetector(BaseDetector):
             self.initialize(True)
         time.sleep(0.1)
         self.trigger_count = 0
-        self.set_state(state=States.ACQUIRING)
+        return self.set_state(state=States.ACQUIRING)
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
@@ -466,7 +466,7 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
         self.wait_until(States.IDLE, States.STANDBY)
         self.acquire_cmd.put(1)
-        self.wait_until(States.ACQUIRING)
+        return self.wait_until(States.ACQUIRING)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
@@ -584,7 +584,7 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
         self.prepare_cmd.put(1)
         self.wait_until(States.ARMED)
         self.acquire_cmd.put(1)
-        self.wait_until(States.ACQUIRING)
+        return self.wait_until(States.ACQUIRING)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
@@ -701,7 +701,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     def start(self, first=False):
         logger.debug('({}) Starting Acquisition ...'.format(self.name))
         self.acquire_cmd.put(1)
-        self.wait_until(States.ARMED)
+        return self.wait_until(States.ARMED)
 
     def stop(self):
         logger.debug('({}) Stopping Detector ...'.format(self.name))
@@ -839,7 +839,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.monitor.start()
         self.frame_counter.put(0)
         self.acquire_cmd.put(1)
-        self.wait_until(States.ARMED)
+        return self.wait_until(States.ARMED, timeout=120)
 
     def stop(self):
         logger.debug('"{}" Disarming detector ...'.format(self.name))
@@ -848,7 +848,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
-
 
     def get_template(self, prefix):
         return f'{prefix}_master.h5/{{:0{self.FRAME_DIGITS}d}}'

@@ -182,7 +182,13 @@ class DataCollector(Engine):
 
                 # perform scan
                 self.beamline.detector.configure(**detector_parameters)
-                self.beamline.detector.start(first=is_first_frame)
+                success = self.beamline.detector.start(first=is_first_frame)
+                if not success:
+                    logger.error('Detector did not start!')
+                    self.emit('error', 'Detector failed to start. Acquisition aborted.')
+                    self.stopped = True
+                    continue
+
                 self.beamline.goniometer.scan(
                     kind='simple',
                     time=frame['exposure'],
@@ -232,7 +238,13 @@ class DataCollector(Engine):
             logger.info("Collecting Shutterless {} frames for dataset {}...".format(wedge['num_frames'], wedge['name']))
             logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.configure(**detector_parameters)
-            self.beamline.detector.start(first=is_first_frame)
+            success = self.beamline.detector.start(first=is_first_frame)
+
+            if not success:
+                logger.error('Detector did not start')
+                self.emit('error', 'Detector failed to start. Acquisition aborted.')
+                self.stopped = True
+                continue
 
             # notify automounter that we will be busy for a while
             free_time = wedge['exposure'] * wedge['num_frames']
@@ -275,9 +287,10 @@ class DataCollector(Engine):
         reference = template.format(params['first'])
 
         try:
-            info = datatools.dataset_from_reference(params['directory'], reference)
+            info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
         except OSError as e:
             logger.error('Unable to find files on disk')
+            logger.debug(str(e))
             return
 
         metadata = {
