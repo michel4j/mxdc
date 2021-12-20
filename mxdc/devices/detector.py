@@ -820,7 +820,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             'start_angle': self.add_pv("{}:OmegaStart".format(name)),
             'delta_angle': self.add_pv("{}:OmegaIncr".format(name)),
             'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
-            'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
+            #'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
 
             'wavelength': self.add_pv(f"{name}:Wavelength"),
             'beam_x': self.add_pv(f"{name}:BeamX"),
@@ -889,8 +889,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
-        params['acquire_period'] = params['exposure_time']
-        params['exposure_time'] -= self.READOUT_TIME
 
         if 'distance' in params:
             params['distance'] /= 1000. # convert distance to meters
