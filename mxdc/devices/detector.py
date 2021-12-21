@@ -772,7 +772,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     :param size: detector size tuple in pixels
     :param description: String description of detector
     """
-    READOUT_TIME = 0.005
+
     detector_type = 'Eiger'
 
     def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
@@ -820,7 +820,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             'start_angle': self.add_pv("{}:OmegaStart".format(name)),
             'delta_angle': self.add_pv("{}:OmegaIncr".format(name)),
             'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
-            #'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
+            'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
 
             'wavelength': self.add_pv(f"{name}:Wavelength"),
             'beam_x': self.add_pv(f"{name}:BeamX"),
@@ -889,6 +889,9 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
+
+        self.settings['exposure_time'].put(params['exposure_time'])
+        params['acquire_period'] = params.pop('exposure_time')
 
         if 'distance' in params:
             params['distance'] /= 1000. # convert distance to meters
