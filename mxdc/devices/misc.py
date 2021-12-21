@@ -172,7 +172,11 @@ class ChoicePositioner(BasePositioner):
         self.units = units
         self.dev = self.add_pv(pv)
         self.choices = choices
-        self.values = values if values is not None else list(range(len(choices)))
+        if values is not None and len(values) != len(choices):
+            logger.warning('`values` does not contain same number of elements as `choices`. Ignoring `values`')
+            values = None
+        self.values = values if values is not None else tuple(range(len(choices)))
+
         self.set_state(enabled=True)
         self.dev.connect('changed', self.signal_change)
 
@@ -180,15 +184,15 @@ class ChoicePositioner(BasePositioner):
         val = self.dev.get()
         if val in self.choices:
             return val
-        elif val is not None:
-            return self.choices[val]
+        elif val in self.values:
+            return self.choices[self.values.index(val)]
         else:
             return self.choices[0]
 
     def set(self, value, wait=False):
         if value in self.choices:
-            self.dev.put(self.choices.index(value))
-        else:
+            self.dev.put(self.values[self.choices.index(value)])
+        elif value in self.values:
             self.dev.put(value)
 
 

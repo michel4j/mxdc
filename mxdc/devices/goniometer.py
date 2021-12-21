@@ -369,7 +369,7 @@ class MD2Gonio(BaseGoniometer):
             misc.set_settings(self.raster_settings, **kwargs)
             self.raster_cmd.put(self.NULL_VALUE)
 
-        timeout = timeout or 2 * kwargs['time']
+        timeout = timeout or (10 + 2 * kwargs['time'])
 
         success = self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
