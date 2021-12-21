@@ -870,6 +870,15 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
                 except OSError:
                     logger.error('Unable to remove existing frame: {}'.format(file_path))
 
+    def check(self, directory, prefix, first=1):
+        master_file = f'{prefix}_master.h5'
+        master_path = os.path.join(directory, master_file)
+
+        if os.path.exists(master_path):
+            header = read_header(master_path)
+            return header.get('dataset', {}).get('sequence', []), True
+        return [], False
+
     def configure(self, **kwargs):
         params = {}
         params.update(kwargs)
@@ -879,7 +888,10 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
+
+        self.settings['exposure_time'].put(params['exposure_time'])
         params['acquire_period'] = params['exposure_time']
+        params['exposure_time'] -= 5e-6
 
         if 'distance' in params:
             params['distance'] /= 1000. # convert distance to meters
