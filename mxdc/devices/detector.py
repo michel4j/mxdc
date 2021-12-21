@@ -891,7 +891,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         params['beam_y'] = self.settings['beam_y'].get()
 
         self.settings['exposure_time'].put(params['exposure_time'])
-        params['acquire_period'] = params.pop('exposure_time')
+        params['acquire_period'] = params['exposure_time']
+        params['exposure_time'] -= 5e-6
 
         if 'distance' in params:
             params['distance'] /= 1000. # convert distance to meters
