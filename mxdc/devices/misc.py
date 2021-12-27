@@ -395,7 +395,7 @@ class PositionerMotor(BaseMotor):
         return self.positioner.get()
 
     def wait(self, **kwargs):
-        pass
+        return True
 
 
 Registry.add_adapter([IPositioner], IMotor, '', PositionerMotor)

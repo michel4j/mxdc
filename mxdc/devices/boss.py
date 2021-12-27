@@ -196,8 +196,8 @@ class BOSSTuner(BaseTuner):
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
         cur = self.current_fbk.get()
-        tgt = 0.0 if cur == 0 else val / cur
-        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
+        tgt = 0.0 if not cur else val / cur
+        perc = 0.0 if not ref else 100.0 * tgt / ref
         self.set_state(changed=val, percent=perc)
 
 
