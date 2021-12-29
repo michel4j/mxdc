@@ -778,7 +778,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
         super().__init__()
         self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
-        self.monitor = frames.StreamMonitor(self, address=stream)
+        self.monitor = frames.StreamMonitor(self, address=stream, kind=frames.StreamTypes.PUBLISH)
         self.monitor.connect('progress', self.on_data_progress)
 
         self.size = size

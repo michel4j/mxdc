@@ -140,7 +140,7 @@ class StreamMonitor(DataMonitor):
         'detector_size': int,
     }
 
-    def __init__(self, master, address, kind=StreamTypes.PULL, maxfreq=10):
+    def __init__(self, master, address, kind=StreamTypes.PUSH, maxfreq=10):
         super().__init__(master)
         self.context = None
         self.receiver = None
@@ -155,7 +155,7 @@ class StreamMonitor(DataMonitor):
 
     def start(self):
         super().start()
-        parser_thread = threading.Thread(target=self.__engine__, daemon=True, name=self.__class__.__name__ + ":Parser")
+        parser_thread = threading.Thread(target=self.run_parser, daemon=True, name=self.__class__.__name__ + ":Parser")
         parser_thread.start()
 
     def run_parser(self):
@@ -172,10 +172,10 @@ class StreamMonitor(DataMonitor):
                         pass
                 elif msg_type['htype'] == 'dseries_end-1.0':
                     self.parse_footer(msg_type, json.loads(msg))
-            time.sleep(self.parser_delay)
+            time.sleep(0.0)
 
     def parse_header(self, info, header):
-        logger.debug('Stream started')
+        logger.debug('Stream started - Parsing header')
         for key, field in self.HEADER_FIELDS.items():
             converter = self.CONVERTERS.get(key, lambda v: v)
             try:
@@ -198,6 +198,7 @@ class StreamMonitor(DataMonitor):
                 break
 
     def parse_image(self, info, frame, msg):
+        logger.debug(f"Parsing image {info}")
         size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
         raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
         dtype = TYPES[frame['type']]
