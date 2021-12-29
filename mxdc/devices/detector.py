@@ -836,7 +836,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def start(self, first=False):
         logger.debug(f'"{self.name}" Arming detector ...')
-        self.monitor.start()
         self.frame_counter.put(0)
         self.acquire_cmd.put(1)
         return self.wait_until(States.ARMED, timeout=120)

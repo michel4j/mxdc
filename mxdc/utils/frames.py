@@ -1,7 +1,9 @@
 import json
 import os
 import time
-from queue import Queue
+from enum import Enum
+import threading
+from collections import deque
 
 import cv2
 import lz4.block
@@ -60,12 +62,11 @@ class FileMonitor(DataMonitor):
 
     def __init__(self, master):
         super().__init__(master)
-        self.skip_count = 10  # number of frames to skip at once
-        self.inbox = Queue(10000)
+        self.inbox = deque(maxlen=10)
         self.start()
 
     def add(self, path):
-        self.inbox.put(path)
+        self.inbox.append(path)
 
     def load(self, path):
         self.set_state(busy=True)
@@ -93,16 +94,19 @@ class FileMonitor(DataMonitor):
         path = None
         while not self.stopped:
             # Load frame if path exists
-            count = 0
-            while not self.inbox.empty() and count < self.skip_count:
-                path = self.inbox.get()
-                count += 1
+            if len(self.inbox):
+                path = self.inbox.pop()
 
             if path and not self.is_busy():
                 success = self.load(path)
                 if success:
                     path = None
             time.sleep(1/MAX_FILE_FREQUENCY)
+
+
+class StreamTypes(Enum):
+    PUSH = 1
+    PUBLISH = 2
 
 
 class StreamMonitor(DataMonitor):
@@ -136,17 +140,42 @@ class StreamMonitor(DataMonitor):
         'detector_size': int,
     }
 
-    def __init__(self, master, address):
+    def __init__(self, master, address, kind=StreamTypes.PULL, maxfreq=10):
         super().__init__(master)
         self.context = None
         self.receiver = None
         self.dataset = None
+        self.kind = kind
         self.address = address
         self.last_time = time.time()
         self.metadata = {}
+        self.inbox = deque(maxlen=10)
+        self.parser_delay = 1/maxfreq
+        self.start()
 
-    def parse_header(self, info, msg):
-        header = json.loads(msg[1])
+    def start(self):
+        super().start()
+        parser_thread = threading.Thread(target=self.__engine__, daemon=True, name=self.__class__.__name__ + ":Parser")
+        parser_thread.start()
+
+    def run_parser(self):
+        while not self.is_stopped():
+            if len(self.inbox) and not self.is_paused():
+                msg = self.inbox.pop()
+                msg_type = json.loads(msg[0])
+                if msg_type['htype'] == 'dheader-1.0':
+                    self.parse_header(msg_type, json.loads(msg[1]))
+                elif msg_type['htype'] == 'dimage-1.0':
+                    try:
+                        self.parse_image(msg_type, json.loads(msg[1]), msg[2])
+                    except:
+                        pass
+                elif msg_type['htype'] == 'dseries_end-1.0':
+                    self.parse_footer(msg_type, json.loads(msg))
+            time.sleep(self.parser_delay)
+
+    def parse_header(self, info, header):
+        logger.debug('Stream started')
         for key, field in self.HEADER_FIELDS.items():
             converter = self.CONVERTERS.get(key, lambda v: v)
             try:
@@ -168,68 +197,58 @@ class StreamMonitor(DataMonitor):
                 self.metadata['total_angle'] = self.metadata['num_images'] * self.metadata['delta_angle']
                 break
 
-    def parse_image(self, info, msg):
-        # only display at most MAX_FILE_FREQUENCY images every second, except the last image
-        if time.time() - self.last_time > 1/MAX_FILE_FREQUENCY or info['frame'] == self.metadata['num_images'] - 1:
-            frame = json.loads(msg[1])
-            size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
-            raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
-            dtype = TYPES[frame['type']]
-            data = numpy.fromstring(raw_data, dtype=frame['type']).reshape(*frame['shape'])
+    def parse_image(self, info, frame, msg):
+        size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
+        raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
+        dtype = TYPES[frame['type']]
+        data = numpy.fromstring(raw_data, dtype=frame['type']).reshape(*frame['shape'])
 
-            self.dataset = DataSet()
-            header = self.metadata.copy()
+        self.dataset = DataSet()
+        header = self.metadata.copy()
 
-            header['saturated_value'] = 1e6
-            stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
-            data = data.view(dtype)
+        header['saturated_value'] = 1e6
+        stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
+        data = data.view(dtype)
 
-            try:
-                avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
+        try:
+            avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
 
-                header['average_intensity'] = avg
-                header['std_dev'] = stdev
-                header['min_intensity'] = stats_data.min()
-                header['max_intensity'] = stats_data.max()
-                header['overloads'] = 0
-                header['frame_number'] = int(info['frame']) + 1
-                header['filename'] = 'Stream'
-                header['name'] = 'Stream'
-                header['start_angle'] += header['frame_number'] * header['delta_angle']
+            header['average_intensity'] = avg
+            header['std_dev'] = stdev
+            header['min_intensity'] = stats_data.min()
+            header['max_intensity'] = stats_data.max()
+            header['overloads'] = 0
+            header['frame_number'] = int(info['frame']) + 1
+            header['filename'] = 'Stream'
+            header['name'] = 'Stream'
+            header['start_angle'] += header['frame_number'] * header['delta_angle']
 
-                # update dataset
-                self.dataset.header = header
-                self.dataset.data = data
-                self.dataset.stats_data = stats_data
-                if self.master:
-                    self.master.process_frame(self.dataset)
-                self.set_state(progress=(header['frame_number']/header['num_images'], 'frames collected'))
-                self.last_time = time.time()
-            except cv2.error:
-                logger.error('Error reading stream')
+            # update dataset
+            self.dataset.header = header
+            self.dataset.data = data
+            self.dataset.stats_data = stats_data
+            if self.master:
+                self.master.process_frame(self.dataset)
+            self.set_state(progress=(header['frame_number']/header['num_images'], 'frames collected'))
+            self.last_time = time.time()
+        except cv2.error:
+            logger.error('Error reading stream')
 
     def parse_footer(self, info, msg):
-        self.stop()
+        logger.debug('Stream Ended')
 
     def run(self):
         self.context = zmq.Context()
-        self.receiver = self.context.socket(zmq.PULL)
-        self.receiver.connect(self.address)
-        self.last_time = time.time()
-        while not self.stopped:
-            msg = self.receiver.recv_multipart()
-            msg_type = json.loads(msg[0])
-            logger.debug(msg_type)
-            if msg_type['htype'] == 'dheader-1.0':
-                self.parse_header(msg_type, msg)
-            elif msg_type['htype'] == 'dimage-1.0':
-                try:
-                    self.parse_image(msg_type, msg)
-                except:
-                    pass
-            elif msg_type['htype'] == 'dseries_end-1.0':
-                self.parse_footer(msg_type, msg)
-            time.sleep(0.001)
+        socket_type = zmq.SUB if self.kind == StreamTypes.PUBLISH else zmq.PULL
+        with self.context.socket(socket_type) as receiver:
+            receiver.connect(self.address)
+            if self.kind == StreamTypes.PUBLISH:
+                receiver.setsockopt_string(zmq.SUBSCRIBE, "")
+            self.last_time = time.time()
+            while not self.stopped:
+                messages = receiver.recv_multipart()
+                self.inbox.append(messages)
+                time.sleep(0.0)
 
 
 def line(x1, y1, x2, y2):

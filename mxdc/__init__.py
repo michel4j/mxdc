@@ -572,9 +572,7 @@ class Engine(Object):
         """
         Start the engine as a daemon thread
         """
-        worker_thread = threading.Thread(target=self.__engine__)
-        worker_thread.setDaemon(True)
-        worker_thread.setName(self.__class__.__name__)
+        worker_thread = threading.Thread(target=self.__engine__, daemon=True, name=self.__class__.__name__)
         self.paused = False
         self.stopped = False
         worker_thread.start()
