@@ -290,17 +290,14 @@ class ImageWidget(Gtk.DrawingArea):
                     self.create_surface()
                     GLib.idle_add(self.redraw)
             if len(self.inbox):
-                frame = self.frame
                 self.frame = self.inbox.popleft()
-                if frame is not None and frame.name != self.frame.name:
-                    self.extents = None
                 self.data_loader.set_current_frame(self.frame)
             time.sleep(0.01)
 
-    def create_surface(self):
+    def create_surface(self, full=True):
         self.image_width, self.image_height = self.frame.image_size
         width = min(self.image_width, self.image_height)
-        if not self.extents:
+        if not self.extents or full:
             self.extents = (1, 1, width - 2, width - 2)
         else:
             ox, oy, ow, oh = self.extents
