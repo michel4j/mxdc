@@ -227,7 +227,7 @@ class StreamMonitor(DataMonitor):
             else:
                 raise RuntimeError(f'Unknown encoding {frame["encoding"]}')
 
-            data = mdata.view(numpy.int32)
+            data = mdata.view(TYPES[frame['type']])
             stats_data = data[(data >= 0) & (data < self.dataset.header['saturated_value'])]
             avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
 
