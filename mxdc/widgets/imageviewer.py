@@ -161,7 +161,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def follow_frames(self):
         if time.time() - self.last_follow_time < MAX_FOLLOW_DURATION:
-            self.dataset.next_frame()
+            self.canvas.load_next()
             return True
         else:
             self.follow_tbtn.set_active(False)
@@ -174,12 +174,10 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_dialog.hide()
 
     def on_next_frame(self, widget):
-        dataset = self.canvas.get_image_info()
-        dataset.next_frame()
+        self.canvas.load_next()
 
     def on_prev_frame(self, widget):
-        dataset = self.canvas.get_image_info()
-        dataset.prev_frame()
+        self.canvas.load_prev()
 
     def on_file_open(self, widget):
         filename, flt = dialogs.select_open_image(
