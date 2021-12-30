@@ -95,7 +95,7 @@ class FileMonitor(DataMonitor):
         while not self.stopped:
             # Load frame if path exists
             if len(self.inbox):
-                path = self.inbox.pop()
+                path = self.inbox.popleft()
 
             if path and not self.is_busy():
                 success = self.load(path)
@@ -161,7 +161,7 @@ class StreamMonitor(DataMonitor):
     def run_parser(self):
         while not self.is_stopped():
             if len(self.inbox) and not self.is_paused():
-                msg = self.inbox.pop()
+                msg = self.inbox.popleft()
                 msg_type = json.loads(msg[0])
                 if msg_type['htype'] == 'dheader-1.0':
                     self.parse_header(msg_type, json.loads(msg[1]))
@@ -198,7 +198,7 @@ class StreamMonitor(DataMonitor):
                 break
 
     def parse_image(self, info, frame, img_data):
-        logger.debug(f"Parsing stream image {info}")
+        logger.debug(f"Parsing stream image {info['frame']+1}")
 
         dtype = numpy.dtype(frame['type'])
         shape = frame['shape'][::-1]
@@ -208,6 +208,7 @@ class StreamMonitor(DataMonitor):
         self.dataset = DataSet()
         meta = self.metadata.copy()
         frame_number = int(info['frame']) + 1
+        self.dataset.header = meta
         self.dataset.header.update({
             'saturated_value': 1e6,
             'overloads': 0,
@@ -220,15 +221,16 @@ class StreamMonitor(DataMonitor):
         try:
             if frame['encoding'].startswith('lz4'):
                 arr_bytes = lz4.block.decompress(img_data, uncompressed_size=size * dtype.itemsize)
-                data = numpy.fromstring(arr_bytes, dtype=dtype).reshape(*shape)
+                mdata = numpy.frombuffer(arr_bytes, dtype=dtype).reshape(*shape)
             elif frame['encoding'].startswith('bs'):
-                data = bshuf.decompress_lz4(img_data[12:], shape, dtype)
+                mdata = bshuf.decompress_lz4(img_data[12:], shape, dtype)
             else:
                 raise RuntimeError(f'Unknown encoding {frame["encoding"]}')
 
-            stats_data = data[(data >= 0) & (data < self.dataset.header['saturated_value'])].view(dtype)
-            data = data.view(dtype)
+            data = mdata.view(numpy.int32)
+            stats_data = data[(data >= 0) & (data < self.dataset.header['saturated_value'])]
             avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
+
             self.dataset.header.update({
                 'average_intensity': avg,
                 'std_dev': stdev,

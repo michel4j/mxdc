@@ -3,7 +3,7 @@ import math
 import pathlib
 import threading
 import time
-from queue import Queue
+from collections import deque
 
 import cairo
 import cv2
@@ -78,7 +78,7 @@ class DataLoader(Object):
         self.zscale = ZSCALE_MULTIPLIER  # Standard zscale above mean for palette maximum
         self.default_zscale = ZSCALE_MULTIPLIER
         self.scale = 1.0
-        self.inbox = Queue(10000)
+        self.inbox = deque(maxlen=20)
 
         self.needs_refresh = False
         self.load_next = False
@@ -95,7 +95,7 @@ class DataLoader(Object):
 
         :param path: full path to data frame
         """
-        self.inbox.put(path)
+        self.inbox.append(path)
 
     def show(self, dataset):
         """
@@ -178,8 +178,8 @@ class DataLoader(Object):
 
             # skip ahead a few frames
             count = 0
-            while not self.inbox.empty() and count < self.skip_count:
-                path = self.inbox.get()
+            while len(self.inbox):
+                path = self.inbox.popleft()
                 count += 1
 
             if path:
