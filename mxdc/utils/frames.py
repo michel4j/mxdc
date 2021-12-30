@@ -14,7 +14,7 @@ from mxio import read_image
 from mxio.formats import DataSet
 
 from mxdc import Engine
-from mxdc.utils import log
+from mxdc.utils import log, bshuf
 
 logger = log.get_module_logger('frames')
 
@@ -197,21 +197,32 @@ class StreamMonitor(DataMonitor):
                 self.metadata['total_angle'] = self.metadata['num_images'] * self.metadata['delta_angle']
                 break
 
-    def parse_image(self, info, frame, msg):
+    def parse_image(self, info, frame, raw):
         logger.debug(f"Parsing image {info}")
-        size = frame['shape'][0]*frame['shape'][1] * SIZES[frame['type']]
-        raw_data = lz4.block.decompress(msg[2], uncompressed_size=size)
-        dtype = TYPES[frame['type']]
-        data = numpy.fromstring(raw_data, dtype=frame['type']).reshape(*frame['shape'])
+        dtype = numpy.dtype(frame['type'])
+        shape = frame['shape'][::-1]
+        size = numpy.prod(shape)
 
+        if frame['encoding'][-1] in ['<', '>']:
+            dtype = dtype.newbyteorder(frame['encoding'][-1])
+
+        if frame['encoding'].startswith('lz4'):
+            # LZ4 Only encoding
+            arr_bytes = lz4.block.decompress(raw, uncompressed_size=size*dtype.itemsize)
+            data = numpy.fromstring(arr_bytes, dtype=dtype).reshape(*shape)
+        elif frame['encoding'].startswith('bs'):
+            data = bshuf.decompress_lz4(raw[12:], shape, dtype)
+        else:
+            return
         self.dataset = DataSet()
         header = self.metadata.copy()
 
         header['saturated_value'] = 1e6
-        stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
-        data = data.view(dtype)
 
         try:
+            stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
+            data = data.view(dtype)
+
             avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
 
             header['average_intensity'] = avg
