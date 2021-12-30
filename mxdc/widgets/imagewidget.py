@@ -290,7 +290,10 @@ class ImageWidget(Gtk.DrawingArea):
                     self.create_surface()
                     GLib.idle_add(self.redraw)
             if len(self.inbox):
+                frame = self.frame
                 self.frame = self.inbox.popleft()
+                if frame.name != self.frame.name:
+                    self.extents = None
                 self.data_loader.set_current_frame(self.frame)
             time.sleep(0.01)
 
