@@ -171,7 +171,7 @@ class StreamMonitor(DataMonitor):
                     except:
                         pass
                 elif msg_type['htype'] == 'dseries_end-1.0':
-                    self.parse_footer(msg_type, json.loads(msg))
+                    self.parse_footer(msg_type, msg)
             time.sleep(0.0)
 
     def parse_header(self, info, header):
@@ -197,54 +197,54 @@ class StreamMonitor(DataMonitor):
                 self.metadata['total_angle'] = self.metadata['num_images'] * self.metadata['delta_angle']
                 break
 
-    def parse_image(self, info, frame, raw):
-        logger.debug(f"Parsing image {info}")
+    def parse_image(self, info, frame, img_data):
+        logger.debug(f"Parsing stream image {info}")
+
         dtype = numpy.dtype(frame['type'])
         shape = frame['shape'][::-1]
         size = numpy.prod(shape)
+        dtype = dtype.newbyteorder(frame['encoding'][-1]) if frame['encoding'][-1] in ['<', '>'] else dtype
 
-        if frame['encoding'][-1] in ['<', '>']:
-            dtype = dtype.newbyteorder(frame['encoding'][-1])
-
-        if frame['encoding'].startswith('lz4'):
-            # LZ4 Only encoding
-            arr_bytes = lz4.block.decompress(raw, uncompressed_size=size*dtype.itemsize)
-            data = numpy.fromstring(arr_bytes, dtype=dtype).reshape(*shape)
-        elif frame['encoding'].startswith('bs'):
-            data = bshuf.decompress_lz4(raw[12:], shape, dtype)
-        else:
-            return
         self.dataset = DataSet()
-        header = self.metadata.copy()
-
-        header['saturated_value'] = 1e6
+        meta = self.metadata.copy()
+        frame_number = int(info['frame']) + 1
+        self.dataset.header.update({
+            'saturated_value': 1e6,
+            'overloads': 0,
+            'frame_number': frame_number,
+            'filename': 'Stream',
+            'name': 'Stream',
+            'start_angle': meta['start_angle'] + frame_number * meta['delta_angle'],
+        })
 
         try:
-            stats_data = data[(data >= 0) & (data < header['saturated_value'])].view(dtype)
+            if frame['encoding'].startswith('lz4'):
+                arr_bytes = lz4.block.decompress(img_data, uncompressed_size=size * dtype.itemsize)
+                data = numpy.fromstring(arr_bytes, dtype=dtype).reshape(*shape)
+            elif frame['encoding'].startswith('bs'):
+                data = bshuf.decompress_lz4(img_data[12:], shape, dtype)
+            else:
+                raise RuntimeError(f'Unknown encoding {frame["encoding"]}')
+
+            stats_data = data[(data >= 0) & (data < self.dataset.header['saturated_value'])].view(dtype)
             data = data.view(dtype)
-
             avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
-
-            header['average_intensity'] = avg
-            header['std_dev'] = stdev
-            header['min_intensity'] = stats_data.min()
-            header['max_intensity'] = stats_data.max()
-            header['overloads'] = 0
-            header['frame_number'] = int(info['frame']) + 1
-            header['filename'] = 'Stream'
-            header['name'] = 'Stream'
-            header['start_angle'] += header['frame_number'] * header['delta_angle']
-
-            # update dataset
-            self.dataset.header = header
+            self.dataset.header.update({
+                'average_intensity': avg,
+                'std_dev': stdev,
+                'min_intensity': stats_data.min(),
+                'max_intensity': stats_data.max(),
+            })
             self.dataset.data = data
             self.dataset.stats_data = stats_data
+
             if self.master:
                 self.master.process_frame(self.dataset)
-            self.set_state(progress=(header['frame_number']/header['num_images'], 'frames collected'))
-            self.last_time = time.time()
-        except cv2.error:
-            logger.error('Error reading stream')
+        except Exception as e:
+            logger.error(f'Error decoding stream: {e}')
+            self.set_state(progress=(self.dataset.header['frame_number'] / meta['num_images'], 'frames collected'))
+
+        self.last_time = time.time()
 
     def parse_footer(self, info, msg):
         logger.debug('Stream Ended')
