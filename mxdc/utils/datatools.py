@@ -159,6 +159,25 @@ class NameManager(object):
         return new_name
 
 
+class NameChecker(object):
+    """
+    An object which keeps track of dataset names in a run list and makes sure
+    unique names are generated
+    """
+
+    def __init__(self):
+        self.names = set()
+        self.history = defaultdict(int)
+
+    def get(self, name):
+        suffix = self.history[name]
+        self.history[name] += 1
+        if suffix == 0:
+            return name
+        else:
+            return f'{name}_{suffix}'
+
+
 def summarize_list(values):
     """
     Takes a list of integers such as [1,2,3,4,6,7,8] and summarises it as a string "1-4,6-8"

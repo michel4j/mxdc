@@ -347,6 +347,8 @@ class DatasetsController(Object):
         self.start_time = 0
         self.frame_monitor = None
         self.starting = True
+
+        self.names = datatools.NameChecker()
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
@@ -445,6 +447,7 @@ class DatasetsController(Object):
 
         # add a new run
         if item.state == item.StateType.ADD and num_items < 8:
+            sample = self.sample_store.get_current()
             if position > 0:
                 prev = self.run_store.get_item(position - 1)
                 config = prev.info.copy()
@@ -462,7 +465,8 @@ class DatasetsController(Object):
                     'distance': distance,
                 })
             sample = self.sample_store.get_current()
-            config['name'] = sample.get('name', 'test')
+            config['name'] = self.names.get(sample.get('name', 'test'))
+
             item.props.info = config
             item.props.state = datawidget.RunItem.StateType.DRAFT
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
@@ -554,16 +558,9 @@ class DatasetsController(Object):
     def check_run_store(self):
         count = 0
         item = self.run_store.get_item(count)
-        sample = self.sample_store.get_current()
-        fix_names = datatools.NameManager(sample.get('name', ''))
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
-                info = item.info.copy()
-                new_name = fix_names(info['name'])
-                info['name'] = new_name
-                item.props.info = info
                 item.props.position = count
-
             count += 1
             item = self.run_store.get_item(count)
         self.widget.datasets_collect_btn.set_sensitive(count > 1)
