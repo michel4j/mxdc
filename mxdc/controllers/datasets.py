@@ -1,5 +1,6 @@
 import copy
 import time
+import re
 from datetime import timedelta
 
 from gi.repository import Gio, Gtk
@@ -448,9 +449,11 @@ class DatasetsController(Object):
         # add a new run
         if item.state == item.StateType.ADD and num_items < 8:
             sample = self.sample_store.get_current()
+            name = sample.get('name')
             if position > 0:
                 prev = self.run_store.get_item(position - 1)
                 config = prev.info.copy()
+                name = re.sub(r'_\d+$',  '', config['name']) if not name else name
             else:
                 config = self.run_editor.get_default(datawidget.StrategyType.FULL)
                 energy = self.beamline.bragg_energy.get_position()
@@ -464,9 +467,8 @@ class DatasetsController(Object):
                     'energy': energy,
                     'distance': distance,
                 })
-            sample = self.sample_store.get_current()
-            config['name'] = self.names.get(sample.get('name', 'test'))
-
+                name = 'test' if not name else name
+            config['name'] = self.names.get(name)
             item.props.info = config
             item.props.state = datawidget.RunItem.StateType.DRAFT
             new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
