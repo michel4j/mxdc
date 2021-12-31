@@ -1,42 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.36.0 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkWindow">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkBox" id="saved_run_row">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_left">12</property>
-        <property name="spacing">12</property>
+        <property name="can-focus">False</property>
+        <property name="homogeneous">True</property>
         <child>
-          <object class="GtkImage" id="data_icon">
+          <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="valign">center</property>
-            <property name="icon_name">image-loading-symbolic</property>
-            <property name="icon_size">2</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="data_title_box">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
+            <property name="can-focus">False</property>
+            <property name="margin-start">12</property>
+            <property name="spacing">12</property>
             <child>
-              <object class="GtkLabel" id="data_header">
+              <object class="GtkImage" id="data_icon">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="xalign">0</property>
-                <style>
-                  <class name="data-header"/>
-                </style>
+                <property name="can-focus">False</property>
+                <property name="valign">center</property>
+                <property name="icon-name">image-loading-symbolic</property>
+                <property name="icon_size">2</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -45,32 +30,100 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="data_title">
+              <object class="GtkBox" id="data_title_box">
+                <property name="width-request">200</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">Testing</property>
-                <property name="xalign">0</property>
-                <style>
-                  <class name="data-title"/>
-                </style>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel" id="data_header">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xalign">0</property>
+                    <style>
+                      <class name="data-header"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="data_title">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="valign">center</property>
+                    <property name="xalign">0</property>
+                    <style>
+                      <class name="data-title"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="data_subtitle">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="xalign">0</property>
+                    <style>
+                      <class name="data-subtitle"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="data_subtitle">
+              <object class="GtkBox" id="data_duration_box">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">start</property>
-                <property name="xalign">0</property>
-                <style>
-                  <class name="data-subtitle"/>
-                </style>
+                <property name="can-focus">False</property>
+                <property name="spacing">12</property>
+                <child>
+                  <object class="GtkSeparator">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">12</property>
+                    <property name="margin-bottom">12</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="data_duration">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">0:00:00</property>
+                    <style>
+                      <class name="data-subtitle"/>
+                    </style>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -82,35 +135,43 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>
       </object>
     </child>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
   </object>
   <object class="GtkWindow">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkBox" id="data_form">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkButtonBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="border_width">10</property>
+            <property name="can-focus">False</property>
+            <property name="border-width">10</property>
             <property name="spacing">12</property>
-            <property name="layout_style">expand</property>
+            <property name="layout-style">expand</property>
             <child>
               <object class="GtkButton" id="data_save_btn">
                 <property name="label">Save</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <style>
                   <class name="suggested-action"/>
                 </style>
@@ -125,47 +186,48 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="pack-type">end</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="pack-type">end</property>
             <property name="position">1</property>
           </packing>
         </child>
         <child>
           <object class="GtkBox" id="data_vector_box">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">10</property>
-            <property name="margin_right">10</property>
+            <property name="can-focus">False</property>
+            <property name="margin-left">10</property>
+            <property name="margin-right">10</property>
             <property name="orientation">vertical</property>
             <property name="spacing">6</property>
             <child>
+              <!-- n-columns=3 n-rows=3 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_bottom">10</property>
-                <property name="column_spacing">6</property>
+                <property name="can-focus">False</property>
+                <property name="margin-bottom">10</property>
+                <property name="column-spacing">6</property>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="valign">start</property>
                     <property name="hexpand">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <style>
                           <class name="device-label"/>
@@ -179,10 +241,10 @@
                     </child>
                     <child>
                       <object class="GtkComboBox" id="data_p1_mbox">
-                        <property name="width_request">80</property>
+                        <property name="width-request">80</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Ending point for data collection.</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Ending point for data collection.</property>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -192,21 +254,21 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">0</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">end</property>
                     <property name="hexpand">True</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Steps:</property>
                         <style>
@@ -223,12 +285,12 @@
                       <object class="GtkSpinButton" id="data_vector_size_spin">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">Number of discrete points 
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Number of discrete points 
 between the starting and ending 
 points (inclusive) for vector collection.</property>
-                        <property name="invisible_char">*</property>
-                        <property name="width_chars">5</property>
+                        <property name="invisible-char">*</property>
+                        <property name="width-chars">5</property>
                         <property name="xalign">0.5</property>
                         <style>
                           <class name="value-sp"/>
@@ -242,21 +304,21 @@ points (inclusive) for vector collection.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">0</property>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="valign">start</property>
                     <property name="hexpand">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel" id="data_point_lbl">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Points:</property>
                         <style>
@@ -271,10 +333,10 @@ points (inclusive) for vector collection.</property>
                     </child>
                     <child>
                       <object class="GtkComboBox" id="data_p0_mbox">
-                        <property name="width_request">80</property>
+                        <property name="width-request">80</property>
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Saved point for data collection. 
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Saved point for data collection. 
 Also the starting point if more 
 than one point is provided.</property>
                       </object>
@@ -286,9 +348,27 @@ than one point is provided.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">0</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -301,23 +381,23 @@ than one point is provided.</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="pack-type">end</property>
             <property name="position">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">6</property>
-            <property name="margin_right">6</property>
-            <property name="margin_top">5</property>
-            <property name="margin_bottom">5</property>
+            <property name="can-focus">False</property>
+            <property name="margin-left">6</property>
+            <property name="margin-right">6</property>
+            <property name="margin-top">5</property>
+            <property name="margin-bottom">5</property>
             <property name="spacing">10</property>
             <child>
               <object class="GtkLabel" id="run_label">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="label" translatable="yes">New Run</property>
                 <attributes>
@@ -334,15 +414,15 @@ than one point is provided.</property>
               <object class="GtkButton" id="data_copy_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Copy Run</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Copy Run</property>
                 <property name="relief">none</property>
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">edit-copy-symbolic</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">edit-copy-symbolic</property>
                   </object>
                 </child>
                 <style>
@@ -358,16 +438,16 @@ than one point is provided.</property>
             <child>
               <object class="GtkButton" id="data_delete_btn">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Delete Run</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Delete Run</property>
                 <property name="halign">end</property>
                 <property name="relief">none</property>
                 <child>
                   <object class="GtkImage" id="image5">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">user-trash-symbolic</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">user-trash-symbolic</property>
                   </object>
                 </child>
                 <style>
@@ -390,7 +470,7 @@ than one point is provided.</property>
         <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -401,27 +481,28 @@ than one point is provided.</property>
         <child>
           <object class="GtkBox" id="editor_content">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">10</property>
-            <property name="margin_right">10</property>
-            <property name="margin_top">5</property>
+            <property name="can-focus">False</property>
+            <property name="margin-left">10</property>
+            <property name="margin-right">10</property>
+            <property name="margin-top">5</property>
             <property name="orientation">vertical</property>
             <child>
+              <!-- n-columns=3 n-rows=6 -->
               <object class="GtkGrid" id="data_form_fields">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="row_spacing">5</property>
-                <property name="column_spacing">5</property>
-                <property name="column_homogeneous">True</property>
+                <property name="can-focus">False</property>
+                <property name="row-spacing">5</property>
+                <property name="column-spacing">5</property>
+                <property name="column-homogeneous">True</property>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">First Frame</property>
                         <style>
@@ -437,13 +518,13 @@ than one point is provided.</property>
                     <child>
                       <object class="GtkEntry" id="data_first_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The number of the first frame.
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The number of the first frame.
 Subsequent frames are numbered
 starting from this.</property>
-                        <property name="width_chars">8</property>
+                        <property name="width-chars">8</property>
                         <property name="xalign">0.5</property>
-                        <property name="input_purpose">digits</property>
+                        <property name="input-purpose">digits</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -456,19 +537,19 @@ starting from this.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">4</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">4</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Total Frames</property>
                         <style>
@@ -485,10 +566,10 @@ starting from this.</property>
                       <object class="GtkEntry" id="data_frames_entry">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">8</property>
+                        <property name="can-focus">True</property>
+                        <property name="width-chars">8</property>
                         <property name="xalign">0.5</property>
-                        <property name="input_purpose">digits</property>
+                        <property name="input-purpose">digits</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -501,19 +582,19 @@ starting from this.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">4</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">4</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Start Angle</property>
                         <style>
@@ -529,12 +610,12 @@ starting from this.</property>
                     <child>
                       <object class="GtkEntry" id="data_start_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="width_chars">10</property>
+                        <property name="can-focus">True</property>
+                        <property name="width-chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-deg-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-deg-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -547,19 +628,19 @@ starting from this.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">3</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">3</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Total Angle</property>
                         <style>
@@ -575,14 +656,14 @@ starting from this.</property>
                     <child>
                       <object class="GtkEntry" id="data_range_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">Total angle collected from 
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Total angle collected from 
 each starting angle in the dataset</property>
-                        <property name="width_chars">10</property>
+                        <property name="width-chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-deg-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-deg-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -595,20 +676,20 @@ each starting angle in the dataset</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">3</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">3</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Delta Angle</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Delta Angle</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Angle/Frame</property>
                         <style>
@@ -624,12 +705,12 @@ each starting angle in the dataset</property>
                     <child>
                       <object class="GtkEntry" id="data_delta_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">Also known as the "delta" angle</property>
-                        <property name="width_chars">10</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Also known as the "delta" angle</property>
+                        <property name="width-chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-deg-symbolic</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-deg-symbolic</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -642,19 +723,19 @@ each starting angle in the dataset</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">2</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Exposure/Frame</property>
                         <style>
@@ -670,16 +751,16 @@ each starting angle in the dataset</property>
                     <child>
                       <object class="GtkEntry" id="data_exposure_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The exposure time per frame 
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The exposure time per frame 
 of data. This is the inverse 
 of the data collection rate.</property>
-                        <property name="width_chars">8</property>
+                        <property name="width-chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-sec-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="primary_icon_sensitive">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-sec-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="primary-icon-sensitive">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -692,19 +773,19 @@ of the data collection rate.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">2</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Attenuation</property>
                         <style>
@@ -720,13 +801,13 @@ of the data collection rate.</property>
                     <child>
                       <object class="GtkEntry" id="data_attenuation_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The percentage of beam to block</property>
-                        <property name="width_chars">8</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The percentage of beam to block</property>
+                        <property name="width-chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-pct-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-pct-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -739,19 +820,19 @@ of the data collection rate.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">2</property>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Energy</property>
                         <style>
@@ -767,13 +848,13 @@ of the data collection rate.</property>
                     <child>
                       <object class="GtkEntry" id="data_energy_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The beam energy.</property>
-                        <property name="width_chars">8</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The beam energy.</property>
+                        <property name="width-chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-kev-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-kev-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -786,19 +867,19 @@ of the data collection rate.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">4</property>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">4</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Wedge</property>
                         <style>
@@ -814,14 +895,14 @@ of the data collection rate.</property>
                     <child>
                       <object class="GtkEntry" id="data_wedge_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The angular stride per fun for interleaved data collection. Leave at
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The angular stride per fun for interleaved data collection. Leave at
 360 if not using interleaved data collection.</property>
-                        <property name="width_chars">10</property>
+                        <property name="width-chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-deg-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-deg-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -834,19 +915,19 @@ of the data collection rate.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">3</property>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">3</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Distance</property>
                         <style>
@@ -863,16 +944,16 @@ of the data collection rate.</property>
                       <object class="GtkEntry" id="data_distance_entry">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The detector distance is calculated
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The detector distance is calculated
 based on the 'Resolution' and 
 beam 'Energy'.</property>
                         <property name="editable">False</property>
-                        <property name="width_chars">8</property>
+                        <property name="width-chars">8</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-mm-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-mm-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -885,19 +966,19 @@ beam 'Energy'.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="top_attach">1</property>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Resolution</property>
                         <style>
@@ -913,14 +994,14 @@ beam 'Energy'.</property>
                     <child>
                       <object class="GtkEntry" id="data_resolution_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">The maximum diffraction 
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">The maximum diffraction 
 resolution expected.</property>
-                        <property name="width_chars">10</property>
+                        <property name="width-chars">10</property>
                         <property name="xalign">1</property>
-                        <property name="secondary_icon_name">units-ang-symbolic</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="input_purpose">number</property>
+                        <property name="secondary-icon-name">units-ang-symbolic</property>
+                        <property name="secondary-icon-activatable">False</property>
+                        <property name="input-purpose">number</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -933,19 +1014,19 @@ resolution expected.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Name</property>
                         <style>
@@ -961,12 +1042,12 @@ resolution expected.</property>
                     <child>
                       <object class="GtkEntry" id="data_name_entry">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="tooltip_text" translatable="yes">Name prefix of dataset.</property>
-                        <property name="width_chars">10</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Name prefix of dataset.</property>
+                        <property name="width-chars">10</property>
                         <property name="xalign">0.5</property>
-                        <property name="progress_pulse_step">0</property>
-                        <property name="input_purpose">alpha</property>
+                        <property name="progress-pulse-step">0</property>
+                        <property name="input-purpose">alpha</property>
                         <style>
                           <class name="value-sp"/>
                         </style>
@@ -979,19 +1060,19 @@ resolution expected.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="halign">start</property>
                         <property name="label" translatable="yes">Strategy</property>
                         <style>
@@ -1007,13 +1088,13 @@ resolution expected.</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="spacing">6</property>
                         <child>
                           <object class="GtkComboBoxText" id="data_strategy_cbox">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">Strategy</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Strategy</property>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -1024,15 +1105,15 @@ resolution expected.</property>
                         <child>
                           <object class="GtkButton" id="dir_template_btn">
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Directory Template Preferences</property>
-                            <property name="always_show_image">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Directory Template Preferences</property>
+                            <property name="always-show-image">True</property>
                             <child>
                               <object class="GtkImage">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">dir-template-symbolic</property>
+                                <property name="can-focus">False</property>
+                                <property name="icon-name">dir-template-symbolic</property>
                               </object>
                             </child>
                           </object>
@@ -1051,8 +1132,8 @@ resolution expected.</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">0</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
                     <property name="width">3</property>
                   </packing>
                 </child>
@@ -1061,13 +1142,13 @@ resolution expected.</property>
                     <property name="label" translatable="yes">Inverse Beam</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">False</property>
-                    <property name="draw_indicator">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="draw-indicator">True</property>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">5</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">5</property>
                     <property name="width">2</property>
                   </packing>
                 </child>
@@ -1089,9 +1170,6 @@ resolution expected.</property>
           </packing>
         </child>
       </object>
-    </child>
-    <child type="titlebar">
-      <placeholder/>
     </child>
   </object>
 </interface>

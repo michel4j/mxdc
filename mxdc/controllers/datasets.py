@@ -1,6 +1,6 @@
 import copy
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from gi.repository import Gio, Gtk
 from zope.interface import Interface
@@ -244,9 +244,9 @@ class AutomationController(Object):
 
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
-        remaining_time = 0 if not fraction else (1 - fraction) * used_time / fraction
-        eta_time = remaining_time
-        self.widget.auto_eta.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
+        remaining_time = 0 if not fraction else int((1 - fraction) * used_time / fraction)
+        eta_time = timedelta(seconds=remaining_time)
+        self.widget.auto_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.auto_pbar.set_fraction(fraction)
         self.widget.auto_progress_lbl.set_text(message)
 
@@ -259,13 +259,13 @@ class AutomationController(Object):
     def on_done(self, obj, data):
         self.props.state = self.StateType.STOPPED
         self.widget.auto_progress_lbl.set_text("Automation Completed.")
-        self.widget.auto_eta.set_text('--:--')
+        eta_time = timedelta(seconds=0)
+        self.widget.auto_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.auto_pbar.set_fraction(1.0)
 
     def on_stopped(self, obj, data):
         self.props.state = self.StateType.STOPPED
         self.widget.auto_progress_lbl.set_text("Automation Stopped.")
-        self.widget.auto_eta.set_text('--:--')
 
     def on_pause(self, obj, paused, reason):
         if paused:
@@ -346,7 +346,7 @@ class DatasetsController(Object):
         self.pause_info = False
         self.start_time = 0
         self.frame_monitor = None
-        self.first_frame = True
+        self.starting = True
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
@@ -449,7 +449,7 @@ class DatasetsController(Object):
                 prev = self.run_store.get_item(position - 1)
                 config = prev.info.copy()
             else:
-                config = self.run_editor.get_default()
+                config = self.run_editor.get_default(datawidget.StrategyType.FULL)
                 energy = self.beamline.bragg_energy.get_position()
                 distance = self.beamline.distance.get_position()
                 resolution = converter.dist_to_resol(
@@ -457,7 +457,7 @@ class DatasetsController(Object):
                 )
                 config.update({
                     'resolution': round(resolution, 4),
-                    'strategy': datawidget.StrategyType.SINGLE,
+                    'strategy': datawidget.StrategyType.FULL,
                     'energy': energy,
                     'distance': distance,
                 })
@@ -672,22 +672,21 @@ class DatasetsController(Object):
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
         if fraction > 0:
-            remaining_time = (1 - fraction) * used_time / fraction
-            eta_time = remaining_time
-            eta = '{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60))
+            remaining_time = int((1 - fraction) * used_time / fraction)
+            eta_time = timedelta(seconds=remaining_time)
         else:
-            eta = '--:--'
-        self.widget.collect_eta.set_text(eta)
+            eta_time = timedelta(seconds=0)
+        self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.collect_pbar.set_fraction(fraction)
 
     def on_done(self, obj, completion):
         self.complete_run(completion)
-        self.widget.collect_eta.set_text('--:--')
+        eta_time = timedelta(seconds=0)
+        self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.collect_pbar.set_fraction(1.0)
         self.widget.collect_progress_lbl.set_text('Acquisition complete!')
 
     def on_stopped(self, obj, completion):
-        self.widget.collect_eta.set_text('--:--')
         self.complete_run(completion)
 
     def on_pause(self, obj, paused, message):
@@ -723,6 +722,7 @@ class DatasetsController(Object):
     def on_started(self, obj, wedge):
         if wedge is None:  # Overall start for all wedges
             self.start_time = time.time()
+            self.first_frame = True
             self.widget.datasets_collect_btn.set_sensitive(True)
             self.widget.datasets_clean_btn.set_sensitive(False)
             self.widget.datasets_overlay.set_sensitive(False)
@@ -748,9 +748,9 @@ class DatasetsController(Object):
 
     def on_new_image(self, obj, frame):
         # ignore first frame which is the PV value when MxDC starts up, frame may belong to a different user
-        if not self.first_frame:
+        if not self.starting:
             self.image_viewer.show_frame(frame)
-        self.first_frame = False
+        self.starting = False
 
     def on_collect_btn(self, obj):
         self.widget.datasets_collect_btn.set_sensitive(False)

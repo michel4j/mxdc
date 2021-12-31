@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 import uuid
 
 from gi.repository import Gtk, Gdk, Gio
@@ -11,7 +12,7 @@ from mxdc.utils.gui import Validator
 
 
 def calculate_skip(strategy, total_range, delta, first):
-    if strategy in [StrategyType.FULL, StrategyType.SINGLE, StrategyType.POWDER]:
+    if strategy in [StrategyType.FULL, StrategyType.SINGLE, StrategyType.POWDER, StrategyType.SCREEN_1]:
         return ''
     elif strategy == StrategyType.SCREEN_4:
         return '{}-{},{}-{},{}-{}'.format(
@@ -49,6 +50,7 @@ class RunItem(Object):
     progress = Property(type=float, default=0.0)
     warning = Property(type=str, default="")
     title = Property(type=str, default="Add run ...")
+    duration = Property(type=int, default=0)
     subtitle = Property(type=str, default="")
     created = Property(type=float, default=0.0)
 
@@ -69,6 +71,7 @@ class RunItem(Object):
                 self.props.info.get('energy'),
                 '[INV]' if self.props.info.get('inverse') else ''
             )
+            self.props.duration = self.props.size *  self.props.info.get('exposure')
 
     def set_progress(self, progress):
         state = self.props.state
@@ -423,6 +426,7 @@ class DataDialog(DataEditor):
         self.data_save_btn.connect_after('clicked', lambda x: self.popover.hide())
 
 
+
 class RunConfig(gui.Builder):
     gui_roots = {
         'data/data_form': ['saved_run_row']
@@ -434,6 +438,7 @@ class RunConfig(gui.Builder):
         self.ROW_SIZE_GROUP.add_widget(row)
         row.get_style_context().add_class('run-row')
         row.add(self.saved_run_row)
+        self.data_duration_box.set_no_show_all(True)
         self.update()
         return row
 
@@ -458,7 +463,12 @@ class RunConfig(gui.Builder):
             self.data_header.set_text('')
             self.data_title.set_markup('Add run ...')
             self.data_subtitle.set_text('')
+            self.data_duration.set_text('')
+            self.data_duration_box.set_visible(False)
         else:
             self.data_header.set_text(self.item.info.get('strategy_desc', ''))
             self.data_title.set_markup(f'<small><b>{self.item.title}</b></small>')
             self.data_subtitle.set_markup(f'<small>{self.item.subtitle}</small>')
+            dur = timedelta(seconds=self.item.duration)
+            self.data_duration.set_markup(f'<small><tt>{dur}</tt></small>')
+            self.data_duration_box.set_visible(True)

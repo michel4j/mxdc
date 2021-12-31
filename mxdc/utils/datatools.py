@@ -17,7 +17,7 @@ OUTLIER_DEVIATION = 50
 
 
 class StrategyType(object):
-    SINGLE, FULL, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = range(6)
+    SINGLE, FULL, SCREEN_1, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = range(7)
 
 
 Strategy = {
@@ -46,6 +46,11 @@ Strategy = {
         'desc': 'Screen 0°, 90°',
         'activity': 'screen'
     },
+    StrategyType.SCREEN_1: {
+        'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
+        'desc': 'Screen 0°',
+        'activity': 'screen'
+    },
     StrategyType.POWDER: {
         'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'inverse': False,
         'desc': 'Powder',
@@ -59,6 +64,7 @@ StrategyDataType = {
     StrategyType.SCREEN_4: 'SCREEN',
     StrategyType.SCREEN_3: 'SCREEN',
     StrategyType.SCREEN_2: 'SCREEN',
+    StrategyType.SCREEN_1: 'SCREEN',
     StrategyType.POWDER: 'XRD'
 }
 
@@ -68,6 +74,7 @@ StrategyProcType = {
     StrategyType.SCREEN_4: 'proc-screen',
     StrategyType.SCREEN_3: 'proc-screen',
     StrategyType.SCREEN_2: 'proc-screen',
+    StrategyType.SCREEN_1: 'proc-screen',
     StrategyType.POWDER: 'proc-powder'
 }
 
@@ -75,6 +82,7 @@ ScreeningRange = {
     StrategyType.SCREEN_4: 270,
     StrategyType.SCREEN_3: 90,
     StrategyType.SCREEN_2: 90,
+    StrategyType.SCREEN_1: 90,
 }
 
 

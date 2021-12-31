@@ -172,7 +172,7 @@ class StreamMonitor(DataMonitor):
                         pass
                 elif msg_type['htype'] == 'dseries_end-1.0':
                     self.parse_footer(msg_type, msg)
-            time.sleep(0.0)
+            time.sleep(0.05)
 
     def parse_header(self, info, header):
         logger.debug('Stream started - Parsing header')
@@ -244,8 +244,8 @@ class StreamMonitor(DataMonitor):
                 self.master.process_frame(self.dataset)
         except Exception as e:
             logger.error(f'Error decoding stream: {e}')
-            self.set_state(progress=(self.dataset.header['frame_number'] / meta['num_images'], 'frames collected'))
 
+        self.set_state(progress=(self.dataset.header['frame_number'] / meta['num_images'], 'frames collected'))
         self.last_time = time.time()
 
     def parse_footer(self, info, msg):
