@@ -560,9 +560,16 @@ class DatasetsController(Object):
     def check_run_store(self):
         count = 0
         item = self.run_store.get_item(count)
+        sample = self.sample_store.get_current()
+        fix_names = datatools.NameManager(sample.get('name', ''))
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
+                info = item.info.copy()
+                new_name = fix_names(info['name'])
+                info['name'] = new_name
+                item.props.info = info
                 item.props.position = count
+
             count += 1
             item = self.run_store.get_item(count)
         self.widget.datasets_collect_btn.set_sensitive(count > 1)
