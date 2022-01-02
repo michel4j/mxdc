@@ -94,9 +94,12 @@ class Frame(object):
         if not self.ready:
             p_lo, p_hi = numpy.percentile(self.stats_data, (1., 99.))
             self.header['percentiles'] = p_lo, p_hi
-            self.default_zscale = ZSCALE_MULTIPLIER * (self.header['percentiles'][1] - self.header['average_intensity']) / self.header['std_dev']
-            self.zscale = self.default_zscale
-            self.scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
+            try:
+                self.default_zscale = ZSCALE_MULTIPLIER * (self.header['percentiles'][1] - self.header['average_intensity']) / self.header['std_dev']
+                self.zscale = self.default_zscale
+                self.scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
+            except RuntimeError as e:
+                pass
             del self.stats_data
             self.ready = True
         if index is not None:
