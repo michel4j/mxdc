@@ -557,7 +557,7 @@ class WedgeDispenser(object):
         self.pending = wedge['weight']
         if self.distinct:
             name_suffix = chr(ord('A') + self.pos)
-            wedge['name'] = f"{wedge['name']}--{name_suffix}"
+            wedge['name'] += f"--{name_suffix}"
 
         self.pos += 1
 
@@ -570,8 +570,8 @@ class WedgeDispenser(object):
 
             # additional numeric suffix for inverse beam
             if self.distinct:
-                wedge['name'] = f"{wedge['name']}1"
-                inv_wedge['name'] = f"{wedge['name']}2"
+                wedge['name'] += "1"
+                inv_wedge['name'] += "2"
             return wedge, inv_wedge,
         else:
             self.factor = 1
