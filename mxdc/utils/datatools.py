@@ -509,13 +509,15 @@ class WedgeDispenser(object):
 
     def __init__(self, run: dict, distinct: bool = False):
         self.details = run
-        self.distinct = distinct
         self.sample = run.get('sample', {})
 
         # generate main wedges
         self.wedges = make_wedges(self.details)
         self.num_wedges = len(self.wedges)
         self.pos = 0    # position in wedge list
+
+        self.distinct = distinct and (len(self.num_wedges) > 1 or self.details.get('inverse'))
+
 
         # total weights for progress
         self.weight = sum(wedge['weight'] for wedge in self.wedges)
@@ -552,12 +554,12 @@ class WedgeDispenser(object):
             return ()
 
         wedge = self.wedges[self.pos]
-        self.pos += 1
         self.pending = wedge['weight']
-
         if self.distinct:
             name_suffix = chr(ord('A') + self.pos)
             wedge['name'] = f"{wedge['name']}--{name_suffix}"
+
+        self.pos += 1
 
         # prepare inverse beam
         if wedge['inverse']:
