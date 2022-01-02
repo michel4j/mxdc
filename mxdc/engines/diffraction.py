@@ -141,11 +141,11 @@ class DataCollector(Engine):
         time.sleep(GRACE_PERIOD)
         saved_datasets = set()
         for uid, dataset in self.config['datasets'].items():
-            if (uid, dataset['name']) in saved_datasets: continue
-            metadata = self.save(dataset)
-            self.results.append(metadata)
-            if metadata and self.config['analysis']:
-                self.analyse(metadata, dataset.sample)
+            for details in dataset.get_details():
+                metadata = self.save(details)
+                self.results.append(metadata)
+                if metadata and self.config['analysis']:
+                    self.analyse(metadata, dataset.sample)
 
         self.unwatch_frames()
         self.set_state(busy=False)
@@ -286,8 +286,7 @@ class DataCollector(Engine):
                 img = self.beamline.sample_camera.get_frame()
                 img.save(snapshot_file)
 
-    def save(self, dataset):
-        params = dataset.details
+    def save(self, params):
         template = self.beamline.detector.get_template(params['name'])
         reference = template.format(params['first'])
 

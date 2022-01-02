@@ -510,6 +510,7 @@ class WedgeDispenser(object):
     def __init__(self, run: dict, distinct: bool = False):
         self.details = run
         self.sample = run.get('sample', {})
+        self.names = set()
 
         # generate main wedges
         self.wedges = make_wedges(self.details)
@@ -546,6 +547,15 @@ class WedgeDispenser(object):
         """
         return self.pos < self.num_wedges
 
+    def get_details(self):
+        """
+        Yield a dictionary of details for each uniquely named wedge.
+        """
+        for name in self.names:
+            details = copy.deepcopy(self.details)
+            details['name'] = name
+            yield details
+
     def fetch(self):
         """
         Produce collections of one or more wedges
@@ -572,9 +582,12 @@ class WedgeDispenser(object):
             if self.distinct:
                 wedge['name'] += "1"
                 inv_wedge['name'] += "2"
+            self.names.add(wedge['name'])
+            self.names.add(inv_wedge['name'])
             return wedge, inv_wedge,
         else:
             self.factor = 1
+            self.names.add(wedge['name'])
             return wedge,
 
 
