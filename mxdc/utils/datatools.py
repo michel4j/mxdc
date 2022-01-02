@@ -510,7 +510,7 @@ class WedgeDispenser(object):
     def __init__(self, run: dict, distinct: bool = False):
         self.details = run
         self.sample = run.get('sample', {})
-        self.names = set()
+        self.dispensed = []
 
         # generate main wedges
         self.wedges = make_wedges(self.details)
@@ -518,7 +518,6 @@ class WedgeDispenser(object):
         self.pos = 0    # position in wedge list
 
         self.distinct = distinct and (self.num_wedges > 1 or self.details.get('inverse'))
-
 
         # total weights for progress
         self.weight = sum(wedge['weight'] for wedge in self.wedges)
@@ -548,13 +547,14 @@ class WedgeDispenser(object):
         return self.pos < self.num_wedges
 
     def get_details(self):
-        """
-        Yield a dictionary of details for each uniquely named wedge.
-        """
-        for name in self.names:
-            details = copy.deepcopy(self.details)
-            details['name'] = name
-            yield details
+        # """
+        # Yield a dictionary of details for each uniquely named wedge.
+        # """
+        # for name in self.names:
+        #     details = copy.deepcopy(self.details)
+        #     details['name'] = name
+        #     yield details
+        return self.dispensed
 
     def fetch(self):
         """
@@ -582,12 +582,11 @@ class WedgeDispenser(object):
             if self.distinct:
                 wedge['name'] += "1"
                 inv_wedge['name'] += "2"
-            self.names.add(wedge['name'])
-            self.names.add(inv_wedge['name'])
+            self.dispensed.extend([wedge, inv_wedge])
             return wedge, inv_wedge,
         else:
             self.factor = 1
-            self.names.add(wedge['name'])
+            self.dispensed.append(wedge)
             return wedge,
 
 
