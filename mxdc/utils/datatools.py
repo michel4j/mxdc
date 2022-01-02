@@ -516,7 +516,7 @@ class WedgeDispenser(object):
         self.num_wedges = len(self.wedges)
         self.pos = 0    # position in wedge list
 
-        self.distinct = distinct and (len(self.num_wedges) > 1 or self.details.get('inverse'))
+        self.distinct = distinct and (self.num_wedges > 1 or self.details.get('inverse'))
 
 
         # total weights for progress
