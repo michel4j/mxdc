@@ -68,7 +68,11 @@ class DataCollector(Engine):
         self.config['take_snapshots'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         self.config['datasets'] = {
-            run['uuid']: datatools.WedgeDispenser(run) for run in self.config['runs']
+            run['uuid']: datatools.WedgeDispenser(
+                run,
+                distinct=(not self.beamline.detector.supports(DetectorFeatures.WEDGING))
+            )
+            for run in self.config['runs']
         }
 
     def prepare_for_wedge(self, wedge):

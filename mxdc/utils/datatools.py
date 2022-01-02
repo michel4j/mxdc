@@ -132,50 +132,59 @@ class NameManager(object):
     unique names are generated
     """
 
-    def __init__(self, sample):
+    def __init__(self, sample='test'):
         self.sample = sample
         self.names = set()
+        self.roots = {self.sample}
         self.history = defaultdict(int)
+
+    def set_sample(self, sample):
+        if self.sample != sample:
+            self.sample = sample
+            self.names = set()
+            self.history = defaultdict(int)
+
+    def update(self, names):
+        self.names = set()
+        self.history = defaultdict(int)
+        for name in names:
+            m = re.match(rf'(^.+)_(\d+)$', name)
+            if m:
+                root = m.group(1)
+                number = int(m.group(2))
+                self.history[root] = number
+            else:
+                self.history[name] = 1
+            self.names.add(name)
 
     def fix(self, name):
         new_name = name
-        m = re.match(rf'({self.sample}.+)(\d+)', name)
+        m = re.match(rf'^(.+)_(\d+)$', name)
         if m:
             root = m.group(1)
-            if name in self.names:
-                new_name = "{}{}".format(root, self.history[root])
+            num = int(m.group(2))
+            if root in self.roots and name in self.names:
+                new_name = f"{root}_{self.history[root]}"
+            else:
+                self.roots.add(root)
+                self.history[root] = num
             self.history[root] += 1
         elif name in self.names:
-            new_name = "{}{}".format(name, self.history[name])
+            if name not in self.history:
+                self.history[name] = 1
+            new_name = f"{name}_{self.history[name]}"
             self.history[name] += 1
         else:
+            self.roots.add(name)
             self.history[name] += 1
             new_name = name
         return new_name
 
-    def __call__(self, name):
+    def get(self, name=None):
+        name = name if name else self.sample
         new_name = self.fix(name)
         self.names.add(new_name)
         return new_name
-
-
-class NameChecker(object):
-    """
-    An object which keeps track of dataset names in a run list and makes sure
-    unique names are generated
-    """
-
-    def __init__(self):
-        self.names = set()
-        self.history = defaultdict(int)
-
-    def get(self, name):
-        suffix = self.history[name]
-        self.history[name] += 1
-        if suffix == 0:
-            return name
-        else:
-            return f'{name}_{suffix}'
 
 
 def summarize_list(values):
@@ -494,16 +503,19 @@ class WedgeDispenser(object):
     will contain a single wedge but when inverse beam is used, pairs are generated each time
 
     :param run: run parameters
+    :param distinct:  whether to use distinct dataset names for each wedge. If True, wedge names
+        will be suffixed with upper case letters to distinguish them from other wedges. Default is False
     """
 
-    def __init__(self, run: dict):
+    def __init__(self, run: dict, distinct: bool = False):
         self.details = run
+        self.distinct = distinct
         self.sample = run.get('sample', {})
 
         # generate main wedges
         self.wedges = make_wedges(self.details)
         self.num_wedges = len(self.wedges)
-        self.pos = 0
+        self.pos = 0    # position in wedge list
 
         # total weights for progress
         self.weight = sum(wedge['weight'] for wedge in self.wedges)
@@ -534,7 +546,7 @@ class WedgeDispenser(object):
 
     def fetch(self):
         """
-        Produce collections of one or more two
+        Produce collections of one or more wedges
         """
         if self.pos >= self.num_wedges:
             return ()
@@ -543,16 +555,25 @@ class WedgeDispenser(object):
         self.pos += 1
         self.pending = wedge['weight']
 
+        if self.distinct:
+            name_suffix = chr(ord('A') + self.pos)
+            wedge['name'] = f"{wedge['name']}--{name_suffix}"
+
         # prepare inverse beam
         if wedge['inverse']:
             inv_wedge = copy.deepcopy(wedge)
             inv_wedge['first'] += int(180. / wedge['delta'])
             inv_wedge['start'] += 180.
             self.factor = 2
-            return (wedge, inv_wedge)
+
+            # additional numeric suffix for inverse beam
+            if self.distinct:
+                wedge['name'] = f"{wedge['name']}1"
+                inv_wedge['name'] = f"{wedge['name']}2"
+            return wedge, inv_wedge,
         else:
             self.factor = 1
-            return (wedge,)
+            return wedge,
 
 
 def interleave(*datasets):

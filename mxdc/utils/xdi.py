@@ -1,11 +1,12 @@
 # coding=utf-8
 
 
-import collections
 import gzip
 import re
 import sys
 import textwrap
+from collections.abc import Mapping
+from collections import namedtuple
 from datetime import datetime, tzinfo, timedelta
 from io import StringIO
 
@@ -44,9 +45,9 @@ def defaulted_namedtuple(typename, fields, defaults=None):
     :param default_values: a dictionary of values to use as defaults otherwise None will be the default
     :return:
     """
-    Type = collections.namedtuple(typename, fields)
+    Type = namedtuple(typename, fields)
     Type.__new__.__defaults__ = (None,) * len(Type._fields)
-    if isinstance(defaults, collections.Mapping):
+    if isinstance(defaults, Mapping):
         prototype = Type(**defaults)
         Type.__new__.__defaults__ = tuple(prototype)
     return Type

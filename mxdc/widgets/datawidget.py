@@ -66,7 +66,7 @@ class RunItem(Object):
         if self.props.info:
             self.props.size = datatools.count_frames(self.props.info)
             self.props.title = '{}_{:04d}, ...'.format(self.info['name'], self.info['first'])
-            self.props.subtitle = '{}f {:0.4g}°/{:0.2g}s  @ {:0.5g} keV {}'.format(
+            self.props.subtitle = '{} frames {:0.4g}°/{:0.2g}s  @ {:0.5g} keV {}'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
                 self.props.info.get('energy'),
                 '[INV]' if self.props.info.get('inverse') else ''

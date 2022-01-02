@@ -35,7 +35,7 @@ class States(Enum):
 
 
 class DetectorFeatures(Enum):
-    SHUTTERLESS, TRIGGERING = range(2)
+    SHUTTERLESS, TRIGGERING, WEDGING = range(3)
 
 
 class Trigger(Object):
@@ -259,7 +259,7 @@ class SimDetector(BaseDetector):
         self.trigger_count = 0
         self.prepare_datasets()
         if trigger is not None:
-            self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS)
+            self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS, DetectorFeatures.WEDGING)
             self.trigger.connect('high', self.on_trigger )
 
     def save(self, wait=False):
@@ -412,6 +412,7 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = desc
         self.detector_type = detector_type
+        self.add_features(DetectorFeatures.WEDGING)
         self.initialized = False
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
@@ -527,6 +528,7 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = desc
         self.detector_type = detector_type
+        self.add_features(DetectorFeatures.WEDGING)
         self.initialized = False
 
         # commands
@@ -638,7 +640,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
         self.detector_type = detector_type
-        self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
+        self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING, DetectorFeatures.WEDGING)
         self.monitor = frames.FileMonitor(self)
 
         self.size = size
@@ -893,11 +895,11 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         params['exposure_time'] -= 5e-6
 
         if 'distance' in params:
-            params['distance'] /= 1000. # convert distance to meters
+            params['distance'] /= 1000.0     # convert distance to meters
 
         if 'num_frames' in params:
             frame_factors = misc.factorize(params['num_frames'], maximum=200)
-            params['batch_size'] = frame_factors[-1] # Adjust batch size
+            params['batch_size'] = frame_factors[-1]    # Adjust batch size
 
         self.mode_cmd.put(3)  # External Trigger Mode
         self.num_images.put(1)  # Uses "num_frames" to set number of actual frames acquired
