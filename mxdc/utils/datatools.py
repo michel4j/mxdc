@@ -550,11 +550,10 @@ class WedgeDispenser(object):
         # """
         # Yield a dictionary of details for each uniquely named wedge.
         # """
-        # for name in self.names:
-        #     details = copy.deepcopy(self.details)
-        #     details['name'] = name
-        #     yield details
-        return self.dispensed
+        for wedge in self.dispensed:
+            details = copy.deepcopy(self.details)
+            details.update(wedge)
+            yield details
 
     def fetch(self):
         """
