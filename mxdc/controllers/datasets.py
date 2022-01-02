@@ -737,7 +737,7 @@ class DatasetsController(Object):
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
             self.widget.dsets_dir_fbk.set_text(wedge['directory'])
-            progress_text = "Acquiring frames {}-{} of '{}' ...".format(
+            progress_text = "Acquiring frames {}-{} in '{}' ...".format(
                 wedge['first'], wedge['first'] + wedge['num_frames'] - 1, wedge['name']
             )
             self.widget.collect_progress_lbl.set_text(progress_text)

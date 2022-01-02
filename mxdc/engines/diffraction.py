@@ -139,8 +139,9 @@ class DataCollector(Engine):
 
         # Wait for Last image to be transferred
         time.sleep(GRACE_PERIOD)
-
+        saved_datasets = set()
         for uid, dataset in self.config['datasets'].items():
+            if (uid, dataset['name']) in saved_datasets: continue
             metadata = self.save(dataset)
             self.results.append(metadata)
             if metadata and self.config['analysis']:
@@ -293,7 +294,7 @@ class DataCollector(Engine):
         try:
             info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
         except OSError as e:
-            logger.error('Unable to find files on disk')
+            logger.warning(f'Unable to find files on disk: {reference}')
             logger.debug(str(e))
             return
 
