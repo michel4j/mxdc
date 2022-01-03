@@ -453,7 +453,7 @@ class DatasetsController(Object):
             if position > 0:
                 prev = self.run_store.get_item(position - 1)
                 config = prev.info.copy()
-                name = re.sub(r'_\d+$',  '', config['name']) if not name else name
+                name = config['name']
             else:
                 config = self.run_editor.get_default(datawidget.StrategyType.FULL)
                 energy = self.beamline.bragg_energy.get_position()
@@ -559,19 +559,16 @@ class DatasetsController(Object):
     def check_run_store(self):
         count = 0
         item = self.run_store.get_item(count)
-        existing_names = []
+        self.names.reset()
         while item:
             if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
                 info = item.info.copy()
-                if info['name'] in existing_names:
-                    info['name'] = self.names.get(info['name'])
-                existing_names.append(info['name'])
+                info['name'] = self.names.fix(info['name'])
                 item.props.info = info
                 item.props.position = count
 
             count += 1
             item = self.run_store.get_item(count)
-        self.names.update(existing_names)
         self.widget.datasets_collect_btn.set_sensitive(count > 1)
         self.update_cache()
 
@@ -629,7 +626,7 @@ class DatasetsController(Object):
             name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
-        self.names.set_sample(sample.get('name', 'test'))
+        self.names.reset(sample.get('name', 'test'))
         self.widget.dsets_sample_fbk.set_text(sample_text)
 
     def on_save_run(self, obj):

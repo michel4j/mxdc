@@ -1,42 +1,47 @@
 import time
-from datetime import timedelta
+import numpy
 import uuid
-
+from datetime import timedelta
 from gi.repository import Gtk, Gdk, Gio
 
 from mxdc import Registry, IBeamline, Property, Object
 from mxdc.devices.goniometer import GonioFeatures
+from mxdc.devices.detector import DetectorFeatures
 from mxdc.utils import gui, converter, datatools, glibref
 from mxdc.utils.datatools import StrategyType, Strategy, ScreeningAngles, ScreeningRange
 from mxdc.utils.gui import Validator
 
 
+def skips(wedge, delta, first=1, start_angs=(0,), range_end=360):
+    """
+    Calculate the skip ranges based on
+    :param wedge: angle range for each wedge
+    :param delta: angle per frame
+    :param first: first frame index
+    :param start_angs: tuple of start_angles
+    :return: string representation of frame number ranges to skip
+    """
+    end_angs = numpy.array(start_angs)
+    start_angs = end_angs + wedge
+    end_angs[:-1] = end_angs[1:]
+    end_angs[-1] = range_end
+    starts = first + (start_angs/delta).astype(int)
+    ends = first + (end_angs/delta).astype(int) - 1
+    return ','.join((f'{lo}-{hi}' for lo,hi in zip(starts, ends)))
+
+
 def calculate_skip(strategy, total_range, delta, first):
-    if strategy in [StrategyType.FULL, StrategyType.SINGLE, StrategyType.POWDER, StrategyType.SCREEN_1]:
+
+    if strategy in [StrategyType.SCREEN_1, StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        return skips(
+            wedge=total_range,
+            delta=delta,
+            first=first,
+            start_angs=ScreeningAngles[strategy],
+            range_end=ScreeningRange[strategy]
+        )
+    else:
         return ''
-
-    elif strategy == StrategyType.SCREEN_4:
-        return '{}-{},{}-{},{}-{}'.format(
-            first + int(total_range / delta),
-            first + int(90 / delta) - 1,
-            first + int((90 + total_range) / delta),
-            first + int(180 / delta) - 1,
-            first + int((180 + total_range) / delta),
-            first + int(270 / delta) - 1,
-        )
-
-    elif strategy == StrategyType.SCREEN_3:
-        return '{}-{},{}-{}'.format(
-            first + int(total_range / delta),
-            first + int(45 / delta) - 1,
-            first + int((45 + total_range) / delta),
-            first + int(90 / delta) - 1,
-        )
-    elif strategy == StrategyType.SCREEN_2:
-        return '{}-{}'.format(
-            first + int(total_range / delta),
-            first + int(90 / delta) - 1,
-        )
 
 
 class RunItem(Object):
@@ -50,6 +55,7 @@ class RunItem(Object):
     uuid = Property(type=str, default="")
     progress = Property(type=float, default=0.0)
     warning = Property(type=str, default="")
+    header = Property(type=str, default="")
     title = Property(type=str, default="Add run ...")
     duration = Property(type=int, default=0)
     subtitle = Property(type=str, default="")
@@ -66,13 +72,17 @@ class RunItem(Object):
     def info_changed(self, *args, **kwargs):
         if self.props.info:
             self.props.size = datatools.count_frames(self.props.info)
-            self.props.title = '{}_{:04d}, ...'.format(self.info['name'], self.info['first'])
-            self.props.subtitle = '{} frames {:0.4g}°/{:0.2g}s  @ {:0.5g} keV {}'.format(
-                self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
+            self.props.header = '{} @ {:0.5g} keV'.format(
+                self.props.info.get('strategy_desc', ''),
                 self.props.info.get('energy'),
-                '[INV]' if self.props.info.get('inverse') else ''
             )
-            self.props.duration = self.props.size *  self.props.info.get('exposure')
+            self.props.title = self.info['name']
+            self.props.subtitle = '{} frames, {:0.4g}°/{:0.2g}s{}{}'.format(
+                self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
+                ', {:g}° wedges'.format(self.props.info.get('wedge',720)) if self.props.info.get('wedge',720) < self.props.info.get('range') else '',
+                ', [INV]' if self.props.info.get('inverse') else ''
+            )
+            self.props.duration = self.props.size * self.props.info.get('exposure')
 
     def set_progress(self, progress):
         state = self.props.state
@@ -216,6 +226,7 @@ class DataForm(gui.FormManager):
             first = self.get_value('first')
             skip = calculate_skip(strategy, range_, delta, first)
             frames = datatools.calc_num_frames(strategy, delta, range_, skip=skip)
+            print(skip, frames)
             self.set_value('frames', frames)
 
 
@@ -232,8 +243,8 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('delta', 'entry', '{:0.3g}', Validator.AngleFrac(0.001, 720, 1.)),
         gui.FieldSpec('range', 'entry', '{:0.4g}', Validator.Float(0.05, 10000, 1.)),
         gui.FieldSpec('start', 'entry', '{:0.4g}', Validator.Float(-360., 360., 0.)),
-        gui.FieldSpec('wedge', 'entry', '{:0.4g}', Validator.Float(0.05, 720., 360.)),
-        gui.FieldSpec('energy', 'entry', '{:0.3f}', Validator.Float(1.0, 25.0, 12.658)),
+        gui.FieldSpec('wedge', 'entry', '{:0.4g}', Validator.Float(0.05, 720., 720.)),
+        gui.FieldSpec('energy', 'entry', '{:0.3f}', Validator.Float(1.0, 25.0, 12.66)),
         gui.FieldSpec('distance', 'entry', '{:0.1f}', Validator.Float(50., 1000., 200)),
         gui.FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720., 0.5)),
         gui.FieldSpec('attenuation', 'entry', '{:0.3g}', Validator.Float(0, 100, 0.0)),
@@ -253,6 +264,8 @@ class DataEditor(gui.BuilderMixin):
         self.setup_gui()
         self.beamline = Registry.get_utility(IBeamline)
         self.points = Gtk.ListStore(int, str, object)
+        if not self.beamline.detector.supports(DetectorFeatures.WEDGING):
+            self.disabled += ('first', )
         self.form = DataForm(self, fields=self.Fields, prefix='data', persist=False, disabled=self.disabled)
         self.new_run = True
         self.run_index = 0
@@ -467,7 +480,7 @@ class RunConfig(gui.Builder):
             self.data_duration.set_text('')
             self.data_duration_box.set_visible(False)
         else:
-            self.data_header.set_text(self.item.info.get('strategy_desc', ''))
+            self.data_header.set_text(self.item.header)
             self.data_title.set_markup(f'<small><b>{self.item.title}</b></small>')
             self.data_subtitle.set_markup(f'<small>{self.item.subtitle}</small>')
             dur = timedelta(seconds=self.item.duration)

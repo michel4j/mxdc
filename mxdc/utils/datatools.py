@@ -140,57 +140,34 @@ class NameManager(object):
 
     def __init__(self, sample='test'):
         self.sample = sample
-        self.names = set()
-        self.roots = {self.sample}
-        self.history = defaultdict(int)
+        self.history = defaultdict(list)
 
-    def set_sample(self, sample):
-        if self.sample != sample:
+    def reset(self, sample=None):
+        if sample is not None:
             self.sample = sample
-            self.names = set()
-            self.history = defaultdict(int)
-
-    def update(self, names):
-        self.names = set()
-        self.history = defaultdict(int)
-        for name in names:
-            m = re.match(rf'(^.+)_(\d+)$', name)
-            if m:
-                root = m.group(1)
-                number = int(m.group(2))
-                self.history[root] = number
-            else:
-                self.history[name] = 1
-            self.names.add(name)
+        self.history = defaultdict(list)
 
     def fix(self, name):
-        new_name = name
         m = re.match(rf'^(.+)_(\d+)$', name)
         if m:
             root = m.group(1)
             num = int(m.group(2))
-            if root in self.roots and name in self.names:
-                new_name = f"{root}_{self.history[root]}"
-            else:
-                self.roots.add(root)
-                self.history[root] = num
-            self.history[root] += 1
-        elif name in self.names:
-            if name not in self.history:
-                self.history[name] = 1
-            new_name = f"{name}_{self.history[name]}"
-            self.history[name] += 1
         else:
-            self.roots.add(name)
-            self.history[name] += 1
-            new_name = name
+            root = name
+            num = 0
+
+        if num not in self.history[root]:
+            new_num = num
+        else:
+            new_num = max(self.history[root]) + 1
+        self.history[root].append(new_num)
+
+        new_name = root if new_num == 0 else f'{root}_{new_num}'
         return new_name
 
     def get(self, name=None):
         name = name if name else self.sample
-        new_name = self.fix(name)
-        self.names.add(new_name)
-        return new_name
+        return self.fix(name)
 
 
 def summarize_list(values):
@@ -253,65 +230,39 @@ def generate_frames(wedge: dict):
 def calc_range(run):
     """
     Calculate the total range for the given strategy. For normal runs simply return the defined range. For
-    screening runs, the defined range is used just for a given slice of data, the full range for the dataset
-    is calculated from this by adding the slice in degrees to the total range spanning the frames, defined
-    in the the ScreeningRange dictionary.
+    screening runs, the defined range in the ScreeningRange dictionary.
     :param run: Run parameters (dict)
     :return: a floating point angle in degrees
     """
-    if run.get('strategy') in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
-        size = max(1, int(float(run['range']) / run['delta']))
-        return ScreeningRange.get(run['strategy'], run.get('range', 180.)) + size * run['delta']
+    if run.get('strategy') in [StrategyType.SCREEN_1, StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        return ScreeningRange.get(run['strategy'], run.get('range', 180.))
     else:
         return run['range']
 
 
-def get_frame_numbers(run):
-    """
-    Generate the set of frame numbers for a given run.
-    :param run: Run parameters (dict)
-    :return: a set of integers
-    """
-    total_range = calc_range(run)
-    num_frames = max(1, int(total_range / run['delta']))
-    first = run.get('first', 1)
-    frame_numbers = set(range(first, num_frames + first))
-
-    if run.get("inverse"):
-        first = first + int(180. / run['delta'])
-        frame_numbers |= set(range(first, num_frames + first))
-
-    excluded = set(frameset_to_list(merge_framesets(run.get('skip', ''), run.get('existing', ''))))
-    return frame_numbers - excluded
-
-
-def calc_num_frames(strategy, delta, range, skip=''):
+def calc_num_frames(strategy, delta, angle_range, skip=''):
     """
     Count the number of frames in a dataset
 
     :param strategy: run strategy
     :param delta: delta angle
-    :param range: angle range
+    :param angle_range: angle range
     :param skip: frames to skip
     """
 
-    if strategy in [StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
-        size = max(1, range / delta)
-        total_range = ScreeningRange.get(strategy, range) + size * delta
+    if strategy in [StrategyType.SCREEN_1, StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        total_range = ScreeningRange.get(strategy, angle_range)
     else:
-        total_range = range
+        total_range = angle_range
 
-    num_frames = max(1, int(total_range / delta))
-
-    excluded = len(frameset_to_list(skip))
-    return num_frames - excluded
+    return max(1, int(total_range / delta)) - count_frameset(skip)
 
 
 def count_frames(run):
-    if not (run.get('delta') and run.get('range')):
-        return 1
-    else:
-        return len(get_frame_numbers(run))
+    strategy = run.get('strategy', 0)
+    angle_range = run.get('range', 1)
+    delta = run.get('delta', 1)
+    return calc_num_frames(strategy, delta, angle_range, run.get('skip', ''))
 
 
 def dataset_from_files(directory, file_glob):
@@ -371,6 +322,22 @@ def frameset_to_list(frame_set):
             frame_numbers.extend(v)
     return frame_numbers
 
+
+def count_pair(pair):
+    if pair == '':
+        return 0
+    elif not '-' in pair:
+        return 1
+    else:
+        lo, hi = pair.split('-')
+        return int(hi) - int(lo) + 1
+
+
+def count_frameset(frame_set):
+    return sum(
+        count_pair(pair)
+        for pair in frame_set.split(',')
+    )
 
 def merge_framesets(*args):
     frame_set = ','.join(filter(None, args))

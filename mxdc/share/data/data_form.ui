@@ -34,6 +34,7 @@
                 <property name="width-request">200</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="valign">center</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel" id="data_header">
