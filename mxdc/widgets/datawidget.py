@@ -7,13 +7,14 @@ from gi.repository import Gtk, Gdk, Gio
 from mxdc import Registry, IBeamline, Property, Object
 from mxdc.devices.goniometer import GonioFeatures
 from mxdc.utils import gui, converter, datatools, glibref
-from mxdc.utils.datatools import StrategyType, Strategy
+from mxdc.utils.datatools import StrategyType, Strategy, ScreeningAngles, ScreeningRange
 from mxdc.utils.gui import Validator
 
 
 def calculate_skip(strategy, total_range, delta, first):
     if strategy in [StrategyType.FULL, StrategyType.SINGLE, StrategyType.POWDER, StrategyType.SCREEN_1]:
         return ''
+
     elif strategy == StrategyType.SCREEN_4:
         return '{}-{},{}-{},{}-{}'.format(
             first + int(total_range / delta),

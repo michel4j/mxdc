@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+from collections import deque
 
 import pytz
 from gi.repository import GLib
@@ -18,7 +19,7 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-GRACE_PERIOD = 10  # Amount of time to wait after completion for frames to all appear.
+GRACE_PERIOD = 5  # Amount of time to wait after completion for frames to all appear.
 
 
 @implementer(IDataCollector)
@@ -52,6 +53,7 @@ class DataCollector(Engine):
 
         #self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
+
 
     def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
         """
@@ -139,13 +141,16 @@ class DataCollector(Engine):
 
         # Wait for Last image to be transferred
         time.sleep(GRACE_PERIOD)
-        saved_datasets = set()
         for uid, dataset in self.config['datasets'].items():
             for details in dataset.get_details():
-                metadata = self.save(details)
-                self.results.append(metadata)
-                if metadata and self.config['analysis']:
-                    self.analyse(metadata, dataset.sample)
+                try:
+                    metadata = self.save(details)
+                    self.results.append(metadata)
+                    if metadata and self.config['analysis']:
+                        self.analyse(metadata, dataset.sample)
+                except Exception as e:
+                    logger.error(f"{details['name']} could not be saved")
+                    logger.error(str(e))
 
         self.unwatch_frames()
         self.set_state(busy=False)
@@ -330,9 +335,8 @@ class DataCollector(Engine):
         misc.save_metadata(metadata, filename)
 
         # do not upload fewer than 2 frames
-        if info['num_frames'] > 2:
-            reply = self.beamline.lims.upload_data(self.beamline.name, filename)
-            return reply
+        reply = self.beamline.lims.upload_data(self.beamline.name, filename)
+        return reply
 
     def analyse(self, metadata, sample, first=False):
         if self.config['analysis'] is None:

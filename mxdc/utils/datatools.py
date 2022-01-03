@@ -79,12 +79,18 @@ StrategyProcType = {
 }
 
 ScreeningRange = {
-    StrategyType.SCREEN_4: 270,
-    StrategyType.SCREEN_3: 90,
-    StrategyType.SCREEN_2: 90,
-    StrategyType.SCREEN_1: 90,
+    StrategyType.SCREEN_4: 315,
+    StrategyType.SCREEN_3: 135,
+    StrategyType.SCREEN_2: 135,
+    StrategyType.SCREEN_1: 45,
 }
 
+ScreeningAngles = {
+    StrategyType.SCREEN_4: (0, 90, 180, 270),
+    StrategyType.SCREEN_3: (0, 45, 90),
+    StrategyType.SCREEN_2: (0, 90),
+    StrategyType.SCREEN_1: (0,),
+}
 
 class AnalysisType:
     MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
@@ -345,7 +351,6 @@ def dataset_from_reference(reference_file):
         'start_time':  start time for the dataset
         'frames':  A frame list string, eg '1-5,8-10' or '1'
     """
-
     header = read_header(reference_file)
     sequence = header['dataset'].get('sequence', [])
     return {
@@ -566,14 +571,16 @@ class WedgeDispenser(object):
         self.pending = wedge['weight']
         if self.distinct:
             name_suffix = chr(ord('A') + self.pos)
-            wedge['name'] += f"--{name_suffix}"
-
+            wedge['name'] += f"-{name_suffix}"
+            wedge['first'] = 1  # distinct wedges all start from frame 1 because they will be treated as
+                                # unique datasets rather than frames from the same set.
         self.pos += 1
 
         # prepare inverse beam
         if wedge['inverse']:
             inv_wedge = copy.deepcopy(wedge)
-            inv_wedge['first'] += int(180. / wedge['delta'])
+            if not self.distinct:
+                inv_wedge['first'] += int(180. / wedge['delta'])  # only update first frame for non-distinct
             inv_wedge['start'] += 180.
             self.factor = 2
 
