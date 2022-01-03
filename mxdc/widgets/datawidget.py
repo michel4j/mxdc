@@ -226,7 +226,6 @@ class DataForm(gui.FormManager):
             first = self.get_value('first')
             skip = calculate_skip(strategy, range_, delta, first)
             frames = datatools.calc_num_frames(strategy, delta, range_, skip=skip)
-            print(skip, frames)
             self.set_value('frames', frames)
 
 
