@@ -795,7 +795,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
 
-        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name))
         self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
         self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
@@ -832,7 +831,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             'kappa': self.add_pv(f"{name}:KappaStart"),
             'phi': self.add_pv(f"{name}:PhiStart"),
             'chi': self.add_pv(f"{name}:ChiStart"),
-            # 'energy': self.add_pv('{}:PhotonEnergy'.format(name)),
+            'energy': self.add_pv('{}:PhotonEnergy'.format(name)),
             # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
         }
 
@@ -884,8 +883,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         params = {}
         params.update(kwargs)
 
-        if not (0.5 * params['energy'] < self.energy_threshold.get() < 0.75 * params['energy']):
-            params['threshold_energy'] = round(0.5 * params['energy'], 2)
+        # convert energy to eV
+        params['energy'] *= 1e3
 
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
