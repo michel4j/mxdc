@@ -1,8 +1,9 @@
 import os
 import time
-from datetime import datetime
 import numpy
 import pytz
+from queue import Queue
+from datetime import datetime
 from twisted.internet.defer import returnValue, inlineCallbacks
 from zope.interface import Interface, implementer
 
@@ -40,6 +41,9 @@ class RasterCollector(Engine):
         self.config = {}
         self.total_frames = 0
         self.count = 0
+
+        self.outbox = Queue(maxsize=1000)
+        self.inbox = Queue(maxsize=1000)
 
         self.analyst = Registry.get_utility(IAnalyst)
         self.analysis_link = self.beamline.detector.connect('progress', self.on_frame_collected)
@@ -86,7 +90,7 @@ class RasterCollector(Engine):
 
     def run(self):
         current_attenuation = self.beamline.attenuator.get_position()
-        self.watch_frames()
+        self.watch_frames()  # only collect frames if rastering
         with self.beamline.lock:
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             self.emit('started', self.config['params'])
@@ -118,7 +122,7 @@ class RasterCollector(Engine):
             self.emit('done', None)
             self.save_metadata()
         self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
-        self.unwatch_frames()
+        self.unwatch_frames()   # only collect frames if rastering
 
     def acquire_step(self):
         self.count = 0
@@ -310,4 +314,5 @@ class RasterCollector(Engine):
             template = self.beamline.detector.get_template(self.config['params']['name'])
             file_path = os.path.join(self.config['params']['directory'], template.format(i+1))
             self.analyse_frame(file_path, i+1)
+            print(self.config['params'], pos)
         self.count = pos
