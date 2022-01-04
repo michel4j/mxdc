@@ -70,7 +70,7 @@ class SingleCollector(Engine):
         self.total_frames = 1
         self.pending_results = set()
         self.results = {}
-        current_attenuation = self.beamline.attenuator.get()
+        current_attenuation = self.beamline.attenuator.get_position()
 
         with self.beamline.lock:
             self.emit('started')
@@ -80,7 +80,7 @@ class SingleCollector(Engine):
                 self.beamline.fast_shutter.close()
 
         self.emit('done')
-        self.beamline.attenuator.set(current_attenuation)  # restore attenuation
+        self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
         self.collecting = False
         self.beamline.detector_cover.close()
 

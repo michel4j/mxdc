@@ -85,7 +85,7 @@ class RasterCollector(Engine):
         self.beamline.manager.collect(wait=True)
 
     def run(self):
-        current_attenuation = self.beamline.attenuator.get()
+        current_attenuation = self.beamline.attenuator.get_position()
         self.watch_frames()
         with self.beamline.lock:
             self.config['start_time'] = datetime.now(tz=pytz.utc)
@@ -117,7 +117,7 @@ class RasterCollector(Engine):
                 time.sleep(0.5)
             self.emit('done', None)
             self.save_metadata()
-        self.beamline.attenuator.set(current_attenuation)  # restore attenuation
+        self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
         self.unwatch_frames()
 
     def acquire_step(self):

@@ -50,14 +50,13 @@ class XRFScan(BasicScan):
     def scan(self):
         logger.debug('Excitation Scan waiting for beamline to become available.')
         with self.beamline.lock:
-            saved_attenuation = self.beamline.attenuator.get()
+            saved_attenuation = self.beamline.attenuator.get_position()
             try:
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
                 self.beamline.manager.collect(wait=True)
                 self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
-                self.beamline.attenuator.set(self.config['attenuation'])
-                time.sleep(2)
+                self.beamline.attenuator.move_to(self.config['attenuation'], wait=True)
                 self.beamline.energy.wait()
                 self.beamline.goniometer.wait(start=False)
                 self.emit("progress", .1, "Acquiring spectrum ...")
@@ -68,7 +67,7 @@ class XRFScan(BasicScan):
                 self.emit("progress", 1, "Interpreting spectrum ...")
             finally:
                 self.beamline.fast_shutter.close()
-                self.beamline.attenuator.set(saved_attenuation)
+                self.beamline.attenuator.move_to(saved_attenuation)
                 self.beamline.mca.configure(cooling=False, nozzle=False)
                 self.beamline.manager.collect()
 
@@ -186,7 +185,7 @@ class MADScan(BasicScan):
         logger.info('Edge Scan waiting for beamline to become available.')
         with self.beamline.lock:
 
-            saved_attenuation = self.beamline.attenuator.get()
+            saved_attenuation = self.beamline.attenuator.get_position()
             self.raw_data = []
             self.results = {}
 
@@ -199,7 +198,7 @@ class MADScan(BasicScan):
                 self.beamline.mca.configure(
                     cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, nozzle=True, dark=True
                 )
-                self.beamline.attenuator.set(self.config.attenuation)
+                self.beamline.attenuator.move_to(self.config.attenuation)
                 self.beamline.energy.wait()
                 self.beamline.bragg_energy.wait()
                 self.beamline.goniometer.wait(start=False)
@@ -238,7 +237,7 @@ class MADScan(BasicScan):
             finally:
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.fast_shutter.close()
-                self.beamline.attenuator.set(saved_attenuation)
+                self.beamline.attenuator.move_to(saved_attenuation)
                 self.beamline.mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
@@ -342,7 +341,7 @@ class XASScan(BasicScan):
         self.beamline.multi_mca.configure(
             cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'], nozzle=True
         )
-        self.beamline.attenuator.set(self.config['attenuation'])
+        self.beamline.attenuator.move_to(self.config['attenuation'])
         self.beamline.energy.wait()
         self.beamline.bragg_energy.wait()
         self.beamline.goniometer.wait(start=False)
@@ -353,7 +352,7 @@ class XASScan(BasicScan):
         logger.info('Scan waiting for beamline to become available.')
 
         with self.beamline.lock:
-            saved_attenuation = self.beamline.attenuator.get()
+            saved_attenuation = self.beamline.attenuator.get_position()
             self.raw_data = []
             self.results = {'data': [], 'scans': []}
             try:
@@ -436,7 +435,7 @@ class XASScan(BasicScan):
             finally:
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.fast_shutter.close()
-                self.beamline.attenuator.set(saved_attenuation)
+                self.beamline.attenuator.move_to(saved_attenuation)
                 self.beamline.multi_mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()

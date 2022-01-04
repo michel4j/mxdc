@@ -35,7 +35,7 @@ class BasePositioner(Device):
     def signal_change(self, obj, value):
         self.set_state(changed=self.get())
 
-    def set(self, value):
+    def set(self, value, wait=False):
         """
         Set the value of the positioner
 
@@ -43,11 +43,11 @@ class BasePositioner(Device):
         """
         raise NotImplementedError('Derived class must implement this method')
 
-    def set_position(self, value):
+    def set_position(self, value, wait=False):
         """
         Alias for the :func:`set` method.
         """
-        return self.set(value)
+        return self.set(value, wait=wait)
 
     def get(self):
         """
@@ -60,6 +60,20 @@ class BasePositioner(Device):
         Alias for the :func:`get` method.
         """
         return self.get()
+
+    # Motor interface
+    def move_to(self, pos, wait=False, force=False):
+        self.set(pos, wait)
+
+    def move_by(self, val, wait=False, force=False):
+        self.set(self.get() + val, wait)
+
+    def stop(self):
+        pass
+
+    def wait(self, **kwargs):
+        return True
+
 
 
 class SimPositioner(BasePositioner):

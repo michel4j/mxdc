@@ -75,7 +75,7 @@ class HumidityController(gui.Builder):
         params['angle'] = self.beamline.goniometer.omega.get_position()
         params['energy'] = self.beamline.energy.get_position()
         params['distance'] = resol_to_dist(params['resolution'], self.beamline.detector.mm_size, params['energy'])
-        params['attenuation'] = self.beamline.attenuator.get()
+        params['attenuation'] = self.beamline.attenuator.get_position()
         params['delta'] = 1.0
         params['uuid'] = str(uuid.uuid4())
         params['name'] = datetime.now().strftime('%y%m%d-%H%M%S')

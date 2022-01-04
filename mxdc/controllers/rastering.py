@@ -124,7 +124,7 @@ class RasterController(Object):
                 'activity': 'raster',
                 'energy': self.beamline.energy.get_position(),
                 'delta': RASTER_DELTA,
-                'attenuation': self.beamline.attenuator.get(),
+                'attenuation': self.beamline.attenuator.get_position(),
             }
             params.update(self.microscope.grid_params)
             params.update(self.form.get_values())

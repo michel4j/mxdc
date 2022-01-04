@@ -96,7 +96,7 @@ class DataCollector(Engine):
         if abs(self.beamline.distance.get_position() - wedge['distance']) >= 0.1:
             self.beamline.distance.move_to(wedge['distance'], wait=True)
 
-        self.beamline.attenuator.set(wedge['attenuation'], wait=True)
+        self.beamline.attenuator.move_to(wedge['attenuation'], wait=True)
         logger.debug('Ready for acquisition.')
 
     def run(self):
@@ -105,7 +105,7 @@ class DataCollector(Engine):
             dataset.weight for dataset in self.config['datasets'].values()
         ])  # total raw time for all wedges
 
-        current_attenuation = self.beamline.attenuator.get()
+        current_attenuation = self.beamline.attenuator.get_position()
         self.results = []
         self.watch_frames()
 
@@ -137,7 +137,7 @@ class DataCollector(Engine):
             else:
                 self.emit('done', None)
 
-            self.beamline.attenuator.set(current_attenuation)  # restore attenuation
+            self.beamline.attenuator.move_to(current_attenuation, wait=True)  # restore attenuation
 
         # Wait for Last image to be transferred
         time.sleep(GRACE_PERIOD)

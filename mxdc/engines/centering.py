@@ -240,7 +240,7 @@ class Centering(Engine):
                 'energy': energy,
                 'delta': RASTER_DELTA,
                 'exposure': RASTER_EXPOSURE,
-                'attenuation': self.beamline.attenuator.get(),
+                'attenuation': self.beamline.attenuator.get_position(),
                 'aperture': aperture,
                 'distance': converter.resol_to_dist(
                     resolution, self.beamline.detector.mm_size, energy
