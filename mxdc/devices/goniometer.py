@@ -351,7 +351,7 @@ class MD2Gonio(BaseGoniometer):
         self.set_state(message=f'"{kind}" Scanning ...')
 
         # configure device and start scan
-        self.extra_values['z_pos'] = (self.gon_z_fbk.get(),) * 3
+        self.extra_values['z_pos'] = self.gon_z_fbk.get(), self.gon_z_fbk.get()
         if kind in ['simple', 'shutterless']:
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
@@ -366,6 +366,7 @@ class MD2Gonio(BaseGoniometer):
             kwargs['width'] = max(shape) * 1e-3     # convert to mm
             kwargs['height'] = min(shape) * 1e-3    # convert to mm
             kwargs['use_table'] = 0
+            kwargs['z_pos'] = self.gon_z_fbk.get()
             misc.set_settings(self.raster_settings, **kwargs)
             self.raster_cmd.put(self.NULL_VALUE)
 
