@@ -124,9 +124,9 @@ class StreamMonitor(DataMonitor):
                 msg_type = json.loads(msg[0])
                 if msg_type['htype'] == 'dheader-1.0':
                     self.dataset = eiger.EigerStream()
-                    self.dataset.read_header(msg[1])
+                    self.dataset.read_header(msg)
                 elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
-                    self.dataset.read_image(msg_type, msg[1], msg[2])
+                    self.dataset.read_image(msg)
                     fraction = self.dataset.header['frame_number'] / self.dataset.header['num_images']
                     if self.master:
                         self.master.process_frame(self.dataset)
