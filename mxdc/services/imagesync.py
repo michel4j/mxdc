@@ -101,11 +101,12 @@ class DSSPerspective2Service(pb.Root):
 
 class Archiver(object):
     def __init__(self, src, dest, include, user_name):
-        self.src = os.path.join(src, '')
-        self.dest = os.path.join(dest, '')
+        self.src = src
+        self.dest = dest
         self.user_name = user_name
         self.processing = False
         self.complete = False
+        self.failed = False
         self.time = 0
         self.timeout = 60 * 5
         self.zero_count = 0
@@ -116,31 +117,38 @@ class Archiver(object):
 
     def start(self):
         if self.processing:
-            return defer.Deferred({})
+            return defer.Deferred([])
         return threads.deferToThread(self.run)
 
     def run(self):
         self.processing = True
         self.complete = False
+        self.failed = False
         self.zero_count = 0
         self.time = time.time()
-        args = ['rsync', '-rt', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', self.src, self.dest]
-        while not self.complete:
+        src = os.path.join(self.src, '')
+        dest = os.path.join(self.dest, '')
+        args = ['rsync', '-rt', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', src, dest]
+        while not self.complete and not self.failed:
             try:
+                if not self.dest.owner() == self.user_name:
+                    imp = pwd.getpwnam(self.user_name)
+                    shutil.chown(self.dest, user=imp.pw_uid, group=imp.pw_gid)
                 with Impersonator(self.user_name):
                     output = subprocess.check_output(args)
             except subprocess.CalledProcessError as e:
                 logger.error('RSYNC Failed: {}'.format(e))
+                self.failed = True
             else:
                 m = re.search(r"Number of regular files transferred: (?P<files>\d+)", output.decode('utf-8'))
                 if m:
                     num_files = int(m.groupdict()['files'])
-                    self.time = time.time()
                 else:
                     num_files = 0
 
                 if num_files > 0:
                     logger.info('Archival of folder {}: copied {} files'.format(self.src, num_files))
+                    self.time = time.time()
                 elif time.time() - self.time > self.timeout:
                     self.complete = True
                     logger.info('Archival of folder {} complete'.format(self.src))
