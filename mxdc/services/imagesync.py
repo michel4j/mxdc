@@ -150,9 +150,10 @@ class Archiver(object):
                     logger.info('Archival of folder {}: copied {} files'.format(self.src, num_files))
                     self.time = time.time()
                 elif time.time() - self.time > self.timeout:
-                    self.complete = True
                     logger.info('Archival of folder {} complete'.format(self.src))
-            time.sleep(30)
+                    self.complete = True
+            if not self.failed or self.complete:
+                time.sleep(15)
         self.processing = False
 
 
