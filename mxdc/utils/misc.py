@@ -249,7 +249,6 @@ def _get_address(gateway, port=22):
     return address
 
 
-@decorators.memoize
 def get_address():
     return ipaddress.ip_address('{}'.format(_get_address(_get_gateway())))
 
