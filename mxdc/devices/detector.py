@@ -101,7 +101,7 @@ class BaseDetector(Device):
 
         :param data: Dataset object to be processed
         """
-        self.emit("new-image", data)
+        self.emit("new-image", data, force=True)
 
     def get_template(self, prefix):
         """

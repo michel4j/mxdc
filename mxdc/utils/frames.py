@@ -131,7 +131,7 @@ class StreamMonitor(DataMonitor):
                     if self.master:
                         self.master.process_frame(self.dataset)
                     self.set_state(progress=(fraction, 'frames collected'))
-            time.sleep(0.05)
+            time.sleep(0.01)
 
     def run(self):
         self.context = zmq.Context()

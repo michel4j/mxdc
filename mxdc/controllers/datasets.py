@@ -689,6 +689,7 @@ class DatasetsController(Object):
         self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.collect_pbar.set_fraction(1.0)
         self.widget.collect_progress_lbl.set_text('Acquisition complete!')
+        self.auto_save_run()
 
     def on_stopped(self, obj, completion):
         self.complete_run(completion)
@@ -752,7 +753,6 @@ class DatasetsController(Object):
                 item = self.run_store.get_item(count)
 
     def on_new_image(self, obj, frame):
-        # ignore first frame which is the PV value when MxDC starts up, frame may belong to a different user
         if not self.starting:
             self.image_viewer.show_frame(frame)
         self.starting = False
