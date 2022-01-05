@@ -7,6 +7,8 @@ import re
 import subprocess
 import sys
 import time
+import shutil
+from pathlib import Path
 
 from twisted.internet import gireactor
 gireactor.install()
@@ -107,7 +109,7 @@ class Archiver(object):
         self.time = 0
         self.timeout = 60 * 5
         self.zero_count = 0
-        self.includes = ['--include={0}'.format(i) for i in include]
+        self.includes = ['--include={}'.format(i) for i in include]
 
     def is_complete(self):
         return self.complete
@@ -149,7 +151,7 @@ class Archiver(object):
 
 @implementer(IDSService)
 class DSService(service.Service):
-    ARCHIVE_ROOT = '/archive'
+    ARCHIVE_ROOT = Path('/archive')
     FILE_MODE = 0o777
     INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas', '*.h5']
 
@@ -168,28 +170,24 @@ class DSService(service.Service):
 
     @log.log_call
     def setup_folder(self, folder, user_name):
-        folder = folder.strip()
+        folder = Path(folder)
         try:
-            if not os.path.exists(folder):
-                imp = pwd.getpwnam(user_name)
-                subprocess.check_output(['mkdir', '-p', folder])
-                subprocess.check_output(['chown', '-R', f'{imp.pw_uid}:{imp.pw_gid}', folder])
-        except subprocess.CalledProcessError as e:
+            if not folder.exists():
+                with Impersonator(user_name):
+                    folder.mkdir(mode=self.FILE_MODE, parents=True, exist_ok=True)
+        except Exception as e:
             logger.error('Error setting up folder: {}'.format(e))
-        os.chmod(folder, self.FILE_MODE)
 
-        backup_dir = self.ARCHIVE_ROOT + folder
-        archive_home = os.path.join(self.ARCHIVE_ROOT + os.sep.join(folder.split(os.sep)[:3]))
-        try:
-            for path in [archive_home, backup_dir]:
-                if not os.path.exists(path):
-                    imp = pwd.getpwnam(user_name)
-                    subprocess.check_output(['mkdir', '-p', path])
-                    subprocess.check_output(['chown', '-R', f'{imp.pw_uid}:{imp.pw_gid}', folder])
-        except subprocess.CalledProcessError as e:
-            logger.error('Error setting up folder: {}'.format(e))
-        os.chmod(archive_home, 0o701)
-        subprocess.check_output(['sync'])
+        backup_dir = self.ARCHIVE_ROOT.joinpath(*folder.parts[1:])
+        archive_home = self.ARCHIVE_ROOT.joinpath(*folder.parts[1:3])
+        if not archive_home.exists():
+            imp = pwd.getpwnam(user_name)
+            archive_home.mkdir(mode=0o701, exist_ok=True)
+            shutil.chown(archive_home, user=imp.pw_uid, group=imp.pw_gid)
+        if not backup_dir.exists():
+            with Impersonator(user_name):
+                backup_dir.mkdir(parents=True, exist_ok=True)
+        os.sync()
         if folder not in self.backups or self.backups[folder].is_complete():
             logger.info('Archiving folder: {}'.format(folder))
             self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE, user_name=user_name)
