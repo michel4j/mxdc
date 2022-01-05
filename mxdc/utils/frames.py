@@ -108,8 +108,7 @@ class StreamMonitor(DataMonitor):
         self.kind = kind
         self.address = address
         self.last_time = time.time()
-        self.inbox = deque(maxlen=10)
-        self.parser_delay = 1/maxfreq
+        self.inbox = deque(maxlen=50)
         self.start()
 
     def start(self):

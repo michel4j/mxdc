@@ -207,8 +207,8 @@
           <object class="GtkBox" id="data_vector_box">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">10</property>
-            <property name="margin-right">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
             <property name="orientation">vertical</property>
             <property name="spacing">6</property>
             <child>
@@ -390,17 +390,18 @@ than one point is provided.</property>
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">6</property>
-            <property name="margin-right">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
             <property name="margin-top">5</property>
             <property name="margin-bottom">5</property>
-            <property name="spacing">10</property>
+            <property name="spacing">6</property>
             <child>
               <object class="GtkLabel" id="run_label">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="halign">start</property>
+                <property name="margin-start">3</property>
                 <property name="label" translatable="yes">New Run</property>
+                <property name="xalign">0</property>
                 <attributes>
                   <attribute name="weight" value="bold"/>
                 </attributes>
@@ -417,7 +418,7 @@ than one point is provided.</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Copy Run</property>
+                <property name="tooltip-text" translatable="yes">Clone Run</property>
                 <property name="relief">none</property>
                 <child>
                   <object class="GtkImage">
@@ -433,6 +434,7 @@ than one point is provided.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
+                <property name="pack-type">end</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -458,7 +460,34 @@ than one point is provided.</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="data_recycle_btn">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Recycle Run</property>
+                <property name="relief">none</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">emblem-synchronizing-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="pack-type">end</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -483,8 +512,8 @@ than one point is provided.</property>
           <object class="GtkBox" id="editor_content">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">10</property>
-            <property name="margin-right">10</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
             <property name="margin-top">5</property>
             <property name="orientation">vertical</property>
             <child>

@@ -396,6 +396,7 @@ class DatasetsController(Object):
 
         self.run_editor.data_delete_btn.connect('clicked', self.on_delete_run)
         self.run_editor.data_copy_btn.connect('clicked', self.on_copy_run)
+        self.run_editor.data_recycle_btn.connect('clicked', self.on_recycle_run)
         self.run_editor.data_save_btn.connect('clicked', self.on_save_run)
         self.sample_store = Registry.get_utility(ISampleStore)
         self.sample_store.connect('updated', self.on_sample_updated)
@@ -673,6 +674,19 @@ class DatasetsController(Object):
         self.run_editor.set_item(new_item)
         self.editor_frame.set_row(next_row)
 
+    def on_recycle_run(self, obj):
+        item = self.run_editor.item
+        if item.state != datawidget.RunItem.StateType.ADD:
+            info = item.info.copy()
+            energy = self.beamline.energy.get_position()
+            info.update({
+                'energy': energy,
+                'name': self.names.fix(info['name']),
+            })
+            item.props.info = info
+
+        self.check_run_store()
+
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
         if fraction > 0:
@@ -689,6 +703,7 @@ class DatasetsController(Object):
         self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.collect_pbar.set_fraction(1.0)
         self.widget.collect_progress_lbl.set_text('Acquisition complete!')
+        self.auto_save_run()
 
     def on_stopped(self, obj, completion):
         self.complete_run(completion)

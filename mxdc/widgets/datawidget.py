@@ -362,12 +362,14 @@ class DataEditor(gui.BuilderMixin):
             self.run_label.set_text('New Run')
             self.data_delete_btn.set_sensitive(False)
             self.data_copy_btn.set_sensitive(False)
+            self.data_recycle_btn.set_sensitive(False)
             self.data_form.set_sensitive(False)
         else:
             self.run_label.set_text('Edit Run')
             self.configure(self.item.info)
             self.data_delete_btn.set_sensitive(True)
             self.data_copy_btn.set_sensitive(True)
+            self.data_recycle_btn.set_sensitive(True)
             self.data_form.set_sensitive(True)
 
     def has_changed(self, new_values):
