@@ -767,7 +767,6 @@ class DatasetsController(Object):
                 item = self.run_store.get_item(count)
 
     def on_new_image(self, obj, frame):
-        # ignore first frame which is the PV value when MxDC starts up, frame may belong to a different user
         if not self.starting:
             self.image_viewer.show_frame(frame)
         self.starting = False
