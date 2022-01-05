@@ -684,7 +684,7 @@ class DatasetsController(Object):
                 'name': self.names.fix(info['name']),
             })
             item.props.info = info
-
+        self.auto_save_run()
         self.check_run_store()
 
     def on_progress(self, obj, fraction, message):
@@ -703,7 +703,7 @@ class DatasetsController(Object):
         self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.collect_pbar.set_fraction(1.0)
         self.widget.collect_progress_lbl.set_text('Acquisition complete!')
-        self.auto_save_run()
+        self.update_cache()
 
     def on_stopped(self, obj, completion):
         self.complete_run(completion)
