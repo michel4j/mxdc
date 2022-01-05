@@ -683,6 +683,7 @@ class DatasetsController(Object):
                 'energy': energy,
                 'name': self.names.fix(info['name']),
             })
+            item.state = datawidget.RunItem.StateType.DRAFT
             item.props.info = info
         self.auto_save_run()
         self.check_run_store()
