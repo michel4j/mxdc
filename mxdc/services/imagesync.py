@@ -183,14 +183,16 @@ class DSService(service.Service):
 
     def check_backups(self):
         active_backups = set()
+        to_remove = set()
         for backup in self.backups:
             if not backup.is_active():
-                self.backups.remove(backup)
+                to_remove.add(backup)
             elif backup.src in active_backups:
                 # only one backup should be active for a given source
                 backup.stop()
             else:
                 active_backups.add(backup.src)
+        self.backups.difference_update(to_remove)
 
     def stopService(self):
         del self.provider
