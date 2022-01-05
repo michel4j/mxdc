@@ -108,7 +108,7 @@ class Archiver(object):
         self.complete = False
         self.failed = False
         self.time = 0
-        self.timeout = 60 * 5
+        self.timeout = 60
         self.zero_count = 0
         self.includes = ['--include={}'.format(i) for i in include]
 
@@ -153,7 +153,7 @@ class Archiver(object):
                     logger.info('Archival of folder {} complete'.format(self.src))
                     self.complete = True
             if not self.failed or self.complete:
-                time.sleep(15)
+                time.sleep(30)
         self.processing = False
 
 
