@@ -15,6 +15,7 @@ gireactor.install()
 
 from twisted.application import internet, service
 from twisted.internet import defer, threads, reactor
+from twisted.internet.task import LoopingCall
 from twisted.python import components, log as twistedlog
 from twisted.spread import pb
 from zope.interface import implementer, Interface
@@ -107,18 +108,23 @@ class Archiver(object):
         self.processing = False
         self.complete = False
         self.failed = False
+        self.stopped = False
         self.time = 0
         self.timeout = 60
         self.zero_count = 0
         self.includes = ['--include={}'.format(i) for i in include]
 
-    def is_complete(self):
-        return self.complete
+    def is_active(self):
+        return self.processing
 
     def start(self):
+        self.stopped = False
         if self.processing:
             return defer.Deferred([])
         return threads.deferToThread(self.run)
+
+    def stop(self):
+        self.stopped = True
 
     def run(self):
         self.processing = True
@@ -129,7 +135,7 @@ class Archiver(object):
         src = os.path.join(self.src, '')
         dest = os.path.join(self.dest, '')
         args = ['rsync', '-rt', '--stats', '--modify-window=2'] + self.includes + ['--exclude=*', src, dest]
-        while not self.complete and not self.failed:
+        while not (self.complete or self.failed or self.stopped):
             try:
                 if not self.dest.owner() == self.user_name:
                     imp = pwd.getpwnam(self.user_name)
@@ -166,12 +172,25 @@ class DSService(service.Service):
 
     def __init__(self):
         super().__init__()
-        self.backups = {}
+        self.backups = set()
         reactor.callLater(2, self.publishService)
+        self.backup_monitor = LoopingCall(self.check_backups)
+        self.backup_monitor.start(10)
 
     def publishService(self):
         self.provider = mdns.SimpleProvider('Data Sync Server', "_imgsync._tcp.local.", DSS_PORT)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stopService)
+
+    def check_backups(self):
+        active_backups = set()
+        for backup in self.backups:
+            if not backup.is_active():
+                self.backups.remove(backup)
+            elif backup.src in active_backups:
+                # only one backup should be active for a given source
+                backup.stop()
+            else:
+                active_backups.add(backup.src)
 
     def stopService(self):
         del self.provider
@@ -197,10 +216,11 @@ class DSService(service.Service):
             with Impersonator(user_name):
                 backup_dir.mkdir(parents=True, exist_ok=True)
         os.sync()
-        if folder not in self.backups or self.backups[folder].is_complete():
-            logger.info('Archiving folder: {}'.format(folder))
-            self.backups[folder] = Archiver(folder, backup_dir, self.INCLUDE, user_name=user_name)
-            self.backups[folder].start()
+
+        logger.debug('Adding folder for archival: {}'.format(folder))
+        archiver = Archiver(folder, backup_dir, self.INCLUDE, user_name=user_name)
+        archiver.start()
+        self.backups.add(archiver)
         return defer.succeed([])
 
     @log.log_call
