@@ -1,34 +1,20 @@
 import json
 import os
-import time
-from enum import Enum
 import threading
+import time
 from collections import deque
+from enum import Enum
 
-import cv2
-import lz4.block
-import lz4.frame
-import numpy
 import zmq
 from mxio import read_image
-from mxio.formats import DataSet
+from mxio.formats import eiger
 
 from mxdc import Engine
-from mxdc.utils import log, bshuf
+from mxdc.utils import log
 
 logger = log.get_module_logger('frames')
 
 MAX_FILE_FREQUENCY = 5
-
-SIZES = {
-    'uint16': 2,
-    'uint32': 4
-}
-
-TYPES = {
-    'uint16': numpy.int16,
-    'uint32': numpy.int32
-}
 
 
 class DataMonitor(Engine):
@@ -113,32 +99,6 @@ class StreamMonitor(DataMonitor):
     """
     A data monitor which monitors a zeromq stream for new data
     """
-    HEADER_FIELDS = {
-        'detector_type': 'description',
-        'two_theta': 'two_theta_start',
-        'pixel_size': 'x_pixel_size',
-        'exposure_time': 'frame_time',
-        'wavelength': 'wavelength',
-        'distance': 'detector_distance',
-        'beam_center': ('beam_center_x', 'beam_center_y'),
-        'energy': 'photon_energy',
-        'sensor_thickness': 'sensor_thickness',
-        'detector_size': ('x_pixels_in_detector', 'y_pixels_in_detector'),
-
-    }
-    CONVERTERS = {
-        'pixel_size': lambda v: float(v) * 1000,
-        'exposure_time': float,
-        'wavelength': float,
-        'distance': float,
-        'beam_center': float,
-        'saturated_value': int,
-        'num_frames': int,
-        'date': 'data_collection_date',
-        'energy': float,
-        'sensor_thickness': lambda v: float(v) * 1000,
-        'detector_size': int,
-    }
 
     def __init__(self, master, address, kind=StreamTypes.PUSH, maxfreq=10):
         super().__init__(master)
@@ -148,7 +108,6 @@ class StreamMonitor(DataMonitor):
         self.kind = kind
         self.address = address
         self.last_time = time.time()
-        self.metadata = {}
         self.inbox = deque(maxlen=10)
         self.parser_delay = 1/maxfreq
         self.start()
@@ -164,92 +123,15 @@ class StreamMonitor(DataMonitor):
                 msg = self.inbox.popleft()
                 msg_type = json.loads(msg[0])
                 if msg_type['htype'] == 'dheader-1.0':
-                    self.parse_header(msg_type, json.loads(msg[1]))
-                elif msg_type['htype'] == 'dimage-1.0':
-                    try:
-                        self.parse_image(msg_type, json.loads(msg[1]), msg[2])
-                    except:
-                        pass
-                elif msg_type['htype'] == 'dseries_end-1.0':
-                    self.parse_footer(msg_type, msg)
-            time.sleep(0.05)
-
-    def parse_header(self, info, header):
-        logger.debug('Stream started - Parsing header')
-        for key, field in self.HEADER_FIELDS.items():
-            converter = self.CONVERTERS.get(key, lambda v: v)
-            try:
-                if not isinstance(field, (tuple, list)):
-                    self.metadata[key] = converter(header[field])
-                else:
-                    self.metadata[key] = tuple(converter(header[sub_field]) for sub_field in field)
-            except ValueError:
-                pass
-
-        # try to find oscillation axis and parameters as first non-zero average
-        for axis in ['chi', 'kappa', 'omega', 'phi']:
-            if header.get('{}_increment'.format(axis), 0) > 0:
-                self.metadata['num_frames'] = info
-                self.metadata['rotation_axis'] = axis
-                self.metadata['start_angle'] = header['{}_start'.format(axis)]
-                self.metadata['delta_angle'] = header['{}_increment'.format(axis)]
-                self.metadata['num_images'] = header['nimages']*header['ntrigger']
-                self.metadata['total_angle'] = self.metadata['num_images'] * self.metadata['delta_angle']
-                break
-
-    def parse_image(self, info, frame, img_data):
-        logger.debug(f"Parsing stream image {info['frame']+1}")
-
-        dtype = numpy.dtype(frame['type'])
-        shape = frame['shape'][::-1]
-        size = numpy.prod(shape)
-        dtype = dtype.newbyteorder(frame['encoding'][-1]) if frame['encoding'][-1] in ['<', '>'] else dtype
-
-        self.dataset = DataSet()
-        meta = self.metadata.copy()
-        frame_number = int(info['frame']) + 1
-        self.dataset.header = meta
-        self.dataset.header.update({
-            'saturated_value': 1e6,
-            'overloads': 0,
-            'frame_number': frame_number,
-            'filename': 'Stream',
-            'name': 'Stream',
-            'start_angle': meta['start_angle'] + frame_number * meta['delta_angle'],
-        })
-
-        try:
-            if frame['encoding'].startswith('lz4'):
-                arr_bytes = lz4.block.decompress(img_data, uncompressed_size=size * dtype.itemsize)
-                mdata = numpy.frombuffer(arr_bytes, dtype=dtype).reshape(*shape)
-            elif frame['encoding'].startswith('bs'):
-                mdata = bshuf.decompress_lz4(img_data[12:], shape, dtype)
-            else:
-                raise RuntimeError(f'Unknown encoding {frame["encoding"]}')
-
-            data = mdata.view(TYPES[frame['type']])
-            stats_data = data[(data >= 0) & (data < self.dataset.header['saturated_value'])]
-            avg, stdev = numpy.ravel(cv2.meanStdDev(stats_data))
-
-            self.dataset.header.update({
-                'average_intensity': avg,
-                'std_dev': stdev,
-                'min_intensity': stats_data.min(),
-                'max_intensity': stats_data.max(),
-            })
-            self.dataset.data = data
-            self.dataset.stats_data = stats_data
-
-            if self.master:
-                self.master.process_frame(self.dataset)
-        except Exception as e:
-            logger.error(f'Error decoding stream: {e}')
-
-        self.set_state(progress=(self.dataset.header['frame_number'] / meta['num_images'], 'frames collected'))
-        self.last_time = time.time()
-
-    def parse_footer(self, info, msg):
-        logger.debug('Stream Ended')
+                    self.dataset = eiger.EigerStream()
+                    self.dataset.read_header(msg[1])
+                elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
+                    self.dataset.read_image(msg_type, msg[1], msg[2])
+                    fraction = self.dataset.header['frame_number'] / self.dataset.header['num_images']
+                    if self.master:
+                        self.master.process_frame(self.dataset)
+                    self.set_state(progress=(fraction, 'frames collected'))
+            time.sleep(0.01)
 
     def run(self):
         self.context = zmq.Context()
