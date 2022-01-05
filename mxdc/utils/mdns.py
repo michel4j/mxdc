@@ -44,7 +44,7 @@ class SimpleProvider(object):
             "{}.{}".format(name, service_type),
             addresses=[get_address().packed],
             port=port,
-            properties=json.dumps(data)
+            properties=json.dumps(data).encode('utf-8')
         )
 
     def start(self):
