@@ -314,5 +314,4 @@ class RasterCollector(Engine):
             template = self.beamline.detector.get_template(self.config['params']['name'])
             file_path = os.path.join(self.config['params']['directory'], template.format(i+1))
             self.analyse_frame(file_path, i+1)
-            print(self.config['params'], pos)
         self.count = pos
