@@ -253,11 +253,10 @@ class ImageWidget(Gtk.DrawingArea):
         self.gamma = 0
         self.scale = 1.0
         self.frame = None
-
+        self.reflections = None
         self.extents_back = []
         self.extents_forward = []
         self.extents = None
-        self.select_reflections()
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
@@ -296,7 +295,7 @@ class ImageWidget(Gtk.DrawingArea):
                 self.data_loader.set_current_frame(self.frame)
             time.sleep(0.01)
 
-    def create_surface(self, full=True):
+    def create_surface(self, full=False):
         self.image_width, self.image_height = self.frame.image_size
         width = min(self.image_width, self.image_height)
         if not self.extents or full:
@@ -317,20 +316,8 @@ class ImageWidget(Gtk.DrawingArea):
         self.image_loaded = True
         self.frame.needs_redraw = False
 
-    def select_reflections(self, reflections=None):
-        if reflections is not None:
-            diff = (reflections[:, 2] - self.frame.frame_number)
-            frame_sel = (diff >= 0) & (diff < 1)
-            frame_reflections = reflections[frame_sel]
-            sel = numpy.abs(frame_reflections[:, 4:]).sum(1) > 0
-            indexed = frame_reflections[sel]
-            unindexed = frame_reflections[~sel]
-
-            self.indexed_spots = indexed
-            self.unindexed_spots = unindexed
-        else:
-            self.indexed_spots = []
-            self.unindexed_spots = []
+    def set_reflections(self, reflections=None):
+        self.reflections = reflections
 
     def open(self, filename):
         self.data_loader.open(filename)
@@ -443,15 +430,11 @@ class ImageWidget(Gtk.DrawingArea):
 
     def draw_spots(self, cr):
         # draw spots
-        x, y, w, h = self.extents
-        cr.set_line_width(0.75)
-        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
-        for i, spots in enumerate([self.indexed_spots, self.unindexed_spots]):
-            if i == 0:
-                cr.set_source_rgba(0.0, 0.5, 1.0, 0.75)
-            else:
-                cr.set_source_rgba(1.0, 0.5, 0.0, 0.75)
-            for spot in spots:
+        if self.reflections is not None:
+            x, y, w, h = self.extents
+            cr.set_line_width(0.75)
+            cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+            for i, spot in enumerate(self.reflections):
                 sx, sy = spot[:2]
                 if (0 < (sx - x) < x + w) and (0 < (sy - y) < y + h):
                     cx = int((sx - x) * self.scale)

@@ -56,8 +56,8 @@ class SettingRow(gui.Builder):
 def valid_template(txt):
     keys = set(re.findall('\{([\w]+?)\}', txt))
     valid = (
-        re.match('^[{\w\d}/-]+$', txt) and
-        re.match('^/(?:(?:\{[\w]+?\})*(?:[\d\w/-]*))*$', txt) and
+        re.match(r'^[{\w\d}/-]+$', txt) and
+        re.match(r'^/(?:(\{[\w]+?\})*([\d\w/-]*))*$', txt) and
         keys <= TEMPLATE_VARIABLES
     )
     return bool(valid)

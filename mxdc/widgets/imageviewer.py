@@ -94,15 +94,16 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             raw = numpy.loadtxt(filename, comments="!")
             rows, cols = raw.shape
             if hkl:
-                self.reflections = numpy.zeros((rows, 7))
-                self.reflections[:,:3] = raw[:,5:8]
-                self.reflections[:,4:] = raw[:,:3]
+                reflections = numpy.zeros((rows, 7))
+                reflections[:,:3] = raw[:,5:8]
+                reflections[:,4:] = raw[:,:3]
             else:
                 if cols < 7:
-                    self.reflections = numpy.zeros((rows, 7))
-                    self.reflections[:,:cols] = raw
+                    reflections = numpy.zeros((rows, 7))
+                    reflections[:, :cols] = raw
                 else:
-                    self.reflections = raw
+                    reflections = raw
+            return reflections
         except IOError:
             logger.error('Could not load reflections from %s' % filename)
 
@@ -153,7 +154,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def open_frame(self, filename):
         # select spots and display for current image
         if len(self.reflections) > 0:
-            self.canvas.select_reflections(self.reflections)
+            self.canvas.set_reflections(None)
         self.canvas.open(filename)
 
     def show_frame(self, frame):
@@ -187,10 +188,9 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             self.directory = os.path.dirname(os.path.abspath(filename))
             file_type = flt.get_name()
             if file_type in ['XDS Spot files', 'XDS ASCII file']:
-                self.load_reflections(filename, hkl=(file_type=='XDS ASCII file'))
-                # if reflections information is available  and an image is loaded display it
+                refl = self.load_reflections(filename, hkl=(file_type=='XDS ASCII file'))
+                self.canvas.set_reflections(refl)
                 if self.canvas.image_loaded:
-                    self.canvas.select_reflections(self.reflections)
                     GLib.idle_add(self.canvas.queue_draw)
             else:
                 self.open_frame(os.path.abspath(filename))

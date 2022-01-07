@@ -5,8 +5,8 @@ import gzip
 import re
 import sys
 import textwrap
-from collections.abc import Mapping
 from collections import namedtuple
+from collections.abc import Mapping
 from datetime import datetime, tzinfo, timedelta
 from io import StringIO
 
@@ -198,25 +198,26 @@ def find_spec(namespace, tag):
                 spec = item
     return spec
 
+
 def format_field(field):
     suffix = '' if not field.units else ' {}'.format(field.units)
     if isinstance(field.value, datetime):
         return '{}{}'.format(field.value.isoformat(), suffix)
     else:
         return '{}{}'.format(field.value, suffix)
-    
+
 
 XDI_PATTERN = re.compile(
-    '#\s*(?P<version_text>XDI/[^\n]*)\n'
-    '(?P<header_text>(?:#\s*[^\n]*\n)+?)'
-    '(?:#\s*/{3,}\n(?P<comments_text>.*?))?'
-    '#\s*-{3,}\n'
-    '#\s*(?P<columns_text>[^\n]*)\n'
-    '(?P<data_text>.+)',
+    r'#\s*(?P<version_text>XDI/[^\n]*)\n'
+    r'(?P<header_text>(?:#\s*[^\n]*\n)+?)'
+    r'(?:#\s*/{3,}\n(?P<comments_text>.*?))?'
+    r'#\s*-{3,}\n'
+    r'#\s*(?P<columns_text>[^\n]*)\n'
+    r'(?P<data_text>.+)',
     re.DOTALL
 )
 
-HEADER_PATTERN = re.compile('#\s*(?P<namespace>[a-zA-Z]\w+).(?P<tag>[\w-]+):\s*(?P<text>[^\n]+)\s*')
+HEADER_PATTERN = re.compile(r'#\s*(?P<namespace>[a-zA-Z]\w+).(?P<tag>[\w-]+):\s*(?P<text>[^\n]+)\s*')
 
 
 class XDIData(object):
@@ -234,7 +235,7 @@ class XDIData(object):
         if '.' in key:
             namespace, tag = key.lower().split('.')
             if not namespace in list(TAGS.keys()):
-                namespace, tag = key.split('.') # preserve case for non-standard namespaces
+                namespace, tag = key.split('.')  # preserve case for non-standard namespaces
             if namespace == 'column':
                 tag = int(tag)
             return self.header[namespace][tag]
@@ -243,7 +244,7 @@ class XDIData(object):
 
     def __setitem__(self, key, entry):
         if isinstance(entry, dict) and not '.' in key:
-            for k,v in list(entry.items()):
+            for k, v in list(entry.items()):
                 self.__setitem__('{}.{}'.format(key, k), v)
         else:
             namespace, tag = key.lower().split('.')
@@ -263,7 +264,7 @@ class XDIData(object):
                 if fmt == isotime and isinstance(value, datetime):
                     value = value.isoformat()
                 field = Field(value=value, units=unit)
-            else :
+            else:
                 if namespace not in TAGS:
                     namespace = key.split('.')[0]  # preserve case for non-standard namespaces
                 field = Field(value=value, units=unit)
@@ -280,7 +281,7 @@ class XDIData(object):
             for namespace, fields in list(self.header.items()) for tag, field in list(fields.items())
         ] + ['///'] + textwrap.wrap(self.comments) + ['---'] + [' '.join(self.data.dtype.names)]
         data_format = ''.join(['  {}'] * len(self.data.dtype.names))
-        data_lines = [ data_format.format(*row) for row in self.data ]
+        data_lines = [data_format.format(*row) for row in self.data]
         saver = gzip.open if filename.endswith('.gz') else open
         with saver(filename, 'wb') as handle:
             output = '\n# '.join(header_lines) + '\n' + '\n'.join(data_lines)
@@ -337,9 +338,11 @@ class XDIData(object):
             for field in REQUIRED_FIELDS
         }
         if not permissive and any(missing.values()):
-            sys.stderr.write('Required fields missing: {}\n'.format([key for key, value in list(missing.items()) if value]))
+            sys.stderr.write(
+                'Required fields missing: {}\n'.format([key for key, value in list(missing.items()) if value]))
 
-        self.data = numpy.genfromtxt(StringIO('{}'.format(raw['data_text'])), dtype=None, names=data_columns, deletechars='')
+        self.data = numpy.genfromtxt(StringIO('{}'.format(raw['data_text'])), dtype=None, names=data_columns,
+                                     deletechars='')
 
 
 def read_xdi(filename):
