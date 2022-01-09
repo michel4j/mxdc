@@ -20,7 +20,7 @@ class Analyst(Engine):
         report = Signal('new-report', arg_types=(str, object))
 
     class ResultType(object):
-        MX, XRD, RASTER = list(range(3))
+        MX, XRD, RASTER = range(3)
 
     def __init__(self, manager):
         super().__init__()
@@ -215,3 +215,4 @@ class Analyst(Engine):
 
     def failed(self, exception, uid, result_type):
         self.manager.update_item(uid, error=str(exception), title='Analysis Failed!')
+

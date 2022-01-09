@@ -1,16 +1,17 @@
+import json
 import os
+import random
 import re
 import socket
-import random
+import time
+from datetime import datetime
+
+import lorem
 import msgpack
-import json
 import redis
 import requests
-import lorem
-import time
-
-from datetime import datetime
 from backports.datetime_fromisoformat import MonkeyPatch
+
 MonkeyPatch.patch_fromisoformat()
 
 from gi.repository import GLib
