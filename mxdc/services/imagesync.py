@@ -208,8 +208,8 @@ class DSService(service.Service):
 
         backup_dir = self.ARCHIVE_ROOT.joinpath(*folder.parts[1:])
         archive_home = self.ARCHIVE_ROOT.joinpath(*folder.parts[1:3])
+        imp = pwd.getpwnam(user_name)
         if not archive_home.exists():
-            imp = pwd.getpwnam(user_name)
             archive_home.mkdir(mode=0o701, exist_ok=True)
             shutil.chown(archive_home, user=imp.pw_uid, group=imp.pw_gid)
         if not backup_dir.exists():
