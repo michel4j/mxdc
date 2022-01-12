@@ -140,8 +140,7 @@ class Archiver(object):
                 if not self.dest.owner() == self.user_name:
                     imp = pwd.getpwnam(self.user_name)
                     shutil.chown(self.dest, user=imp.pw_uid, group=imp.pw_gid)
-                with Impersonator(self.user_name):
-                    output = subprocess.check_output(args)
+                output = subprocess.check_output(args)
             except subprocess.CalledProcessError as e:
                 logger.error('RSYNC Failed: {}'.format(e))
                 self.failed = True
@@ -203,8 +202,7 @@ class DSService(service.Service):
         folder = Path(folder)
         try:
             if not folder.exists():
-                with Impersonator(user_name):
-                    folder.mkdir(mode=self.FILE_MODE, parents=True, exist_ok=True)
+                folder.mkdir(mode=self.FILE_MODE, parents=True, exist_ok=True)
         except Exception as e:
             logger.error('Error setting up folder: {}'.format(e))
 
@@ -215,8 +213,8 @@ class DSService(service.Service):
             archive_home.mkdir(mode=0o701, exist_ok=True)
             shutil.chown(archive_home, user=imp.pw_uid, group=imp.pw_gid)
         if not backup_dir.exists():
-            with Impersonator(user_name):
-                backup_dir.mkdir(parents=True, exist_ok=True)
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            shutil.chown(archive_home, user=imp.pw_uid, group=imp.pw_gid)
         os.sync()
 
         logger.debug('Adding folder for archival: {}'.format(folder))
