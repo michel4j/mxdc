@@ -1,5 +1,6 @@
 import math
 import os
+import time
 
 import cairo
 import numpy
@@ -66,7 +67,7 @@ class Microscope(Object):
         self.video_ready = False
         self.queue_overlay()
         self.overlay_surface = None
-        self.overlay_ctx = None
+
 
         self.props.grid = None
         self.props.grid_xyz = None
@@ -187,10 +188,11 @@ class Microscope(Object):
         self.update_grid()
 
     def save_to_cache(self, *args, **kwargs):
+        config = {k:v for k,v in self.grid_params.items() if k != 'grid'}
         cache = {
             'points': self.props.points,
-            'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.tolist(),
-            'grid-params': self.props.grid_params,
+            'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.astype(float).tolist(),
+            'grid-params': config,
             'grid-scores': self.props.grid_scores,
             'grid-state': self.props.grid_state,
         }
@@ -291,16 +293,19 @@ class Microscope(Object):
                 if i+1 in self.props.grid_scores:
                     col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.5)
                     cr.set_source_rgba(*col)
-                    cr.arc(x, y, radius, 0, 2.0 * 3.14)
+                    cr.rectangle(x-radius, y-radius, 2*radius, 2*radius)
                     cr.fill()
-                cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
-                cr.arc(x, y, radius, 0, 2.0 * 3.14)
-                cr.stroke()
-                name = '{}'.format(i+1)
-                xb, yb, w, h = cr.text_extents(name)[:4]
-                cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
-                cr.show_text(name)
-                cr.stroke()
+                else:
+                    cr.set_source_rgba(0, 0, 0, 0.25)
+                    cr.rectangle(x-radius+0.5, y-radius+0.5, 2*radius-1, 2*radius-1)
+                    cr.fill()
+                if radius > 8:
+                    cr.set_source_rgba(0, 0, 0.5, 0.5)
+                    name = '{}'.format(i+1)
+                    xb, yb, w, h = cr.text_extents(name)[:4]
+                    cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
+                    cr.show_text(name)
+                    cr.stroke()
 
     def draw_points(self, cr):
         if self.props.points:
@@ -410,10 +415,16 @@ class Microscope(Object):
         self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
         self.props.grid_state = self.GridState.COMPLETE
 
-    def load_grid(self, grid_xyz, params, scores):
+    def reset_grid(self, grid_xyz, config, scores):
         self.props.grid_xyz = grid_xyz
         self.props.grid_scores = scores
-        self.props.grid_params = params
+        self.props.grid_params = config
+        self.props.grid_state = self.GridState.PENDING
+
+    def load_grid(self, grid_xyz, config, scores):
+        self.props.grid_xyz = grid_xyz
+        self.props.grid_scores = scores
+        self.props.grid_params = config
         self.props.grid_state = self.GridState.COMPLETE
         self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
 
@@ -425,10 +436,10 @@ class Microscope(Object):
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
 
     def create_overlay_surface(self):
-        self.overlay_surface = cairo.ImageSurface(
+        overlay_surface = cairo.ImageSurface(
             cairo.FORMAT_ARGB32, self.video.display_width, self.video.display_height
         )
-        self.overlay_ctx = cairo.Context(self.overlay_surface)
+        return overlay_surface
 
     def overlay_function(self, cr):
         self.update_overlay()
@@ -440,13 +451,15 @@ class Microscope(Object):
 
     def update_overlay(self):
         if self.overlay_dirty or self.overlay_surface is None:
-            self.create_overlay_surface()
-            self.draw_beam(self.overlay_ctx)
-            self.draw_grid(self.overlay_ctx)
-            self.draw_bbox(self.overlay_ctx)
-            self.draw_points(self.overlay_ctx)
-            self.draw_measurement(self.overlay_ctx)
+            surface = self.create_overlay_surface()
+            ctx = cairo.Context(surface)
+            self.draw_beam(ctx)
+            self.draw_grid(ctx)
+            self.draw_bbox(ctx)
+            self.draw_points(ctx)
+            self.draw_measurement(ctx)
             self.overlay_dirty = False
+            self.overlay_surface = surface
 
     # callbacks
     def update_grid(self, *args, **kwargs):

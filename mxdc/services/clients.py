@@ -7,9 +7,13 @@ import time
 from datetime import datetime
 
 import lorem
+import szrpc.client
+from szrpc.result.gresult import GResult
 import msgpack
 import redis
 import requests
+szrpc.client.use(GResult)
+
 from backports.datetime_fromisoformat import MonkeyPatch
 
 MonkeyPatch.patch_fromisoformat()
@@ -223,12 +227,11 @@ class MxLIVEClient(BaseService):
         try:
             data = misc.load_metadata(filename)
             reply = self.post(path, data=msgpack.dumps(data))
-        except (IOError, ValueError, requests.HTTPError) as e:
-            logger.error('Unable upload to MxLIVE: {}'.format(e))
-            data = None
+        except (IOError, ValueError, requests.HTTPError):
+            logger.error(f'Unable upload to MxLIVE')
         else:
             data.update(reply)
-            misc.save_metadata(data, filename)
+        misc.save_metadata(data, filename)
         return data
 
     def register(self, update=False):
@@ -240,8 +243,9 @@ class MxLIVEClient(BaseService):
                 self.post('/project/', data={'public': self.keys['public']})
                 logger.info('MxLIVE Service configured for {}'.format(self.address))
                 settings.save_keys(self.keys)
-            except (IOError, ValueError, requests.HTTPError) as e:
+            except (IOError, ValueError, requests.HTTPError) as err:
                 logger.warning('MxLIVE Service Problem')
+                logger.debug(err)
 
         self.set_state(active=True)
 
@@ -262,7 +266,8 @@ class MxLIVEClient(BaseService):
         try:
             reply = self.post(path)
         except requests.ConnectionError as err:
-            logger.error('Unable to Connect to MxLIVE: {}'.format(err))
+            logger.error('Unable to connect to MxLIVE!')
+            logger.debug(err)
         except requests.HTTPError as e:
             if e.response.status_code == 400:
                 self.register(update=True)
@@ -292,9 +297,9 @@ class MxLIVEClient(BaseService):
         path = '/close/{}/{}/'.format(beamline, session)
         try:
             reply = self.post(path)
-        except (IOError, ValueError, requests.ConnectionError, requests.HTTPError) as e:
+        except (IOError, ValueError, requests.ConnectionError, requests.HTTPError) as err:
             logger.error('Unable to close MxLIVE Session')
-            logger.debug(e)
+            logger.debug(err)
         else:
             self.session_active = None
             logger.info('Leaving session {session} after {duration}.'.format(**reply))
@@ -397,7 +402,6 @@ class Messenger(BaseMessenger):
         self.configs = configs
 
 
-
 class SimMessenger(BaseMessenger):
     def __init__(self):
         super().__init__()
@@ -449,4 +453,27 @@ class LocalDSSClient(BaseService):
         return True
 
 
-__all__ = ['DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger', SimMessenger]
+class DPClient(BaseService):
+
+    def __init__(self, address):
+        super().__init__()
+        self.name = 'Data Analysis Server'
+        self.service = szrpc.client.Client(address)
+        self.set_state(active=True, health=(0,'',''))
+
+    def process_mx(self, **kwargs):
+        return self.service.process_mx(**kwargs)
+
+    def process_xrd(self, **kwargs):
+        return self.service.process_xrd(**kwargs)
+
+    def process_misc(self, **kwargs):
+        return self.service.process_misc(**kwargs)
+
+    def signal_strength(self, **kwargs):
+        return self.service.signal_strength(**kwargs)
+
+
+__all__ = [
+    'DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger', 'SimMessenger', 'DPClient'
+]

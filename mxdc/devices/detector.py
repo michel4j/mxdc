@@ -88,6 +88,7 @@ class BaseDetector(Device):
     def __init__(self):
         super().__init__()
         self.file_extension = 'img'
+        self.monitor_type = 'file'
 
     def initialize(self, wait=True):
         """
@@ -250,6 +251,7 @@ class SimDetector(BaseDetector):
         self.set_state(active=True, health=(0, '', ''), state=States.IDLE)
         self.sim_images_src = images
         self._datasets = {}
+        self._selection = ('', '', 0)
         self.parameters = {}
         self._powders = {}
         self._state = 'idle'
@@ -279,7 +281,8 @@ class SimDetector(BaseDetector):
             self.initialize(True)
         time.sleep(0.1)
         self.trigger_count = 0
-        return self.set_state(state=States.ACQUIRING)
+        self.set_state(state=States.ACQUIRING)
+        return True
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
@@ -290,55 +293,57 @@ class SimDetector(BaseDetector):
 
     def on_trigger(self, trigger, high):
         if high and self.get_state('state') in [States.ACQUIRING, States.ARMED]:
-            self._copy_frame()
-        else:
             self.trigger_count += 1
+        else:
+            self._copy_frame(self.trigger_count)
             logger.debug(f'Received trigger for frame: {self.trigger_count}')
 
     def _select_dir(self, name='junk'):
         import hashlib
-
-        self._num_frames = 2
-
         # always select the same dataset for the same name
         name_int = int(hashlib.sha1(name.encode('utf8')).hexdigest(), 16) % (10 ** 8)
         if 'pow' in name:
             num_datasets = len(self._powders.keys())
             if num_datasets:
                 chosen = (datetime.today().day + name_int) % num_datasets
-                self._src_template, self._num_frames = list(self._powders.items())[chosen]
+                self._selection = list(self._datasets.keys())[chosen]
         else:
             num_datasets = len(self._datasets.keys())
             if num_datasets:
                 chosen = (datetime.today().day + name_int) % num_datasets
-                self._src_template, self._num_frames = list(self._datasets.items())[chosen]
+                self._selection = list(self._datasets.keys())[chosen]
 
-    def _copy_frame(self):
-        file_parms = copy.deepcopy(self.parameters)
+    def _copy_frame(self, number):
         logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
-        frame_number = file_parms['start_frame'] + self.trigger_count
-        src_img = self._src_template.format(1 + (frame_number % self._num_frames))
-        file_name = '{}_{:05d}.{}'.format(file_parms['file_prefix'], frame_number, self.file_extension)
-        file_path = os.path.join(file_parms['directory'], file_name)
-        shutil.copyfile(src_img, file_path)
-        logger.debug('Frame saved: {}'.format(datetime.now().isoformat()))
-        self.monitor.add(file_path)
+        folder, name, count = self._selection
+        if count > 0:
+            file_parms = copy.deepcopy(self.parameters)
+            frame_number = file_parms['start_frame'] + number
+            src_img = os.path.join(folder, self._datasets[self._selection][frame_number % count])
+            file_name = '{}_{:05d}.{}'.format(file_parms['file_prefix'], frame_number, self.file_extension)
+            file_path = os.path.join(file_parms['directory'], file_name)
+            shutil.copyfile(src_img, file_path)
+            os.sync()
+            logger.info('Frame saved: {}'.format(file_name))
+            self.monitor.add(file_path)
+        else:
+            logger.error('No simulated image found')
 
         # progress
         num_frames = self.parameters['num_frames']
-        self.set_state(progress=((1 + self.trigger_count)/num_frames, 'frames acquired'))
+        self.set_state(progress=((1 + number)/num_frames, 'frames acquired'))
 
     @decorators.async_call
     def prepare_datasets(self):
         self._datasets = {}
-        for root, dir, files in os.walk(self.sim_images_src):
-            if self._stopped: break
-            data_files = sorted(fnmatch.filter(files, f'*_*.{self.file_extension}'))
-            for file in data_files:
-                if self._stopped: break
-                key = os.path.join(root, file.replace('_0001.', '_{:04d}.'))
-                if len(data_files) >= 60:
-                    self._datasets[key] = len(data_files)
+        patt = re.compile(rf'^.+_\d\d\d+.{self.file_extension}$')
+        for root, folders, files in os.walk(self.sim_images_src):
+            data_files = sorted(filter(patt.match, files))
+            if len(data_files) >= 60:
+                self._datasets[(root, data_files[0], len(data_files))] = data_files
+            elif len(data_files) >= 2 and data_files[0].startswith('Lab6'):
+                self._powders[(root, data_files[0], len(data_files))] = data_files
+            time.sleep(0)
         self._select_dir()
 
 
@@ -782,6 +787,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
         self.monitor = frames.StreamMonitor(self, address=stream, kind=frames.StreamTypes.PUBLISH)
         self.monitor.connect('progress', self.on_data_progress)
+        self.monitor_type = 'stream'
+        self.monitor_address = stream
 
         self.size = size
         self.resolution = 0.075

@@ -111,28 +111,26 @@ class RasterController(Object):
 
     def start_raster(self, *args, **kwargs):
         if self.props.state == self.StateType.ACTIVE:
-            self.widget.raster_progress_lbl.set_text("Pausing raster ...")
+            self.widget.raster_progress_lbl.set_text("Stopping raster ...")
             self.collector.pause()
         elif self.props.state == self.StateType.PAUSED:
             self.widget.raster_progress_lbl.set_text("Resuming raster ...")
             self.collector.resume()
         elif self.props.state == self.StateType.READY:
             self.widget.raster_progress_lbl.set_text("Starting raster ...")
-            params = {
-                'name': datetime.now().strftime('%y%m%d-%H%M'),
+            params = {}
+            params.update(self.microscope.grid_params)
+            params.update(self.form.get_values())
+            params.update({
+                'distance': resol_to_dist(params['resolution'], self.beamline.detector.mm_size, self.beamline.energy.get_position()),
+                'origin': self.beamline.goniometer.stage.get_xyz(),
+                'name': datetime.now().strftime('r%y%m%d-%H%M%S'),
                 'uuid': str(uuid.uuid4()),
                 'activity': 'raster',
                 'energy': self.beamline.energy.get_position(),
                 'delta': RASTER_DELTA,
                 'attenuation': self.beamline.attenuator.get_position(),
-            }
-            params.update(self.microscope.grid_params)
-            params.update(self.form.get_values())
-            params.update({
-                'distance': resol_to_dist(params['resolution'], self.beamline.detector.mm_size, params['energy']),
-                'origin': self.beamline.goniometer.stage.get_xyz(),
             })
-
             params = datatools.update_for_sample(params, self.sample_store.get_current())
             self.collector.configure(params)
             self.collector.start()
@@ -179,7 +177,7 @@ class RasterController(Object):
         self.props.state = self.StateType.ACTIVE
         logger.info("Rastering Started.")
 
-        self.microscope.props.grid_xyz = config['grid']
+        self.microscope.reset_grid(config['grid'], config, {})
         self.results[config['uuid']] = {
             'config': copy.deepcopy(config),
             'scores': {}
@@ -256,7 +254,7 @@ class RasterController(Object):
             'filename': results['filename'],
             'uuid': config['uuid'],
         })
-        self.results[config['uuid']]['scores'][frame] = score
+        self.results[config['uuid']]['scores'][index] = score
         if parent:
             self.view.expand_row(parent, False)
         self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
@@ -270,7 +268,7 @@ class RasterController(Object):
             self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
             grid = self.results[item['uuid']]
             self.microscope.load_grid(
-                grid['grid'],
+                grid['config']['grid'],
                 {'origin': grid['config']['origin'], 'angle': grid['config']['angle']},
                 grid['scores']
             )

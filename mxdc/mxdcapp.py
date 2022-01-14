@@ -206,6 +206,7 @@ class Application(Gtk.Application):
         header = 'MxDC is about to close. Select "End Session" \nif you are done with data collection.'
         sub_header = f'{countdown} seconds'
         buttons = (
+            ('Cancel', SHUTDOWN_CANCEL, 'Cancel Exit.'),
             ('Quit', SHUTDOWN_QUIT, 'Exit immediately'),
             ('End Session', SHUTDOWN_ENDSESSION, 'Finished data collection.'),
         )
@@ -222,7 +223,7 @@ class Application(Gtk.Application):
                 survey_form.view.connect('submit-form', self.on_submit_survey, survey_form)
                 survey_form.browser.connect('destroy', self.on_cancel_survey)
                 survey_form.go_to(url)
-        else:
+        elif response == SHUTDOWN_QUIT:
             self.quit()
 
         return True

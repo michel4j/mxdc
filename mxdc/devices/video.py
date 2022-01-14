@@ -143,21 +143,26 @@ class SimGIFCamera(VideoSrc):
     """
     Simulated Camera
     """
-    def __init__(self, name="GIF Camera Simulator"):
+    def __init__(self, gonio=None, name="GIF Camera Simulator"):
         super().__init__(name=name)
         self.src = Image.open(os.path.join(conf.APP_DIR, 'share/data/simulated/crystal.gif'))
+        self.num_frames = self.src.n_frames
+        self.gonio = gonio
         self.index = 0
         self.size = (1280, 960)
         self.resolution = 5.34e-3 * numpy.exp(-0.18)
         self.set_state(active=True, health=(0, '', ''))
+        if self.gonio is not None:
+            self.gonio.connect('changed', self.on_gonio)
+
+    def on_gonio(self, obj, pos):
+        self.index = int(self.num_frames * (pos % 360.)/360.)
 
     def get_frame(self):
-        try:
-            self.src.seek(self.index)
-            self.index += 1
-            self.frame = self.src.resize(self.size, Image.NEAREST).convert('RGB')
-        except EOFError:
-            self.index = 0
+        self.src.seek(self.index)
+        if self.gonio is None:
+            self.index = (self.index + 1) % self.num_frames
+        self.frame = self.src.resize(self.size, Image.NEAREST).convert('RGB')
         return self.frame
 
 
