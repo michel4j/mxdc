@@ -291,12 +291,12 @@ class Microscope(Object):
             cr.set_font_size(8)
             for i, (x, y, z) in enumerate(self.props.grid):
                 if i+1 in self.props.grid_scores:
-                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.5)
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.35)
                     cr.set_source_rgba(*col)
                     cr.rectangle(x-radius, y-radius, 2*radius, 2*radius)
                     cr.fill()
                 else:
-                    cr.set_source_rgba(0, 0, 0, 0.25)
+                    cr.set_source_rgba(1, 1, 1, 0.25)
                     cr.rectangle(x-radius+0.5, y-radius+0.5, 2*radius-1, 2*radius-1)
                     cr.fill()
                 if radius > 8:

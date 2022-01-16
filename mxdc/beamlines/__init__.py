@@ -6,7 +6,7 @@ import os
 from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
-from mxdc.utils.misc import get_project_id, DotDict, import_string
+from mxdc.utils.misc import get_project_name, DotDict, import_string
 from mxdc.utils.log import get_module_logger
 
 
@@ -147,7 +147,7 @@ class Beamline(Object):
         """
         Check if the current user is an administrator
         """
-        return get_project_id() in self.config.get('admin_groups', [])
+        return get_project_name() in self.config.get('admin_users', [])
 
     def is_ready(self):
         """

@@ -168,16 +168,14 @@ class DataLoader(Object):
         attempts = 0
         success = False
         while not success and attempts < 5:
-            path_obj = pathlib.Path(path)
-            if path_obj.exists() and time.time() - path_obj.stat().st_ctime > MAX_SAVE_JITTER:
-                try:
-                    dataset = read_image(path)
-                    self.show(dataset)
-                    success = True
-                except Exception as err:
-                    success = False
+            try:
+                dataset = read_image(path)
+                self.show(dataset)
+                success = True
+            except Exception:
+                success = False
             attempts += 1
-            time.sleep(0.1)
+            time.sleep(0.25)
         if not success:
             logger.warning("Unable to load {}".format(path))
         return success

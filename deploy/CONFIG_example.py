@@ -15,7 +15,7 @@ CONFIG = {
     'type': 'mxdc.beamlines.mx.MXBeamline',
     'subnet': '0.0.0.0/0',
 
-    'admin_groups': [1000, 1046, 1172, 1150, 1014, 1023, 2000],
+    'admin_users': [],
 
     'energy_range': (5.0, 19.0),
     'zoom_levels': (2, 4, 6),

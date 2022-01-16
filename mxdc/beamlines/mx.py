@@ -22,7 +22,7 @@ class MXBeamline(Beamline):
     ]
     DEFAULTS = {
         'name': 'SIM-1',
-        'admin_groups': [2000],
+        'admin_users': [],
         'energy_range': (6.0, 18.0),
         'zoom_levels': (1, 4, 6),
         'distance_limits': (100.0, 1000.0),

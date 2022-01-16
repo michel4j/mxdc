@@ -114,6 +114,7 @@ def identifier_slug(value):
 
 def get_project_name():
     if os.environ.get('MXDC_DEBUG'):
+        os.environ.get('MXDC_DEBUG_USER', pwd.getpwuid(os.geteuid())[0])
         return os.environ.get('MXDC_DEBUG_USER', pwd.getpwuid(os.geteuid())[0])
     else:
         return pwd.getpwuid(os.geteuid())[0]
@@ -263,7 +264,7 @@ def get_free_tcp_port():
 
 def frame_score(info):
     try:
-        return info['signal_avg']
+        return info['bragg_spots']
     except KeyError:
         return 0.0
 

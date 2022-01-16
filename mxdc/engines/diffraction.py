@@ -181,7 +181,8 @@ class DataCollector(Engine):
                     'energy': energy,
                     'distance': round(self.beamline.distance.get_position(), 1),
                     'exposure_time': frame['exposure'],
-                    'num_frames': 1,
+                    'num_images': 1,
+                    'num_series': 1,
                     'start_angle': frame['start'],
                     'delta_angle': frame['delta'],
                     'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -235,7 +236,8 @@ class DataCollector(Engine):
                 'distance': round(self.beamline.distance.get_position(), 1),
                 'two_theta': wedge['two_theta'],
                 'exposure_time': wedge['exposure'],
-                'num_frames': wedge['num_frames'],
+                'num_series': wedge['num_frames'],
+                'num_images': 1,
                 'start_angle': wedge['start'],
                 'delta_angle': wedge['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -299,16 +301,19 @@ class DataCollector(Engine):
             info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
         except OSError as e:
             logger.warning(f'Unable to find files on disk: {reference}')
-            logger.debug(str(e))
-            return
+            start_time = self.config['start_time']
+            framesets = ""
+        else:
+            framesets = info['frames']
+            start_time = min(info['start_time'], self.config['start_time'])
 
         metadata = {
             'name': params['name'],
-            'frames':  info['frames'],
+            'frames':  framesets,
             'filename': template,
             'group': params['group'],
             'container': params['container'],
-            'start_time': min(info['start_time'], self.config['start_time']).isoformat(),
+            'start_time': start_time.isoformat(),
             'end_time': self.config['end_time'].isoformat(),
             'port': params['port'],
             'type': datatools.StrategyDataType.get(params['strategy']),
@@ -333,8 +338,6 @@ class DataCollector(Engine):
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)
-
-        # do not upload fewer than 2 frames
         reply = self.beamline.lims.upload_data(self.beamline.name, filename)
         return reply
 

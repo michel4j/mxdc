@@ -62,6 +62,9 @@ class RasterCollector(Engine):
     def prepare(self, params):
         self.count = 0
         self.total_frames = self.config['params']['frames'] * self.config['params']['lines']
+        self.config['params']['framesets'] = datatools.summarize_list(
+            [i + 1 for i in range(self.total_frames)]
+        )
         self.results = {}
 
         # setup folder for
@@ -86,12 +89,13 @@ class RasterCollector(Engine):
 
             # prepare for analysis
             template = self.beamline.detector.get_template(self.config['params']['name'])
+            total_frames = self.config['params']['frames'] * self.config['params']['lines']
             params = {
                 'template': template,
                 'type': 'file',
                 'directory': self.config['params']['directory'],
                 'first': 1,
-                'num_frames': self.total_frames,
+                'num_frames': total_frames,
                 'timeout': max(self.config['params']['exposure'] * self.total_frames * 10, 180)
             }
             if self.beamline.detector.monitor_type == 'stream':
@@ -102,6 +106,7 @@ class RasterCollector(Engine):
             res = self.beamline.dps.signal_strength(**params, user_name=misc.get_project_name())
             res.connect('update', self.on_raster_update, os.path.join(self.config['params']['directory'], template,))
             res.connect('failed', self.on_raster_failed)
+            res.connect('done', self.on_raster_done)
 
             try:
                 # raster scan proper
@@ -114,18 +119,11 @@ class RasterCollector(Engine):
 
                 # take snapshot
                 self.beamline.manager.center(wait=True)
-                logger.info('Taking snapshot ...')
-                img = self.beamline.sample_camera.get_frame()
-                img.save(
-                    os.path.join(self.config['params']['directory'], '{}.png'.format(self.config['params']['name']))
-                )
             finally:
                 self.beamline.fast_shutter.close()
 
         if self.stopped:
             self.emit('stopped', None)
-        else:
-            self.emit('done', None)
         self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
 
     def acquire_step(self):
@@ -149,7 +147,8 @@ class RasterCollector(Engine):
                 'energy': frame['energy'],
                 'distance': frame['distance'],
                 'exposure_time': frame['exposure'],
-                'num_frames': 1,
+                'num_images': 1,
+                'num_series': 1,
                 'start_angle': frame['start'],
                 'delta_angle': frame['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -184,7 +183,8 @@ class RasterCollector(Engine):
             'energy': params['energy'],
             'distance': params['distance'],
             'exposure_time': params['exposure'],
-            'num_frames': self.total_frames,
+            'num_series': params['lines'],
+            'num_images': params['frames'],
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -221,15 +221,14 @@ class RasterCollector(Engine):
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
-        if not self.stopped:
-            self.emit('progress', 1.0, 'Rastering analysis completed')
-            self.save_metadata()
+        self.emit('progress', 1.0, 'Rastering analysis completed')
+        self.save_metadata()
+        self.emit('done', None)
 
     def on_raster_failed(self, result, error):
         logger.error(f"Unable to process data: {error}")
-        if not self.stopped:
-            self.emit('progress', 1.0, 'Rastering analysis failed')
-            self.save_metadata()
+        self.emit('progress', 1.0, 'Rastering analysis failed')
+        self.save_metadata()
 
     @decorators.async_call
     def pause(self, reason=''):
@@ -248,48 +247,38 @@ class RasterCollector(Engine):
     def save_metadata(self, upload=True):
         self.config['end_time'] = datetime.now(tz=pytz.utc)
         params = self.config['params']
+
         template = self.beamline.detector.get_template(params['name'])
-        wild_card = datatools.template_to_glob(template)
+        metadata = {
+            'name': params['name'],
+            'frames': params['framesets'],
+            'filename': template,
+            'group': params['group'],
+            'container': params['container'],
+            'port': params['port'],
+            'type': 'RASTER',
+            'start_time': self.config['start_time'].isoformat(),
+            'end_time': self.config['end_time'].isoformat(),
+            'sample_id': params['sample_id'],
+            'uuid': params['uuid'],
+            'directory': params['directory'],
 
-        try:
-            info = datatools.dataset_from_files(params['directory'], wild_card)
-        except OSError as e:
-            logger.error('Unable to find files on disk')
-            return
+            'energy': params['energy'],
+            'attenuation': params['attenuation'],
+            'exposure': params['exposure'],
 
-        if info['num_frames'] > 1:
-            metadata = {
-                'name': params['name'],
-                'frames': info['frames'],
-                'filename': self.beamline.detector.get_template(params['name']),
-                'container': params['container'],
-                'port': params['port'],
-                'type': 'RASTER',
-                'start_time': self.config['start_time'].isoformat(),
-                'end_time': self.config['end_time'].isoformat(),
-                'sample_id': params['sample_id'],
-                'uuid': params['uuid'],
-                'directory': params['directory'],
-
-                'energy': params['energy'],
-                'attenuation': params['attenuation'],
-                'exposure': params['exposure'],
-
-                'detector_type': self.beamline.detector.detector_type,
-                'beam_size': self.beamline.aperture.get_position(),
-                'beam_x': self.beamline.detector.get_origin()[0],
-                'beam_y': self.beamline.detector.get_origin()[1],
-                'pixel_size': self.beamline.detector.resolution,
-                'resolution': params['resolution'],
-                'detector_size': min(self.beamline.detector.size),
-                'start_angle': params['angle'],
-                'delta_angle': params['delta'],
-                'inverse_beam': params.get('inverse', False),
-                'grid_origin': params['origin'],
-                'grid_points': params['grid'].tolist(),
-            }
-            filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
-            misc.save_metadata(metadata, filename)
-            if upload:
-                self.beamline.lims.upload_data(self.beamline.name, filename)
-            return metadata
+            'detector_type': self.beamline.detector.detector_type,
+            'beam_size': self.beamline.aperture.get_position(),
+            'beam_x': self.beamline.detector.get_origin()[0],
+            'beam_y': self.beamline.detector.get_origin()[1],
+            'pixel_size': self.beamline.detector.resolution,
+            'resolution': params['resolution'],
+            'detector_size': min(self.beamline.detector.size),
+            'start_angle': params['angle'],
+            'delta_angle': params['delta'],
+            'grid_origin': params['origin'],
+        }
+        filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+        misc.save_metadata(metadata, filename)
+        self.beamline.lims.upload_data(self.beamline.name, filename)
+        return metadata

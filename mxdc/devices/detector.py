@@ -506,6 +506,7 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
             self.initialize(True)
         params = {}
         params.update(kwargs)
+        params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
         for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
@@ -624,6 +625,7 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
             self.initialize(True)
         params = {}
         params.update(kwargs)
+        params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
         for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
@@ -754,13 +756,14 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= self.READOUT_TIME
+        params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
+
+        self.mode_cmd.put(3)    # External Multitrigger mode
 
         for k, v in list(params.items()):
             if k in self.settings:
                 time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
-
-        self.mode_cmd.put(3)  # External Multi-Trigger Mode
         self.saved_frame.put(0)  # reset frame counter
 
     def on_connection_changed(self, obj, state):
@@ -820,7 +823,9 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         # Data Parameters
         self.settings = {
             'start_frame': self.add_pv("{}:FileNumber".format(name)),
-            'num_frames': self.add_pv('{}:NumTriggers'.format(name)),
+            'num_images': self.add_pv('{}:NumImages'.format(name)),
+            'num_series': self.add_pv('{}:NumTriggers'.format(name)),
+
             'file_prefix': self.add_pv("{}:FWNamePattern".format(name)),
             'batch_size': self.add_pv("{}:FWNImagesPerFile".format(name)),
             'directory': self.add_pv("{}:FilePath".format(name)),
@@ -890,11 +895,18 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         params = {}
         params.update(kwargs)
 
-        # convert energy to eV
-        params['energy'] *= 1e3
-
+        params['energy'] *= 1e3     # convert energy to eV
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
+
+        params['num_images'] = params.get('num_images', 1)
+        params['num_series'] = params.get('num_series', 1)
+
+        if params['num_images'] > 1:
+            self.mode_cmd.put(2)
+        else:
+            self.mode_cmd.put(3)
+
 
         self.settings['exposure_time'].put(params['exposure_time'])
         params['acquire_period'] = params['exposure_time']
@@ -903,11 +915,10 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         if 'distance' in params:
             params['distance'] /= 1000.0     # convert distance to meters
 
-        if 'num_frames' in params:
-            frame_factors = misc.factorize(params['num_frames'], maximum=200)
-            params['batch_size'] = frame_factors[-1]    # Adjust batch size
+        num_frames = params['num_images'] * params['num_series']
+        frame_factors = misc.factorize(num_frames, maximum=200)
+        params['batch_size'] = frame_factors[-1]    # Adjust batch size
 
-        self.mode_cmd.put(3)  # External Trigger Mode
         self.num_images.put(1)  # Uses "num_frames" to set number of actual frames acquired
         self.stream_enable.put(1, wait=True)  # Enable Stream interface
 

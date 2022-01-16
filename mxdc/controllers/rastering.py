@@ -1,5 +1,6 @@
 import copy
 import time
+import os
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -188,11 +189,19 @@ class RasterController(Object):
         current_dir = directory.replace(home_dir, '~')
         self.widget.dsets_dir_fbk.set_text(current_dir)
 
-    def on_done(self, obj, data):
+    def on_done(self, collector, data):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering Completed.")
         self.widget.raster_eta.set_text('--:--')
         self.widget.raster_pbar.set_fraction(1.0)
+        config = collector.config['params']
+        logger.info('Saving overlay ...')
+        self.microscope.save_image(
+            os.path.join(
+                collector.config['params']['directory'],
+                '{}.png'.format(collector.config['params']['name'])
+            )
+        )
 
     def on_pause(self, obj, paused, reason):
         if paused:
