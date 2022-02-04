@@ -117,20 +117,30 @@ class StreamMonitor(DataMonitor):
         parser_thread.start()
 
     def run_parser(self):
+        count = 0
+        last_time = time.time()
         while not self.is_stopped():
             if len(self.inbox) and not self.is_paused():
                 msg = self.inbox.popleft()
                 msg_type = json.loads(msg[0])
-                if msg_type['htype'] == 'dheader-1.0':
-                    self.dataset = eiger.EigerStream()
-                    self.dataset.read_header(msg)
-                elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
-                    self.dataset.read_image(msg)
-                    fraction = self.dataset.header['frame_number'] / self.dataset.header['num_images']
-                    if self.master:
-                        self.master.process_frame(self.dataset)
-                    self.set_state(progress=(fraction, 'frames collected'))
-            time.sleep(0.01)
+                try:
+                    if msg_type['htype'] == 'dheader-1.0':
+                        self.dataset = eiger.EigerStream()
+                        self.dataset.read_header(msg)
+                        count = 0
+                        last_time = time.time()
+                    elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
+                        count += 1
+                        fraction = count/self.dataset.header['num_images']
+                        if time.time() - last_time > 0.1:
+                            last_time = time.time()
+                            self.dataset.read_image(msg)
+                            if self.master:
+                                self.master.process_frame(self.dataset)
+                        self.set_state(progress=(fraction, 'frames collected'))
+                except Exception as e:
+                    logger.error(f'Error parsing stream: {e}')
+            time.sleep(0)
 
     def run(self):
         self.context = zmq.Context()

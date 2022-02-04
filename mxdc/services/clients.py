@@ -212,7 +212,7 @@ class MxLIVEClient(BaseService):
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
-            logger.error(misc.html2text(r.content.decode()))
+            #logger.error(misc.html2text(r.content.decode()))
             r.raise_for_status()
 
     def upload(self, path, filename):
@@ -228,7 +228,7 @@ class MxLIVEClient(BaseService):
             data = misc.load_metadata(filename)
             reply = self.post(path, data=msgpack.dumps(data))
         except (IOError, ValueError, requests.HTTPError):
-            logger.error(f'Unable upload to MxLIVE')
+            logger.error(f'Unable to upload to MxLIVE')
         else:
             data.update(reply)
         misc.save_metadata(data, filename)
@@ -284,7 +284,6 @@ class MxLIVEClient(BaseService):
                 logger.error('Unable to Open MxLIVE Session')
                 logger.debug(e)
         else:
-            import pprint
             self.session_info = reply
             if self.session_info['end_time'] is not None:
                 self.session_info['end_time'] = datetime.fromisoformat(self.session_info['end_time'])

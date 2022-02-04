@@ -19,7 +19,7 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-GRACE_PERIOD = 5  # Amount of time to wait after completion for frames to all appear.
+GRACE_PERIOD = 10  # Amount of time to wait after completion for frames to all appear.
 
 
 @implementer(IDataCollector)
@@ -158,13 +158,15 @@ class DataCollector(Engine):
 
     def run_simple(self):
         is_first_frame = True
+        owner = misc.get_project_name()
+        group = misc.get_group_name()
 
         for wedge in datatools.interleave(*self.config['datasets'].values()):
-            self.emit('started', wedge)
+
             self.current_wedge = wedge
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
-
+            self.emit('started', wedge)
             # notify automounter that we will be busy for a while
             free_time = wedge['exposure'] * wedge['num_frames']
             self.beamline.automounter.standby(duration=free_time)
@@ -186,6 +188,8 @@ class DataCollector(Engine):
                     'start_angle': frame['start'],
                     'delta_angle': frame['delta'],
                     'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+                    'user': owner,
+                    'group': group,
                 }
 
                 if self.stopped or self.paused:
@@ -218,15 +222,16 @@ class DataCollector(Engine):
 
     def run_shutterless(self):
         is_first_frame = True
-
+        owner = misc.get_project_name()
+        group = misc.get_group_name()
         # Perform scan
         for wedge in datatools.interleave(*self.config['datasets'].values()):
-            self.emit('started', wedge)
             self.current_wedge = wedge
             if self.stopped or self.paused:
                 break
             self.prepare_for_wedge(wedge)
             energy = self.beamline.energy.get_position()
+            self.emit('started', wedge)
             detector_parameters = {
                 'file_prefix': wedge['name'],
                 'start_frame': wedge['first'],
@@ -238,9 +243,13 @@ class DataCollector(Engine):
                 'exposure_time': wedge['exposure'],
                 'num_series': wedge['num_frames'],
                 'num_images': 1,
+                #'num_series': 1,
+                #'num_images': wedge['num_frames'],
                 'start_angle': wedge['start'],
                 'delta_angle': wedge['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+                'user': owner,
+                'group': group,
             }
 
             if self.stopped or self.paused:
@@ -269,6 +278,7 @@ class DataCollector(Engine):
                 range=wedge['delta'] * wedge['num_frames'],
                 angle=wedge['start'],
                 frames=wedge['num_frames'],
+                #frames=1,
                 wait=True,
                 start_pos=wedge.get('p0'),
                 end_pos=wedge.get('p1'),

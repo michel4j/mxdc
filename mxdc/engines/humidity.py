@@ -91,6 +91,8 @@ class SingleCollector(Engine):
         frame = self.config['frame']
 
         # Prepare image header
+        owner = misc.get_project_name()
+        group = misc.get_group_name()
         detector_parameters = {
             'file_prefix': frame['dataset'],
             'start_frame': frame['first'],
@@ -104,6 +106,8 @@ class SingleCollector(Engine):
             'start_angle': frame['start'],
             'delta_angle': frame['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+            'user': owner,
+            'group': group,
         }
 
         # perform scan

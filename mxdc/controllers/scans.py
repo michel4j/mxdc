@@ -19,6 +19,7 @@ from .samplestore import ISampleStore
 
 logger = get_module_logger(__name__)
 
+from mxio.formats import hdf5
 
 def summarize_lines(data):
     name_dict = {
@@ -498,8 +499,8 @@ class XRFScanController(ScanController):
         ax.axvline(energy, c='#cccccc', ls='--', lw=0.5, label='Excitation Energy')
         self.plotter.axis['default'].legend()
 
-        ymin, ymax = misc.get_min_max(analysis['counts'], ldev=1, rdev=2)
-        ax.axis(ymin=ymin, ymax=ymax)
+        #ymin, ymax = misc.get_min_max(analysis['counts'], ldev=1, rdev=2)
+        #ax.axis(ymin=ymin, ymax=ymax)
         self.plotter.redraw()
 
     def on_edge_changed(self, entry):

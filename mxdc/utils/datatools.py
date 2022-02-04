@@ -148,7 +148,7 @@ class NameManager(object):
         self.history = defaultdict(list)
 
     def fix(self, name):
-        m = re.match(rf'^(.+)_(\d+)$', name)
+        m = re.match(rf'^(.+)-(\d+)$', name)
         if m:
             root = m.group(1)
             num = int(m.group(2))
@@ -162,7 +162,7 @@ class NameManager(object):
             new_num = max(self.history[root]) + 1
         self.history[root].append(new_num)
 
-        new_name = root if new_num == 0 else f'{root}_{new_num}'
+        new_name = root if new_num == 0 else f'{root}-{new_num}'
         return new_name
 
     def get(self, name=None):

@@ -67,6 +67,7 @@ class Microscope(Object):
         self.video_ready = False
         self.queue_overlay()
         self.overlay_surface = None
+        self.overlay_buffer = None
 
 
         self.props.grid = None
@@ -436,10 +437,12 @@ class Microscope(Object):
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
 
     def create_overlay_surface(self):
-        overlay_surface = cairo.ImageSurface(
+        self.overlay_surface = cairo.ImageSurface(
             cairo.FORMAT_ARGB32, self.video.display_width, self.video.display_height
         )
-        return overlay_surface
+        self.overlay_buffer = cairo.ImageSurface(
+            cairo.FORMAT_ARGB32, self.video.display_width, self.video.display_height
+        )
 
     def overlay_function(self, cr):
         self.update_overlay()
@@ -450,16 +453,25 @@ class Microscope(Object):
         self.overlay_dirty = True
 
     def update_overlay(self):
-        if self.overlay_dirty or self.overlay_surface is None:
-            surface = self.create_overlay_surface()
-            ctx = cairo.Context(surface)
+        if self.overlay_surface is None:
+            self.create_overlay_surface()
+        if self.overlay_dirty:
+            # clear surface
+            ctx = cairo.Context(self.overlay_buffer)
+            ctx.save()
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+            ctx.paint()
+            ctx.restore()
+
             self.draw_beam(ctx)
             self.draw_grid(ctx)
             self.draw_bbox(ctx)
             self.draw_points(ctx)
             self.draw_measurement(ctx)
+
+            # swap buffers
+            self.overlay_surface, self.overlay_buffer = self.overlay_buffer, self.overlay_surface
             self.overlay_dirty = False
-            self.overlay_surface = surface
 
     # callbacks
     def update_grid(self, *args, **kwargs):

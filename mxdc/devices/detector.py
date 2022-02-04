@@ -801,12 +801,13 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
+        self.initialize_cmd = self.add_pv('{}:Initialize'.format(name))
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
 
         self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
-        self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
+        self.state_msg = self.add_pv('{}:State_RBV'.format(name))
         self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
         self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
@@ -818,10 +819,13 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         self.state_value.connect('changed', self.on_state_value)
         self.armed_status.connect('changed', self.on_state_value)
+        self.state_msg.connect('changed', self.on_state_value)
         self.connected_status.connect('changed', self.on_connection_changed)
 
         # Data Parameters
         self.settings = {
+            'user':  self.add_pv("{}:FileOwner".format(name)),
+            'group':  self.add_pv("{}:FileOwnerGrp".format(name)),
             'start_frame': self.add_pv("{}:FileNumber".format(name)),
             'num_images': self.add_pv('{}:NumImages'.format(name)),
             'num_series': self.add_pv('{}:NumTriggers'.format(name)),
@@ -847,11 +851,42 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
         }
 
+    def on_state_value(self, obj, value):
+        detector_state = self.state_value.get()
+        armed = self.armed_status.get()
+        controller_state = self.state_msg.get()
+
+        state = {
+            0: States.IDLE,
+            1: States.ACQUIRING,
+            2: States.ACQUIRING,
+            3: States.ACQUIRING,
+            4: States.ACQUIRING,
+            5: States.ACQUIRING,
+            6: States.IDLE,
+            7: States.ACQUIRING,
+            8: States.INITIALIZING,
+            9: States.ERROR,
+            10: States.IDLE,
+        }.get(detector_state, States.IDLE)
+
+        if armed == 1:
+            state = States.ARMED
+        elif controller_state == 'na':
+            state = States.ERROR
+        self.set_state(state=state)
+
     def start(self, first=False):
         logger.debug(f'"{self.name}" Arming detector ...')
         self.frame_counter.put(0)
+        if self.armed_status.get() != 0:
+            self.acquire_cmd.put(0, wait=True)
+            self.wait_until(States.IDLE, timeout=5)
+        if self.state_msg.get() == 'na':
+            self.initialize_cmd.put(1, wait=True)
+            self.wait_until(States.IDLE, timeout=165)
         self.acquire_cmd.put(1)
-        return self.wait_until(States.ARMED, timeout=120)
+        return self.wait_until(States.ARMED, timeout=165)
 
     def stop(self):
         logger.debug('"{}" Disarming detector ...'.format(self.name))
@@ -866,8 +901,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def save(self, wait=False):
         time.sleep(2)
-        self.acquire_cmd.put(0)
-        return
+        self.acquire_cmd.put(0, wait=True)
+        self.wait_until(States.IDLE, timeout=30)
 
     def delete(self, directory, prefix, frames=()):
         master_file = f'{prefix}_master.h5'
@@ -907,10 +942,10 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         else:
             self.mode_cmd.put(3)
 
-
         self.settings['exposure_time'].put(params['exposure_time'])
         params['acquire_period'] = params['exposure_time']
-        params['exposure_time'] -= 5e-6
+        #params['exposure_time'] -= .111e-3 #5e-6
+        params['exposure_time'] -=  5e-6
 
         if 'distance' in params:
             params['distance'] /= 1000.0     # convert distance to meters

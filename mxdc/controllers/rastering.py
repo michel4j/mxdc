@@ -18,7 +18,7 @@ from mxdc.widgets.imageviewer import IImageViewer
 from .microscope import IMicroscope
 from .samplestore import ISampleStore
 
-RASTER_DELTA = 0.5
+RASTER_DELTA = 0.1
 
 logger = get_module_logger(__name__)
 

@@ -149,6 +149,7 @@ class AnalysisController(Object):
 
     def open_terminal(self, button):
         directory = self.widget.proc_dir_fbk.get_text()
+        print(directory)
         misc.open_terminal(directory)
 
     def clear_reports(self, *args, **kwargs):

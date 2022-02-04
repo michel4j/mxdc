@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-
 from mxdc import conf
 
 # Setup single argument for verbose logging

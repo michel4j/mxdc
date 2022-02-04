@@ -70,7 +70,8 @@ class Analyst(Engine):
             'state': self.manager.State.ACTIVE,
         })
         self.manager.add_item(params, False)
-        res.connect('done', self.on_process_done, metadata)
+        data_id = [_f for _f in [metadata.get('id')] if _f]
+        res.connect('done', self.on_process_done, data_id)
         res.connect('failed', self.on_process_failed)
 
     def process_multiple(self, *metadatas, flags=(), sample=None):

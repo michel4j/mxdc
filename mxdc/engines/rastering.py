@@ -139,6 +139,8 @@ class RasterCollector(Engine):
 
             # Prepare image header
             template = self.beamline.detector.get_template(self.config['params']['name'])
+            owner = misc.get_project_name()
+            group = misc.get_group_name()
             detector_parameters = {
                 'file_prefix': frame['name'],
                 'start_frame': frame['first'],
@@ -152,6 +154,8 @@ class RasterCollector(Engine):
                 'start_angle': frame['start'],
                 'delta_angle': frame['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+                'user': owner,
+                'group': group,
             }
 
             # perform scan
@@ -174,6 +178,8 @@ class RasterCollector(Engine):
         logger.debug('Setting up detector for rastering ... ')
 
         # Prepare detector
+        owner = misc.get_project_name()
+        group = misc.get_group_name()
         params = self.config['params']
         detector_parameters = {
             'file_prefix': params['name'],
@@ -188,6 +194,8 @@ class RasterCollector(Engine):
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+            'user': owner,
+            'group': group,
         }
 
         self.beamline.detector.configure(**detector_parameters)

@@ -239,7 +239,7 @@ class Application(Gtk.Application):
 
     def broadcast_service(self):
         self.remote_mxdc = None
-        self.service_type = '_mxdc._tcp.local.'
+        self.service_type = f'_mxdc-{self.beamline.name.lower()}._tcp.local.'
         self.service_data = {
             'user': misc.get_project_name(),
             'started': time.asctime(time.localtime()),

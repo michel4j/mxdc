@@ -4,6 +4,8 @@ import json
 import math
 import os
 import pwd
+import grp
+import gzip
 import re
 import reprlib
 import socket
@@ -19,6 +21,8 @@ from html.parser import HTMLParser
 from importlib import import_module
 
 import numpy
+import msgpack
+import msgpack_numpy
 from gi.repository import GLib
 from scipy import interpolate
 
@@ -56,7 +60,11 @@ SUPERSCRIPTS_TRANS = str.maketrans('0123456789+-', '⁰¹²³⁴⁵⁶⁷⁸⁹�
 
 def sci_fmt(number, digits=3):
     exp = 0 if number == 0 else math.floor(math.log10(abs(number)))
-    value = number * (10 ** -exp)
+    try:
+        value = number * (10 ** -exp)
+    except OverflowError as e:
+        logger.error(f'Overflow Error: {number}: {e}')
+        value = number
     exp_text = f'{exp}'.translate(SUPERSCRIPTS_TRANS)
     val_fmt = f'{{:0.{digits}f}}'
     val_text = val_fmt.format(value)
@@ -119,6 +127,12 @@ def get_project_name():
     else:
         return pwd.getpwuid(os.geteuid())[0]
 
+def get_group_name():
+    if os.environ.get('MXDC_DEBUG'):
+        os.environ.get('MXDC_DEBUG_USER', pwd.getpwuid(os.geteuid())[0])
+        return os.environ.get('MXDC_DEBUG_USER', pwd.getpwuid(os.geteuid())[0])
+    else:
+        return grp.getgrnam(self.get_project_name())
 
 def get_project_home():
     if os.environ.get('MXDC_DEBUG'):
@@ -230,6 +244,37 @@ def load_metadata(filename):
     with open(filename, 'r') as handle:
         metadata = json.load(handle)
     return metadata
+
+def load_json(filename):
+    with open(filename, 'r') as handle:
+        info = json.load(handle)
+    return info
+
+
+def load_chkpt(filename):
+    with gzip.open(filename, 'rb') as handle:
+        info = msgpack.load(handle)
+    return info
+
+def get_data_ids(report_file):
+    report = Path(report_file)
+    if report.exists() and report.is_file():
+        folder = report.parent
+    elif report.exists() and report.is_dir():
+        folder = report
+    else:
+        return []
+
+    file_path = folder.joinpath('process.chkpt')
+    checkpoint = misc.load_chkpt(file_path)
+    datasets = [d['parameters']['dataset'] for d in checkpoint['datasets']]
+    data_ids = []
+    for dset in datasets:
+        meta_path = Path(dset['directory']).joinpath(f'{dset["label"]}.meta')
+        meta = misc.load_json(meta_path)
+        data_ids.append(meta.get('id'))
+
+    return data_ids
 
 
 def _get_gateway():
@@ -626,3 +671,20 @@ def factorize(n, minimum=None, maximum=None):
     maximum = n//2 if maximum is None else maximum
     candidates = numpy.arange(minimum, maximum + 1)
     return candidates[(n % candidates) == 0]
+
+def load_hkl(filename):
+    data = numpy.loadtxt(filename, comments='!')
+    spots = numpy.empty((data.shape[0], 4), dtype=numpy.uint16)
+    spots[:, :3] = numpy.round(data[:,5:8]).astype(numpy.uint16)
+    spots[:, 3] = data[:,4] > 0
+    return spots
+
+def load_spots(filename):
+    data = numpy.loadtxt(filename, comments='!')
+    spots = numpy.empty((data.shape[0], 4), dtype=numpy.uint16)
+    spots[:, :3] = numpy.round(data[:,:3]).astype(numpy.uint16)
+    if data.shape[1] > 4:
+        spots[:, 3] = numpy.abs(data[:,4:]).sum(axis=1) > 0
+    else:
+        spots[:, 3] = 1
+    return spots

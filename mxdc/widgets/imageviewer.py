@@ -2,10 +2,9 @@ import time
 import logging
 import os
 
-import numpy
 from gi.repository import GLib
 from gi.repository import Gtk
-from mxdc.utils import gui
+from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget
 from mxdc import Registry
@@ -58,8 +57,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.collecting = False
         self.following_id = None
         self.last_follow_time = 0
-        self.directory = None
-
         self.reflections = []
 
         self.build_gui()
@@ -91,19 +88,10 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def load_reflections(self, filename, hkl=False):
         try:
-            raw = numpy.loadtxt(filename, comments="!")
-            rows, cols = raw.shape
             if hkl:
-                reflections = numpy.zeros((rows, 7))
-                reflections[:,:3] = raw[:,5:8]
-                reflections[:,4:] = raw[:,:3]
+                return misc.load_hkl(filename)
             else:
-                if cols < 7:
-                    reflections = numpy.zeros((rows, 7))
-                    reflections[:, :cols] = raw
-                else:
-                    reflections = raw
-            return reflections
+                return misc.load_spots(filename)
         except IOError:
             logger.error('Could not load reflections from %s' % filename)
 
@@ -112,6 +100,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_reset_filters(self, widget):
         self.canvas.reset_filters()
+        self.canvas.set_reflections(None)
 
     def on_go_back(self, widget, full):
         self.canvas.go_back(full)
@@ -127,7 +116,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def on_data_loaded(self, obj=None):
         self.dataset = self.canvas.get_image_info()
         if self.dataset.header.get('dataset'):
-            self.directory = self.dataset.header['dataset']['directory']
+            os.chdir(self.dataset.header['dataset']['directory'])
 
         self.save_btn.set_sensitive(True)
         self.back_btn.set_sensitive(True)
@@ -182,13 +171,13 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_file_open(self, widget):
         filename, flt = dialogs.select_open_image(
-            parent=self.get_toplevel(), default_folder=self.directory
+            parent=self.get_toplevel(), default_folder=os.getcwd()
         )
         if filename and os.path.isfile(filename):
-            self.directory = os.path.dirname(os.path.abspath(filename))
+            os.chdir(os.path.dirname(os.path.abspath(filename)))
             file_type = flt.get_name()
             if file_type in ['XDS Spot files', 'XDS ASCII file']:
-                refl = self.load_reflections(filename, hkl=(file_type=='XDS ASCII file'))
+                refl = self.load_reflections(filename, hkl=(file_type == 'XDS ASCII file'))
                 self.canvas.set_reflections(refl)
                 if self.canvas.image_loaded:
                     GLib.idle_add(self.canvas.queue_draw)
@@ -208,7 +197,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.following = widget.get_active()
         if self.following:
             if not self.collecting:
-                self.following_id = GLib.timeout_add(1000, self.follow_frames)
+                self.following_id = GLib.timeout_add(100, self.follow_frames)
         else:
             if self.following_id:
                 GLib.source_remove(self.following_id)

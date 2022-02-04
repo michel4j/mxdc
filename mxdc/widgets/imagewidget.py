@@ -80,6 +80,7 @@ class Frame(object):
         self.scale = 1.0
 
         # needed for display
+        self.delta_angle = self.header['delta_angle']
         self.beam_x, self.beam_y = self.header['beam_center']
         self.name = '{} [ {} ]'.format(self.header['name'], self.frame_number)
         self.image_size = self.header['detector_size']
@@ -172,8 +173,9 @@ class DataLoader(Object):
                 dataset = read_image(path)
                 self.show(dataset)
                 success = True
-            except Exception:
+            except Exception as e:
                 success = False
+                print(e)
             attempts += 1
             time.sleep(0.25)
         if not success:
@@ -251,7 +253,8 @@ class ImageWidget(Gtk.DrawingArea):
         self.gamma = 0
         self.scale = 1.0
         self.frame = None
-        self.reflections = None
+        self.all_spots = None
+        self.frame_spots = None
         self.extents_back = []
         self.extents_forward = []
         self.extents = None
@@ -280,6 +283,15 @@ class ImageWidget(Gtk.DrawingArea):
         display_thread = threading.Thread(target=self.frame_monitor, daemon=True, name=self.__class__.__name__ + ':Display')
         display_thread.start()
 
+    def select_spots(self):
+        if self.all_spots is not None and self.frame is not None:
+            sel = (self.all_spots[:, 2] >= self.frame.frame_number - 5)
+            sel &= (self.all_spots[:, 2] <= self.frame.frame_number + 5)
+            #sel = self.all_spots[:,3] == 0
+            self.frame_spots = self.all_spots[sel]
+        else:
+            self.frame_spots = None
+
     def frame_monitor(self):
         while True:
             if self.frame is not None:
@@ -290,6 +302,7 @@ class ImageWidget(Gtk.DrawingArea):
                     GLib.idle_add(self.redraw)
             if len(self.inbox):
                 self.frame = self.inbox.popleft()
+                self.select_spots()
                 self.data_loader.set_current_frame(self.frame)
             time.sleep(0.01)
 
@@ -315,7 +328,8 @@ class ImageWidget(Gtk.DrawingArea):
         self.frame.needs_redraw = False
 
     def set_reflections(self, reflections=None):
-        self.reflections = reflections
+        self.all_spots = reflections
+        self.select_spots()
 
     def open(self, filename):
         self.data_loader.open(filename)
@@ -428,16 +442,20 @@ class ImageWidget(Gtk.DrawingArea):
 
     def draw_spots(self, cr):
         # draw spots
-        if self.reflections is not None:
+        if self.frame_spots is not None:
             x, y, w, h = self.extents
             cr.set_line_width(0.75)
-            cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
-            for i, spot in enumerate(self.reflections):
-                sx, sy = spot[:2]
+
+            for spot in self.frame_spots:
+                sx, sy, sn, st = spot
+                if spot[3] == 0:
+                    cr.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+                else:
+                    cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
                 if (0 < (sx - x) < x + w) and (0 < (sy - y) < y + h):
                     cx = int((sx - x) * self.scale)
                     cy = int((sy - y) * self.scale)
-                    cr.arc(cx, cy, 16 * self.scale, 0, 2.0 * numpy.pi)
+                    cr.arc(cx, cy, 12 * self.scale, 0, 2.0 * numpy.pi)
                     cr.stroke()
 
     def go_back(self, full=False):
@@ -467,8 +485,36 @@ class ImageWidget(Gtk.DrawingArea):
         return ix, iy, Res, self.frame.data[iy, ix]
 
     def save_surface(self, path):
-        self.surface.write_to_png(path)
-        logger.info('Image saved to PNG: {}'.format(path))
+
+        if self.surface is not None:
+            alloc = self.get_allocation()
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, alloc.width, alloc.height)
+            ctx = cairo.Context(surface)
+
+            ctx.save()
+            ctx.scale(self.scale, self.scale)
+            ctx.translate(-self.extents[0], -self.extents[1])
+            ctx.set_source_surface(selfq.surface, 0, 0)
+            if self.scale >= 1:
+                ctx.get_source().set_filter(cairo.FILTER_FAST)
+            else:
+                ctx.get_source().set_filter(cairo.FILTER_BEST)
+            ctx.paint()
+            ctx.restore()
+
+            if self.show_histogram:
+                px = alloc.width - self.plot_surface.get_width() - 10
+                py = alloc.height - self.plot_surface.get_height() - 10
+                ctx.save()
+                ctx.set_source_surface(self.plot_surface, px, py)
+                ctx.paint()
+                ctx.restore()
+
+            self.draw_overlay_cairo(ctx)
+            self.draw_spots(ctx)
+
+            surface.write_to_png(path)
+            logger.info('Image saved to PNG: {}'.format(path))
 
     def screen_to_image(self, x, y):
         ix = int(x / self.scale) + self.extents[0]
