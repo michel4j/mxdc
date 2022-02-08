@@ -413,32 +413,6 @@ than one point is provided.</property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="data_copy_btn">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Clone Run</property>
-                <property name="relief">none</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="icon-name">edit-copy-symbolic</property>
-                  </object>
-                </child>
-                <style>
-                  <class name="image-button"/>
-                </style>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="pack-type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkButton" id="data_delete_btn">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
@@ -465,6 +439,58 @@ than one point is provided.</property>
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="data_notes_btn">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Clone Run</property>
+                <property name="relief">none</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">accessories-text-editor-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="data_copy_btn1">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Clone Run</property>
+                <property name="relief">none</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">edit-copy-symbolic</property>
+                  </object>
+                </child>
+                <style>
+                  <class name="image-button"/>
+                </style>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="pack-type">end</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="data_recycle_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
@@ -487,7 +513,7 @@ than one point is provided.</property>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="pack-type">end</property>
-                <property name="position">3</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>

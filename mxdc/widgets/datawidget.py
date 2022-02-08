@@ -59,6 +59,7 @@ class RunItem(Object):
     title = Property(type=str, default="Add run ...")
     duration = Property(type=int, default=0)
     subtitle = Property(type=str, default="")
+    notes = Property(type=str, default="")
     created = Property(type=float, default=0.0)
 
     def __init__(self, info=None, state=StateType.DRAFT, uid=None, created=None):
