@@ -140,7 +140,6 @@ class DataCollector(Engine):
             self.beamline.attenuator.move_to(current_attenuation, wait=True)  # restore attenuation
 
         # Wait for Last image to be transferred
-        time.sleep(GRACE_PERIOD)
         for uid, dataset in self.config['datasets'].items():
             for details in dataset.get_details():
                 try:
@@ -241,10 +240,10 @@ class DataCollector(Engine):
                 'distance': round(self.beamline.distance.get_position(), 1),
                 'two_theta': wedge['two_theta'],
                 'exposure_time': wedge['exposure'],
-                'num_series': wedge['num_frames'],
-                'num_images': 1,
-                #'num_series': 1,
-                #'num_images': wedge['num_frames'],
+                #'num_series': wedge['num_frames'],
+                #'num_images': 1,
+                'num_series': 1,
+                'num_images': wedge['num_frames'],
                 'start_angle': wedge['start'],
                 'delta_angle': wedge['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -277,8 +276,8 @@ class DataCollector(Engine):
                 time=wedge['exposure'] * wedge['num_frames'],
                 range=wedge['delta'] * wedge['num_frames'],
                 angle=wedge['start'],
-                frames=wedge['num_frames'],
-                #frames=1,
+                #frames=wedge['num_frames'],
+                frames=1,
                 wait=True,
                 start_pos=wedge.get('p0'),
                 end_pos=wedge.get('p1'),
@@ -308,6 +307,7 @@ class DataCollector(Engine):
         reference = template.format(params['first'])
 
         try:
+            self.beamline.detector.wait_for_files(params['directory'], params['name'])
             info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
         except OSError as e:
             logger.warning(f'Unable to find files on disk: {reference}')

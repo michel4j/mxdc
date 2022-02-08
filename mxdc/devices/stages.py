@@ -124,7 +124,7 @@ class BaseSampleStage(Device):
         """
         return numpy.radians(self.omega.get_position() - self.offset)
 
-    def wait(self, start=False, stop=True):
+    def wait(self, start=True, stop=True):
         """
         Wait for the busy state to change.
 
@@ -132,25 +132,29 @@ class BaseSampleStage(Device):
             - `start` (bool): Wait for the motor to start moving.
             - `stop` (bool): Wait for the motor to stop moving.
         """
-        poll = 0.05
-        timeout = 5.0
+        poll = 0.001
+        end_time = time.time() + 5
 
         # initialize precision
         if start and not self.is_busy():
-            while self.is_busy() and timeout > 0:
-                timeout -= poll
+            logger.debug(f'{self.name}: Waiting for stage to start moving')
+            while self.is_busy() and time.time() < end_time:
                 time.sleep(poll)
-            if timeout <= 0:
+            if time.time() > end_time:
                 logger.warning('%s timed out waiting for sample stage to start moving')
                 return False
-        timeout = 120
-        if stop and self.is_busy():
-            while self.is_busy() and timeout > 0:
+            logger.debug(f'{self.name}: Stage is now moving')
+
+        if stop:
+            logger.debug(f'{self.name}: Waiting for stage to stop moving')
+            end_time = time.time() + 120
+            time.sleep(poll)
+            while self.is_busy() and time.time() < end_time:
                 time.sleep(poll)
-                timeout -= poll
-            if timeout <= 0:
+            if time.time() > end_time:
                 logger.warning('%s timed out waiting for sample stage to stop moving')
                 return False
+        return True
 
 
 class SampleStage(BaseSampleStage):
@@ -174,18 +178,24 @@ class SampleStage(BaseSampleStage):
         self.x = x
         self.y1 = y1
         self.y2 = y2
+        self.motion_mask = {0: 0, 1: 0, 2 : 0, 3 : 0}
         self.offset = offset
         self.linked = linked
         self.omega = omega
         self.invert_x = -1 if invert_x else 1
         self.invert_omega = -1 if invert_omega else 1
         self.add_components(x, y1, y2, omega)
-        for dev in (self.x, self.y1, self.y2, self.omega):
+        for i, dev in enumerate((self.x, self.y1, self.y2, self.omega)):
             dev.connect('changed', self.emit_change)
+            dev.connect('busy', self.check_busy, i)
 
     def emit_change(self, *args, **kwargs):
         pos = (self.get_omega(), self.x.get_position(), self.y1.get_position(), self.y2.get_position())
         self.set_state(changed=(pos,))
+
+    def check_busy(self, pv, state, index):
+        self.motion_mask[index] = int(state)
+        self.moving = sum(self.motion_mask.values()) > 0
 
     def get_xvw(self):
         """x = horizontal, v = vertical, w= angle in radians"""
@@ -200,22 +210,25 @@ class SampleStage(BaseSampleStage):
         self.y1.move_to(yl, wait=self.linked)
         self.y2.move_to(zl, wait=self.linked)
         self.x.move_to(xl, wait=self.linked)
-        self.wait(start=(not self.linked), stop=wait)
+        if wait and not self.linked:
+            self.wait()
 
     def move_xyz_by(self, xd, yd, zd, wait=False):
         self.wait(start=False)
         self.y1.move_by(yd, wait=self.linked)
         self.y2.move_by(zd, wait=self.linked)
         self.x.move_by(xd, wait=self.linked)
-        self.wait(start=(not self.linked), stop=wait)
+        if wait and not self.linked:
+            self.wait()
 
     def move_screen(self, xw, yw, zw, wait=False):
         self.wait(start=False)
         xl, yl, zl = self.screen_to_xyz(xw, yw, zw)
+        self.x.move_to(xl, wait=self.linked)
         self.y1.move_to(yl, wait=self.linked)
         self.y2.move_to(zl, wait=self.linked)
-        self.x.move_to(xl, wait=self.linked)
-        self.wait(start=(not self.linked), stop=wait)
+        if wait and not self.linked:
+            self.wait()
 
     def move_screen_by(self, xwd, ywd, zwd, wait=False):
         self.wait(start=False)
@@ -223,7 +236,9 @@ class SampleStage(BaseSampleStage):
         self.y1.move_by(yld, wait=self.linked)
         self.y2.move_by(zld, wait=self.linked)
         self.x.move_by(xld, wait=self.linked)
-        self.wait(start=(not self.linked), stop=wait)
+
+        if wait and not self.linked:
+            self.wait()
 
     def stop(self):
         self.x.stop()
@@ -231,4 +246,4 @@ class SampleStage(BaseSampleStage):
         self.y2.stop()
 
     def is_busy(self):
-        return any((self.x.is_busy(), self.y1.is_busy(), self.y2.is_busy()))
+        return self.moving

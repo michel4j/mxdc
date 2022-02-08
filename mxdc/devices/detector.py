@@ -1,10 +1,11 @@
 import copy
-import fnmatch
+
 import glob
 import os
 import re
 import shutil
 import time
+from pathlib import Path
 from datetime import datetime
 from enum import Enum
 
@@ -103,6 +104,17 @@ class BaseDetector(Device):
         :param data: Dataset object to be processed
         """
         self.emit("new-image", data, force=True)
+
+    def wait_for_files(self, folder, prefix,  timeout=60):
+        """
+        Wait for files to be saved
+        :param folder: directory
+        :param prefix: dataset name
+        :param timeout:
+        :return: True if successful
+        """
+
+        return True
 
     def get_template(self, prefix):
         """
@@ -898,6 +910,30 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def get_template(self, prefix):
         return f'{prefix}_master.h5/{{:0{self.FRAME_DIGITS}d}}'
+
+    def wait_for_files(self, folder, prefix, timeout=60):
+        master_file = f'{prefix}_master.h5'
+        data_glob = re.sub(r'master', 'data_*', master_file)
+        pending = [
+            os.path.join(folder, master_file)
+        ] + glob.glob(os.path.join(folder, data_glob))
+        end_time = time.time() + timeout
+        exists = []
+
+        while set(pending) != set(exists) and time.time() < end_time:
+
+            for f in set(pending) - set(exists):
+                p = Path(f)
+                if p.exists() and time.time() - p.stat().st_mtime > 0.5:
+                    exists.append(f)
+
+            time.sleep(2)
+
+            pending = [
+                os.path.join(folder, master_file)
+            ] + glob.glob(os.path.join(folder, data_glob))
+
+        return end_time > time.time()
 
     def save(self, wait=False):
         time.sleep(2)

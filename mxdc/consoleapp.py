@@ -64,7 +64,7 @@ class Application(Gtk.Application):
         self.window = self.builder.scan_window
         self.window.set_deletable(False)
         self.plot = scanplot.ScanPlotter(self.builder)
-        self.log_viewer = common.LogMonitor(self.builder.scan_log, font='Candara 7')
+        self.log_viewer = common.LogMonitor(self.builder.scan_log, font='Monospace 9')
         log_handler = common.GUIHandler(self.log_viewer)
         log_handler.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(asctime)s [%(name)s] %(message)s', '%b/%d %H:%M:%S')
