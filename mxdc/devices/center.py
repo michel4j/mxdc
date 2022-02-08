@@ -52,10 +52,7 @@ class BaseCenter(Device):
             remaining -= 0.01
             time.sleep(0.01)
 
-        if remaining <= 0.0:
-            return False
-
-        return True
+        return remaining > 0.0
 
 
 class ExtCenter(BaseCenter):

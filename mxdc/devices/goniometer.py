@@ -196,12 +196,13 @@ class MD2Gonio(BaseGoniometer):
     :keyword scan4d: enable 4D scan capability
     :keyword raster4d: enable 4D rastering capability
     :keyword triggering: enable detector triggering capability
+    :keyword power: boolean, PowerPMAC architecture, False for TurboPMAC
     """
     NULL_VALUE = '__EMPTY__'
     BUSY_STATES = [5, 6, 7, 8]
     ERROR_STATES = [11, 12, 13, 14]
 
-    def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True):
+    def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True, power=False):
         super().__init__('MD2 Diffractometer')
         if kappa_enabled:
             self.add_features(GonioFeatures.KAPPA)
@@ -211,6 +212,8 @@ class MD2Gonio(BaseGoniometer):
             self.add_features(GonioFeatures.RASTER4D)
         if triggering:
             self.add_features(GonioFeatures.TRIGGERING)
+
+        self.power_pmac = power
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
@@ -242,7 +245,7 @@ class MD2Gonio(BaseGoniometer):
             self.add_components(self.phi, self.chi, self.kappa)
         self.stage = stages.SampleStage(
             self.sample_x, self.sample_y1, self.sample_y2, self.omega,
-            linked=False, invert_x=True, invert_omega=True,
+            invert_x=True, invert_omega=True,
         )
 
         # config parameters
@@ -361,11 +364,11 @@ class MD2Gonio(BaseGoniometer):
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             kwargs['snake'] = 1
-            kwargs['shutterless'] = 1
+            kwargs['shutterless'] = int(self.power_pmac)
             shape = [kwargs['width'], kwargs['height']]
             kwargs['width'] = max(shape) * 1e-3     # convert to mm
             kwargs['height'] = min(shape) * 1e-3    # convert to mm
-            kwargs['use_table'] = 1
+            kwargs['use_table'] = int(self.power_pmac)
             kwargs['z_pos'] = self.gon_z_fbk.get()
             misc.set_settings(self.raster_settings, **kwargs)
             self.raster_cmd.put(self.NULL_VALUE)
@@ -413,7 +416,7 @@ class SimGonio(BaseGoniometer):
         self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.5)
         self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.5)
 
-        self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False)
+        self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
 
         if self.supports(GonioFeatures.KAPPA):
             self.kappa = motor.SimMotor('Kappa', 0.0, limits=(-1, 180), units='deg', speed=30)

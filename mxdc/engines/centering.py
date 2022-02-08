@@ -20,7 +20,7 @@ RASTER_RESOLUTION = 2
 
 SAMPLE_SHIFT_STEP = 0.2  # mm
 CENTERING_ZOOM = 2
-CENTERING_BLIGHT = 65.0
+CENTERING_BLIGHT = 50.0
 CENTERING_FLIGHT = 0
 MAX_TRIES = 5
 
@@ -58,7 +58,7 @@ class Centering(Engine):
             self.method = self.center_loop
 
     def screen_to_mm(self, x, y):
-        mm_scale = self.beamline.sample_video.resolution
+        mm_scale = self.beamline.camera_scale.get()
         cx, cy = numpy.array(self.beamline.sample_video.size) * 0.5
         xmm = (cx - x) * mm_scale
         ymm = (cy - y) * mm_scale
@@ -110,7 +110,7 @@ class Centering(Engine):
             )
         )
 
-    def center_external(self, low_trials=2, med_trials=2):
+    def center_external1(self, low_trials=2, med_trials=2):
         """
         External centering device
         :param low_trials: Number of trials at low resolution
@@ -124,36 +124,60 @@ class Centering(Engine):
         self.beamline.sample_frontlight.set_off()
         low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
 
-        max_trials = low_trials + med_trials
-        trial_count = 0
         scores = []
-        failed = False
-        for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
-            if failed:
-                break
 
+        for zoom_level in [low_zoom, med_zoom]:
             self.beamline.sample_video.zoom(zoom_level, wait=True)
-
             for i in range(2):
-                trial_count += 1
-                for j in range(2):
-                    self.beamline.goniometer.stage.wait(start=False, stop=True)
-                    found = self.device.wait(2)
-                    if found:
-                        x, y, reliability, label = self.device.fetch()
-                        scores.append(reliability)
-                        logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
-                        xmm, ymm = self.screen_to_mm(x, y)
-                        self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-                        logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-                    else:
-                        failed = True
-                        break
-
+                x, y, reliability, label = self.device.fetch()
+                scores.append(reliability)
+                logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
+                if reliability > 0.75:
+                    xmm, ymm = self.screen_to_mm(x, y)
+                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+                else:
+                    break
+                time.sleep(1.5)
                 # final 90 rotation not needed
-                if trial_count < max_trials:
+                final = (zoom_level == med_zoom and i == 1)
+                if not final :
                     cur_pos = self.beamline.goniometer.omega.get_position()
+                    time.sleep(1)
                     self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+
+        self.score = numpy.mean(scores)
+
+    def center_external(self, low_trials=2, med_trials=2):
+        """
+        External centering device
+        :param low_trials: Number of trials at low resolution
+        :param med_trials: Number of trials at high resolution
+        """
+        if not self.device:
+            logger.warning('External centering device not present')
+            self.score = 0.0
+            return
+
+        trials = 5
+        scores = []
+        for i in range(trials):
+            found = self.device.wait(2)
+            if found:
+                x, y, reliability, label = self.device.fetch()
+                logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
+                scores.append(reliability)
+                if reliability > 0.5:
+                    xmm, ymm = self.screen_to_mm(x, y)
+                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+                    time.sleep(1.5)
+                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+            else:
+                reliability = 0.0
+            scores.append(reliability)
+            if i < (trials - 1):
+                cur_pos = self.beamline.goniometer.omega.get_position()
+                self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
         self.score = numpy.mean(scores)
 
@@ -163,15 +187,11 @@ class Centering(Engine):
 
         scores = []
         # Find tip of loop at low and high zoom
-        max_trials = low_trials + med_trials
-        trial_count = 0
         failed = False
-        for zoom_level, trials in [(low_zoom, low_trials), (med_zoom, med_trials)]:
-            if failed:
-                break
+        for zoom_level, trials in [(low_zoom, 3), (med_zoom,2)]:
+            if failed: break
             self.beamline.sample_video.zoom(zoom_level, wait=True)
             for i in range(trials):
-                trial_count += 1
                 angle, info = self.get_features()
                 scores.append(info.get('score', 0.0))
                 if info['score'] == 0.0:
@@ -180,7 +200,7 @@ class Centering(Engine):
                         logger.warning('Attempting to translate into view')
                         x, y = info['x'], info['y']
                         xmm, ymm = self.screen_to_mm(x, y)
-                        self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                        self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
                     else:
                         failed = True
                         break
@@ -188,11 +208,13 @@ class Centering(Engine):
                     x, y = info['x'], info['y']
                     logger.debug('... tip found at {}, {}'.format(x, y))
                     xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
                     logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
+                time.sleep(1.5)
                 # final 90 rotation not needed
-                if trial_count < max_trials:
+                final = (zoom_level == med_zoom and i == trials)
+                if not final:
                     cur_pos = self.beamline.goniometer.omega.get_position()
                     self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
