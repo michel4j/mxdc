@@ -1,7 +1,6 @@
 import os
 import time
 from datetime import datetime
-from collections import deque
 
 import pytz
 from gi.repository import GLib
@@ -17,7 +16,6 @@ from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
-
 
 GRACE_PERIOD = 10  # Amount of time to wait after completion for frames to all appear.
 
@@ -51,9 +49,8 @@ class DataCollector(Engine):
         self.progress_link = self.beamline.detector.connect('progress', self.on_progress)
         self.unwatch_frames()
 
-        #self.beamline.synchrotron.connect('ready', self.on_beam_change)
+        # self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
-
 
     def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
         """
@@ -116,8 +113,8 @@ class DataCollector(Engine):
             self.emit('started', None)
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             use_shutterless = (
-                self.beamline.detector.supports(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING) and
-                self.beamline.goniometer.supports(GonioFeatures.TRIGGERING)
+                    self.beamline.detector.supports(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING) and
+                    self.beamline.goniometer.supports(GonioFeatures.TRIGGERING)
             )
             try:
                 if use_shutterless:
@@ -214,7 +211,7 @@ class DataCollector(Engine):
                 self.beamline.detector.save()
 
                 # calculate progress
-                wedge_progress = ((i + 1)/wedge['num_frames'])
+                wedge_progress = ((i + 1) / wedge['num_frames'])
                 self.on_progress(None, wedge_progress, '')
                 is_first_frame = False
                 time.sleep(0)
@@ -240,8 +237,8 @@ class DataCollector(Engine):
                 'distance': round(self.beamline.distance.get_position(), 1),
                 'two_theta': wedge['two_theta'],
                 'exposure_time': wedge['exposure'],
-                #'num_series': wedge['num_frames'],
-                #'num_images': 1,
+                # 'num_series': wedge['num_frames'],
+                # 'num_images': 1,
                 'num_series': 1,
                 'num_images': wedge['num_frames'],
                 'start_angle': wedge['start'],
@@ -276,7 +273,7 @@ class DataCollector(Engine):
                 time=wedge['exposure'] * wedge['num_frames'],
                 range=wedge['delta'] * wedge['num_frames'],
                 angle=wedge['start'],
-                #frames=wedge['num_frames'],
+                # frames=wedge['num_frames'],
                 frames=1,
                 wait=True,
                 start_pos=wedge.get('p0'),
@@ -319,7 +316,7 @@ class DataCollector(Engine):
 
         metadata = {
             'name': params['name'],
-            'frames':  framesets,
+            'frames': framesets,
             'filename': template,
             'group': params['group'],
             'container': params['container'],
@@ -345,6 +342,7 @@ class DataCollector(Engine):
             'detector_size': min(self.beamline.detector.size),
             'start_angle': params['start'],
             'delta_angle': params['delta'],
+            'comments': params['notes']
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)
@@ -356,11 +354,14 @@ class DataCollector(Engine):
             return
 
         flags = () if not self.config.get('anomalous') else ('anomalous',)
-        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and metadata['type'] == 'SCREEN'):
+        if (self.config['analysis'] == 'screen') or (
+                self.config['analysis'] == 'default' and metadata['type'] == 'SCREEN'):
             self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and metadata['type'] == 'DATA'):
+        elif (self.config['analysis'] == 'process') or (
+                self.config['analysis'] == 'default' and metadata['type'] == 'DATA'):
             self.analyst.process_dataset(metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and metadata['type'] == 'XRD'):
+        elif (self.config['analysis'] == 'powder') or (
+                self.config['analysis'] == 'default' and metadata['type'] == 'XRD'):
             flags = ('calibrate',) if first else ()
             self.analyst.process_powder(metadata, flags=flags, sample=sample)
 
@@ -368,8 +369,8 @@ class DataCollector(Engine):
         self.config['datasets'][self.current_wedge['uuid']].set_progress(fraction)
 
         overall = sum([
-            dataset.progress*dataset.weight for dataset in self.config['datasets'].values()
-        ])/self.total
+            dataset.progress * dataset.weight for dataset in self.config['datasets'].values()
+        ]) / self.total
 
         if not (self.paused or self.stopped):
             self.set_state(progress=(overall, message))

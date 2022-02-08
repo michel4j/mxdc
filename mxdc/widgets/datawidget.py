@@ -1,12 +1,13 @@
 import time
-import numpy
 import uuid
 from datetime import timedelta
+
+import numpy
 from gi.repository import Gtk, Gdk, Gio
 
 from mxdc import Registry, IBeamline, Property, Object
-from mxdc.devices.goniometer import GonioFeatures
 from mxdc.devices.detector import DetectorFeatures
+from mxdc.devices.goniometer import GonioFeatures
 from mxdc.utils import gui, converter, datatools, glibref
 from mxdc.utils.datatools import StrategyType, Strategy, ScreeningAngles, ScreeningRange
 from mxdc.utils.gui import Validator
@@ -25,13 +26,12 @@ def skips(wedge, delta, first=1, start_angs=(0,), range_end=360):
     start_angs = end_angs + wedge
     end_angs[:-1] = end_angs[1:]
     end_angs[-1] = range_end
-    starts = first + (start_angs/delta).astype(int)
-    ends = first + (end_angs/delta).astype(int) - 1
-    return ','.join((f'{lo}-{hi}' for lo,hi in zip(starts, ends)))
+    starts = first + (start_angs / delta).astype(int)
+    ends = first + (end_angs / delta).astype(int) - 1
+    return ','.join((f'{lo}-{hi}' for lo, hi in zip(starts, ends)))
 
 
 def calculate_skip(strategy, total_range, delta, first):
-
     if strategy in [StrategyType.SCREEN_1, StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
         return skips(
             wedge=total_range,
@@ -80,7 +80,9 @@ class RunItem(Object):
             self.props.title = self.info['name']
             self.props.subtitle = '{} frames, {:0.4g}°/{:0.2g}s{}{}'.format(
                 self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
-                ', {:g}° wedges'.format(self.props.info.get('wedge',720)) if self.props.info.get('wedge',720) < self.props.info.get('range') else '',
+                ', {:g}° wedges'.format(self.props.info.get('wedge', 720)) if self.props.info.get('wedge',
+                                                                                                  720) < self.props.info.get(
+                    'range') else '',
                 ', [INV]' if self.props.info.get('inverse') else ''
             )
             self.props.duration = self.props.size * self.props.info.get('exposure')
@@ -256,6 +258,7 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('p0', 'mbox', '{}', Validator.Int(None, None)),
         gui.FieldSpec('p1', 'mbox', '{}', Validator.Int(None, None)),
         gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(1, 100, 10)),
+        gui.FieldSpec('notes', 'text', '{}', Validator.Pass()),
     )
     disabled = ()
     use_dialog = False
@@ -265,7 +268,7 @@ class DataEditor(gui.BuilderMixin):
         self.beamline = Registry.get_utility(IBeamline)
         self.points = Gtk.ListStore(int, str, object)
         if not self.beamline.detector.supports(DetectorFeatures.WEDGING):
-            self.disabled += ('first', )
+            self.disabled += ('first',)
         self.form = DataForm(self, fields=self.Fields, prefix='data', persist=False, disabled=self.disabled)
         self.new_run = True
         self.run_index = 0
@@ -440,7 +443,6 @@ class DataDialog(DataEditor):
         super().build_gui()
         self.data_cancel_btn.connect('clicked', lambda x: self.popover.hide())
         self.data_save_btn.connect_after('clicked', lambda x: self.popover.hide())
-
 
 
 class RunConfig(gui.Builder):

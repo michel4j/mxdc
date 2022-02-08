@@ -678,10 +678,15 @@ class DatasetsController(Object):
         item = self.run_editor.item
         if item.state != datawidget.RunItem.StateType.ADD:
             info = item.info.copy()
+
+            sample = self.sample_store.get_current()
+            name = sample.get('name')
+            name = info['name'] if name is None or info['name'].startswith(name) else name
+
             energy = self.beamline.energy.get_position()
             info.update({
                 'energy': energy,
-                'name': self.names.fix(info['name']),
+                'name': self.names.fix(name),
             })
             item.state = datawidget.RunItem.StateType.DRAFT
             item.props.info = info

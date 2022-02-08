@@ -175,7 +175,6 @@ class DataLoader(Object):
                 success = True
             except Exception as e:
                 success = False
-                print(e)
             attempts += 1
             time.sleep(0.25)
         if not success:

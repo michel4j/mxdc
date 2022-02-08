@@ -654,6 +654,9 @@ class FieldSpec(object):
                 raw_value = field.get_value()
             elif self.suffix == 'mbox' and field.get_model():
                 raw_value = field.get_active()
+            elif self.suffix == 'text':
+                buffer = field.get_buffer()
+                raw_value = buffer.props.text
             else:
                 raw_value = None
             return self.converter(raw_value)
@@ -682,6 +685,9 @@ class FieldSpec(object):
             elif self.suffix == 'mbox' and field.get_model():
                 new_value = -1 if new_value in [0, None] else new_value
                 field.set_active(new_value)
+            elif self.suffix == 'text':
+                buffer = field.get_buffer()
+                buffer.set_text(new_value)
 
     def connect_to(self, builder, prefix, callback):
         """
@@ -701,6 +707,8 @@ class FieldSpec(object):
                 return field.connect('changed', callback, None, self.name)
             elif self.suffix == 'spin':
                 return field.connect('value-changed', callback, None, self.name)
+            elif self.suffix == 'text':
+                return
             else:
                 field.connect('focus-out-event', callback, self.name)
                 return field.connect('activate', callback, None, self.name)
@@ -755,7 +763,10 @@ class FormManager(object):
         spec = self.fields[name]
         field = spec.field_from(self.builder, self.prefix)
         if field:
-            with field.handler_block(self.handlers[name]):
+            if self.handlers.get(name):
+                with field.handler_block(self.handlers[name]):
+                    spec.update_to(self.builder, self.prefix, value)
+            else:
                 spec.update_to(self.builder, self.prefix, value)
             if propagate:
                 self.on_change(field, None, name)
@@ -817,6 +828,8 @@ class FormManager(object):
                 spec.update_to(self.builder, self.prefix, value)
             if self.persist:
                 self.save()
+
+        return False
 
     def get_field(self, name):
         """
