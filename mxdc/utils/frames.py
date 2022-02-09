@@ -2,6 +2,7 @@ import json
 import os
 import threading
 import time
+import math
 from collections import deque
 from enum import Enum
 
@@ -10,7 +11,7 @@ from mxio import read_image
 from mxio.formats import eiger
 
 from mxdc import Engine
-from mxdc.utils import log
+from mxdc.utils import log, misc
 
 logger = log.get_module_logger('frames')
 
@@ -108,7 +109,7 @@ class StreamMonitor(DataMonitor):
         self.kind = kind
         self.address = address
         self.last_time = time.time()
-        self.inbox = deque(maxlen=5)
+        self.inbox = deque(maxlen=100)
         self.start()
 
     def start(self):
@@ -118,9 +119,9 @@ class StreamMonitor(DataMonitor):
 
     def run_parser(self):
         count = 0
-        last_time = time.time()
+        show_every = 10
         while not self.is_stopped():
-            if len(self.inbox) and not self.is_paused():
+            if len(self.inbox) and not self.is_paused() and self.master:
                 msg = self.inbox.popleft()
                 msg_type = json.loads(msg[0])
                 try:
@@ -128,19 +129,20 @@ class StreamMonitor(DataMonitor):
                         self.dataset = eiger.EigerStream()
                         self.dataset.read_header(msg)
                         count = 0
-                        last_time = time.time()
+                        show_every = misc.factorize(
+                            self.dataset.header['num_images'],
+                            maximum=math.ceil(1/self.dataset.header['exposure_time'])
+                        )[-1]
                     elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
                         count += 1
-                        fraction = count/self.dataset.header['num_images']
-                        if time.time() - last_time > 0.1:
-                            last_time = time.time()
+                        fraction = count / self.dataset.header['num_images']
+                        if count % show_every == 0 or fraction == 1.0:
                             self.dataset.read_image(msg)
-                            if self.master:
-                                self.master.process_frame(self.dataset)
+                            self.master.process_frame(self.dataset)
                         self.set_state(progress=(fraction, 'frames collected'))
                 except Exception as e:
                     logger.error(f'Error parsing stream: {e}')
-            time.sleep(0)
+            time.sleep(0.001)
 
     def run(self):
         self.context = zmq.Context()
@@ -149,7 +151,6 @@ class StreamMonitor(DataMonitor):
             receiver.connect(self.address)
             if self.kind == StreamTypes.PUBLISH:
                 receiver.setsockopt_string(zmq.SUBSCRIBE, "")
-            self.last_time = time.time()
             while not self.stopped:
                 messages = receiver.recv_multipart()
                 self.inbox.append(messages)

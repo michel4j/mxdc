@@ -172,12 +172,13 @@ class DataForm(gui.FormManager):
 
         if name == 'delta':
             delta = self.get_value('delta')
-            exposure = delta / self.exposure_rate
+            exposure = max(self.beamline.config.get('minimum_exposure', .1), delta / self.exposure_rate)
             self.set_value('exposure', exposure)
         elif name == 'exposure':
-            exposure = self.get_value('exposure')
+            exposure = max(self.beamline.config.get('minimum_exposure', .1), self.get_value('exposure'))
             delta = self.get_value('delta')
             self.exposure_rate = delta / exposure
+            self.set_value('exposure', exposure)
         elif name == 'energy':
             # calculate resolution limits based on energy
             energy = self.get_value('energy')
@@ -204,7 +205,10 @@ class DataForm(gui.FormManager):
             defaults = Strategy.get(strategy)
             default_rate = self.beamline.config['default_delta'] / float(self.beamline.config['default_exposure'])
             if 'delta' in defaults and 'exposure' not in defaults:
-                defaults['exposure'] = defaults['delta'] / default_rate
+                defaults['exposure'] = max(
+                    defaults['delta'] / default_rate,
+                    self.beamline.config.get('minimum_exposure', .1)
+                )
             elif 'exposure' in defaults and 'delta' not in defaults:
                 defaults['delta'] = default_rate / defaults['exposure']
                 self.exposure_rate = default_rate

@@ -5,11 +5,14 @@ import os
 import re
 import shutil
 import time
+import requests
+
 from pathlib import Path
 from datetime import datetime
 from enum import Enum
 
-from mxio import read_header
+
+from mxio import read_header, read_image
 from zope.interface import implementer
 
 from gi.repository import GLib
@@ -797,10 +800,11 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     detector_type = 'Eiger'
 
-    def __init__(self, name, stream, size=(3110, 3269), description='Eiger'):
+    def __init__(self, name, stream, data_url, size=(3110, 3269), description='Eiger'):
         super().__init__()
         self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
         self.monitor = frames.StreamMonitor(self, address=stream, kind=frames.StreamTypes.PUBLISH)
+        self.data_url = data_url
         self.monitor.connect('progress', self.on_data_progress)
         self.monitor_type = 'stream'
         self.monitor_address = stream
@@ -886,17 +890,19 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             state = States.ARMED
         elif controller_state == 'na':
             state = States.ERROR
+            self.initialized = False
+        elif controller_state == 'idle':
+            self.initialized = True
         self.set_state(state=state)
 
     def start(self, first=False):
         logger.debug(f'"{self.name}" Arming detector ...')
         self.frame_counter.put(0)
+
         if self.armed_status.get() != 0:
             self.acquire_cmd.put(0, wait=True)
             self.wait_until(States.IDLE, timeout=5)
-        if self.state_msg.get() == 'na':
-            self.initialize_cmd.put(1, wait=True)
-            self.wait_until(States.IDLE, timeout=165)
+
         self.acquire_cmd.put(1)
         return self.wait_until(States.ARMED, timeout=165)
 
@@ -911,27 +917,23 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def get_template(self, prefix):
         return f'{prefix}_master.h5/{{:0{self.FRAME_DIGITS}d}}'
 
-    def wait_for_files(self, folder, prefix, timeout=60):
-        master_file = f'{prefix}_master.h5'
-        data_glob = re.sub(r'master', 'data_*', master_file)
-        pending = [
-            os.path.join(folder, master_file)
-        ] + glob.glob(os.path.join(folder, data_glob))
+    def get_file_list(self, prefix):
+        response = requests.get(self.data_url)
+        if response.ok:
+            return [
+                self.data_url + filename
+                for filename in response.json()
+                if re.match(rf'^{prefix}.+\.h5$', filename)
+            ]
+        else:
+            return []
+
+    def wait_for_files(self, folder, prefix, timeout=180):
+        file_list = self.get_file_list(prefix)
         end_time = time.time() + timeout
-        exists = []
-
-        while set(pending) != set(exists) and time.time() < end_time:
-
-            for f in set(pending) - set(exists):
-                p = Path(f)
-                if p.exists() and time.time() - p.stat().st_mtime > 0.5:
-                    exists.append(f)
-
-            time.sleep(2)
-
-            pending = [
-                os.path.join(folder, master_file)
-            ] + glob.glob(os.path.join(folder, data_glob))
+        while file_list and time.time() < end_time:
+            time.sleep(5)
+            file_list = self.get_file_list(prefix)
 
         return end_time > time.time()
 
@@ -958,13 +960,22 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         master_path = os.path.join(directory, master_file)
 
         if os.path.exists(master_path):
-            header = read_header(master_path)
-            return header.get('dataset', {}).get('sequence', []), True
+            dset = read_image(master_path)
+            sequence = dset.header.get('dataset', {}).get('sequence', [])
+            return list(sequence), True
         return [], False
 
     def configure(self, **kwargs):
         params = {}
         params.update(kwargs)
+
+        if not self.initialized:
+            self.initialize_cmd.put(1, wait=True)
+            self.wait_until(States.IDLE, timeout=165)
+            energy = self.settings['energy'].get()
+            self.settings['energy'].put(energy + 0.1)
+            time.sleep(20)
+            self.initialized = True
 
         params['energy'] *= 1e3     # convert energy to eV
         params['beam_x'] = self.settings['beam_x'].get()
@@ -980,14 +991,13 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         self.settings['exposure_time'].put(params['exposure_time'])
         params['acquire_period'] = params['exposure_time']
-        #params['exposure_time'] -= .111e-3 #5e-6
-        params['exposure_time'] -=  5e-6
+        params['exposure_time'] -= 5e-6
 
         if 'distance' in params:
             params['distance'] /= 1000.0     # convert distance to meters
 
         num_frames = params['num_images'] * params['num_series']
-        frame_factors = misc.factorize(num_frames, maximum=200)
+        frame_factors = misc.factorize(num_frames, maximum=100)
         params['batch_size'] = frame_factors[-1]    # Adjust batch size
 
         self.num_images.put(1)  # Uses "num_frames" to set number of actual frames acquired

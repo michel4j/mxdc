@@ -139,8 +139,8 @@ class DataLoader(Object):
         self.stopped = False
         self.paused = False
         self.cur_frame = None
-        self.frames = deque(maxlen=5)
-        self.inbox = deque(maxlen=5)
+        self.frames = deque(maxlen=2)
+        self.inbox = deque(maxlen=2)
         self.outbox = outbox
 
         self.load_next = False

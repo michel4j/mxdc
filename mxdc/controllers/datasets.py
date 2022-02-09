@@ -518,7 +518,7 @@ class DatasetsController(Object):
             run['name']: self.beamline.detector.check(run['directory'], run['name'], first=run['first'])
             for run in runs
         }
-
+        print(existing)
         config_data = copy.deepcopy(runs)
         success = True
         collected = 0
@@ -687,6 +687,7 @@ class DatasetsController(Object):
             info.update({
                 'energy': energy,
                 'name': self.names.fix(name),
+                'notes': ''
             })
             item.state = datawidget.RunItem.StateType.DRAFT
             item.props.info = info
