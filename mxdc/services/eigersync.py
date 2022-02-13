@@ -1,16 +1,33 @@
 #!/cmcf_apps/eigersync/bin/python3
 
 import time
-import subprocess
 import os
 import re
 import requests
-
+import wget
+from datetime import datetime
+from multiprocessing import Pool
 from mxdc.com.ca import PV
 from mxdc.utils import log
 from twisted.internet import reactor
 
 logger = log.get_module_logger('eigersync')
+
+MAX_TRANSFERS = 4
+
+
+class Downloader(object):
+    def __init__(self, directory, uid, gid):
+        self.directory = directory
+        self.uid = uid
+        self.gid = gid
+
+    def __call__(self, url):
+        os.setegid(self.gid)
+        os.seteuid(self.uid)
+
+        filename = wget.download(url, out=self.directory)
+        return filename
 
 
 class Fetcher(object):
@@ -18,55 +35,31 @@ class Fetcher(object):
         self.data_url = f'{server}/data/'
         self.files_url = f'{server}/filewriter/api/1.6.0/files/'
 
-    def get_paths(self, prefix):
-        response = requests.get(self.files_url)
-        if response.ok:
-            return {
-                self.data_url + filename
-                for filename in response.json()
-                if re.match(rf'^{prefix}.+\.h5$', filename)
-            }
-        else:
-            return set()
+    def generate_paths(self, prefix, timeout=60):
+        end_time = time.time() + timeout
+        paths = set()
+        while True:
+            response = requests.get(self.files_url)
+            if response.ok:
+                for filename in response.json():
+                    if re.match(rf'^{prefix}.+\.h5$', filename) and filename not in paths:
+                        new_path = self.data_url + filename
+                        paths.update(new_path)
+                        yield new_path
+                        end_time = time.time() + timeout
+            if time.time() < end_time:
+                time.sleep(5)
+            else:
+                break   # exit after timeout seconds from last yield
 
     def run(self, prefix, folder, uid, gid, filetime=2, timeout=60):
-        end_time = time.time() + timeout
-        os.chdir(folder)
-        paths = set()
-        done = set()
-        procs = {}
-        # fetch paths and start processes to download data
-        while time.time() < end_time:
-            new_paths = self.get_paths(prefix, )
-            if new_paths > paths:
-                for path in new_paths - paths:
-                    logger.info(f'Fetching {path} ...')
-                    args = ['wget', path]
-                    proc = subprocess.Popen(args, cwd=folder, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, user=uid, group=gid)
-                    procs[path] = proc
-                paths = paths
-                end_time = time.time() + timeout
-            time.sleep(filetime)
+        start_time = datetime.now()
+        downloader = Downloader(folder, uid, gid)
+        with Pool(processes=MAX_TRANSFERS) as pool:
+            list(pool.imap(downloader, self.generate_paths(prefix, timeout), chunksize=1))
 
-        # Wait for processes to complete
-        end_time = time.time() + 5 * timeout
-        while done != paths and time.time() < end_time:
-            for path, proc in procs.items():
-                code = proc.poll()
-                if code is not None:
-                    done.add(path)
-                    logger.info(f'{path} ...complete.')
-                time.sleep(0.01)
-
-            for path in done:
-                if path in procs:
-                    del procs[path]
-                time.sleep(0.01)
-
-        if time.time() > end_time:
-            for path, proc in procs.items():
-                proc.terminate()
-                logger.error(f'Download of {path} did not complete')
+        duration = datetime.now() - start_time
+        logger.info(f'Download of {prefix} completed after {duration}')
 
 
 class SyncApp(object):

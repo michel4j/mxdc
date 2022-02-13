@@ -27,3 +27,4 @@ lorem
 pandas
 backports-datetime-fromisoformat
 szrpc
+wget

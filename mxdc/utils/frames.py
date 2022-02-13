@@ -131,7 +131,7 @@ class StreamMonitor(DataMonitor):
                         count = 0
                         show_every = misc.factorize(
                             self.dataset.header['num_images'],
-                            maximum=math.ceil(1/self.dataset.header['exposure_time'])
+                            maximum=math.ceil(0.5/self.dataset.header['exposure_time'])
                         )[-1]
                     elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
                         count += 1
