@@ -1,5 +1,7 @@
 import os
 import time
+from queue import Queue
+from threading import Thread
 from datetime import datetime
 
 import pytz
@@ -44,6 +46,7 @@ class DataCollector(Engine):
         self.config = {}
         self.total = 1
         self.current_wedge = None
+        self.save_queue = Queue()
 
         self.analyst = Registry.get_utility(IAnalyst)
         self.progress_link = self.beamline.detector.connect('progress', self.on_progress)
@@ -51,6 +54,22 @@ class DataCollector(Engine):
 
         # self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
+        self.save_worker = Thread(target=self.save_datasets, daemon=True, name='Diffraction Engine Saver')
+        self.save_worker.start()
+
+    def save_datasets(self):
+        while True:
+            dataset, analysis = self.save_queue.get()
+            for details in dataset.get_details():
+                try:
+                    metadata = self.save(details)
+                    self.results.append(metadata)
+                    if metadata and analysis:
+                        self.analyse(metadata, dataset.sample)
+                except Exception as e:
+                    logger.error(f"{details['name']} could not be saved")
+                    logger.error(str(e))
+            time.sleep(1)
 
     def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
         """
@@ -138,15 +157,7 @@ class DataCollector(Engine):
 
         # Wait for Last image to be transferred
         for uid, dataset in self.config['datasets'].items():
-            for details in dataset.get_details():
-                try:
-                    metadata = self.save(details)
-                    self.results.append(metadata)
-                    if metadata and self.config['analysis']:
-                        self.analyse(metadata, dataset.sample)
-                except Exception as e:
-                    logger.error(f"{details['name']} could not be saved")
-                    logger.error(str(e))
+            self.save_queue.put((dataset, self.config['analysis']))
 
         self.unwatch_frames()
         self.set_state(busy=False)

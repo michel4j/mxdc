@@ -928,13 +928,12 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         else:
             return []
 
-    def wait_for_files(self, folder, prefix, timeout=180):
+    def wait_for_files(self, folder, prefix, timeout=300):
         file_list = self.get_file_list(prefix)
         end_time = time.time() + timeout
         while file_list and time.time() < end_time:
             time.sleep(5)
             file_list = self.get_file_list(prefix)
-
         return end_time > time.time()
 
     def save(self, wait=False):

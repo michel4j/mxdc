@@ -1,10 +1,12 @@
-#!/cmcf_apps/eigersync/bin/python3
-
 import time
 import os
+import pwd
 import re
 import requests
 import wget
+
+from threading import Thread
+from queue import Queue
 from datetime import datetime
 from multiprocessing import Pool
 from mxdc.com.ca import PV
@@ -13,29 +15,60 @@ from twisted.internet import reactor
 
 logger = log.get_module_logger('eigersync')
 
-MAX_TRANSFERS = 4
+MAX_TRANSFERS = 4  # Maximum number of files to transfer at a time
+CHECK_EVERY = 5  # Fetch list of files every so many seconds
+TIMEOUT_FACTOR = 1.2  # multiplier for exposure time. If dataset takes t second,
+
+
+# file lists will stop updating TIMEOUT_FACTOR * t seconds after
+# the last file is found in the list.
+
+
+def nobar(*args, **kwargs):
+    pass
 
 
 class Downloader(object):
-    def __init__(self, directory, uid, gid):
+    def __init__(self, directory, user):
         self.directory = directory
-        self.uid = uid
-        self.gid = gid
+        db = pwd.getpwnam(user)
+        self.uid = db.pw_uid
+        self.gid = db.pw_gid
 
     def __call__(self, url):
-        os.setegid(self.gid)
-        os.seteuid(self.uid)
-
-        filename = wget.download(url, out=self.directory)
+        logger.info(f'Downloading {url} ...')
+        filename = wget.download(url, out=self.directory, bar=nobar)
+        os.chown(os.path.join(self.directory, filename), self.uid, self.gid)
+        requests.delete(url)
         return filename
 
 
 class Fetcher(object):
-    def __init__(self, server):
+    def __init__(self, server, num_workers=3):
         self.data_url = f'{server}/data/'
         self.files_url = f'{server}/filewriter/api/1.6.0/files/'
+        self.tasks = Queue()
+        self.workers = []
+        for i in range(num_workers):
+            w = Thread(target=self.worker, daemon=True, name=f'Eiger Syng {i}')
+            self.workers.append(w)
+            w.start()
 
-    def generate_paths(self, prefix, timeout=60):
+    def worker(self):
+        while True:
+            prefix, folder, user, filetime, timeout = self.tasks.get()
+            logger.info(f'Preparing for file transfers for {prefix}...')
+            try:
+                self.run(prefix, folder, user, filetime, timeout=timeout)
+            except Exception as e:
+                logger.error(e)
+            finally:
+                self.tasks.task_done()
+
+    def add_task(self, task):
+        self.tasks.put(task)
+
+    def generate_paths(self, prefix, filetime=2, timeout=60):
         end_time = time.time() + timeout
         paths = set()
         while True:
@@ -44,26 +77,27 @@ class Fetcher(object):
                 for filename in response.json():
                     if re.match(rf'^{prefix}.+\.h5$', filename) and filename not in paths:
                         new_path = self.data_url + filename
-                        paths.update(new_path)
+                        paths.add(filename)
                         yield new_path
                         end_time = time.time() + timeout
             if time.time() < end_time:
-                time.sleep(5)
+                time.sleep(filetime)
             else:
-                break   # exit after timeout seconds from last yield
+                break  # exit after timeout seconds from last yield
 
-    def run(self, prefix, folder, uid, gid, filetime=2, timeout=60):
+    def run(self, prefix, folder, user, filetime=2, timeout=60):
         start_time = datetime.now()
-        downloader = Downloader(folder, uid, gid)
+        downloader = Downloader(folder, user)
         with Pool(processes=MAX_TRANSFERS) as pool:
-            list(pool.imap(downloader, self.generate_paths(prefix, timeout), chunksize=1))
+            list(pool.imap(downloader, self.generate_paths(prefix, filetime, timeout), chunksize=1))
 
         duration = datetime.now() - start_time
         logger.info(f'Download of {prefix} completed after {duration}')
 
 
 class SyncApp(object):
-    def __init__(self, device, server):
+    def __init__(self, device, server, repeat_last=False):
+        self.repeat = repeat_last
         self.pvs = {
             'folder': PV(f'{device}:FilePath'),
             'prefix': PV(f'{device}:FWNamePattern'),
@@ -71,16 +105,13 @@ class SyncApp(object):
             'triggers': PV(f'{device}:NumTriggers'),
             'images': PV(f'{device}:NumImages'),
             'exposure': PV(f'{device}:AcquireTime'),
-            'uid': PV(f'{device}:FileOwner_RBV'),
-            'gid': PV(f'{device}:FileOwnerGrp_RBV'),
+            'user': PV(f'{device}:FileOwner_RBV'),
         }
         self.params = {
             'folder': '/tmp',
             'prefix': 'series',
-            'uid': 0,
-            'gid': 0,
+            'user': 'root',
         }
-
         self.armed = PV(f'{device}:Armed')
         self.fetcher = Fetcher(server)
         self.armed.connect('changed', self.on_arm)
@@ -91,15 +122,18 @@ class SyncApp(object):
         self.params[name] = value
 
     def on_arm(self, pv, value):
-        if value == 1:
-            filetime = self.params['size'] * self.params['exposure'] + 5
+        if value == 1 or self.repeat:
+            self.download()
+            self.repeat = False
 
-            self.fetcher.run(
-                self.params["prefix"], self.params["folder"],
-                self.params["uid"], self.params["gid"], filetime=filetime,
-            )
+    def download(self):
+        filetime = self.params['size'] * self.params['exposure'] * TIMEOUT_FACTOR
+        timeout = (self.params['triggers'] * self.params['images']) * (self.params['exposure'] * 2)
+        self.fetcher.add_task((
+            self.params["prefix"], self.params["folder"], self.params["user"],
+            filetime, timeout
+        ))
 
     def run(self):
         reactor.run()
-
 

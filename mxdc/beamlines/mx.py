@@ -55,18 +55,6 @@ class MXBeamline(Beamline):
             _shutter_list.append(self.registry[nm])
         self.registry['all_shutters'] = mxdc.devices.shutter.ShutterGroup(*tuple(_shutter_list), close_last=True)
 
-        # Setup coordination between Beam tuner and energy changes
-        if 'beam_tuner' in self.registry:
-
-            def on_bt_pause(obj, *args):
-                self.beam_tuner.pause()
-
-            def on_bt_resume(obj, *args):
-                self.beam_tuner.resume()
-
-            self.energy.connect('starting', on_bt_pause)
-            self.energy.connect('done', on_bt_resume)
-
         # default detector cover
         if not 'detector_cover' in self.registry:
             self.registry['detector_cover'] = mxdc.devices.shutter.SimShutter('Dummy Detector Cover')
