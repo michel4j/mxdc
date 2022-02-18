@@ -773,7 +773,10 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['exposure_time'] -= self.READOUT_TIME
         params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
 
-        self.mode_cmd.put(3)    # External Multitrigger mode
+        if params['num_images'] > 1:
+            self.mode_cmd.put(3)
+        else:
+            self.mode_cmd.put(1)
 
         for k, v in list(params.items()):
             if k in self.settings:
