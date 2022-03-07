@@ -4,6 +4,7 @@ import pwd
 import re
 import requests
 import wget
+import getpass
 
 from threading import Thread
 from queue import Queue
@@ -137,3 +138,27 @@ class SyncApp(object):
     def run(self):
         reactor.run()
 
+
+class FetchApp(object):
+    def __init__(self, server):
+        self.data_url = f'{server}/data/'
+        self.files_url = f'{server}/filewriter/api/1.6.0/files/'
+
+    def generate_paths(self, prefix):
+        response = requests.get(self.files_url)
+        if response.ok:
+            for filename in response.json():
+                if re.match(rf'^{prefix}.+\.h5$', filename):
+                    new_path = self.data_url + filename
+                    yield new_path
+
+    def run(self, prefix):
+        folder = os.getcwd()
+        user = getpass.getuser()
+        start_time = datetime.now()
+        downloader = Downloader(folder, user)
+        with Pool(processes=MAX_TRANSFERS) as pool:
+            list(pool.imap(downloader, self.generate_paths(prefix), chunksize=1))
+
+        duration = datetime.now() - start_time
+        logger.info(f'Download of {prefix} completed after {duration}')

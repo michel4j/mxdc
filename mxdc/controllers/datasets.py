@@ -448,13 +448,12 @@ class DatasetsController(Object):
         num_items = self.run_store.get_n_items()
 
         # add a new run
+        sample = self.sample_store.get_current()
         if item.state == item.StateType.ADD and num_items < 8:
-            sample = self.sample_store.get_current()
-            name = sample.get('name')
             if position > 0:
                 prev = self.run_store.get_item(position - 1)
                 config = prev.info.copy()
-                name = config['name']
+
             else:
                 config = self.run_editor.get_default(datawidget.StrategyType.FULL)
                 energy = self.beamline.bragg_energy.get_position()
@@ -462,12 +461,15 @@ class DatasetsController(Object):
                 resolution = converter.dist_to_resol(
                     distance, self.beamline.detector.mm_size, energy
                 )
+                attenuation = self.beamline.attenuator.get_position()
                 config.update({
                     'resolution': round(resolution, 4),
                     'strategy': datawidget.StrategyType.FULL,
                     'energy': energy,
+                    'attenuation': attenuation,
                     'distance': distance,
                 })
+            name = sample.get('name', config['name'])
             config['name'] = self.names.get(name)
             item.props.info = config
             item.props.state = datawidget.RunItem.StateType.DRAFT
@@ -680,7 +682,7 @@ class DatasetsController(Object):
 
             sample = self.sample_store.get_current()
             name = sample.get('name')
-            name = info['name'] if name is None or info['name'].startswith(name) else name
+            name = name if name is not None else info['name']
 
             energy = self.beamline.energy.get_position()
             info.update({

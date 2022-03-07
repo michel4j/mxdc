@@ -132,7 +132,7 @@ def get_group_name():
         os.environ.get('MXDC_DEBUG_USER', pwd.getpwuid(os.geteuid())[0])
         return os.environ.get('MXDC_DEBUG_USER', pwd.getpwuid(os.geteuid())[0])
     else:
-        return grp.getgrnam(self.get_project_name())
+        return get_project_name()
 
 def get_project_home():
     if os.environ.get('MXDC_DEBUG'):

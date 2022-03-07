@@ -33,7 +33,7 @@ def get_keys():
     from cryptography.hazmat.primitives.asymmetric import dsa
     from cryptography.hazmat.primitives import serialization
     if not keys_exist():
-        key = dsa.generate_private_key(key_size=2048, backend=default_backend())
+        key = dsa.generate_private_key(key_size=1024, backend=default_backend())
         data = {
             'private': key.private_bytes(
                 serialization.Encoding.DER,
