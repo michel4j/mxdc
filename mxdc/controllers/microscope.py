@@ -103,9 +103,9 @@ class Microscope(Object):
 
         # zoom
         low, med, high = self.beamline.config['zoom_levels']
-        self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom, low)
-        self.widget.microscope_zoom100_btn.connect('clicked', self.on_zoom, med)
-        self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom, high)
+        self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom, -1)
+        self.widget.microscope_zoom100_btn.connect('clicked', self.on_reset_zoom, med)
+        self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom, 1)
 
         # rotate sample
         self.widget.microscope_ccw90_btn.connect('clicked', self.on_rotate, -90)
@@ -192,19 +192,19 @@ class Microscope(Object):
         config = {k:v for k,v in self.grid_params.items() if k != 'grid'}
         cache = {
             'points': self.props.points,
-            'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.astype(float).tolist(),
-            'grid-params': config,
-            'grid-scores': self.props.grid_scores,
-            'grid-state': self.props.grid_state,
+            #'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.astype(float).tolist(),
+            #'grid-params': config,
+            #'grid-scores': self.props.grid_scores,
+            #'grid-state': self.props.grid_state,
         }
         save_cache(cache, 'microscope')
 
     def load_from_cache(self):
         cache = load_cache('microscope')
         if cache and isinstance(cache, dict):
-            for name, value in list(cache.items()):
-                if name == 'grid-xyz':
-                    value = None if not isinstance(value, list) else numpy.array(value)
+            for name, value in cache.items():
+                if name.startswith('grid'):
+                    continue
                 if name == 'points':
                     value = [tuple(point) for point in value]
                 self.set_property(name, value)
@@ -292,12 +292,12 @@ class Microscope(Object):
             cr.set_font_size(8)
             for i, (x, y, z) in enumerate(self.props.grid):
                 if i+1 in self.props.grid_scores:
-                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.35)
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.45)
                     cr.set_source_rgba(*col)
                     cr.rectangle(x-radius, y-radius, 2*radius, 2*radius)
                     cr.fill()
                 else:
-                    cr.set_source_rgba(1, 1, 1, 0.25)
+                    cr.set_source_rgba(1, 1, 1, 0.35)
                     cr.rectangle(x-radius+0.5, y-radius+0.5, 2*radius-1, 2*radius-1)
                     cr.fill()
                 if radius > 8:
@@ -540,7 +540,12 @@ class Microscope(Object):
         self.centering.start()
         return True
 
-    def on_zoom(self, widget, position):
+    def on_reset_zoom(self, widget, position):
+        self.camera.zoom(position)
+
+    def on_zoom(self, widget, change):
+        low, med, high = self.beamline.config['zoom_levels']
+        position = min(max(low, self.beamline.sample_zoom.get_position() + change), high)
         self.camera.zoom(position)
 
     def on_aperture(self, obj, value):

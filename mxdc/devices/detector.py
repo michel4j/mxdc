@@ -7,7 +7,7 @@ import shutil
 import time
 import requests
 
-from pathlib import Path
+
 from datetime import datetime
 from enum import Enum
 
@@ -93,6 +93,7 @@ class BaseDetector(Device):
         super().__init__()
         self.file_extension = 'img'
         self.monitor_type = 'file'
+        self.initialized = True
 
     def initialize(self, wait=True):
         """
@@ -198,6 +199,24 @@ class BaseDetector(Device):
         :return: True if detector became idle or False if wait timed-out.
         """
         return self.wait_while()
+
+    def configure(self, **kwargs):
+        """
+        Configure the detector
+
+        :param kwargs: detector parameters
+
+        """
+        if not self.initialized:
+            self.initialize(True)
+
+        params = {}
+        params.update(kwargs)
+        params['num_frames'] = params.get('frame_size', 1) * params.get('num_frames', 1)
+        for k, v in list(params.items()):
+            if k in self.settings:
+                time.sleep(0.05)
+                self.settings[k].put(v, wait=True)
 
     def delete(self, directory, prefix, frames=()):
         """
@@ -516,17 +535,6 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
             file_path = self.saved_filename.get()
             self.monitor.add(file_path)
 
-    def configure(self, **kwargs):
-        if not self.initialized:
-            self.initialize(True)
-        params = {}
-        params.update(kwargs)
-        params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
-        for k, v in list(params.items()):
-            if k in self.settings:
-                time.sleep(0.05)
-                self.settings[k].put(v, wait=True)
-
 
 class ADSCDetector(ADGenericMixin, BaseDetector):
     """
@@ -635,17 +643,6 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
         file_path = self.saved_filename.get()
         self.monitor.add(file_path)
 
-    def configure(self, **kwargs):
-        if not self.initialized:
-            self.initialize(True)
-        params = {}
-        params.update(kwargs)
-        params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
-        for k, v in list(params.items()):
-            if k in self.settings:
-                time.sleep(0.05)
-                self.settings[k].put(v, wait=True)
-
 
 class PilatusDetector(ADDectrisMixin, BaseDetector):
     """
@@ -657,7 +654,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     :param description: String escription of detector
     """
 
-    READOUT_TIME = 0.0025  # minimum readout time
+    READOUT_TIME = 2.05e-3  # minimum readout time
 
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
@@ -771,18 +768,13 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= self.READOUT_TIME
-        params['num_frames'] = params.get('num_images', 1) * params.get('num_series', 1)
 
-        if params['num_images'] > 1:
-            self.mode_cmd.put(3)
-        else:
-            self.mode_cmd.put(1)
+        # num frames is increased by 50% for Pilatus to avoid hardware timeout issue during raster scans
+        params['num_frames'] = int(params.get('frame_size', 1) * params.get('num_frames', 1) * 1.5)
+        self.saved_frame.put(0)
+        self.mode_cmd.put(1)  # External Enable
 
-        for k, v in list(params.items()):
-            if k in self.settings:
-                time.sleep(0.05)
-                self.settings[k].put(v, wait=True)
-        self.saved_frame.put(0)  # reset frame counter
+        super().configure(**params)
 
     def on_connection_changed(self, obj, state):
         if state == 0:
@@ -816,7 +808,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.resolution = 0.075
         self.mm_size = self.resolution * min(self.size)
         self.name = description
-        self.initialized = False
 
         self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
@@ -833,7 +824,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
         self.frame_counter = self.add_pv('{}:ArrayCounter'.format(name))
-        self.num_images = self.add_pv('{}:NumImages'.format(name))
         self.stream_enable = self.add_pv('{}:StreamEnable'.format(name))
 
         self.state_value.connect('changed', self.on_state_value)
@@ -846,8 +836,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             'user':  self.add_pv("{}:FileOwner".format(name)),
             'group':  self.add_pv("{}:FileOwnerGrp".format(name)),
             'start_frame': self.add_pv("{}:FileNumber".format(name)),
-            'num_images': self.add_pv('{}:NumImages'.format(name)),
-            'num_series': self.add_pv('{}:NumTriggers'.format(name)),
+            'frame_size': self.add_pv('{}:NumImages'.format(name)),
+            'num_frames': self.add_pv('{}:NumTriggers'.format(name)),
 
             'file_prefix': self.add_pv("{}:FWNamePattern".format(name)),
             'batch_size': self.add_pv("{}:FWNImagesPerFile".format(name)),
@@ -867,7 +857,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             'phi': self.add_pv(f"{name}:PhiStart"),
             'chi': self.add_pv(f"{name}:ChiStart"),
             'energy': self.add_pv('{}:PhotonEnergy'.format(name)),
-            # 'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
         }
 
     def on_state_value(self, obj, value):
@@ -897,6 +886,14 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         elif controller_state == 'idle':
             self.initialized = True
         self.set_state(state=state)
+
+    def initialize(self, wait=True):
+        self.initialize_cmd.put(1, wait=True)
+        self.wait_until(States.IDLE, timeout=165)
+        energy = self.settings['energy'].get()
+        self.settings['energy'].put(energy + 0.1)
+        time.sleep(20)
+        self.initialized = True
 
     def start(self, first=False):
         logger.debug(f'"{self.name}" Arming detector ...')
@@ -971,43 +968,27 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         params = {}
         params.update(kwargs)
 
-        if not self.initialized:
-            self.initialize_cmd.put(1, wait=True)
-            self.wait_until(States.IDLE, timeout=165)
-            energy = self.settings['energy'].get()
-            self.settings['energy'].put(energy + 0.1)
-            time.sleep(20)
-            self.initialized = True
-
         params['energy'] *= 1e3     # convert energy to eV
         params['beam_x'] = self.settings['beam_x'].get()
         params['beam_y'] = self.settings['beam_y'].get()
-
-        params['num_images'] = params.get('num_images', 1)
-        params['num_series'] = params.get('num_series', 1)
-
-        if params['num_images'] > 1:
-            self.mode_cmd.put(2)
-        else:
-            self.mode_cmd.put(3)
-
-        self.settings['exposure_time'].put(params['exposure_time'])
+        params['frame_size'] = params.get('frame_size', 1)
+        params['num_frames'] = params.get('num_frames', 1)
         params['acquire_period'] = params['exposure_time']
         params['exposure_time'] -= 5e-6
+        self.settings['exposure_time'].put(params['exposure_time'])
 
         if 'distance' in params:
             params['distance'] /= 1000.0     # convert distance to meters
 
-        num_frames = params['num_images'] * params['num_series']
-        frame_factors = misc.factorize(num_frames, maximum=100)
-        params['batch_size'] = frame_factors[-1]    # Adjust batch size
+        # Adjust batch size
+        total_frames = params['frame_size'] * params['num_frames']
+        frame_factors = misc.factorize(total_frames, maximum=100)
+        params['batch_size'] = frame_factors[-1]
 
-        self.num_images.put(1)  # Uses "num_frames" to set number of actual frames acquired
+        self.mode_cmd.put(3)  # Externally Enabled Series
         self.stream_enable.put(1, wait=True)  # Enable Stream interface
 
-        for k, v in list(params.items()):
-            if k in self.settings:
-                self.settings[k].put(v, wait=True)
+        super().configure(**params)
 
     def on_connection_changed(self, obj, state):
         if state == 0:

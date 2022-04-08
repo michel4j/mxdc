@@ -48,7 +48,6 @@ class SingleCollector(Engine):
             'directory': parameters['directory'],
         }
 
-
     def prepare(self, params):
         # setup folder for
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
@@ -87,7 +86,6 @@ class SingleCollector(Engine):
     def acquire(self):
         self.count = 0
         self.prepare(self.config['params'])
-        self.watch_frames()
         frame = self.config['frame']
 
         # Prepare image header
@@ -101,8 +99,7 @@ class SingleCollector(Engine):
             'energy': frame['energy'],
             'distance': frame['distance'],
             'exposure_time': frame['exposure'],
-            'num_images': 1,
-            'num_series': 1,
+            'num_frames': 1,
             'start_angle': frame['start'],
             'delta_angle': frame['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),

@@ -136,8 +136,9 @@ class StreamMonitor(DataMonitor):
                     elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
                         count += 1
                         fraction = count / self.dataset.header['num_images']
-                        if count % show_every == 0 or fraction == 1.0:
+                        if count % show_every == 1 or count == self.dataset.header['num_images']:
                             self.dataset.read_image(msg)
+                            count = self.dataset.header['frame_number']
                             self.master.process_frame(self.dataset)
                         self.set_state(progress=(fraction, 'frames collected'))
                 except Exception as e:

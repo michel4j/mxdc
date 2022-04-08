@@ -79,9 +79,7 @@ class VideoSrc(Device):
         """
         if self._stopped:
             self._stopped = False
-            worker = threading.Thread(target=self.streamer)
-            worker.setName('Video Thread: %s' % self.name)
-            worker.setDaemon(True)
+            worker = threading.Thread(target=self.streamer, daemon=True, name='Video Thread: %s' % self.name)
             worker.start()
 
     def stop(self):

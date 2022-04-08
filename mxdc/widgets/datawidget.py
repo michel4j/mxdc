@@ -252,7 +252,7 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('wedge', 'entry', '{:0.4g}', Validator.Float(0.05, 720., 720.)),
         gui.FieldSpec('energy', 'entry', '{:0.3f}', Validator.Float(1.0, 25.0, 12.66)),
         gui.FieldSpec('distance', 'entry', '{:0.1f}', Validator.Float(50., 1000., 200)),
-        gui.FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720., 0.5)),
+        gui.FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720., 0.25)),
         gui.FieldSpec('attenuation', 'entry', '{:0.3g}', Validator.Float(0, 100, 0.0)),
         gui.FieldSpec('first', 'entry', '{}', Validator.Int(1, 10000, 1)),
         gui.FieldSpec('frames', 'entry', '{}', Validator.Int(1, 100000, 1)),

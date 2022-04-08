@@ -247,3 +247,19 @@ class SampleStage(BaseSampleStage):
 
     def is_busy(self):
         return self.moving
+
+
+class XYStage(Device):
+    """
+    Sample stage based based on x, y1, y2 and omega motors. Y1 and Y2 motors are at 90 degrees.
+
+    :param x: x axis motor
+    :param y: y axis motor
+    """
+
+    def __init__(self, x, y, name="XY Stage"):
+        super().__init__()
+        self.name = name
+        self.x = x
+        self.y = y
+        self.add_components(self.x, self.y)

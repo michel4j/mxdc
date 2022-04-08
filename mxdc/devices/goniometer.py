@@ -146,6 +146,7 @@ class ParkerGonio(BaseGoniometer):
         self.sample_x = motor.VMEMotor(xname)
         self.sample_y1 = motor.VMEMotor(y1name)
         self.sample_y2 = motor.VMEMotor(y2name)
+
         self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
         self.stage = stages.SampleStage(
             self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False
@@ -201,6 +202,7 @@ class MD2Gonio(BaseGoniometer):
     NULL_VALUE = '__EMPTY__'
     BUSY_STATES = [5, 6, 7, 8]
     ERROR_STATES = [11, 12, 13, 14]
+    MAX_RASTER_SPEED = 0.8
 
     def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True, power=False):
         super().__init__('MD2 Diffractometer')
@@ -218,10 +220,11 @@ class MD2Gonio(BaseGoniometer):
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
         self.helix_cmd = self.add_pv(f"{root}:startScan4D")
-        self.raster_cmd = self.add_pv(f"{root}:startRasterScanEx")
+        self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
         self.save_pos_cmd = self.add_pv(f"{root}:saveCentringPositions")
+        self.front_light_cmd = self.add_pv(f"{root}:FrontLightIsOn")
 
         self.state_fbk = self.add_pv(f"{root}:State")
         self.phase_fbk = self.add_pv(f"{root}:CurrentPhase")
@@ -281,24 +284,35 @@ class MD2Gonio(BaseGoniometer):
             ),
         }
 
+        # self.raster_settings = {
+        #     'time': self.add_pv(f"{root}:startRasterScanEx:exposure_time"),
+        #     'range': self.add_pv(f"{root}:startRasterScanEx:omega_range"),
+        #     'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
+        #
+        #     'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
+        #     'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
+        #     'width': self.add_pv(f"{root}:startRasterScanEx:horizontal_range"),
+        #     'height': self.add_pv(f"{root}:startRasterScanEx:vertical_range"),
+        #     'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
+        #     'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
+        #     'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
+        #     'start_pos': (
+        #         self.add_pv(f'{root}:startRasterScanEx:start_y'),
+        #         self.add_pv(f'{root}:startRasterScanEx:start_cy'),
+        #         self.add_pv(f'{root}:startRasterScanEx:start_cx'),
+        #     ),
+        #     'z_pos': self.add_pv(f'{root}:startRasterScanEx:start_z'),
+        # }
         self.raster_settings = {
-            'time': self.add_pv(f"{root}:startRasterScanEx:exposure_time"),
-            'range': self.add_pv(f"{root}:startRasterScanEx:omega_range"),
-            'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
+            'time': self.add_pv(f"{root}:ScanExposureTime"),
+            'range': self.add_pv(f"{root}:ScanRange"),
+            'angle': self.add_pv(f"{root}:ScanStartAngle"),
 
-            'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
-            'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
-            'width': self.add_pv(f"{root}:startRasterScanEx:horizontal_range"),
-            'height': self.add_pv(f"{root}:startRasterScanEx:vertical_range"),
-            'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
-            'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
-            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
-            'start_pos': (
-                self.add_pv(f'{root}:startRasterScanEx:start_y'),
-                self.add_pv(f'{root}:startRasterScanEx:start_cy'),
-                self.add_pv(f'{root}:startRasterScanEx:start_cx'),
-            ),
-            'z_pos': self.add_pv(f'{root}:startRasterScanEx:start_z'),
+            'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
+            'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
+            'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
+            'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
+            'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
         }
 
         # semi constant but need to be re-applied each scan
@@ -351,6 +365,9 @@ class MD2Gonio(BaseGoniometer):
             logger.error('Goniometer is busy. Aborting ')
             return
 
+        # Turn on Front Light
+        self.front_light_cmd.put(1)
+
         self.set_state(message=f'"{kind}" Scanning ...')
 
         # configure device and start scan
@@ -364,12 +381,29 @@ class MD2Gonio(BaseGoniometer):
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             kwargs['snake'] = 1
-            kwargs['shutterless'] = int(self.power_pmac)
-            shape = [kwargs['width'], kwargs['height']]
-            kwargs['width'] = max(shape) * 1e-3     # convert to mm
-            kwargs['height'] = min(shape) * 1e-3    # convert to mm
-            kwargs['use_table'] = int(self.power_pmac)
-            kwargs['z_pos'] = self.gon_z_fbk.get()
+
+            # convert um to mm
+            kwargs['width'] *= 1e-3
+            kwargs['height'] *= 1e-3
+
+            #kwargs['use_table'] = int(self.power_pmac)
+            #kwargs['z_pos'] = self.gon_z_fbk.get()
+
+            # frames and lines are inverted for vertical scans on non-powerpmac systems
+            if self.power_pmac or kwargs['width'] > kwargs['height']:
+                frames, lines = kwargs.get('hsteps', 1), kwargs.get('vsteps', 1)
+                line_size = kwargs['width']
+            else:
+                frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
+                line_size = max(kwargs['width'], kwargs['height'])
+
+            kwargs['frames'] = frames
+            kwargs['lines'] = lines
+            kwargs['time'] *= frames
+            kwargs['range'] *= frames
+
+            # Check exposure
+            kwargs['time'] = line_size / min(self.MAX_RASTER_SPEED, line_size/kwargs['time'])
             misc.set_settings(self.raster_settings, **kwargs)
             self.raster_cmd.put(self.NULL_VALUE)
 
@@ -412,9 +446,9 @@ class SimGonio(BaseGoniometer):
         self._lock = Lock()
 
         self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3)
-        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.5)
-        self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.5)
-        self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.5)
+        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.6)
+        self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
+        self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
 
         self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
 

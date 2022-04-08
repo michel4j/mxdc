@@ -602,7 +602,7 @@ def grid_from_bounds(bbox, step_size, tight=True, snake=True):
     ])
 
 
-def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=True):
+def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=True, vert_lines=False):
     """
     Make a grid from shape
     :param size: tuple (width, height) number of points in x and y directions
@@ -610,6 +610,7 @@ def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=Tr
     :param center: center of grid in same units as step
     :param tight: bool, use tight layout
     :param snake: bool, reverse order of alternae rows
+    :param vert_lines: bool, True if goniometer supports vertical line scans
     :return: array of points on the grid in order
     """
 
@@ -644,10 +645,10 @@ def calc_grid_size(width, height, aperture, tight=True):
     """
     tightness = numpy.sqrt(2) if tight else 1.0
     size = numpy.array([width, height])
-    nX, nY = size / aperture
-    nX = max(2, numpy.ceil(nX + 1))
-    nY = max(2, numpy.ceil(tightness * numpy.ceil(nY + 1)))
-    return int(nX), int(nY)
+    nX, nY = numpy.round(size * tightness  / aperture).astype(int)
+    nX = max(1, nX)
+    nY = max(2, nY)
+    return nX, nY
 
 
 def natural_keys(text):

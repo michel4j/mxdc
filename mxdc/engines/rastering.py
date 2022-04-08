@@ -30,6 +30,7 @@ class RasterCollector(Engine):
     class Signals:
         result = Signal('result', arg_types=(int, object))
         grid = Signal('grid', arg_types=(object,))
+        complete = Signal('complete', arg_types=(object,))
 
     def __init__(self):
         super().__init__()
@@ -45,7 +46,7 @@ class RasterCollector(Engine):
 
         # calculate grid from dimensions
         grid = misc.grid_from_size(
-            (params['frames'], params['lines']), params['aperture'] * 1e-3, (0, 0), tight=False, snake=True
+            (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0), tight=False, snake=True
         )
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(
@@ -61,7 +62,7 @@ class RasterCollector(Engine):
 
     def prepare(self, params):
         self.count = 0
-        self.total_frames = self.config['params']['frames'] * self.config['params']['lines']
+        self.total_frames = self.config['params']['hsteps'] * self.config['params']['vsteps']
         self.config['params']['framesets'] = datatools.summarize_list(
             [i + 1 for i in range(self.total_frames)]
         )
@@ -89,13 +90,12 @@ class RasterCollector(Engine):
 
             # prepare for analysis
             template = self.beamline.detector.get_template(self.config['params']['name'])
-            total_frames = self.config['params']['frames'] * self.config['params']['lines']
             params = {
                 'template': template,
                 'type': 'file',
                 'directory': self.config['params']['directory'],
                 'first': 1,
-                'num_frames': total_frames,
+                'num_frames': self.total_frames,
                 'timeout': max(self.config['params']['exposure'] * self.total_frames * 10, 180)
             }
             if self.beamline.detector.monitor_type == 'stream':
@@ -103,8 +103,9 @@ class RasterCollector(Engine):
                     'type': self.beamline.detector.monitor_type,
                     'address': self.beamline.detector.monitor_address,
                 })
+
             res = self.beamline.dps.signal_strength(**params, user_name=misc.get_project_name())
-            res.connect('update', self.on_raster_update, os.path.join(self.config['params']['directory'], template,))
+            res.connect('update', self.on_raster_update, os.path.join(self.config['params']['directory'], template, ))
             res.connect('failed', self.on_raster_failed)
             res.connect('done', self.on_raster_done)
 
@@ -114,6 +115,7 @@ class RasterCollector(Engine):
                     self.acquire_slew()
                 else:
                     self.acquire_step()
+                time.sleep(3)
                 self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
 
@@ -124,17 +126,14 @@ class RasterCollector(Engine):
 
         if self.stopped:
             self.emit('stopped', None)
+        else:
+            self.emit('done', None)
+
         self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
 
     def acquire_step(self):
         logger.debug('Rastering ... ')
         for i, frame in enumerate(datatools.grid_frames(self.config['params'])):
-            if self.paused:
-                self.emit('paused', True, '')
-                while self.paused and not self.stopped:
-                    time.sleep(0.1)
-                self.emit('paused', False, '')
-
             if self.stopped: break
 
             # Prepare image header
@@ -149,8 +148,8 @@ class RasterCollector(Engine):
                 'energy': frame['energy'],
                 'distance': frame['distance'],
                 'exposure_time': frame['exposure'],
-                'num_images': 1,
-                'num_series': 1,
+                'frame_size': 1,
+                'num_frames': 1,
                 'start_angle': frame['start'],
                 'delta_angle': frame['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -159,7 +158,7 @@ class RasterCollector(Engine):
             }
 
             # perform scan
-            if self.stopped or self.paused: break
+            if self.stopped: break
             self.beamline.detector.configure(**detector_parameters)
             self.beamline.detector.start()
             self.beamline.goniometer.scan(
@@ -181,6 +180,7 @@ class RasterCollector(Engine):
         owner = misc.get_project_name()
         group = misc.get_group_name()
         params = self.config['params']
+
         detector_parameters = {
             'file_prefix': params['name'],
             'start_frame': 1,
@@ -189,8 +189,7 @@ class RasterCollector(Engine):
             'energy': params['energy'],
             'distance': params['distance'],
             'exposure_time': params['exposure'],
-            'num_series': params['lines'],
-            'num_images': params['frames'],
+            'num_frames': self.total_frames,
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -201,19 +200,19 @@ class RasterCollector(Engine):
         self.beamline.detector.configure(**detector_parameters)
         self.beamline.detector.start()
 
-        logger.debug('Starting raster scan ...')
+        logger.debug('Performing raster scan ...')
         self.beamline.goniometer.scan(
             kind='raster',
-            time=params['exposure'] * params['frames'],
-            range=params['delta'] * params['frames'],
+            time=params['exposure'],  # per frame
+            range=params['delta'], # per frame
             angle=params['angle'],
-            frames=params['frames'],
-            lines=params['lines'],
+            hsteps=params['hsteps'],
+            vsteps=params['vsteps'],
             width=params['width'],
             height=params['height'],
             start_pos=params['grid'][0],
             wait=True,
-            timeout=params['exposure'] * self.total_frames * 10,
+            timeout=max(60, params['exposure'] * self.total_frames * 10),
         )
         self.beamline.detector.save()
         time.sleep(0)
@@ -224,26 +223,18 @@ class RasterCollector(Engine):
         self.emit('result', info['frame_number'], info)
         self.count += 1
 
-        fraction = self.count/self.total_frames
-        msg = '{}: {} of {}'.format(self.config['params']['name'], self.count, self.total_frames)
+        fraction = self.count / self.total_frames
+        msg = 'Analysis {}: {} of {} complete'.format(self.config['params']['name'], self.count, self.total_frames)
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
-        self.emit('progress', 1.0, 'Rastering analysis completed')
         self.save_metadata()
-        self.emit('done', None)
+        self.emit('complete', None)
 
     def on_raster_failed(self, result, error):
         logger.error(f"Unable to process data: {error}")
-        self.emit('progress', 1.0, 'Rastering analysis failed')
         self.save_metadata()
-
-    @decorators.async_call
-    def pause(self, reason=''):
-        super().pause(reason)
-        if self.beamline.goniometer.supports(GonioFeatures.RASTER4D, GonioFeatures.TRIGGERING):
-            self.beamline.detector.stop()
-            self.beamline.goniometer.stop()
+        self.emit('error', error)
 
     @decorators.async_call
     def stop(self):

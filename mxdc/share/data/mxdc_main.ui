@@ -4035,7 +4035,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Frames/Line</property>
+                                                <property name="label" translatable="yes">Horiz. Steps</property>
                                                 <property name="use-markup">True</property>
                                                 <style>
                                                   <class name="device-label"/>
@@ -4048,7 +4048,7 @@
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkEntry" id="raster_frames_entry">
+                                              <object class="GtkEntry" id="raster_hsteps_entry">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="width-chars">10</property>
@@ -4081,7 +4081,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Total Lines</property>
+                                                <property name="label" translatable="yes">Vert. Steps</property>
                                                 <property name="use-markup">True</property>
                                                 <style>
                                                   <class name="device-label"/>
@@ -4094,7 +4094,7 @@
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkEntry" id="raster_lines_entry">
+                                              <object class="GtkEntry" id="raster_vsteps_entry">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="width-chars">10</property>
@@ -4193,55 +4193,20 @@
                                         <property name="valign">center</property>
                                         <property name="spacing">6</property>
                                         <child>
-                                          <object class="GtkBox">
+                                          <object class="GtkButton" id="raster_start_btn">
                                             <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
                                             <child>
-                                              <object class="GtkButton" id="raster_start_btn">
+                                              <object class="GtkImage" id="raster_start_icon">
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">True</property>
-                                                <child>
-                                                  <object class="GtkImage" id="raster_start_icon">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="icon-name">media-playback-start-symbolic</property>
-                                                    <property name="icon_size">2</property>
-                                                  </object>
-                                                </child>
-                                                <style>
-                                                  <class name="suggested-action"/>
-                                                </style>
+                                                <property name="can-focus">False</property>
+                                                <property name="icon-name">media-playback-start-symbolic</property>
+                                                <property name="icon_size">2</property>
                                               </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkButton" id="raster_stop_btn">
-                                                <property name="visible">True</property>
-                                                <property name="sensitive">False</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">True</property>
-                                                <child>
-                                                  <object class="GtkImage" id="raster_stop_icon">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="icon-name">media-playback-stop-symbolic</property>
-                                                    <property name="icon_size">2</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
-                                              </packing>
                                             </child>
                                             <style>
-                                              <class name="linked"/>
+                                              <class name="suggested-action"/>
                                             </style>
                                           </object>
                                           <packing>

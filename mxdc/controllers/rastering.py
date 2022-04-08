@@ -13,7 +13,6 @@ from mxdc.utils import datatools, misc
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec, FormManager, FieldSpec, Validator
 from mxdc.utils.log import get_module_logger
-from mxdc.widgets import dialogs
 from mxdc.widgets.imageviewer import IImageViewer
 from .microscope import IMicroscope
 from .samplestore import ISampleStore
@@ -41,30 +40,39 @@ class RasterResultsManager(TreeManager):
 
 
 class RasterForm(FormManager):
+    def __init__(self, *args, beamline=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.beamline = beamline
+
     def on_change(self, field, event, name):
         super().on_change(field, event, name)
 
         if name in ['aperture', 'width', 'height']:
-            frames, lines = misc.calc_grid_size(
+            aperture = self.get_value('aperture')
+            hsteps, vsteps = misc.calc_grid_size(
                 self.get_value('width'),
                 self.get_value('height'),
-                self.get_value('aperture'),
+                aperture,
                 tight=False
             )
-            self.set_values({'lines': lines, 'frames':frames})
+            self.set_values({'hsteps': hsteps, 'vsteps': vsteps, 'height': vsteps*aperture, 'width': hsteps*aperture})
+
+        if name in ['hsteps', 'vsteps', 'aperture', 'exposure']:
+            rate = self.get_value('aperture')*1e-3/self.get_value('exposure')
+            self.set_value('exposure', self.get_value('aperture')*1e-3/min(rate, self.beamline.config.get('max_raster_speed')))
 
 
 class RasterController(Object):
     class StateType:
-        READY, ACTIVE, PAUSED = list(range(3))
+        READY, ACTIVE, WAITING = range(3)
 
     Fields = (
-        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 0.5)),
-        FieldSpec('resolution', 'entry','{:0.2g}', Validator.Float(0.5, 50, 2.0)),
-        FieldSpec('width', 'entry', '{:0.0f}', Validator.Float(5., 500., 200.)),
-        FieldSpec('height', 'entry', '{:0.0f}', Validator.Float(5., 500., 200.)),
-        FieldSpec('frames', 'entry', '{:d}', Validator.Int(1, 100, 10)),
-        FieldSpec('lines', 'entry', '{:d}', Validator.Int(1, 100, 10)),
+        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 0.25)),
+        FieldSpec('resolution', 'entry', '{:0.2g}', Validator.Float(0.5, 50, 2.0)),
+        FieldSpec('width', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
+        FieldSpec('height', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
+        FieldSpec('hsteps', 'entry', '{:d}', Validator.Int(1, 100, 10)),
+        FieldSpec('vsteps', 'entry', '{:d}', Validator.Int(1, 100, 10)),
         FieldSpec('angle', 'entry', '{:0.3g}', Validator.Float(-1e6, 1e6, 0.0)),
         FieldSpec('aperture', 'entry', '{:0.0f}', Validator.Float(-1e6, 1e6, 50.)),
     )
@@ -76,20 +84,20 @@ class RasterController(Object):
         self.view = view
         self.widget = widget
 
-        # housekeeping
-        self.start_time = 0
-        self.pause_dialog = None
-        self.results = {}
-
-        self.form = RasterForm(
-            widget, fields=self.Fields, prefix='raster', persist=True, disabled=('lines', 'frames')
-        )
-
         self.beamline = Registry.get_utility(IBeamline)
         self.microscope = Registry.get_utility(IMicroscope)
         self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = RasterCollector()
         self.manager = RasterResultsManager(self.view, colormap=self.microscope.props.grid_cmap)
+
+        # housekeeping
+        self.start_time = 0
+        self.pause_dialog = None
+        self.results = {}
+        self.form = RasterForm(
+            widget, beamline=self.beamline,
+            fields=self.Fields, prefix='raster', persist=True, disabled=('hsteps', 'vsteps')
+        )
 
         # signals
         self.microscope.connect('notify::grid-params', self.on_grid_changed)
@@ -97,7 +105,7 @@ class RasterController(Object):
         self.beamline.aperture.connect('changed', self.on_aperture)
         self.beamline.goniometer.omega.connect('changed', self.on_angle)
         self.collector.connect('done', self.on_done)
-        self.collector.connect('paused', self.on_pause)
+        self.collector.connect('complete', self.on_complete)
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
@@ -107,16 +115,12 @@ class RasterController(Object):
     def setup(self):
         self.view.props.activate_on_single_click = False
         self.widget.raster_start_btn.connect('clicked', self.start_raster)
-        self.widget.raster_stop_btn.connect('clicked', self.stop_raster)
         self.view.connect('row-activated', self.on_result_activated)
 
     def start_raster(self, *args, **kwargs):
         if self.props.state == self.StateType.ACTIVE:
             self.widget.raster_progress_lbl.set_text("Stopping raster ...")
-            self.collector.pause()
-        elif self.props.state == self.StateType.PAUSED:
-            self.widget.raster_progress_lbl.set_text("Resuming raster ...")
-            self.collector.resume()
+            self.collector.stop()
         elif self.props.state == self.StateType.READY:
             self.widget.raster_progress_lbl.set_text("Starting raster ...")
             params = {}
@@ -149,28 +153,25 @@ class RasterController(Object):
     def on_state_changed(self, obj, param):
         if self.props.state == self.StateType.ACTIVE:
             self.widget.raster_start_icon.set_from_icon_name(
-                "media-playback-pause-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "media-playback-stop-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.widget.raster_stop_btn.set_sensitive(True)
             self.widget.raster_start_btn.set_sensitive(True)
             self.widget.raster_config_box.set_sensitive(False)
             self.view.set_sensitive(False)
-        elif self.props.state == self.StateType.PAUSED:
-            self.widget.raster_progress_lbl.set_text("Rastering paused!")
+        elif self.props.state == self.StateType.WAITING:
+            self.widget.raster_progress_lbl.set_text("Waiting for results...")
             self.widget.raster_start_icon.set_from_icon_name(
-                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "appointment-soon-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.widget.raster_stop_btn.set_sensitive(True)
             self.widget.raster_start_btn.set_sensitive(True)
-            self.widget.raster_config_box.set_sensitive(False)
+            self.widget.raster_config_box.set_sensitive(True)
             self.view.set_sensitive(True)
         else:
             self.widget.raster_start_icon.set_from_icon_name(
-                "media-playback-start-symbolic", Gtk.IconSize.LARGE_TOOLBAR
+                "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.raster_config_box.set_sensitive(True)
             self.widget.raster_start_btn.set_sensitive(True)
-            self.widget.raster_stop_btn.set_sensitive(False)
             self.view.set_sensitive(True)
 
     def on_started(self, collector, config):
@@ -189,12 +190,9 @@ class RasterController(Object):
         current_dir = directory.replace(home_dir, '~')
         self.widget.dsets_dir_fbk.set_text(current_dir)
 
-    def on_done(self, collector, data):
+    def on_complete(self, collector, data):
         self.props.state = self.StateType.READY
-        self.widget.raster_progress_lbl.set_text("Rastering Completed.")
-        self.widget.raster_eta.set_text('--:--')
-        self.widget.raster_pbar.set_fraction(1.0)
-        config = collector.config['params']
+        self.widget.raster_progress_lbl.set_text("Rastering analysis complete.")
         logger.info('Saving overlay ...')
         self.microscope.save_image(
             os.path.join(
@@ -203,31 +201,10 @@ class RasterController(Object):
             )
         )
 
-    def on_pause(self, obj, paused, reason):
-        if paused:
-            self.props.state = self.StateType.PAUSED
-            if reason:
-                # Build the dialog message
-                self.pause_dialog = dialogs.make_dialog(
-                    Gtk.MessageType.WARNING, 'Rastering Paused', reason,
-                    buttons=(('OK', Gtk.ResponseType.OK),)
-                )
-                self.pause_dialog.run()
-                self.pause_dialog.destroy()
-                self.pause_dialog = None
-        else:
-            self.props.state = self.StateType.ACTIVE
-            if self.pause_dialog:
-                self.pause_dialog.destroy()
-                self.pause_dialog = None
-
-    def on_error(self, obj, reason):
-        error_dialog = dialogs.make_dialog(
-            Gtk.MessageType.WARNING, 'Rastering Error!', reason,
-            buttons=(('OK', Gtk.ResponseType.OK),)
-        )
-        error_dialog.run()
-        error_dialog.destroy()
+    def on_done(self, collector, data):
+        self.props.state = self.StateType.READY   # previously WAITING
+        self.widget.raster_eta.set_text('--:--')
+        self.widget.raster_pbar.set_fraction(1.0)
 
     def on_stopped(self, obj, data):
         self.props.state = self.StateType.READY
@@ -291,7 +268,3 @@ class RasterController(Object):
         params = self.microscope.grid_params
         if params is not None and 'width' in params and 'height' in params:
             self.form.set_values({'width': params['width'], 'height': params['height']}, propagate=True)
-
-
-
-
