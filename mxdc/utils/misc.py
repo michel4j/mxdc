@@ -573,44 +573,37 @@ def html2text(data):
     return f.text
 
 
-def grid_from_bounds(bbox, step_size, tight=True, snake=True):
+def grid_from_bounds(bbox, step_size, snake=True, vertical=False):
     """
     Make a grid from a bounding box array
     :param bbox: array of two points representing a 2D bounding box [(left, top), (right, bottom)]
     :param step_size: step size
-    :param tight: bool, use tight layout
-    :param snake: bool, reverse order of alternae rows
+    :param snake: bool, reverse order of alternae rows/columns
+    :param vertical:  bool, traverse by column
     :return: array of points on the grid in order
     """
 
-    grid_size = numpy.abs(bbox[1] - bbox[0])
-    nX, nY = calc_grid_size(*grid_size, step_size, tight=tight)
-    radius = step_size / 2
+    grid_shape = calc_grid_size(bbox, step_size)
+    grid_size = grid_shape * step_size
 
-    xi = numpy.linspace(bbox[0][0], bbox[1][0], int(nX))
-    yi = numpy.linspace(bbox[0][1], bbox[1][1], int(nY))
-    x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
+    grid_center = (bbox[1] + bbox[0])/2.
+    grid_origin = grid_center - grid_size/2. + step_size/2
 
-    if snake:
-        x_ij[::2, :] = x_ij[::2, ::-1]  # flip alternate rows
+    nX, nY = grid_shape
+    xi = numpy.arange(0, nX)*step_size + grid_origin[0]
+    yi = numpy.arange(0, nY)*step_size + grid_origin[1]
 
-    offset = radius if tight else 0.0
-    return numpy.array([
-        (x_ij[j, i] + (j % 2) * offset, y_ij[j, i], 0.0)
-        for j in numpy.arange(nY).astype(int)
-        for i in numpy.arange(nX).astype(int)
-    ])
+    return calc_grid_coords(xi, yi, snake, vertical)
 
 
-def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=True, vert_lines=False):
+def grid_from_size(size: tuple, step: float, center: tuple, snake=True, vertical=False):
     """
     Make a grid from shape
     :param size: tuple (width, height) number of points in x and y directions
     :param step: step size
     :param center: center of grid in same units as step
-    :param tight: bool, use tight layout
-    :param snake: bool, reverse order of alternae rows
-    :param vert_lines: bool, True if goniometer supports vertical line scans
+    :param snake: bool, reverse order of alternae rows/columns
+    :param vertical: traverse verticaly
     :return: array of points on the grid in order
     """
 
@@ -620,20 +613,55 @@ def grid_from_size(size: tuple, step: float, center: tuple, tight=True, snake=Tr
 
     xi = (numpy.arange(0, nX) - (nX - 1) / 2) * step + cX
     yi = (numpy.arange(0, nY) - (nY - 1) / 2) * step + cY
-    x_ij, y_ij = numpy.meshgrid(xi, yi, sparse=False)
 
-    if snake:
-        x_ij[::2, :] = x_ij[::2, ::-1]  # flip alternate rows
-
-    offset = radius if tight else 0.0
-    return numpy.array([
-        (x_ij[j, i] + (j % 2) * offset, y_ij[j, i], 0.0)
-        for j in numpy.arange(nY).astype(int)
-        for i in numpy.arange(nX).astype(int)
-    ])
+    return calc_grid_coords(xi, yi, snake, vertical)
 
 
-def calc_grid_size(width, height, aperture, tight=True):
+def calc_grid_coords(xi, yi, snake=False, vertical=False):
+    """
+    Calculate the grid coordinates and return a properly ordered sequence based on device traversal
+    :param xi: array of x coordinates
+    :param yi: array of y coordinates
+    :param snake: invert alternate rows/columns
+    :param vertical: traverse verticaly
+    :return: 3xN array of coordinates for each grid point, and a 2xN array for the corresponding index positions in the 2D grid
+    """
+    x_ij, y_ij = numpy.meshgrid(xi[::-1], yi, sparse=False)
+    nX, nY = len(xi), len(yi)
+    ix = numpy.arange(nX).astype(int)
+    jy = numpy.arange(nY).astype(int)
+    i_xy, j_xy =  numpy.meshgrid(ix[::-1], jy, sparse=False)
+
+    if not vertical or nX >= nY:
+        if snake:
+            x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip even rows
+            i_xy[1::2, :] = i_xy[1::2, ::-1]  # flip even rows
+        return (
+            numpy.array([
+                (x_ij[j, i], y_ij[j, i], 0.0)
+                for j in jy for i in ix  # fast axis is x
+            ]),
+            [
+                (j_xy[j, i], i_xy[j, i])
+                for j in jy for i in ix
+            ]
+        )
+    else:
+        if snake:
+            y_ij[:, 1::2] = y_ij[::-1, 1::2]  # flip even columns
+            j_xy[:, 1::2] = j_xy[::-1, 1::2]  # flip even columns
+        return (
+            numpy.array([
+                (x_ij[j, i], y_ij[j, i], 0.0)
+                for i in ix for j in jy  # fast axis is y
+            ]),
+            [
+                (j_xy[j, i], i_xy[j, i])
+                for i in ix for j in jy
+            ],
+        )
+
+def calc_grid_shape(width, height, aperture):
     """
     Calculate the size of the grid
 
@@ -643,13 +671,24 @@ def calc_grid_size(width, height, aperture, tight=True):
     :param tight: bool, true if close fitting required
     :return: tuple (x-size, y-size)
     """
-    tightness = numpy.sqrt(2) if tight else 1.0
     size = numpy.array([width, height])
-    nX, nY = numpy.round(size * tightness  / aperture).astype(int)
+    nX, nY = numpy.round(size / aperture).astype(int)
     nX = max(1, nX)
     nY = max(2, nY)
     return nX, nY
 
+
+def calc_grid_size(bbox, step_size):
+    """
+    Calculate the size of the grid
+
+    :param bbox: bounding_box coordinates in pixels
+    :param step_size: step size in pixels
+    :return: tuple (x-size, y-size)
+    """
+
+    grid_shape = numpy.ceil(numpy.abs(bbox[1] - bbox[0])/step_size).astype(int)
+    return grid_shape
 
 def natural_keys(text):
     """

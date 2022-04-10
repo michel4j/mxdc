@@ -14,8 +14,8 @@ from mxdc.utils.log import get_module_logger
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
-RASTER_DELTA = 0.5
-RASTER_EXPOSURE = 0.5
+RASTER_DELTA = 0.1
+RASTER_EXPOSURE = 0.2
 RASTER_RESOLUTION = 2
 
 SAMPLE_SHIFT_STEP = 0.2  # mm
@@ -69,7 +69,7 @@ class Centering(Engine):
         self.beamline.goniometer.wait(start=False, stop=True)
         cur = self.beamline.goniometer.omega.get_position()
         self.beamline.goniometer.omega.wait(start=True, stop=False)
-        for angle in numpy.arange(0, 80, 20):
+        for angle in numpy.arange(0, 135, 22.5):
             self.beamline.goniometer.omega.move_to(angle + cur, wait=True)
             img = self.beamline.sample_video.get_frame()
             height = imgproc.mid_height(img)
@@ -181,46 +181,39 @@ class Centering(Engine):
 
         self.score = numpy.mean(scores)
 
-    def center_loop(self, low_trials=3, med_trials=2):
+    def center_loop(self, low_trials=2, med_trials=2, face=True):
         self.beamline.sample_frontlight.set_off()
-        low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
+        zoom = self.beamline.config['centering_zoom']
 
         scores = []
         # Find tip of loop at low and high zoom
         failed = False
-        for zoom_level, trials in [(low_zoom, 3), (med_zoom,2)]:
-            if failed: break
-            self.beamline.sample_video.zoom(zoom_level, wait=True)
-            for i in range(trials):
-                angle, info = self.get_features()
-                scores.append(info.get('score', 0.0))
-                if info['score'] == 0.0:
-                    logger.warning('Loop not found in field-of-view')
-                    if (zoom_level, i) == (low_zoom, 0):
-                        logger.warning('Attempting to translate into view')
-                        x, y = info['x'], info['y']
-                        xmm, ymm = self.screen_to_mm(x, y)
-                        self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
-                    else:
-                        failed = True
-                        break
-                else:
-                    x, y = info['x'], info['y']
-                    logger.debug('... tip found at {}, {}'.format(x, y))
-                    xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
-                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+        self.beamline.sample_video.zoom(zoom, wait=True)
+        trials = low_trials + med_trials
+        for i in range(trials):
+            if i != 0:
+                cur_pos = self.beamline.goniometer.omega.get_position()
+                self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+                time.sleep(0.5)
 
-                time.sleep(1.5)
-                # final 90 rotation not needed
-                final = (zoom_level == med_zoom and i == trials)
-                if not final:
-                    cur_pos = self.beamline.goniometer.omega.get_position()
-                    self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+            angle, info = self.get_features()
+            scores.append(info.get('score', 0.0))
+            if info['score'] == 0.0:
+                logger.warning('Loop not found in field-of-view')
+                logger.warning('Attempting to translate into view')
+                x, y = info['x'], info['y']
+                xmm, ymm = self.screen_to_mm(x, y)
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+            else:
+                x, y = info['x'], info['y']
+                logger.debug('... tip found at {}, {}'.format(x, y))
+                xmm, ymm = self.screen_to_mm(x, y)
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+                logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
         # Center in loop on loop face
         if not failed:
-            self.loop_face()
+            self.loop_face(down=not face)
             angle, info = self.get_features()
             if info['score'] == 0.0:
                 logger.warning('Sample not found in field-of-view')
@@ -237,7 +230,7 @@ class Centering(Engine):
         self.center_loop()
 
     def center_diffraction(self):
-        self.center_loop(3, 1)
+        self.center_loop(3, 1, face=False)
         scores = []
         if self.score < 0.5:
             logger.error('Loop-centering failed, aborting!')
@@ -261,7 +254,7 @@ class Centering(Engine):
                 'activity': 'raster',
                 'energy': energy,
                 'delta': RASTER_DELTA,
-                'exposure': RASTER_EXPOSURE,
+                'exposure': max(self.beamline.config.get('default_exposure'), RASTER_EXPOSURE),
                 'attenuation': self.beamline.attenuator.get_position(),
                 'aperture': aperture,
                 'distance': converter.resol_to_dist(
@@ -273,47 +266,49 @@ class Centering(Engine):
             if step == 'edge':
                 params.update({
                     'angle': self.beamline.goniometer.omega.get_position(),
-                    'width': min(aperture*5, 200.0),
-                    'height': min(aperture*5, 200.0),
-                    'frames': 5,
-                    'lines': 5,
+                    'width': min(aperture*10, 200.0),
+                    'height': min(aperture*4, 200.0),
+                    'hsteps': 10,
+                    'vsteps': 4,
                 })
             else:
                 params.update({
                     'angle': self.beamline.goniometer.omega.get_position(),
-                    'width': min(aperture * 4, 200.0),
-                    'height': min(aperture * 4, 200.0),
-                    'frames': 4,
-                    'lines': 4,
+                    'width': aperture*2,
+                    'height': aperture*10,
+                    'hsteps': 2,
+                    'vsteps': 10,
                 })
 
             params = datatools.update_for_sample(params, self.sample_store.get_current())
             logger.info('Finding best diffraction spot in grid')
             self.collector.configure(params)
-            self.collector.run()
+            self.collector.run(centering=(step == "edge"))
 
-            grid_scores = numpy.array([
-                (index, misc.frame_score(report)) for index, report in sorted(self.collector.results.items())
-            ])
+            # wait for results
+            while not self.collector.is_complete():
+                time.sleep(.1)
 
-            best = grid_scores[:, 1].argmax()
+            grid_config = self.collector.get_grid()
 
-            index = int(grid_scores[best, 0])
-            score = grid_scores[best, 1]
+            best = numpy.unravel_index(
+                grid_config['grid_scores'].argmax(axis=None), grid_config['grid_scores'].shape
+            )
+            best_score = grid_config['grid_scores'][best]
+            best_index = grid_config['grid_index'].index(best)
+            point = grid_config['grid_xyz'][best_index]
 
-            logger.info(f'Best diffraction at {index}: score={score}')
-            grid = self.collector.get_grid()
-            point = grid[best]
-
+            logger.info(f'Best diffraction at {best_index}: score={best_score}')
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
-            scores.append(score/100.)
+            scores.append(best_score/100.)
+
         self.score = numpy.mean(scores)
 
+
     def center_capillary(self):
-        low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
+        zoom = self.beamline.config['centering_zoom']
         self.beamline.sample_frontlight.set_off()
-        self.beamline.sample_backlight.set(self.beamline.config['centering_backlight'])
-        self.beamline.sample_video.zoom(low_zoom, wait=True)
+        self.beamline.sample_video.zoom(zoom, wait=True)
 
         scores = []
         half_width = self.beamline.sample_video.size[0] // 2

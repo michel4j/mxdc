@@ -24,7 +24,7 @@ logger = get_module_logger(__name__)
 
 class RasterResultsManager(TreeManager):
     class Data(Enum):
-        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = list(range(10))
+        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = range(10)
 
     Types = [str, float, float, float, float, float, int, float, str, str]
     Columns = ColumnSpec(
@@ -49,11 +49,10 @@ class RasterForm(FormManager):
 
         if name in ['aperture', 'width', 'height']:
             aperture = self.get_value('aperture')
-            hsteps, vsteps = misc.calc_grid_size(
+            hsteps, vsteps = misc.calc_grid_shape(
                 self.get_value('width'),
                 self.get_value('height'),
                 aperture,
-                tight=False
             )
             self.set_values({'hsteps': hsteps, 'vsteps': vsteps, 'height': vsteps*aperture, 'width': hsteps*aperture})
 
@@ -178,13 +177,9 @@ class RasterController(Object):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
         logger.info("Rastering Started.")
-
-        self.microscope.reset_grid(config['grid'], config, {})
-        self.results[config['uuid']] = {
-            'config': copy.deepcopy(config),
-            'scores': {}
-        }
-
+        grid_config = collector.get_grid()
+        self.microscope.load_grid(grid_config)
+        self.results[config['uuid']] = grid_config
         directory = config['directory']
         home_dir = misc.get_project_home()
         current_dir = directory.replace(home_dir, '~')
@@ -193,13 +188,9 @@ class RasterController(Object):
     def on_complete(self, collector, data):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering analysis complete.")
+        params = collector.get_parameters()
         logger.info('Saving overlay ...')
-        self.microscope.save_image(
-            os.path.join(
-                collector.config['params']['directory'],
-                '{}.png'.format(collector.config['params']['name'])
-            )
-        )
+        self.microscope.save_image(os.path.join(params['directory'], '{}.png'.format(params['name'])))
 
     def on_done(self, collector, data):
         self.props.state = self.StateType.READY   # previously WAITING
@@ -221,16 +212,15 @@ class RasterController(Object):
 
     def on_results(self, collector, frame, results):
         index = frame - 1   # frames are 1-based counting
-        config = collector.config['params']
-        try:
-            score = misc.frame_score(results)
-        except (KeyError, ValueError, AttributeError):
-            score = 0.0
-        self.microscope.add_grid_score(frame, score)
+        grid_config = collector.get_grid()
+        params = collector.get_parameters()
+        pos = grid_config['grid_index'][index]
+        score = grid_config['grid_scores'][pos]
+
         x, y, z = self.microscope.props.grid_xyz[index]  # frames
         parent, child = self.manager.add_item({
-            'name': config['name'],
-            'angle': config['angle'],
+            'name': params['name'],
+            'angle': params['angle'],
             'cell': frame,
             'x_pos': x,
             'y_pos': y,
@@ -238,9 +228,10 @@ class RasterController(Object):
             'score': score,
             'color': score,
             'filename': results['filename'],
-            'uuid': config['uuid'],
+            'info':  None if frame > 1 else grid_config,
+            'uuid': params['uuid'],
         })
-        self.results[config['uuid']]['scores'][index] = score
+
         if parent:
             self.view.expand_row(parent, False)
         self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
@@ -252,13 +243,9 @@ class RasterController(Object):
 
         if self.manager.model.iter_has_child(itr):
             self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
-            grid = self.results[item['uuid']]
-            self.microscope.load_grid(
-                grid['config']['grid'],
-                {'origin': grid['config']['origin'], 'angle': grid['config']['angle']},
-                grid['scores']
-            )
-            self.widget.dsets_dir_fbk.set_text(grid['config']['directory'])
+            config = self.results[item['uuid']]
+            self.microscope.load_grid(config)
+            self.widget.dsets_dir_fbk.set_text(config['params']['directory'])
         else:
             image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])

@@ -39,7 +39,7 @@ class MXBeamline(Beamline):
         'xrf_energy_offset': 2.0,
         'shutter_sequence': [],
         'orientation': 1,
-        'centering_backlight': 65,
+        'centering_zoomt': 2,
     }
 
     def setup(self):

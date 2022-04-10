@@ -53,6 +53,18 @@ class BaseGoniometer(Device):
         """
         misc.set_settings(self.settings, **kwargs)
 
+    def grid_settings(self):
+        """
+        Return a dictionary of grid settings supported by this goniometer
+        """
+        return {"snake": True, "vertical": False}
+
+    def save_centering(self):
+        """
+        Save current sample position. Goniometer should return to the saved position during centering.
+        """
+        pass
+
     def wait(self, start=True, stop=True, timeout=None):
         """
         Wait for the goniometer busy state to change.
@@ -220,7 +232,7 @@ class MD2Gonio(BaseGoniometer):
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
         self.helix_cmd = self.add_pv(f"{root}:startScan4D")
-        self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
+
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
         self.save_pos_cmd = self.add_pv(f"{root}:saveCentringPositions")
@@ -284,36 +296,39 @@ class MD2Gonio(BaseGoniometer):
             ),
         }
 
-        # self.raster_settings = {
-        #     'time': self.add_pv(f"{root}:startRasterScanEx:exposure_time"),
-        #     'range': self.add_pv(f"{root}:startRasterScanEx:omega_range"),
-        #     'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
-        #
-        #     'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
-        #     'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
-        #     'width': self.add_pv(f"{root}:startRasterScanEx:horizontal_range"),
-        #     'height': self.add_pv(f"{root}:startRasterScanEx:vertical_range"),
-        #     'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
-        #     'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
-        #     'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
-        #     'start_pos': (
-        #         self.add_pv(f'{root}:startRasterScanEx:start_y'),
-        #         self.add_pv(f'{root}:startRasterScanEx:start_cy'),
-        #         self.add_pv(f'{root}:startRasterScanEx:start_cx'),
-        #     ),
-        #     'z_pos': self.add_pv(f'{root}:startRasterScanEx:start_z'),
-        # }
+        self.raster_cmd = self.add_pv(f"{root}:startRasterScanEx")
         self.raster_settings = {
-            'time': self.add_pv(f"{root}:ScanExposureTime"),
-            'range': self.add_pv(f"{root}:ScanRange"),
-            'angle': self.add_pv(f"{root}:ScanStartAngle"),
+            'time': self.add_pv(f"{root}:startRasterScanEx:exposure_time"),
+            'range': self.add_pv(f"{root}:startRasterScanEx:omega_range"),
+            'angle': self.add_pv(f"{root}:startRasterScanEx:start_omega"),
 
-            'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
-            'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
-            'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
-            'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
-            'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
+            'frames': self.add_pv(f"{root}:startRasterScanEx:frames_per_lines"),
+            'lines': self.add_pv(f"{root}:startRasterScanEx:number_of_lines"),
+            'width': self.add_pv(f"{root}:startRasterScanEx:horizontal_range"),
+            'height': self.add_pv(f"{root}:startRasterScanEx:vertical_range"),
+            'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
+            'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
+            'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
+            'start_pos': (
+                self.add_pv(f'{root}:startRasterScanEx:start_y'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cy'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cx'),
+            ),
+            'z_pos': self.add_pv(f'{root}:startRasterScanEx:start_z'),
         }
+
+        # self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
+        # self.raster_settings = {
+        #     'time': self.add_pv(f"{root}:ScanExposureTime"),
+        #     'range': self.add_pv(f"{root}:ScanRange"),
+        #     'angle': self.add_pv(f"{root}:ScanStartAngle"),
+        #
+        #     'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
+        #     'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
+        #     'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
+        #     'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
+        #     'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
+        # }
 
         # semi constant but need to be re-applied each scan
         self.extra_settings = {
@@ -326,6 +341,15 @@ class MD2Gonio(BaseGoniometer):
             'z_pos': None,
         }
 
+    def grid_settings(self):
+        return {
+            "snake": True,
+            "vertical": not self.power_pmac
+        }
+
+    def save_centering(self):
+        self.save_pos_cmd.put(self.NULL_VALUE)
+
     def on_state_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
         phase = self.phase_fbk.get()
@@ -337,7 +361,7 @@ class MD2Gonio(BaseGoniometer):
         self.set_state(health=health, busy=busy)
 
         if phase == 0 and self.prev_state == 6 and state == 4:
-            self.save_pos_cmd.put(self.NULL_VALUE)
+            self.save_centering()
         self.prev_state = state
 
     @log_call
@@ -386,8 +410,9 @@ class MD2Gonio(BaseGoniometer):
             kwargs['width'] *= 1e-3
             kwargs['height'] *= 1e-3
 
-            #kwargs['use_table'] = int(self.power_pmac)
-            #kwargs['z_pos'] = self.gon_z_fbk.get()
+            kwargs['use_table'] = int(self.power_pmac)
+            kwargs['shutterless'] = int(self.power_pmac)
+            kwargs['z_pos'] = self.gon_z_fbk.get()
 
             # frames and lines are inverted for vertical scans on non-powerpmac systems
             if self.power_pmac or kwargs['width'] > kwargs['height']:
@@ -408,7 +433,6 @@ class MD2Gonio(BaseGoniometer):
             self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or (10 + 2 * kwargs['time'])
-
         success = self.wait(start=True, stop=wait, timeout=timeout)
         if wait:
             if success:

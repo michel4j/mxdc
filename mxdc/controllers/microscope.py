@@ -32,26 +32,23 @@ class IMicroscope(Interface):
     """Sample information database."""
     grid = Attribute("A list of x, y points for the grid in screen coordinates")
     grid_xyz = Attribute("A list of x, y, z points for the grid in local coordinates")
-    grid_state = Attribute("State of the grid, PENDING, COMPLETE ")
     grid_params = Attribute("A dictionary of grid reference parameters")
-    grid_scores = Attribute("An integer-keyed dictionary of floats")
-    polygon = Attribute("A list of points")
+    grid_scores = Attribute("A 2d MxN array representing the scores of the grid")
+    grid_index = Attribute("A list of point indices for each cell in the grid by traversal order")
     points = Attribute("A list of points")
 
 
 @implementer(IMicroscope)
 class Microscope(Object):
-    class GridState:
-        PENDING, COMPLETE = list(range(2))
 
     class ToolState(object):
         DEFAULT, CENTERING, GRID, MEASUREMENT = list(range(4))
 
     grid = Property(type=object)
     grid_xyz = Property(type=object)
-    grid_state = Property(type=int, default=GridState.PENDING)
     grid_params = Property(type=object)
     grid_scores = Property(type=object)
+    grid_index = Property(type=object)
     grid_cmap = Property(type=object)
     grid_bbox = Property(type=object)
     points = Property(type=object)
@@ -73,10 +70,10 @@ class Microscope(Object):
         self.props.grid = None
         self.props.grid_xyz = None
         self.props.points = []
+        self.props.grid_index = None
         self.props.grid_bbox = []
-        self.props.grid_scores = {}
+        self.props.grid_scores = None
         self.props.grid_params = {}
-        self.props.grid_state = self.GridState.PENDING
         self.props.grid_cmap = colors.ColorMapper(min_val=0, max_val=100)
         self.props.tool = self.ToolState.DEFAULT
         self.prev_tool = self.tool
@@ -192,10 +189,6 @@ class Microscope(Object):
         config = {k:v for k,v in self.grid_params.items() if k != 'grid'}
         cache = {
             'points': self.props.points,
-            #'grid-xyz': None if self.props.grid_xyz is None else self.props.grid_xyz.astype(float).tolist(),
-            #'grid-params': config,
-            #'grid-scores': self.props.grid_scores,
-            #'grid-state': self.props.grid_state,
         }
         save_cache(cache, 'microscope')
 
@@ -290,9 +283,12 @@ class Microscope(Object):
             radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
             cr.set_line_width(1.0)
             cr.set_font_size(8)
+            if self.props.grid_index is None:
+                return
             for i, (x, y, z) in enumerate(self.props.grid):
-                if i+1 in self.props.grid_scores:
-                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[i+1], alpha=0.45)
+                ij = self.props.grid_index[i]
+                if self.props.grid_scores[ij] >= 0:
+                    col = self.props.grid_cmap.rgba_values(self.props.grid_scores[ij], alpha=0.65)
                     cr.set_source_rgba(*col)
                     cr.rectangle(x-radius, y-radius, 2*radius, 2*radius)
                     cr.fill()
@@ -300,8 +296,8 @@ class Microscope(Object):
                     cr.set_source_rgba(1, 1, 1, 0.35)
                     cr.rectangle(x-radius+0.5, y-radius+0.5, 2*radius-1, 2*radius-1)
                     cr.fill()
-                if radius > 8:
-                    cr.set_source_rgba(0, 0, 0.5, 0.5)
+                if radius > 12:
+                    cr.set_source_rgba(0, 0, 0.5, 0.8)
                     name = '{}'.format(i+1)
                     xb, yb, w, h = cr.text_extents(name)[:4]
                     cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
@@ -335,7 +331,8 @@ class Microscope(Object):
     def clear_objects(self, *args, **kwargs):
         self.props.grid = None
         self.props.grid_xyz = None
-        self.props.grid_scores = {}
+        self.props.grid_scores = None
+        self.props.grid_index = None
         self.props.points = []
         self.props.grid_bbox = []
         if self.tool == self.ToolState.GRID:
@@ -374,18 +371,17 @@ class Microscope(Object):
 
         factor = 1.0 if scaled else self.video.scale
         step_size = 1e-3 * self.beamline.aperture.get() / self.video.mm_scale()
-        w, h = 1000*numpy.abs(numpy.diff(bbox, axis=0).ravel() * self.video.mm_scale()).round(4)
 
-        # grid too small exit and clear
-        if max(w, h) < 2 * step_size:
+        bounds = bbox * factor
+        shape =  misc.calc_grid_size(bounds, step_size)
+        w, h = 1000 * shape * self.video.mm_scale() * step_size
+        if min(w, h) == 0.0:
             self.props.grid_bbox = []
             self.queue_overlay()
             self.props.grid_params = {}
             return
 
-        bounds = bbox * factor
-
-        grid = misc.grid_from_bounds(bounds, step_size, tight=False)
+        grid, index = misc.grid_from_bounds(bounds, step_size, **self.beamline.goniometer.grid_settings())
         dx, dy = self.video.screen_to_mm(*bounds.mean(axis=0))[2:]
 
         angle = self.beamline.goniometer.omega.get_position()
@@ -395,39 +391,31 @@ class Microscope(Object):
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
 
         properties = {
-            'grid_state': self.GridState.PENDING,
             'grid_xyz': grid_xyz.round(4),
             'grid_bbox': [],
+            'grid_index': index,
+            'grid_scores': -numpy.ones(shape[::-1]),
             'grid_params': {
+                'origin': (ox, oy, oz),
                 'width': w,
                 'height': h,
                 'angle': angle,
+                'shape': tuple(shape),
             },
-            'grid_scores': {}
         }
+        self.load_grid(properties)
 
-        for k, v in properties.items():
-            self.set_property(k, v)
         if center:
             self.beamline.goniometer.stage.move_screen_by(-dx, -dy, 0.0)
 
-    def add_grid_score(self, position, score):
-        self.props.grid_scores[position] = score
-        self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
-        self.props.grid_state = self.GridState.COMPLETE
+    def rescale_grid_colormap(self):
+        if self.props.grid_scores is not None:
+            self.props.grid_cmap.autoscale(self.props.grid_scores.ravel())
 
-    def reset_grid(self, grid_xyz, config, scores):
-        self.props.grid_xyz = grid_xyz
-        self.props.grid_scores = scores
-        self.props.grid_params = config
-        self.props.grid_state = self.GridState.PENDING
-
-    def load_grid(self, grid_xyz, config, scores):
-        self.props.grid_xyz = grid_xyz
-        self.props.grid_scores = scores
-        self.props.grid_params = config
-        self.props.grid_state = self.GridState.COMPLETE
-        self.props.grid_cmap.autoscale(list(self.props.grid_scores.values()))
+    def load_grid(self, properties):
+        # Set properties
+        for k, v in properties.items():
+            self.set_property(k, v)
 
     @async_call
     def center_pixel(self, x, y, force=False):
@@ -473,18 +461,22 @@ class Microscope(Object):
             self.overlay_surface, self.overlay_buffer = self.overlay_buffer, self.overlay_surface
             self.overlay_dirty = False
 
+    def recalculate_grid(self):
+        center = numpy.array(self.video.get_size()) * 0.5
+        points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
+        xyz = numpy.empty_like(points)
+        xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
+            points[:, 0], points[:, 1],  points[:, 2]
+        )
+        xyz /= self.video.mm_scale()
+        xyz[:, :2] += center
+        return xyz
+
     # callbacks
     def update_grid(self, *args, **kwargs):
         if self.props.grid_xyz is not None:
-            center = numpy.array(self.video.get_size()) * 0.5
-            points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
-            xyz = numpy.empty_like(points)
-            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
-                points[:, 0], points[:, 1],  points[:, 2]
-            )
-            xyz /= self.video.mm_scale()
-            xyz[:, :2] += center
-            self.props.grid = xyz
+            self.props.grid = self.recalculate_grid()
+            self.rescale_grid_colormap()
         else:
             self.props.grid = None
         self.queue_overlay()
@@ -550,14 +542,7 @@ class Microscope(Object):
 
     def on_aperture(self, obj, value):
         if self.grid_xyz is not None:
-            center = numpy.array(self.video.get_size()) * 0.5
-            points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
-            xyz = numpy.empty_like(points)
-            xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
-                points[:, 0], points[:, 1], points[:, 2]
-            )
-            xyz /= self.video.mm_scale()
-            xyz[:, :2] += center
+            xyz = self.recalculate_grid()
             self.make_grid(points=xyz[:, :2], center=False)
         else:
             self.queue_overlay()

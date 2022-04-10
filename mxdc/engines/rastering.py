@@ -39,26 +39,48 @@ class RasterCollector(Engine):
         self.config = {}
         self.total_frames = 0
         self.count = 0
+        self.complete = False
         Registry.add_utility(IRasterCollector, self)
+
+    def is_complete(self):
+        return self.complete
 
     def configure(self, params):
         self.config['params'] = params
 
         # calculate grid from dimensions
-        grid = misc.grid_from_size(
-            (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0), tight=False, snake=True
+        grid, index = misc.grid_from_size(
+            (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0), **self.beamline.goniometer.grid_settings()
         )
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(
             grid[:, 0], grid[:, 1], numpy.radians(params['angle'])
         )
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
-
-        # update microscope display
         self.config['params']['grid'] = grid_xyz
 
+        # update for microscope display
+        shape = (params['hsteps'], params['vsteps'])
+        self.config['properties'] = {
+            'grid_xyz': grid_xyz,
+            'grid_bbox': [],
+            'grid_index': index,
+            'grid_scores': -numpy.ones(shape[::-1]),
+            'grid_params': {
+                'origin': (ox, oy, oz),
+                'directory': params['directory'],
+                'width': shape[0]*params['aperture'],
+                'height': shape[1]*params['aperture'],
+                'angle': params['angle'],
+                'shape': shape,
+            },
+        }
+
     def get_grid(self):
-        return self.config['params'].get('grid')
+        return self.config['properties']
+
+    def get_parameters(self):
+        return self.config['params']
 
     def prepare(self, params):
         self.count = 0
@@ -80,12 +102,12 @@ class RasterCollector(Engine):
         # switch to collect mode
         self.beamline.manager.collect(wait=True)
 
-    def run(self):
+    def run(self, centering=False):
+        self.complete = False
         current_attenuation = self.beamline.attenuator.get_position()
         with self.beamline.lock:
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             self.emit('started', self.config['params'])
-
             self.prepare(self.config['params'])
 
             # prepare for analysis
@@ -115,21 +137,19 @@ class RasterCollector(Engine):
                     self.acquire_slew()
                 else:
                     self.acquire_step()
-                time.sleep(3)
                 self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
-
-                # take snapshot
-                self.beamline.manager.center(wait=True)
+                time.sleep(1)
             finally:
                 self.beamline.fast_shutter.close()
+                if not centering:
+                    self.beamline.manager.center(wait=True)
+                    self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
 
         if self.stopped:
             self.emit('stopped', None)
         else:
             self.emit('done', None)
-
-        self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
 
     def acquire_step(self):
         logger.debug('Rastering ... ')
@@ -218,8 +238,14 @@ class RasterCollector(Engine):
         time.sleep(0)
 
     def on_raster_update(self, result, info, template):
-        self.results[info['frame_number']] = info
+        score = misc.frame_score(info)
+        index = info['frame_number'] - 1
+        ij = self.config['properties']['grid_index'][index]
+
         info['filename'] = template.format(info['frame_number'])
+        self.results[info['frame_number']] = info
+        self.config['properties']['grid_scores'][ij] = score
+
         self.emit('result', info['frame_number'], info)
         self.count += 1
 
@@ -229,6 +255,7 @@ class RasterCollector(Engine):
 
     def on_raster_done(self, result, data):
         self.save_metadata()
+        self.complete = True
         self.emit('complete', None)
 
     def on_raster_failed(self, result, error):

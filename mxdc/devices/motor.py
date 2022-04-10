@@ -111,9 +111,9 @@ class BaseMotor(Device):
 
         # Do not move if requested position is within precision error
         # from current position.
-        if self.has_reached(pos) and not force:
-            logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
-            return
+        #if self.has_reached(pos) and not force:
+        #    logger.debug("'{}' Move Cancelled! Already at {:g}.".format(self.name, pos))
+        #    return
 
         self.set_state(starting=True)
         self.target_position = pos
