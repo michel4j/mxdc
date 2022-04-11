@@ -406,9 +406,16 @@ class MD2Gonio(BaseGoniometer):
         elif kind == 'raster':
             kwargs['snake'] = 1
 
-            # convert um to mm
-            kwargs['width'] *= 1e-3
-            kwargs['height'] *= 1e-3
+            # Scale and convert um to mm
+            # MD2 appears to need correction of scan size by -1 in each direction
+            # w_adj = 1e-3
+            w_adj = 1e-3 * (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
+
+            # h_adj = 1e-3
+            h_adj = 1e-3 * (kwargs['vsteps'] - 1)/kwargs['vsteps']
+
+            kwargs['width'] *= w_adj
+            kwargs['height'] *= h_adj
 
             kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = int(self.power_pmac)
@@ -422,8 +429,8 @@ class MD2Gonio(BaseGoniometer):
                 frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
                 line_size = max(kwargs['width'], kwargs['height'])
 
-            kwargs['frames'] = frames
-            kwargs['lines'] = lines
+            kwargs['frames'] = max(frames,1)
+            kwargs['lines'] = max(lines,2)
             kwargs['time'] *= frames
             kwargs['range'] *= frames
 

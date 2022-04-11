@@ -25,7 +25,6 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
     edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
 
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    cv2.drawContours(edges, contours, -1, (255, 255, 255), int(10 * scale))
     avg = frame.mean()
     std = frame.std()
     y_size, x_size = edges.shape

@@ -88,8 +88,8 @@ class Centering(Engine):
     def get_features(self):
         angle = self.beamline.goniometer.omega.get_position()
         frame = self.get_video_frame()
-        scale = 256. / frame.shape[1]
-        info = imgproc.get_loop_features(frame, scale=scale, orientation=self.beamline.config['orientation'])
+        #scale = 256. / frame.shape[1]
+        info = imgproc.get_loop_features(frame, orientation=self.beamline.config['orientation'])
         return angle, info
 
     def run(self):
@@ -230,7 +230,7 @@ class Centering(Engine):
         self.center_loop()
 
     def center_diffraction(self):
-        self.center_loop(3, 1, face=False)
+        self.center_loop(3, 1, face=True)
         scores = []
         if self.score < 0.5:
             logger.error('Loop-centering failed, aborting!')
@@ -240,7 +240,7 @@ class Centering(Engine):
         aperture = self.beamline.aperture.get()
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
-
+        self.beamline.goniometer.omega.move_by(90, wait=True)
         for step in ['edge', 'face']:
             logger.info('Performing raster scan on {}'.format(step))
             self.beamline.goniometer.wait(start=False)
