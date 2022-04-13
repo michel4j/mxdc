@@ -20,15 +20,19 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
     raw = cv2.flip(orig, 1) if orientation != 'left' else orig
     y_max, x_max = orig.shape[:2]
     frame = cv2.resize(raw, (0, 0), fx=scale, fy=scale)
-    raw_edges = cv2.Canny(frame, 50, 150)
-    edges = numpy.zeros_like(raw_edges)
-    edges[offset:-offset, offset:-offset] = raw_edges[offset:-offset, offset:-offset]
 
-    contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-    avg = frame.mean()
-    std = frame.std()
-    y_size, x_size = edges.shape
-    tip_x, tip_y = x_size // 2, y_size // 2
+    clean = cv2.fastNlMeansDenoisingColored(frame, None, 10, 10, 11, 11)
+    gray = cv2.cvtColor(clean, cv2.COLOR_BGR2GRAY)
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 3)
+    edges = cv2.bitwise_not(cv2.erode(thresh, None, 10))
+    edges[:offset, :] = 0
+    edges[-offset:, :] = 0
+    edges[:, -offset:] = 0
+
+    avg, std = cv2.meanStdDev(gray)
+    avg, std = avg.ravel()[0], std.ravel()[0]
+    height, width = edges.shape
+    tip_x, tip_y = width // 2, height // 2
 
     info = {
         'mean': avg,
@@ -39,70 +43,56 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
         'center-y': tip_y / scale,
     }
 
-    if contours:
+    if edges.max() > 128:
         info['score'] += 0.5
-        top_vertices = []
-        bottom_vertices = []
-        vertical_spans = []
-        vertical_midpoints = []
 
-        for i in range(x_size):
-            column = numpy.where(edges[:, i] > 128)[0]
-            if numpy.any(column):
-                top_vertices.append((i, column[0]))
-                bottom_vertices.append((i, column[-1]))
-                vertical_spans.append((i, column[-1] - column[0]))
-                vertical_midpoints.append((i, (column[-1] + column[0]) // 2))
-                tip_x = i
-                tip_y = (column[0] + column[-1]) // 2
-                if i == x_size // 2:
-                    info['capillary-y'] = tip_y/scale
-            else:
-                vertical_spans.append((i, 0))
-                vertical_midpoints.append((i, y_size // 2))
+        prof = numpy.argwhere(edges.T > 128)
+        cols, indices = numpy.unique(prof[:, 0], return_index=True)
+        data = numpy.split(prof[:, 1], indices[1:])
+        profiles = numpy.zeros((len(cols), 5), numpy.uint8)
+        for i, arr in enumerate(data):
+            mini, maxi = arr.min(), arr.max()
+            profiles[i, :] = (cols[i], mini, maxi, maxi - mini, (maxi + mini) // 2)
+            cv2.line(edges, (cols[i], mini), (cols[i], maxi), (128, 0, 255), 1)
 
-        info['x'] = tip_x / scale - 10
+        tip_x = profiles[:, 0].max()
+        tip_y = profiles[profiles[:, 0].argmax(), 4]
+
+        search_width = width / 6
+        info['x'] = tip_x / scale
         info['y'] = tip_y / scale
 
-        if len(vertical_spans):
-            info['score'] += 0.5
-            sizes = numpy.array(vertical_spans)
-            sizes[:, 1] = signal.savgol_filter(sizes[:, 1], 15, 1)
-            peaks = find_peaks(sizes[:, 0], sizes[:, 1], width=15)
+        valid = (
+            (numpy.abs(profiles[:, 4] - profiles[:, 4].mean()) < 2 * profiles[:, 4].std()) &
+            (tip_x - profiles[:, 0] <= search_width)
+        )  # reject outliers
 
-            x_center = int(peaks[-1][0]) if peaks else (tip_x - x_size // 16)
-            y_center = vertical_midpoints[x_center][1]
-            search_width = tip_x - x_center
-            search_start = x_center - search_width
-            search_end = tip_x
+        vertices = numpy.concatenate((
+            profiles[:, (0, 1)][valid],
+            profiles[:, (0, 2)][valid][::-1]
+        )).astype(int)
+        sizes = profiles[:, 3][valid]
 
-            vertices = [v for i, v in enumerate(top_vertices[search_start:search_end])]
-            vertices += [v for i, v in enumerate(bottom_vertices[search_start:search_end])][::-1]
-            ellipse_vertices = [v for v in vertices if v[0] > x_center + search_width // 3]
+        if len(vertices) > 5:
+            ellipse = cv2.fitEllipse(vertices)
+            info['ellipse'] = (
+                tuple([int(x / scale) for x in ellipse[0]]),
+                tuple([int(0.75 * x / scale) for x in ellipse[1]]),
+                ellipse[2],
+            )
+            ellipse_x, ellipse_y = info['ellipse'][0]
+            ellipse_w, ellipse_h = info['ellipse'][1]
 
-            info['loop-size'] = int(sizes[x_center][1] / scale)
-            info['loop-x'] = int(x_center / scale)
-            info['loop-y'] = int(y_center / scale)
+            info['loop-x'] = int(ellipse_x)
+            info['loop-y'] = int(ellipse_y)
+            info['loop-size'] = max(ellipse_w, ellipse_h)
+            info['loop-angle'] = 90 - ellipse[2]
 
-            points = (numpy.array(vertices[::5])).astype(int)
-            if len(ellipse_vertices) > 10:
-                ellipse = cv2.fitEllipse(numpy.array(ellipse_vertices).astype(int))
-                info['ellipse'] = (
-                    tuple([int(x / scale) for x in ellipse[0]]),
-                    tuple([int(0.75 * x / scale) for x in ellipse[1]]),
-                    ellipse[2],
-                )
-                ellipse_x, ellipse_y = info['ellipse'][0]
-                info['loop-x'] = int(ellipse_x)
-                info['loop-y'] = int(ellipse_y)
-                info['loop-size'] = max(ellipse[1])
-                info['loop-angle'] = 90 - ellipse[2]
+            info['loop-start'] = ellipse_x + info['loop-size']/2
+            info['loop-end'] = ellipse_x - info['loop-size']/2
 
-            info['loop-start'] = search_start / scale
-            info['loop-end'] = search_end / scale
-            info['peaks'] = peaks
-            info['sizes'] = (sizes / scale).astype(int)
-            info['points'] = [(int(x / scale), int(y / scale)) for x, y in points]
+        info['sizes'] = (sizes / scale).astype(int)
+        info['points'] = [(int(x / scale), int(y / scale)) for x, y in vertices]
 
     else:
         info['x'] = 0
@@ -113,9 +103,8 @@ def get_loop_features(orig, offset=10, scale=0.25, orientation='left'):
             if k in info:
                 info[k] = x_max - info[k]
         if 'points' in info:
-            info['points'] = [(x_max - x, y) for x,y in info['points']]
-        if 'peaks' in info:
-            info['peaks'] = [(x_max - x, y) for x, y in info['peaks']]
+            info['points'] = [(x_max - x, y) for x, y in info['points']]
+
     return info
 
 

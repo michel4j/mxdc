@@ -4,6 +4,7 @@ from datetime import datetime
 
 import numpy
 import pytz
+from collections import defaultdict
 from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Engine
@@ -40,12 +41,17 @@ class RasterCollector(Engine):
         self.total_frames = 0
         self.count = 0
         self.complete = False
+        self.series = defaultdict(int)
         Registry.add_utility(IRasterCollector, self)
 
     def is_complete(self):
         return self.complete
 
     def configure(self, params):
+        name_tag = datetime.now().strftime('%y%m%d%H%M%S')
+        self.series[name_tag] += 1
+
+        params['name'] = f'r{name_tag}_{self.series[name_tag]:03d}'
         self.config['params'] = params
 
         # calculate grid from dimensions

@@ -128,7 +128,6 @@ class RasterController(Object):
             params.update({
                 'distance': resol_to_dist(params['resolution'], self.beamline.detector.mm_size, self.beamline.energy.get_position()),
                 'origin': self.beamline.goniometer.stage.get_xyz(),
-                'name': datetime.now().strftime('r%y%m%d-%H%M%S'),
                 'uuid': str(uuid.uuid4()),
                 'activity': 'raster',
                 'energy': self.beamline.energy.get_position(),

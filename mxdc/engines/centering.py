@@ -69,7 +69,7 @@ class Centering(Engine):
         self.beamline.goniometer.wait(start=False, stop=True)
         cur = self.beamline.goniometer.omega.get_position()
         self.beamline.goniometer.omega.wait(start=True, stop=False)
-        for angle in numpy.arange(0, 135, 22.5):
+        for angle in numpy.arange(0, 90, 12.25):
             self.beamline.goniometer.omega.move_to(angle + cur, wait=True)
             img = self.beamline.sample_video.get_frame()
             height = imgproc.mid_height(img)
@@ -88,7 +88,6 @@ class Centering(Engine):
     def get_features(self):
         angle = self.beamline.goniometer.omega.get_position()
         frame = self.get_video_frame()
-        #scale = 256. / frame.shape[1]
         info = imgproc.get_loop_features(frame, orientation=self.beamline.config['orientation'])
         return angle, info
 
@@ -181,7 +180,7 @@ class Centering(Engine):
 
         self.score = numpy.mean(scores)
 
-    def center_loop(self, low_trials=2, med_trials=2, face=True):
+    def center_loop(self, trials=4, face=True):
         self.beamline.sample_frontlight.set_off()
         zoom = self.beamline.config['centering_zoom']
 
@@ -189,12 +188,10 @@ class Centering(Engine):
         # Find tip of loop at low and high zoom
         failed = False
         self.beamline.sample_video.zoom(zoom, wait=True)
-        trials = low_trials + med_trials
         for i in range(trials):
             if i != 0:
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
-                time.sleep(0.5)
 
             angle, info = self.get_features()
             scores.append(info.get('score', 0.0))
@@ -203,12 +200,12 @@ class Centering(Engine):
                 logger.warning('Attempting to translate into view')
                 x, y = info['x'], info['y']
                 xmm, ymm = self.screen_to_mm(x, y)
-                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
             else:
-                x, y = info['x'], info['y']
+                x, y = info.get('loop-x', info['x']), info['y']
                 logger.debug('... tip found at {}, {}'.format(x, y))
                 xmm, ymm = self.screen_to_mm(x, y)
-                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
         # Center in loop on loop face
@@ -230,7 +227,7 @@ class Centering(Engine):
         self.center_loop()
 
     def center_diffraction(self):
-        self.center_loop(3, 1, face=True)
+        self.center_loop(face=True)
         scores = []
         if self.score < 0.5:
             logger.error('Loop-centering failed, aborting!')
@@ -301,9 +298,9 @@ class Centering(Engine):
             logger.info(f'Best diffraction at {best_index}: score={best_score}')
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
             scores.append(best_score/100.)
+            self.beamline.goniometer.save_centering()
 
         self.score = numpy.mean(scores)
-
 
     def center_capillary(self):
         zoom = self.beamline.config['centering_zoom']
