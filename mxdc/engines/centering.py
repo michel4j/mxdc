@@ -202,7 +202,7 @@ class Centering(Engine):
                 xmm, ymm = self.screen_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
             else:
-                x, y = info.get('loop-x', info['x']), info['y']
+                x, y = info['x'], info.get('loop-y', info['y'])
                 logger.debug('... tip found at {}, {}'.format(x, y))
                 xmm, ymm = self.screen_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
