@@ -5,10 +5,11 @@ from datetime import datetime
 
 import cv2
 import numpy
+import scipy.stats
 
 from mxdc import Registry, Engine
 from mxdc.devices.interfaces import ICenter
-from mxdc.utils import imgproc, datatools, misc, converter
+from mxdc.utils import imgproc, datatools, converter
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -64,16 +65,19 @@ class Centering(Engine):
         ymm = (cy - y) * mm_scale
         return xmm, ymm
 
+    def pixel_to_mm(self, pixels):
+        return self.beamline.camera_scale.get() * pixels
+
     def loop_face(self, down=False):
         heights = []
         self.beamline.goniometer.wait(start=False, stop=True)
-        cur = self.beamline.goniometer.omega.get_position()
-        self.beamline.goniometer.omega.wait(start=True, stop=False)
-        for angle in numpy.arange(0, 90, 12.25):
-            self.beamline.goniometer.omega.move_to(angle + cur, wait=True)
-            img = self.beamline.sample_video.get_frame()
-            height = imgproc.mid_height(img)
-            heights.append((angle + cur, height))
+        angle, info = self.get_features()
+        heights.append((angle, info.get('loop-height', 0.0)))
+        for i in range(6):
+            self.beamline.goniometer.omega.move_by(15, wait=True)
+            angle, info = self.get_features()
+            heights.append((angle, info.get('loop-height', 0.0)))
+
         values = numpy.array(heights)
         best = values[numpy.argmax(values[:, 1]), 0]
         if down:
@@ -104,48 +108,10 @@ class Centering(Engine):
             else:
                 self.emit('done', None)
         logger.info(
-            'Centering Done in {:0.1f} seconds [Reliability={:0.0f}%]'.format(
-                time.time() - start_time, 100 * self.score
+            'Centering Done in {:0.1f} seconds [Confidence={:0.0f}%]'.format(
+                time.time() - start_time, self.score
             )
         )
-
-    def center_external1(self, low_trials=2, med_trials=2):
-        """
-        External centering device
-        :param low_trials: Number of trials at low resolution
-        :param med_trials: Number of trials at high resolution
-        """
-        if not self.device:
-            logger.warning('External centering device not present')
-            self.score = 0.0
-            return
-
-        self.beamline.sample_frontlight.set_off()
-        low_zoom, med_zoom, high_zoom = self.beamline.config['zoom_levels']
-
-        scores = []
-
-        for zoom_level in [low_zoom, med_zoom]:
-            self.beamline.sample_video.zoom(zoom_level, wait=True)
-            for i in range(2):
-                x, y, reliability, label = self.device.fetch()
-                scores.append(reliability)
-                logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
-                if reliability > 0.75:
-                    xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
-                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-                else:
-                    break
-                time.sleep(1.5)
-                # final 90 rotation not needed
-                final = (zoom_level == med_zoom and i == 1)
-                if not final :
-                    cur_pos = self.beamline.goniometer.omega.get_position()
-                    time.sleep(1)
-                    self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
-
-        self.score = numpy.mean(scores)
 
     def center_external(self, low_trials=2, med_trials=2):
         """
@@ -164,7 +130,7 @@ class Centering(Engine):
             found = self.device.wait(2)
             if found:
                 x, y, reliability, label = self.device.fetch()
-                logger.debug(f'... {label} found at {x}, {y}, prob={reliability}')
+                logger.debug(f'... {label} found at {x}, {y}, Confidence={reliability}')
                 scores.append(reliability)
                 if reliability > 0.5:
                     xmm, ymm = self.screen_to_mm(x, y)
@@ -178,13 +144,12 @@ class Centering(Engine):
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
-        self.score = numpy.mean(scores)
+        self.score = 100*numpy.mean(scores)
 
     def center_loop(self, trials=4, face=True):
         self.beamline.sample_frontlight.set_off()
         zoom = self.beamline.config['centering_zoom']
 
-        scores = []
         # Find tip of loop at low and high zoom
         failed = False
         self.beamline.sample_video.zoom(zoom, wait=True)
@@ -194,15 +159,14 @@ class Centering(Engine):
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
             angle, info = self.get_features()
-            scores.append(info.get('score', 0.0))
-            if info['score'] == 0.0:
+            if info['found'] == 0:
                 logger.warning('Loop not found in field-of-view')
                 logger.warning('Attempting to translate into view')
                 x, y = info['x'], info['y']
                 xmm, ymm = self.screen_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
             else:
-                x, y = info['x'], info.get('loop-y', info['y'])
+                x, y = info['x'], info['y']
                 logger.debug('... tip found at {}, {}'.format(x, y))
                 xmm, ymm = self.screen_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
@@ -210,31 +174,35 @@ class Centering(Engine):
 
         # Center in loop on loop face
         if not failed:
-            self.loop_face(down=not face)
+            self.beamline.sample_video.zoom(zoom + 2, wait=True)  # higher zoom gives better ellipses
+            self.loop_face()
             angle, info = self.get_features()
-            if info['score'] == 0.0:
-                logger.warning('Sample not found in field-of-view')
-            else:
+            if info['found'] == 2:
                 xmm, ymm = self.screen_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-            scores.append(info.get('score', 0.0))
+            self.score = info['score']
+            return info
         else:
+            self.score = 0.0
             logger.error('Sample not found. Centering Failed!')
-        self.score = numpy.mean(scores)
+            return {}
 
     def center_crystal(self):
-        self.center_loop()
+        return self.center_loop()
 
     def center_diffraction(self):
-        self.center_loop(face=True)
-        scores = []
-        if self.score < 0.5:
-            logger.error('Loop-centering failed, aborting!')
+        info = self.center_loop()
+        scores = [self.score]
+
+        if self.score < 0.5 or 'loop-x' not in info:
+            logger.error('Loop-centering failed, aborting diffraction centering!')
             return
 
         scores.append(self.score)
         aperture = self.beamline.aperture.get()
+        width = self.pixel_to_mm(info['loop-width']) * 1e3   # in microns
+        height = self.pixel_to_mm(info['loop-height']) * 1e3 # in microns
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
         self.beamline.goniometer.omega.move_by(90, wait=True)
@@ -244,7 +212,6 @@ class Centering(Engine):
             if step == 'face':
                 self.beamline.goniometer.omega.move_by(-90, wait=True)
 
-            time.sleep(2.0)
             params = {
                 'name': datetime.now().strftime('%y%m%d-%H%M'),
                 'uuid': str(uuid.uuid4()),
@@ -259,23 +226,13 @@ class Centering(Engine):
                 ),
                 'origin': self.beamline.goniometer.stage.get_xyz(),
                 'resolution': resolution,
+                'angle': self.beamline.goniometer.omega.get_position(),
+
             }
             if step == 'edge':
-                params.update({
-                    'angle': self.beamline.goniometer.omega.get_position(),
-                    'width': min(aperture*10, 200.0),
-                    'height': min(aperture*4, 200.0),
-                    'hsteps': 10,
-                    'vsteps': 4,
-                })
+                params.update({'hsteps': max(2, int(width//aperture)), 'vsteps': 5})
             else:
-                params.update({
-                    'angle': self.beamline.goniometer.omega.get_position(),
-                    'width': aperture*2,
-                    'height': aperture*10,
-                    'hsteps': 2,
-                    'vsteps': 10,
-                })
+                params.update({'hsteps': 2, 'vsteps': max(5, int(height//aperture))})
 
             params = datatools.update_for_sample(params, self.sample_store.get_current())
             logger.info('Finding best diffraction spot in grid')
@@ -287,17 +244,15 @@ class Centering(Engine):
                 time.sleep(.1)
 
             grid_config = self.collector.get_grid()
-
-            best = numpy.unravel_index(
-                grid_config['grid_scores'].argmax(axis=None), grid_config['grid_scores'].shape
-            )
+            best = numpy.unravel_index(grid_config['grid_scores'].argmax(axis=None), grid_config['grid_scores'].shape)
             best_score = grid_config['grid_scores'][best]
             best_index = grid_config['grid_index'].index(best)
             point = grid_config['grid_xyz'][best_index]
-
-            logger.info(f'Best diffraction at {best_index}: score={best_score}')
+            score = scipy.stats.percentileofscore(grid_config['grid_scores'].ravel(), best_score)
+            logger.info(f'Best diffraction at {best_index}: score={score:0.1f}%')
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
-            scores.append(best_score/100.)
+
+            scores.append(score)
             self.beamline.goniometer.save_centering()
 
         self.score = numpy.mean(scores)

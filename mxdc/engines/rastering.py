@@ -81,6 +81,7 @@ class RasterCollector(Engine):
                 'shape': shape,
             },
         }
+        self.config['params'].update(self.config['properties']['grid_params'])
 
     def get_grid(self):
         return self.config['properties']

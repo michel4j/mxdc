@@ -349,12 +349,6 @@ class Microscope(Object):
             self.change_tool()
         self.queue_overlay()
 
-    def auto_grid(self, *args, **kwargs):
-        img = self.camera.get_frame()
-        polygon = imgproc.find_profile(img, scale=0.25)
-        points = numpy.array(polygon)
-        self.props.grid_bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
-
     def add_point(self, point):
         self.props.points = self.props.points + [point]
         self.queue_overlay()

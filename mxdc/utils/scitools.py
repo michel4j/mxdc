@@ -372,3 +372,5 @@ def interprete_xrf(xo, yo, energy, speedup=4):
     )
     final_template = calc_template(xo, elements) * new_coeffs[:-1]
     return elements, final_template, new_coeffs
+
+
