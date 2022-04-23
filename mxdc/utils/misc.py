@@ -728,3 +728,5 @@ def load_spots(filename):
     else:
         spots[:, 3] = 1
     return spots
+
+

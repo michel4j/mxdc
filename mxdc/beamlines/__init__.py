@@ -147,7 +147,7 @@ class Beamline(Object):
         """
         Check if the current user is an administrator
         """
-        return get_project_name() in self.config.get('admin_users', [])
+        return get_project_name() in self.config.get('admins', [])
 
     def is_ready(self):
         """

@@ -41,6 +41,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.voffset = 0
         self.hoffset = 0
         self.surface = None
+        self.surface_buffer = None
         self.surface_dirty = True
         self.save_file = None
         self.stopped = False
@@ -206,11 +207,11 @@ class VideoWidget(Gtk.DrawingArea):
 
     def do_draw(self, cr):
         if self.surface is not None:
-            if self.overlay_func is not None and self.surface_dirty:
-                ctx = cairo.Context(self.surface)
-                self.overlay_func(ctx)
             cr.set_source_surface(self.surface, 0, 0)
             cr.paint()
+            if self.overlay_func:
+                self.overlay_func(cr)
+
             self.surface_dirty = False
             if self.save_file:
                 self.surface.write_to_png(self.save_file)

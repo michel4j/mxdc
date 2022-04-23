@@ -18,8 +18,7 @@ from .datasets import IDatasets
 from .samplestore import ISampleStore
 
 logger = get_module_logger(__name__)
-
-from mxio.formats import hdf5
+ENERGY_OFFSET = 2.0
 
 def summarize_lines(data):
     name_dict = {
@@ -563,7 +562,7 @@ class ScanManager(Object):
         self.plotter = plotter.Plotter(xformat='%g', dpi=90)
         min_energy, max_energy = self.beamline.config['energy_range']
         self.edge_selector = periodictable.EdgeSelector(
-            min_energy=min_energy, max_energy=max_energy, xrf_offset=self.beamline.config['xrf_energy_offset']
+            min_energy=min_energy, max_energy=max_energy, xrf_offset=ENERGY_OFFSET
         )
         self.xrf_scanner = XRFScanController(XRFScan(), self.plotter, widget, self.edge_selector)
         self.xas_scanner = XASScanController(XASScan(), self.plotter, widget, self.edge_selector)

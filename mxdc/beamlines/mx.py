@@ -22,7 +22,7 @@ class MXBeamline(Beamline):
     ]
     DEFAULTS = {
         'name': 'SIM-1',
-        'admin_users': [],
+        'admins': [],
         'energy_range': (6.0, 18.0),
         'zoom_levels': (1, 4, 6),
         'distance_limits': (100.0, 1000.0),
@@ -35,11 +35,9 @@ class MXBeamline(Beamline):
         'safe_beamstop': 25.0,
         'safe_distance': 700.0,
         'xrf_beamstop': 50.0,
-        'xrf_fwhm': 0.1,
-        'xrf_energy_offset': 2.0,
         'shutter_sequence': [],
         'orientation': 1,
-        'centering_zoomt': 2,
+        'centering_zoom': 2,
     }
 
     def setup(self):

@@ -79,14 +79,12 @@ class Category:
 
 
 class ColorMapper(object):
-    def __init__(self, color_map=cmaps.viridis, min_val=0, max_val=1.0):
+    def __init__(self, color_map=cmaps.viridis, vmin: float = 0.0, vmax: float = 1.0):
         self.cmap =  cm.get_cmap(color_map)
-        self.norm = colors.Normalize(vmin=min_val, vmax=max_val)
+        self.norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
 
-    def autoscale(self, values):
-        if len(values) > 1:
-            self.norm = colors.Normalize(vmin=min(values), vmax=max(values))
-            #self.norm.autoscale(values)
+    def rescale(self, values):
+        self.norm = colors.Normalize(vmin=values.min(), vmax=values.max())
          
     def rgb_values(self, val):
         return self.rgba_values(val)[:3]
@@ -110,8 +108,8 @@ class ColorMapper(object):
         return ("#%02x%02x%02x" % (R,G,B)).upper()
         
 
-PERCENT_COLORMAP = ColorMapper(min_val=10, max_val=90)
-FRACTION_COLORMAP = ColorMapper(min_val=0.1, max_val=0.9)
+PERCENT_COLORMAP = ColorMapper(vmin=10, vmax=90)
+FRACTION_COLORMAP = ColorMapper(vmin=0.1, vmax=0.9)
 
 
 def lighten_color(s, step=51):

@@ -19,6 +19,7 @@ from mxdc.utils.misc import multi_count
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
+ENERGY_OFFSET = 2.0
 
 class XRFScan(BasicScan):
     """
@@ -81,11 +82,11 @@ class XRFScan(BasicScan):
         x = self.data['energy'].astype(float)
         y = self.data['normfluor'].astype(float)
         energy = self.config['energy']
-        sel = (x < 0.5) | (x > energy - self.beamline.config.get('xrf_energy_offset', 2.0))
+        sel = (x < 0.5) | (x > energy - ENERGY_OFFSET)
         y[sel] = 0.0
 
         # set FWHM of detector
-        scitools.PEAK_FWHM = self.beamline.config.get('xrf_fwhm', 0.1)
+        scitools.PEAK_FWHM = 0.1
         elements, bblocks, coeffs = scitools.interprete_xrf(x, y, energy)
         assigned = {}
         for i, el_info in enumerate(elements):

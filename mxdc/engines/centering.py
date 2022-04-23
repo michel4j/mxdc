@@ -174,7 +174,7 @@ class Centering(Engine):
 
         # Center in loop on loop face
         if not failed:
-            self.beamline.sample_video.zoom(zoom + 2, wait=True)  # higher zoom gives better ellipses
+            #self.beamline.sample_video.zoom(zoom + 2, wait=True)  # higher zoom gives better ellipses
             self.loop_face()
             angle, info = self.get_features()
             if info['found'] == 2:

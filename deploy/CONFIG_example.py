@@ -15,7 +15,7 @@ CONFIG = {
     'type': 'mxdc.beamlines.mx.MXBeamline',
     'subnet': '0.0.0.0/0',
 
-    'admin_users': [],
+    'admins': [],
 
     'energy_range': (5.0, 19.0),
     'zoom_levels': (2, 4, 6),
@@ -26,11 +26,8 @@ CONFIG = {
     'safe_beamstop': 50.0,
     'safe_distance': 400.0,
     'xrf_beamstop': 50.0,
-    'xrf_fwhm': 0.1,
-    'xrf_energy_offset': 2.0,
     'shutter_sequence': ('ssh1', 'psh1', 'psh2'),
     'orientation': 'left',
-    'centering_backlight': 50,
     'bug_report': ['michel.fodje@lightsource.ca']
 }
 

@@ -598,44 +598,6 @@ class PseudoMotor(VMEMotor):
         self.log_fbk.connect('changed', self.on_log)
 
 
-class BraggEnergyMotor(VMEMotor):
-    """
-    VME Motor for Bragg based Energy
-
-    :param name: PV name
-    :param encoder: external encoder if not using internal encoder
-    :param mono_unit_cell: Si-111 unit cell parameter
-    """
-    def __init__(self, name, encoder=None, mono_unit_cell=5.4310209, fixed_lo=2.0, fixed_hi=2.1, fixed_value=8.157,
-                 **kwargs):
-        self.encoder = encoder
-        self.mono_unit_cell = mono_unit_cell
-        self.fixed_lo, self.fixed_hi = fixed_lo, fixed_hi
-        self.fixed_value = fixed_value
-        kwargs['units'] = 'keV'
-        super().__init__(name, **kwargs)
-        self.description = 'Bragg Energy'
-
-    def convert(self, value):
-        if self.fixed_hi > value > self.fixed_lo:
-            return self.fixed_value
-        else:
-            return converter.bragg_to_energy(value, unit_cell=self.mono_unit_cell)
-
-    def get_position(self):
-        return self.convert(self.pos_fbk.get())
-
-    def on_target(self, obj, value):
-        pass  # not needed for bragg
-
-    def on_desc(self, pv, val):
-        pass  # do not change description
-
-    def move_operation(self, target):
-        bragg_target = converter.energy_to_bragg(target, unit_cell=self.mono_unit_cell)
-        self.pos_tgt.put(bragg_target)
-
-
 class ResolutionMotor(BaseMotor):
     """
     Detector Resolution PseudoMotor

@@ -62,10 +62,10 @@ class Microscope(Object):
         self.max_fps = 20
         self.fps_update = 0
         self.video_ready = False
-        self.queue_overlay()
         self.overlay_surface = None
         self.overlay_buffer = None
-
+        self.drawing_overlay = False
+        self.queue_overlay()
 
         self.props.grid = None
         self.props.grid_xyz = None
@@ -74,7 +74,7 @@ class Microscope(Object):
         self.props.grid_bbox = []
         self.props.grid_scores = None
         self.props.grid_params = {}
-        self.props.grid_cmap = colors.ColorMapper(min_val=0, max_val=100)
+        self.props.grid_cmap = colors.ColorMapper(vmin=0, vmax=100)
         self.props.tool = self.ToolState.DEFAULT
         self.prev_tool = self.tool
 
@@ -404,7 +404,7 @@ class Microscope(Object):
 
     def rescale_grid_colormap(self):
         if self.props.grid_scores is not None:
-            self.props.grid_cmap.autoscale(self.props.grid_scores.ravel())
+            self.props.grid_cmap.rescale(self.props.grid_scores)
 
     def load_grid(self, properties):
         # Set properties
@@ -437,7 +437,11 @@ class Microscope(Object):
     def update_overlay(self):
         if self.overlay_surface is None:
             self.create_overlay_surface()
-        if self.overlay_dirty:
+
+        if self.overlay_dirty and not self.drawing_overlay:
+            self.drawing_overlay = True
+            self.overlay_dirty = False
+
             # clear surface
             ctx = cairo.Context(self.overlay_buffer)
             ctx.save()
@@ -446,14 +450,14 @@ class Microscope(Object):
             ctx.restore()
 
             self.draw_beam(ctx)
-            self.draw_grid(ctx)
             self.draw_bbox(ctx)
             self.draw_points(ctx)
             self.draw_measurement(ctx)
+            self.draw_grid(ctx)
 
             # swap buffers
             self.overlay_surface, self.overlay_buffer = self.overlay_buffer, self.overlay_surface
-            self.overlay_dirty = False
+            self.drawing_overlay = False
 
     def recalculate_grid(self):
         center = numpy.array(self.video.get_size()) * 0.5
