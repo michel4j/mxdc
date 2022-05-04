@@ -4,6 +4,8 @@ import pwd
 import subprocess
 import threading
 import time
+import logging
+
 from pathlib import Path
 from queue import Queue
 
@@ -152,7 +154,11 @@ class SyncService(server.Service):
 
 
 def main(args):
+    if args.v:
+        log.log_to_console(logging.DEBUG)
+    else:
+        log.log_to_console(logging.INFO)
+
     service = SyncService(dest=args.archive, link=args.link, depth=args.depth)
-    log.log_to_console()
     app = server.Server(service=service, ports=DSS_PORTS, instances=1)
     app.run()
