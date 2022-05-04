@@ -485,7 +485,12 @@ class DSClient(BaseService):
 
     def setup_folder(self, path, user_name):
         res = self.service.setup_folder(folder=path, user_name=user_name)
+        res.connect('failed', print_error)
         return res.wait(timeout=5)
+
+
+def print_error(result, message):
+    print(result, message)
 
 
 __all__ = [

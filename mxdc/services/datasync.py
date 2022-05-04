@@ -125,8 +125,6 @@ class SyncService(server.Service):
         if not self.ready:
             self.start_monitor()
 
-        user_name = 'michel'
-
         if folder:
             full_path = Path(folder)
             full_archive = Path(self.dest).joinpath(*full_path.parts[1:])
