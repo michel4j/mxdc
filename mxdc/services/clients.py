@@ -14,6 +14,7 @@ import redis
 import requests
 szrpc.client.use(GResult)
 
+from pathlib import Path
 from backports.datetime_fromisoformat import MonkeyPatch
 
 MonkeyPatch.patch_fromisoformat()
@@ -456,7 +457,7 @@ class DPClient(BaseService):
 
     def __init__(self, address):
         super().__init__()
-        self.name = 'Data Analysis Server'
+        self.name = 'Data Analysis Service'
         self.service = szrpc.client.Client(address)
         self.set_state(active=True, health=(0,'',''))
 
@@ -476,21 +477,27 @@ class DPClient(BaseService):
 class DSClient(BaseService):
     def __init__(self, address):
         super().__init__()
-        self.name = 'Data Synchronization Client'
+        self.name = 'Data Synchronization Service'
         self.service = szrpc.client.Client(address)
         self.set_state(active=True, health=(0, '', ''))
 
     def configure(self, **kwargs):
         return self.service.configure(**kwargs)
 
-    def setup_folder(self, path, user_name):
-        res = self.service.setup_folder(folder=path, user_name=user_name)
-        res.connect('failed', print_error)
-        return res.wait(timeout=5)
+    def setup_folder(self, folder, user_name):
+        t = time.time()
+        res = self.service.setup_folder(folder=folder, user_name=user_name)
+        res.connect('failed', self.on_error)
+        success = res.wait(timeout=5)
 
+        # Wait up to 10 seconds until folder is available locally before proceeding
+        path = Path(folder)
+        while not path.exists() and time.time() - t < 10:
+            time.sleep(.1)
+        return success
 
-def print_error(result, message):
-    print(result, message)
+    def on_error(self, result, message):
+        logger.error(message)
 
 
 __all__ = [

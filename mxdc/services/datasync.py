@@ -137,10 +137,11 @@ class SyncService(server.Service):
                     os.makedirs(full_path, exist_ok=True, mode=self.mode)
                     logger.debug('Adding folder for archival: {}'.format(folder))
 
-            if self.link:
-                os.symlink(archive_root, session_root)
-            else:
+            if not self.link:
+                # archiving instead
                 self.outbox.put({'src': session_root, 'dest': archive_root, 'user_name': user_name})
+            elif not session_root.exists():
+                os.symlink(archive_root, session_root)
 
     def remote__configure(self, request, **kwargs):
         """
