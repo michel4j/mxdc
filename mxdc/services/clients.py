@@ -176,6 +176,20 @@ class DSSClient(PBClient):
         return out
 
 
+class LocalDSSClient(BaseService):
+    def __init__(self, *args, **kwargs):
+        super(LocalDSSClient, self).__init__()
+        self.name = "ImgSync Service"
+        self.set_state(active=True)
+        self.params = []
+
+    def setup_folder(self, folder, user_name):
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        os.chmod(folder, 0o777)
+        return True
+
+
 class MxLIVEClient(BaseService):
     def __init__(self, address):
         super().__init__()
@@ -438,20 +452,6 @@ def MxDCClientFactory(code):
     return Client
 
 
-class LocalDSSClient(BaseService):
-    def __init__(self, *args, **kwargs):
-        super(LocalDSSClient, self).__init__()
-        self.name = "ImgSync Service"
-        self.set_state(active=True)
-        self.params = []
-
-    def setup_folder(self, folder, user_name):
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        os.chmod(folder, 0o777)
-        return True
-
-
 class DPClient(BaseService):
 
     def __init__(self, address):
@@ -473,6 +473,21 @@ class DPClient(BaseService):
         return self.service.signal_strength(**kwargs)
 
 
+class DSClient(BaseService):
+    def __init__(self, address):
+        super().__init__()
+        self.name = 'Data Synchronization Client'
+        self.service = szrpc.client.Client(address)
+        self.set_state(active=True, health=(0, '', ''))
+
+    def configure(self, **kwargs):
+        return self.service.configure(**kwargs)
+
+    def setup_folder(self, path, user_name):
+        res = self.service.setup_folder(folder=path, user_name=user_name)
+        return res.wait(timeout=5)
+
+
 __all__ = [
-    'DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger', 'SimMessenger', 'DPClient'
+    'DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger', 'SimMessenger', 'DPClient', 'DSClient'
 ]

@@ -125,7 +125,7 @@ class RasterCollector(Engine):
                 'directory': self.config['params']['directory'],
                 'first': 1,
                 'num_frames': self.total_frames,
-                'timeout': max(10, min(self.config['params']['exposure'] * 5, 60))
+                'timeout': max(20, min(self.config['params']['exposure'] * 5, 60))
             }
             if self.beamline.detector.monitor_type == 'stream':
                 params.update({

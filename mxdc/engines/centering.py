@@ -16,7 +16,7 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 RASTER_DELTA = 0.1
-RASTER_EXPOSURE = 0.2
+RASTER_EXPOSURE = 0.1
 RASTER_RESOLUTION = 2
 
 SAMPLE_SHIFT_STEP = 0.2  # mm
@@ -73,8 +73,8 @@ class Centering(Engine):
         self.beamline.goniometer.wait(start=False, stop=True)
         angle, info = self.get_features()
         heights.append((angle, info.get('loop-height', 0.0)))
-        for i in range(6):
-            self.beamline.goniometer.omega.move_by(15, wait=True)
+        for i in range(5):
+            self.beamline.goniometer.omega.move_by(20, wait=True)
             angle, info = self.get_features()
             heights.append((angle, info.get('loop-height', 0.0)))
 
@@ -146,7 +146,7 @@ class Centering(Engine):
 
         self.score = 100*numpy.mean(scores)
 
-    def center_loop(self, trials=4, face=True):
+    def center_loop(self, trials=5, face=True):
         self.beamline.sample_frontlight.set_off()
         zoom = self.beamline.config['centering_zoom']
 
@@ -174,7 +174,7 @@ class Centering(Engine):
 
         # Center in loop on loop face
         if not failed:
-            #self.beamline.sample_video.zoom(zoom + 2, wait=True)  # higher zoom gives better ellipses
+            self.beamline.sample_video.zoom(zoom + 1, wait=True)  # higher zoom gives better ellipses
             self.loop_face()
             angle, info = self.get_features()
             if info['found'] == 2:

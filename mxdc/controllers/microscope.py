@@ -19,7 +19,12 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
 from . import common
 
+#import gc
+#gc.set_debug(gc.DEBUG_STATS|gc.DEBUG_LEAK|gc.DEBUG_UNCOLLECTABLE)
+
 logger = get_module_logger(__name__)
+
+MIN_GRID_UPDATE_PERIOD = 0.1  # minimum time between grid recalculations
 
 
 def orientation(p):
@@ -65,6 +70,7 @@ class Microscope(Object):
         self.overlay_surface = None
         self.overlay_buffer = None
         self.drawing_overlay = False
+        self.last_grid_update = time.time()
         self.queue_overlay()
 
         self.props.grid = None
@@ -472,12 +478,14 @@ class Microscope(Object):
 
     # callbacks
     def update_grid(self, *args, **kwargs):
-        if self.props.grid_xyz is not None:
-            self.props.grid = self.recalculate_grid()
-            self.rescale_grid_colormap()
-        else:
-            self.props.grid = None
-        self.queue_overlay()
+        if time.time() - self.last_grid_update > MIN_GRID_UPDATE_PERIOD:
+            self.last_grid_update = time.time()
+            if self.props.grid_xyz is not None:
+                self.props.grid = self.recalculate_grid()
+                self.rescale_grid_colormap()
+            else:
+                self.props.grid = None
+            self.queue_overlay()
 
     def colorize(self, button):
         self.video.set_colorize(state=button.get_active())

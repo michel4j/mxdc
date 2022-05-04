@@ -12,8 +12,8 @@ if not CONFIGS:
     raise ImportError('Configuration system not initialized. Run conf.initialize() before importing settings')
 
 _KEY_FILE = os.path.join(os.path.dirname(APP_CACHE_DIR), 'keys.dsa')
-
 DEBUG = bool(os.environ.get('MXDC_DEBUG'))
+SESSION_GAP = 5
 
 
 def get_string(*args):
@@ -64,7 +64,7 @@ def get_session():
     today = date.today()
     prev_date_string = config.get('session-start', '19900101')
     prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
-    if (today - prev_date).days > 5 or not 'session-key' in config:
+    if (today - prev_date).days > SESSION_GAP or not 'session-key' in config:
         date_string = today.strftime('%Y%m%d')
         token = ''.join(numpy.random.choice(list(string.digits + string.ascii_letters), size=8))
         config['session-key'] = '{}-{}-{}'.format(PROPERTIES['name'].replace('-', ''), date_string, token)

@@ -84,7 +84,9 @@ class ColorMapper(object):
         self.norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
 
     def rescale(self, values):
-        self.norm = colors.Normalize(vmin=values.min(), vmax=values.max())
+        sel = values > 0
+        if sel.sum() > 0:
+            self.norm = colors.Normalize(vmin=values[sel].min(), vmax=values[sel].max())
          
     def rgb_values(self, val):
         return self.rgba_values(val)[:3]

@@ -98,6 +98,7 @@ class DataCollector(Engine):
         # setup folder for wedge
         self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
 
+
         # delete existing frames
         frames = [i + wedge['first'] for i in range(wedge['num_frames'])]
         self.beamline.detector.delete(wedge['directory'], wedge['name'], frames)

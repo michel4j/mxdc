@@ -174,6 +174,7 @@ class DataLoader(Object):
                 self.show(dataset)
                 success = True
             except Exception as e:
+                logger.debug(str(e))
                 success = False
             attempts += 1
             time.sleep(0.25)

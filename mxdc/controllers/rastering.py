@@ -1,8 +1,7 @@
-import copy
+
 import time
 import os
 import uuid
-from datetime import datetime
 from enum import Enum
 
 from gi.repository import Gtk
@@ -56,9 +55,12 @@ class RasterForm(FormManager):
             )
             self.set_values({'hsteps': hsteps, 'vsteps': vsteps, 'height': vsteps*aperture, 'width': hsteps*aperture})
 
-        if name in ['hsteps', 'vsteps', 'aperture', 'exposure']:
-            rate = self.get_value('aperture')*1e-3/self.get_value('exposure')
-            self.set_value('exposure', self.get_value('aperture')*1e-3/min(rate, self.beamline.config.get('max_raster_speed')))
+        if name in ['aperture', 'exposure']:
+            exposure = self.get_value('exposure')
+            det_exp_limit = 1/self.beamline.config.get('max_raster_freq', 100)
+            mtr_exp_limit = self.get_value('aperture')*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
+
+            self.set_value('exposure', max(exposure, det_exp_limit, mtr_exp_limit))
 
 
 class RasterController(Object):
@@ -244,7 +246,7 @@ class RasterController(Object):
             self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
             config = self.results[item['uuid']]
             self.microscope.load_grid(config)
-            self.widget.dsets_dir_fbk.set_text(config['params']['directory'])
+            #self.widget.dsets_dir_fbk.set_text(config['info']['directory'])
         else:
             image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])

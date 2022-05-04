@@ -5,12 +5,14 @@ import os
 import pwd
 import re
 import subprocess
+import threading
 import sys
 import time
 import shutil
 from pathlib import Path
-
 from twisted.internet import gireactor
+
+
 gireactor.install()
 
 from twisted.application import internet, service
@@ -26,6 +28,9 @@ logger = log.get_module_logger(__name__)
 
 DSS_PORT = 8882
 DSS_CODE = '_imgsync._tcp.local.'
+INCLUDE = ['*.img', '*.cbf', '*.xdi', '*.meta', '*.mad', '*.xrf', '*.xas', '*.h5', '*.mtz', '*.hkl', '*.HKL']
+ARCHIVE_TIMEOUT = 60*60     # stop archiving if no files are transferred for 1 hour.
+REPEAT_TIME = 120            # Repeat rsync after this number of seconds
 
 
 class TwistedLogger(logging.StreamHandler):
@@ -117,11 +122,16 @@ class Archiver(object):
     def is_active(self):
         return self.processing
 
-    def start(self):
+    def start_twisted(self):
         self.stopped = False
         if self.processing:
             return defer.Deferred([])
         return threads.deferToThread(self.run)
+
+    def start(self):
+        self.stopped = False
+        thread = threading.Thread(target=self.run, daemon=True)
+        thread.start()
 
     def stop(self):
         self.stopped = True
@@ -160,7 +170,6 @@ class Archiver(object):
             if not self.failed or self.complete:
                 time.sleep(30)
         self.processing = False
-
 
 
 @implementer(IDSService)
@@ -219,7 +228,7 @@ class DSService(service.Service):
 
         logger.debug('Adding folder for archival: {}'.format(folder))
         archiver = Archiver(folder, backup_dir, self.INCLUDE, user_name=user_name)
-        archiver.start()
+        archiver.start_twisted()
         self.backups.add(archiver)
         return defer.succeed([])
 
@@ -267,3 +276,5 @@ def main(args):
             app._exitWithSignal(runner._exitSignal)
 
     app.run(runApp, ServerOptions)
+
+

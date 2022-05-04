@@ -2,15 +2,16 @@
 
 import sys
 import argparse
-from mxdc.services import imagesync
+from mxdc.services import datasync
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Data Sync Server")
-    parser.add_argument('-p', '--pidfile', help="Name of the pidfile [default: twistd.pid]",  type=str)
-    parser.add_argument('-l', '--logfile', help="log to a specified file, - for stdout",  type=str)
-    parser.add_argument('-n', '--nodaemon', help="don't daemonize",  action="store_true")
+    parser.add_argument('-a', '--archive', help="Archive Prefix, default /archive",  type=str)
+    parser.add_argument('-d', '--depth', help="Session directory depth",  type=int, default=4)
+    parser.add_argument('-l', '--link', help="Create Symbolic links, no duplication",  type=bool, action="store_true")
+
     args = parser.parse_args()
     sys.exit(
-        imagesync.main(args)
+        datasync.main(args)
     )
 
