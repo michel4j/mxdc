@@ -44,8 +44,6 @@ setup(
         'bin/plotxdi',
         'bin/sim-console',
         'bin/sim-mxdc',
-        'bin/sync.server',
-        'bin/sync.eiger',
     ],
     classifiers=[
         'Intended Audience :: Developers',

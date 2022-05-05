@@ -59,7 +59,11 @@ class DataCollector(Engine):
 
     def save_datasets(self):
         while True:
-            dataset, analysis = self.save_queue.get()
+            dataset, analysis, end_time = self.save_queue.get()
+            # Wait for some time after data acquisition stopped before trying to save the dataset
+            while (datetime.now(tz=pytz.utc) - end_time).total_seconds() < self.beamline.config.get('data_overhead', 30):
+                time.sleep(1)
+
             for details in dataset.get_details():
                 try:
                     metadata = self.save(details)
@@ -97,7 +101,6 @@ class DataCollector(Engine):
         logger.debug('Preparing for new dataset wedge ...')
         # setup folder for wedge
         self.beamline.dss.setup_folder(wedge['directory'], misc.get_project_name())
-
 
         # delete existing frames
         frames = [i + wedge['first'] for i in range(wedge['num_frames'])]
@@ -158,7 +161,7 @@ class DataCollector(Engine):
 
         # Wait for Last image to be transferred
         for uid, dataset in self.config['datasets'].items():
-            self.save_queue.put((dataset, self.config['analysis']))
+            self.save_queue.put((dataset, self.config['analysis'], self.config['end_time']))
 
         self.unwatch_frames()
         self.set_state(busy=False)
