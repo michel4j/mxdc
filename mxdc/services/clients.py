@@ -485,16 +485,17 @@ class DSClient(BaseService):
         return self.service.configure(**kwargs)
 
     def setup_folder(self, folder, user_name):
+        timeout = 10
         t = time.time()
         res = self.service.setup_folder(folder=folder, user_name=user_name)
         res.connect('failed', self.on_error)
-        success = res.wait(timeout=5)
+        success = res.wait(timeout=timeout)
 
         # Wait up to 10 seconds until folder is available locally before proceeding
         path = Path(folder)
-        while not path.exists() and time.time() - t < 10:
+        while not path.exists() and time.time() - t < timeout:
             time.sleep(.1)
-        return success
+        return success and time.time() - t < timeout
 
     def on_error(self, result, message):
         logger.error(message)

@@ -304,7 +304,7 @@ class DataCollector(Engine):
 
             # take snapshot
             snapshot_file = os.path.join(dataset.details['directory'], f'{prefix}.png')
-            if not os.path.exists(snapshot_file):
+            if not os.path.exists(snapshot_file) and os.path.exists(dataset.details['directory']):
                 logger.info('Taking snapshot ...')
                 img = self.beamline.sample_camera.get_frame()
                 img.save(snapshot_file)

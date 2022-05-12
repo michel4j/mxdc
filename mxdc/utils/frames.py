@@ -1,10 +1,13 @@
 import json
+import math
 import os
+import re
+import subprocess
 import threading
 import time
-import math
 from collections import deque
 from enum import Enum
+from pathlib import Path
 
 import zmq
 from mxio import read_image
@@ -45,7 +48,7 @@ class FileMonitor(DataMonitor):
     Data Monitor which reads frames from disk
     """
 
-    MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for tile to be done writing to disk
+    MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for file to be done writing to disk
 
     def __init__(self, master):
         super().__init__(master)
@@ -59,19 +62,19 @@ class FileMonitor(DataMonitor):
         self.set_state(busy=True)
         attempts = 0
         success = False
+        path = Path(path)
+
         while not success and attempts < 10:
-            loadable = (
-                os.path.exists(path) and
-                time.time() - os.path.getmtime(path) > self.MAX_SAVE_JITTER
-            )
-            if loadable:
+            # ping disk location
+            if path.exists():
                 try:
-                    dataset = read_image(path)
+                    dataset = read_image(str(path))
                     if self.master:
                         self.master.process_frame(dataset)
                     success = True
-                except Exception:
+                except Exception as e:
                     success = False
+                    print(e)
             attempts += 1
             time.sleep(1/MAX_FILE_FREQUENCY)
         self.set_state(busy=False)

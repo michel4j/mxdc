@@ -741,6 +741,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         self.wait_until(States.IDLE)
 
     def on_new_frame(self, obj, frame_number):
+
         if frame_number > 0:
             template = self.file_format.get()
             directory = self.settings['directory'].get()
@@ -770,7 +771,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['exposure_time'] -= self.READOUT_TIME
 
         # num frames is increased by 50% for Pilatus to avoid hardware timeout issue during raster scans
-        params['num_frames'] = int(params.get('frame_size', 1) * params.get('num_frames', 1) * 1.5)
+        params['num_frames'] = int(params.get('frame_size', 1) * params.get('num_frames', 1))
         self.saved_frame.put(0)
         self.mode_cmd.put(1)  # External Enable
 
