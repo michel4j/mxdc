@@ -757,7 +757,6 @@ class DatasetsController(Object):
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
             self.widget.dsets_dir_fbk.set_text(wedge['directory'])
-            os.chdir(wedge['directory'])
 
             progress_text = "Acquiring from {:g}-{:g}° for '{}' ...".format(
                 wedge['start'], wedge['start']+wedge['num_frames']*wedge['delta'], wedge['name']

@@ -494,7 +494,8 @@ class DSClient(BaseService):
         # Wait up to 10 seconds until folder is available locally before proceeding
         path = Path(folder)
         while not path.exists() and time.time() - t < timeout:
-            time.sleep(.1)
+            path.parent.glob('*')
+            time.sleep(.5)
         return success and time.time() - t < timeout
 
     def on_error(self, result, message):

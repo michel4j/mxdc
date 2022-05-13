@@ -110,7 +110,7 @@ class Application(Gtk.Application):
             emails=self.beamline.config['bug_report'], exit_function=self.quit
         )
 
-        #self.hook.install()
+        self.hook.install()
         self.broadcast_service()
 
     def do_activate(self, *args):
