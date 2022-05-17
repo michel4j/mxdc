@@ -194,6 +194,7 @@ class TreeManager(GObject.GObject):
         row = [item.get(key) for key in self.keys]
         child_itr = self.model.append(parent_itr, row=row)
         child_path = self.model.get_path(child_itr)
+
         return parent_path, child_path
 
     def find_parent_iter(self, item):

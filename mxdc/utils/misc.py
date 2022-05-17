@@ -309,7 +309,7 @@ def get_free_tcp_port():
 
 def frame_score(info):
     try:
-        return info['bragg_spots']
+        return info['bragg_spots']*info['signal_avg']
     except KeyError:
         return 0.0
 

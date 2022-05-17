@@ -48,10 +48,10 @@ class RasterCollector(Engine):
         return self.complete
 
     def configure(self, params):
-        name_tag = datetime.now().strftime('%y%m%d%H%M%S')
+        name_tag = datetime.now().strftime('%j%H')
         self.series[name_tag] += 1
 
-        params['name'] = f'r{name_tag}_{self.series[name_tag]:03d}'
+        params['name'] = f'R{name_tag}{self.series[name_tag]:02d}'
         self.config['params'] = params
 
         # calculate grid from dimensions

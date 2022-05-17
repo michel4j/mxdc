@@ -234,6 +234,7 @@ class RasterController(Object):
         })
 
         if parent:
+            self.view.collapse_all()
             self.view.expand_row(parent, False)
         self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
         self.microscope.update_grid()
