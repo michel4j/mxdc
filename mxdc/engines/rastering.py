@@ -1,4 +1,5 @@
 import os
+import pprint
 import time
 from datetime import datetime
 
@@ -245,7 +246,8 @@ class RasterCollector(Engine):
         time.sleep(0)
 
     def on_raster_update(self, result, info, template):
-        score = misc.frame_score(info)
+
+        score = info.get('bragg_spots', 0) * info.get('signal_avg', 0.0)/1e3
         index = info['frame_number'] - 1
         ij = self.config['properties']['grid_index'][index]
 
@@ -259,6 +261,7 @@ class RasterCollector(Engine):
         fraction = self.count / self.total_frames
         msg = 'Analysis {}: {} of {} complete'.format(self.config['params']['name'], self.count, self.total_frames)
         self.emit('progress', fraction, msg)
+        #numpy.save('/tmp/raster.npy', self.config['properties']['grid_scores'])
 
     def on_raster_done(self, result, data):
         self.save_metadata()

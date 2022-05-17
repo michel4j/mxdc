@@ -119,8 +119,11 @@ def load_cache(realm):
 
 
 def save_cache(data, realm):
-    with open(os.path.join(APP_CACHE_DIR, realm), 'wb') as handle:
-        msgpack.dump(data, handle)
+    try:
+        with open(os.path.join(APP_CACHE_DIR, realm), 'wb') as handle:
+            msgpack.dump(data, handle)
+    except (PermissionError, IOError):
+        pass
 
 
 def clear_cache(keep_session=True):

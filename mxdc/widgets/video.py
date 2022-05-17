@@ -214,7 +214,8 @@ class VideoWidget(Gtk.DrawingArea):
 
             self.surface_dirty = False
             if self.save_file:
-                self.surface.write_to_png(self.save_file)
+                surface = cr.get_target()
+                surface.write_to_png(self.save_file)
                 logger.info('{} saved'.format(self.save_file))
                 self.save_file = None
 

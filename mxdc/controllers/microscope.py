@@ -24,7 +24,7 @@ from . import common
 
 logger = get_module_logger(__name__)
 
-MIN_GRID_UPDATE_PERIOD = 0.1  # minimum time between grid recalculations
+MIN_GRID_UPDATE_PERIOD = .1  # minimum time between grid recalculations
 
 
 def orientation(p):
@@ -292,7 +292,10 @@ class Microscope(Object):
             if self.props.grid_index is None:
                 return
             for i, (x, y, z) in enumerate(self.props.grid):
-                ij = self.props.grid_index[i]
+                try:
+                    ij = self.props.grid_index[i]
+                except:
+                    continue
                 if self.props.grid_scores[ij] >= 0:
                     col = self.props.grid_cmap.rgba_values(self.props.grid_scores[ij], alpha=0.65)
                     cr.set_source_rgba(*col)

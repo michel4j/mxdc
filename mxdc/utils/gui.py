@@ -325,7 +325,6 @@ class TreeManager(GObject.GObject):
                 column.set_cell_data_func(renderer, self.format_cell, spec)
                 if spec.type == ColumnType.NUMBER:
                     renderer.set_alignment(0.8, 0.5)
-                    #renderer.props.family = 'Monospace'
                 self.view.append_column(column)
             if self.tooltips:
                 self.view.set_tooltip_column(self.tooltips.value)
