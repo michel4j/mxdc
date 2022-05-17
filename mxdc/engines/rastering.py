@@ -261,9 +261,18 @@ class RasterCollector(Engine):
         fraction = self.count / self.total_frames
         msg = 'Analysis {}: {} of {} complete'.format(self.config['params']['name'], self.count, self.total_frames)
         self.emit('progress', fraction, msg)
-        #numpy.save('/tmp/raster.npy', self.config['properties']['grid_scores'])
 
     def on_raster_done(self, result, data):
+        orig = self.config['properties']['grid_scores']
+        data = numpy.zeros_like(orig)
+        for i in range(1, data.shape[0]):
+            pos = i + 1
+            if i % 2 == 1:
+                data[i, :-pos] = orig[i, pos:]
+            else:
+                data[i, pos:] = orig[i, :-pos]
+        self.config['properties']['grid_scores'][:] = data
+
         self.save_metadata()
         self.complete = True
         self.emit('complete', None)
