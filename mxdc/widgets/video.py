@@ -196,6 +196,7 @@ class VideoWidget(Gtk.DrawingArea):
 
         img = img.convert('RGB')
         self.surface = image_to_surface(img)
+
         self.surface_dirty = True
         GLib.idle_add(self.queue_draw)
         self.update_fps()
@@ -207,17 +208,18 @@ class VideoWidget(Gtk.DrawingArea):
 
     def do_draw(self, cr):
         if self.surface is not None:
-            cr.set_source_surface(self.surface, 0, 0)
-            cr.paint()
-            if self.overlay_func:
-                self.overlay_func(cr)
-
             self.surface_dirty = False
+            ctx = cairo.Context(self.surface)
+            if self.overlay_func:
+                self.overlay_func(ctx)
             if self.save_file:
-                surface = cr.get_target()
-                surface.write_to_png(self.save_file)
+                save_surface = ctx.get_target()
+                save_surface.write_to_png(self.save_file)
                 logger.info('{} saved'.format(self.save_file))
                 self.save_file = None
+
+            cr.set_source_surface(self.surface, 0, 0)
+            cr.paint()
 
     def on_realized(self, obj):
         self.camera.add_sink(self)

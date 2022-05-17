@@ -49,7 +49,7 @@ class RasterCollector(Engine):
         return self.complete
 
     def configure(self, params):
-        name_tag = datetime.now().strftime('%j%H')
+        name_tag = datetime.now().strftime('%j%H%M')
         self.series[name_tag] += 1
 
         params['name'] = f'R{name_tag}{self.series[name_tag]:02d}'
@@ -263,15 +263,16 @@ class RasterCollector(Engine):
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
-        orig = self.config['properties']['grid_scores']
-        data = numpy.zeros_like(orig)
-        for i in range(1, data.shape[0]):
-            pos = i + 1
-            if i % 2 == 1:
-                data[i, :-pos] = orig[i, pos:]
-            else:
-                data[i, pos:] = orig[i, :-pos]
-        self.config['properties']['grid_scores'][:] = data
+        # if self.beamline.name == 'CMCF-ID':
+        #     orig = self.config['properties']['grid_scores']
+        #     data = numpy.zeros_like(orig)
+        #     for i in range(1, data.shape[0]):
+        #         pos = i + 1
+        #         if i % 2 == 1:
+        #             data[i, :-pos] = orig[i, pos:]
+        #         else:
+        #             data[i, pos:] = orig[i, :-pos]
+        #     self.config['properties']['grid_scores'][:] = data
 
         self.save_metadata()
         self.complete = True
@@ -322,6 +323,7 @@ class RasterCollector(Engine):
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
             'grid_origin': params['origin'],
+            'grid_size': (params['hsteps'], params['vsteps'])
         }
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)

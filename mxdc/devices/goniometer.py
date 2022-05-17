@@ -382,6 +382,7 @@ class MD2Gonio(BaseGoniometer):
 
         if kind not in ['helical', 'raster'] and kwargs.get('start_pos') is not None:
             self.stage.move_xyz(*kwargs['start_pos'], wait=True)
+            logger.warn('Moving sample stage to starting position')
 
         success = self.wait(stop=True, start=False, timeout=10)
 
