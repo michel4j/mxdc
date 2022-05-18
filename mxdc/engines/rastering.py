@@ -328,4 +328,9 @@ class RasterCollector(Engine):
         filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
         misc.save_metadata(metadata, filename)
         self.beamline.lims.upload_data(self.beamline.name, filename)
+        grid_file = os.path.join(metadata['directory'], '{}.grid'.format(metadata['name']))
+        numpy.savez(
+            grid_file, scores=self.config['properties']['grid_scores'], indices=self.config['properties']['grid_index'],
+            xyz=self.config['params']['grid']
+        )
         return metadata
