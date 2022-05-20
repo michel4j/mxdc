@@ -6,6 +6,7 @@ from datetime import datetime
 import cv2
 import numpy
 import scipy.stats
+from scipy.ndimage import gaussian_filter
 
 from mxdc import Registry, Engine
 from mxdc.devices.interfaces import ICenter
@@ -216,7 +217,7 @@ class Centering(Engine):
             if step == 'face':
                 self.beamline.goniometer.omega.move_by(-90, wait=True)
             angle, info = self.get_features()
-            width = self.pixel_to_mm(1.5*abs(info['x'] - info['loop-x'])) * 1e3  # in microns
+            width = self.pixel_to_mm(1.75*abs(info['x'] - info['loop-x'])) * 1e3  # in microns
             height = self.pixel_to_mm(info['loop-height']) * 1e3  # in microns
 
             params = {
@@ -251,11 +252,14 @@ class Centering(Engine):
                 time.sleep(.1)
 
             grid_config = self.collector.get_grid()
-            best = numpy.unravel_index(grid_config['grid_scores'].argmax(axis=None), grid_config['grid_scores'].shape)
-            best_score = grid_config['grid_scores'][best]
+
+            grid_scores = grid_config['grid_scores'] #gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
+            best = numpy.unravel_index(grid_scores.argmax(axis=None), grid_scores.shape)
+
+            best_score = grid_scores[best]
             best_index = grid_config['grid_index'].index(best)
             point = grid_config['grid_xyz'][best_index]
-            score = scipy.stats.percentileofscore(grid_config['grid_scores'].ravel(), best_score)
+            score = scipy.stats.percentileofscore(grid_scores.ravel(), best_score)
             logger.info(f'Best diffraction at {best_index}: score={score:0.1f}%')
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
 

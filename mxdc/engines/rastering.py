@@ -3,7 +3,6 @@ import time
 from datetime import datetime
 
 import numpy
-from scipy.ndimage import uniform_filter
 import pytz
 from collections import defaultdict
 from zope.interface import Interface, implementer
@@ -268,12 +267,6 @@ class RasterCollector(Engine):
 
     def on_raster_done(self, result, data):
         self.config['properties']['grid_scores'][self.config['properties']['grid_scores'] < 0] = 0.0
-
-        scores = self.config['properties']['grid_scores']
-        scores[scores < 0] = 0.0
-        uniform_filter(scores, 2, mode='reflect')
-        self.config['properties']['grid_scores'][:] = scores[:]
-
         self.save_metadata()
         self.complete = True
         self.emit('complete', None)
