@@ -68,9 +68,8 @@ class Centering(Engine):
     def pixel_to_mm(self, pixels):
         return self.beamline.camera_scale.get() * pixels
 
-    def loop_face(self, down=False):
+    def loop_face(self):
         heights = []
-        self.beamline.goniometer.wait(start=False, stop=True)
         angle, info = self.get_features()
         heights.append((angle, info.get('loop-height', 0.0)))
         for i in range(5):
@@ -80,8 +79,6 @@ class Centering(Engine):
 
         values = numpy.array(heights)
         best = values[numpy.argmax(values[:, 1]), 0]
-        if down:
-            best -= 90.0
         self.beamline.goniometer.omega.move_to(best, wait=True)
 
     def get_video_frame(self):
@@ -166,7 +163,10 @@ class Centering(Engine):
                 xmm, ymm = self.screen_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
             else:
-                x, y = info['x'], info['y']
+                if i > 2:
+                    x, y = info['x'], info['loop-y']
+                else:
+                    x, y = info['x'], info['y']
                 logger.debug('... tip found at {}, {}'.format(x, y))
                 xmm, ymm = self.screen_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
@@ -201,16 +201,23 @@ class Centering(Engine):
 
         scores.append(self.score)
         aperture = self.beamline.aperture.get()
-        width = self.pixel_to_mm(info['loop-width']) * 1e3   # in microns
-        height = self.pixel_to_mm(info['loop-height']) * 1e3 # in microns
+
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
+        exposure =  self.beamline.config.get('default_exposure')
+        det_exp_limit = 1/self.beamline.config.get('max_raster_freq', 100)
+        mtr_exp_limit = aperture*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
+        exposure = max(exposure, det_exp_limit, mtr_exp_limit)
+
         self.beamline.goniometer.omega.move_by(90, wait=True)
         for step in ['edge', 'face']:
             logger.info('Performing raster scan on {}'.format(step))
             self.beamline.goniometer.wait(start=False)
             if step == 'face':
                 self.beamline.goniometer.omega.move_by(-90, wait=True)
+            angle, info = self.get_features()
+            width = self.pixel_to_mm(1.5*abs(info['x'] - info['loop-x'])) * 1e3  # in microns
+            height = self.pixel_to_mm(info['loop-height']) * 1e3  # in microns
 
             params = {
                 'name': datetime.now().strftime('%y%m%d-%H%M'),
@@ -218,7 +225,7 @@ class Centering(Engine):
                 'activity': 'raster',
                 'energy': energy,
                 'delta': RASTER_DELTA,
-                'exposure': max(self.beamline.config.get('default_exposure'), RASTER_EXPOSURE),
+                'exposure': exposure,
                 'attenuation': self.beamline.attenuator.get_position(),
                 'aperture': aperture,
                 'distance': converter.resol_to_dist(
@@ -230,9 +237,9 @@ class Centering(Engine):
 
             }
             if step == 'edge':
-                params.update({'hsteps': max(2, int(width//aperture)), 'vsteps': 5})
+                params.update({'hsteps': max(2, int(width//aperture)), 'vsteps': max(5, int(height*1.5//aperture))})
             else:
-                params.update({'hsteps': 2, 'vsteps': max(5, int(height//aperture))})
+                params.update({'hsteps': 4, 'vsteps': max(5, int(height*1.5//aperture))})
 
             params = datatools.update_for_sample(params, self.sample_store.get_current())
             logger.info('Finding best diffraction spot in grid')

@@ -40,6 +40,7 @@ class IMicroscope(Interface):
     grid_params = Attribute("A dictionary of grid reference parameters")
     grid_scores = Attribute("A 2d MxN array representing the scores of the grid")
     grid_index = Attribute("A list of point indices for each cell in the grid by traversal order")
+    grid_frames = Attribute("An integer arry of frame numbers for each cell")
     points = Attribute("A list of points")
 
 
@@ -54,6 +55,7 @@ class Microscope(Object):
     grid_params = Property(type=object)
     grid_scores = Property(type=object)
     grid_index = Property(type=object)
+    grid_frames = Property(type=object)
     grid_cmap = Property(type=object)
     grid_bbox = Property(type=object)
     points = Property(type=object)
@@ -77,6 +79,7 @@ class Microscope(Object):
         self.props.grid_xyz = None
         self.props.points = []
         self.props.grid_index = None
+        self.props.grid_frames = None
         self.props.grid_bbox = []
         self.props.grid_scores = None
         self.props.grid_params = {}
@@ -289,11 +292,12 @@ class Microscope(Object):
             radius = 0.5e-3 * self.beamline.aperture.get() / self.video.mm_scale()
             cr.set_line_width(1.0)
             cr.set_font_size(8)
-            if self.props.grid_index is None:
+            if self.props.grid_index is None or self.props.grid_frames is None:
                 return
             for i, (x, y, z) in enumerate(self.props.grid):
                 try:
                     ij = self.props.grid_index[i]
+                    frame = self.props.grid_frames[i]
                 except:
                     continue
                 if self.props.grid_scores[ij] >= 0:
@@ -307,7 +311,7 @@ class Microscope(Object):
                     cr.fill()
                 if radius > 12:
                     cr.set_source_rgba(0, 0, 0.5, 0.8)
-                    name = '{}'.format(i+1)
+                    name = '{}'.format(frame)
                     xb, yb, w, h = cr.text_extents(name)[:4]
                     cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
                     cr.show_text(name)
@@ -342,6 +346,7 @@ class Microscope(Object):
         self.props.grid_xyz = None
         self.props.grid_scores = None
         self.props.grid_index = None
+        self.props.grid_frames = None
         self.props.points = []
         self.props.grid_bbox = []
         if self.tool == self.ToolState.GRID:
@@ -384,7 +389,7 @@ class Microscope(Object):
             self.props.grid_params = {}
             return
 
-        grid, index = misc.grid_from_bounds(bounds, step_size, **self.beamline.goniometer.grid_settings())
+        grid, index, frames = misc.grid_from_bounds(bounds, step_size, **self.beamline.goniometer.grid_settings())
         dx, dy = self.video.screen_to_mm(*bounds.mean(axis=0))[2:]
 
         angle = self.beamline.goniometer.omega.get_position()
@@ -397,6 +402,7 @@ class Microscope(Object):
             'grid_xyz': grid_xyz.round(4),
             'grid_bbox': [],
             'grid_index': index,
+            'grid_frames': frames,
             'grid_scores': -numpy.ones(shape[::-1]),
             'grid_params': {
                 'origin': (ox, oy, oz),

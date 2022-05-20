@@ -573,13 +573,12 @@ def html2text(data):
     return f.text
 
 
-def grid_from_bounds(bbox, step_size, snake=True, vertical=False):
+def grid_from_bounds(bbox, step_size, **kwargs):
     """
     Make a grid from a bounding box array
     :param bbox: array of two points representing a 2D bounding box [(left, top), (right, bottom)]
     :param step_size: step size
-    :param snake: bool, reverse order of alternae rows/columns
-    :param vertical:  bool, traverse by column
+    :param kwargs: extra args
     :return: array of points on the grid in order
     """
 
@@ -593,17 +592,16 @@ def grid_from_bounds(bbox, step_size, snake=True, vertical=False):
     xi = numpy.arange(0, nX)*step_size + grid_origin[0]
     yi = numpy.arange(0, nY)*step_size + grid_origin[1]
 
-    return calc_grid_coords(xi, yi, snake, vertical)
+    return calc_grid_coords(xi, yi, **kwargs)
 
 
-def grid_from_size(size: tuple, step: float, center: tuple, snake=True, vertical=False):
+def grid_from_size(size: tuple, step: float, center: tuple, **kwargs):
     """
     Make a grid from shape
     :param size: tuple (width, height) number of points in x and y directions
     :param step: step size
     :param center: center of grid in same units as step
-    :param snake: bool, reverse order of alternae rows/columns
-    :param vertical: traverse verticaly
+    :param kwargs: Extra args
     :return: array of points on the grid in order
     """
 
@@ -614,17 +612,19 @@ def grid_from_size(size: tuple, step: float, center: tuple, snake=True, vertical
     xi = (numpy.arange(0, nX) - (nX - 1) / 2) * step + cX
     yi = (numpy.arange(0, nY) - (nY - 1) / 2) * step + cY
 
-    return calc_grid_coords(xi, yi, snake, vertical)
+    return calc_grid_coords(xi, yi, **kwargs)
 
 
-def calc_grid_coords(xi, yi, snake=False, vertical=False):
+def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
     """
     Calculate the grid coordinates and return a properly ordered sequence based on device traversal
     :param xi: array of x coordinates
     :param yi: array of y coordinates
     :param snake: invert alternate rows/columns
     :param vertical: traverse verticaly
-    :return: 3xN array of coordinates for each grid point, and a 2xN array for the corresponding index positions in the 2D grid
+    :param buggy:  Fix buggy indexing for power-pmac
+    :return: 3xN array of coordinates for each grid point, and a 2xN array for the corresponding
+    index positions in the 2D grid, and the corresponding frame numbers for each position
     """
     x_ij, y_ij = numpy.meshgrid(xi[::-1], yi, sparse=False)
     nX, nY = len(xi), len(yi)
@@ -636,30 +636,37 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False):
         if snake:
             x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip even rows
             i_xy[1::2, :] = i_xy[1::2, ::-1]  # flip even rows
-        return (
-            numpy.array([
-                (x_ij[j, i], y_ij[j, i], 0.0)
-                for j in jy for i in ix  # fast axis is x
-            ]),
-            [
-                (j_xy[j, i], i_xy[j, i])
-                for j in jy for i in ix
-            ]
-        )
+        grid = numpy.array([
+            (x_ij[j, i], y_ij[j, i], 0.0)
+            for j in jy for i in ix  # fast axis is x
+        ])
+        index = [
+            (j_xy[j, i], i_xy[j, i])
+            for j in jy for i in ix
+        ]
+
     else:
         if snake:
             y_ij[:, 1::2] = y_ij[::-1, 1::2]  # flip even columns
             j_xy[:, 1::2] = j_xy[::-1, 1::2]  # flip even columns
-        return (
-            numpy.array([
-                (x_ij[j, i], y_ij[j, i], 0.0)
-                for i in ix for j in jy  # fast axis is y
-            ]),
-            [
-                (j_xy[j, i], i_xy[j, i])
-                for i in ix for j in jy
-            ],
-        )
+        grid = numpy.array([
+            (x_ij[j, i], y_ij[j, i], 0.0)
+            for i in ix for j in jy  # fast axis is y
+        ])
+        index = [
+            (j_xy[j, i], i_xy[j, i])
+            for i in ix for j in jy
+        ]
+
+    size = len(index)
+    frames = numpy.arange(size)
+
+    # some MD2s produce an extra frame every new line
+    if buggy:
+        frames = (frames + numpy.divmod(frames, nX)[0] + 1)
+        frames[frames>=size] = size-1
+
+    return grid, index, frames + 1
 
 def calc_grid_shape(width, height, aperture):
     """

@@ -34,12 +34,12 @@ class Fit(object):
             raise AttributeError('Attribute "{}" does not exist in {}'.format(key, self.__class__.__name__))
 
     def __repr__(self):
-        state_info = '\n'.join(f'    {name}: {value}' for name, value in self.info.items())
+        state_info = '\n'.join(f'    {name:<12}: {value:12.8g}' for name, value in self.info.items())
         obj_id = hex(id(self))
         return (
             f"< {self.__class__.__name__} | {self.name} | {obj_id}\n"
             f"{state_info}"
-            f"\n/>"
+            f"\n"
         )
 
     def set_scan(self, scan):

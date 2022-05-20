@@ -16,7 +16,7 @@ from mxdc.widgets.imageviewer import IImageViewer
 from .microscope import IMicroscope
 from .samplestore import ISampleStore
 
-RASTER_DELTA = 0.1
+RASTER_DELTA = .1
 
 logger = get_module_logger(__name__)
 
@@ -94,6 +94,7 @@ class RasterController(Object):
         # housekeeping
         self.start_time = 0
         self.pause_dialog = None
+        self.expanded = False
         self.results = {}
         self.form = RasterForm(
             widget, beamline=self.beamline,
@@ -186,6 +187,10 @@ class RasterController(Object):
         current_dir = directory.replace(home_dir, '~')
         self.widget.dsets_dir_fbk.set_text(current_dir)
 
+        # collapse existing data
+        self.view.collapse_all()
+        self.expanded = False
+
     def on_complete(self, collector, data):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering analysis complete.")
@@ -211,14 +216,15 @@ class RasterController(Object):
         self.widget.raster_pbar.set_fraction(fraction)
         self.widget.raster_progress_lbl.set_text(message)
 
-    def on_results(self, collector, frame, results):
-        index = frame - 1   # frames are 1-based counting
+    def on_results(self, collector, index, results):
+
         grid_config = collector.get_grid()
         params = collector.get_parameters()
         pos = grid_config['grid_index'][index]
         score = grid_config['grid_scores'][pos]
+        frame = grid_config['grid_frames'][index]
 
-        x, y, z = self.microscope.props.grid_xyz[index]  # frames
+        x, y, z = self.microscope.props.grid_xyz[index]
         parent, child = self.manager.add_item({
             'name': params['name'],
             'angle': params['angle'],
@@ -229,14 +235,14 @@ class RasterController(Object):
             'score': score,
             'color': score,
             'filename': results['filename'],
-            'info':  None if frame > 1 else grid_config,
+            'info':  None if index > 0 else grid_config,
             'uuid': params['uuid'],
         })
 
-        if parent:
-            self.view.collapse_all()
+        if parent and not self.expanded:
             self.view.expand_row(parent, False)
-        self.view.scroll_to_cell(child, None, True, 0.5, 0.5)
+            self.expanded = True
+
         self.microscope.update_grid()
 
     def on_result_activated(self, view, path, column=None):
@@ -247,7 +253,7 @@ class RasterController(Object):
             self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
             config = self.results[item['uuid']]
             self.microscope.load_grid(config)
-            #self.widget.dsets_dir_fbk.set_text(config['info']['directory'])
+            self.widget.dsets_dir_fbk.set_text(config['info']['directory'])
         else:
             image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])

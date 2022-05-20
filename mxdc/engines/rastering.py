@@ -1,9 +1,9 @@
 import os
-import pprint
 import time
 from datetime import datetime
 
 import numpy
+from scipy.ndimage import uniform_filter
 import pytz
 from collections import defaultdict
 from zope.interface import Interface, implementer
@@ -56,9 +56,11 @@ class RasterCollector(Engine):
         self.config['params'] = params
 
         # calculate grid from dimensions
-        grid, index = misc.grid_from_size(
-            (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0), **self.beamline.goniometer.grid_settings()
+        grid, index, frames = misc.grid_from_size(
+            (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0),
+            **self.beamline.goniometer.grid_settings()
         )
+
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(
             grid[:, 0], grid[:, 1], numpy.radians(params['angle'])
@@ -72,6 +74,7 @@ class RasterCollector(Engine):
             'grid_xyz': grid_xyz,
             'grid_bbox': [],
             'grid_index': index,
+            'grid_frames': frames,
             'grid_scores': -numpy.ones(shape[::-1]),
             'grid_params': {
                 'origin': (ox, oy, oz),
@@ -246,16 +249,17 @@ class RasterCollector(Engine):
         time.sleep(0)
 
     def on_raster_update(self, result, info, template):
-
         score = info.get('bragg_spots', 0) * info.get('signal_avg', 0.0)/1e3
-        index = info['frame_number'] - 1
-        ij = self.config['properties']['grid_index'][index]
 
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
-        self.config['properties']['grid_scores'][ij] = score
 
-        self.emit('result', info['frame_number'], info)
+        # on buggy gonios multiple cells may represent the same frame
+        for index in numpy.where(self.config['properties']['grid_frames'] == info['frame_number'])[0]:
+            ij = self.config['properties']['grid_index'][index]
+            self.config['properties']['grid_scores'][ij] = score
+            self.emit('result', index, info)
+            break
         self.count += 1
 
         fraction = self.count / self.total_frames
@@ -263,16 +267,12 @@ class RasterCollector(Engine):
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
-        # if self.beamline.name == 'CMCF-ID':
-        #     orig = self.config['properties']['grid_scores']
-        #     data = numpy.zeros_like(orig)
-        #     for i in range(1, data.shape[0]):
-        #         pos = i + 1
-        #         if i % 2 == 1:
-        #             data[i, :-pos] = orig[i, pos:]
-        #         else:
-        #             data[i, pos:] = orig[i, :-pos]
-        #     self.config['properties']['grid_scores'][:] = data
+        self.config['properties']['grid_scores'][self.config['properties']['grid_scores'] < 0] = 0.0
+
+        scores = self.config['properties']['grid_scores']
+        scores[scores < 0] = 0.0
+        uniform_filter(scores, 2, mode='reflect')
+        self.config['properties']['grid_scores'][:] = scores[:]
 
         self.save_metadata()
         self.complete = True
@@ -330,7 +330,10 @@ class RasterCollector(Engine):
         self.beamline.lims.upload_data(self.beamline.name, filename)
         grid_file = os.path.join(metadata['directory'], '{}.grid'.format(metadata['name']))
         numpy.savez(
-            grid_file, scores=self.config['properties']['grid_scores'], indices=self.config['properties']['grid_index'],
+            grid_file,
+            scores=self.config['properties']['grid_scores'],
+            indices=self.config['properties']['grid_index'],
+            frames=self.config['properties']['grid_frames'],
             xyz=self.config['params']['grid']
         )
         return metadata

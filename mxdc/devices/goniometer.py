@@ -57,7 +57,7 @@ class BaseGoniometer(Device):
         """
         Return a dictionary of grid settings supported by this goniometer
         """
-        return {"snake": True, "vertical": False}
+        return {"snake": True, "vertical": False, "buggy": False}
 
     def save_centering(self):
         """
@@ -344,7 +344,8 @@ class MD2Gonio(BaseGoniometer):
     def grid_settings(self):
         return {
             "snake": True,
-            "vertical": not self.power_pmac
+            "vertical": not self.power_pmac,
+            "buggy": self.power_pmac,
         }
 
     def save_centering(self):
