@@ -188,20 +188,23 @@ class VideoWidget(Gtk.DrawingArea):
     def display(self, img):
         if self.stopped:
             return
-        img = img.resize((self.display_width, self.display_height), Image.BICUBIC)
-        if self.colorize:
-            if img.mode != 'L':
-                img = img.convert('L')
-            img.putpalette(self.palette)
+        try:
+            img = img.resize((self.display_width, self.display_height), Image.BICUBIC)
+            if self.colorize:
+                if img.mode != 'L':
+                    img = img.convert('L')
+                img.putpalette(self.palette)
 
-        img = img.convert('RGB')
-        self.surface = image_to_surface(img)
-
-        self.surface_dirty = True
-        GLib.idle_add(self.queue_draw)
-        self.update_fps()
-        if self.display_func is not None:
-            self.display_func(img, scale=self.scale)
+            img = img.convert('RGB')
+        except OSError:
+            pass    # silently ignore bad images
+        else:
+            self.surface = image_to_surface(img)
+            self.surface_dirty = True
+            GLib.idle_add(self.queue_draw)
+            self.update_fps()
+            if self.display_func is not None:
+                self.display_func(img, scale=self.scale)
 
     def set_colorize(self, state=True):
         self.colorize = state
