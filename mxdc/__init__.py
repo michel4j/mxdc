@@ -397,6 +397,16 @@ class Device(Object):
         dev.connect('active', self.on_component_active)
         return dev
 
+    @staticmethod
+    def poll(events=1e-5, io=1.0):
+        """
+        Poll control system for events
+        :param events: event time
+        :param io: IO time
+        :return:
+        """
+        ca.poll(evt=events, iot=io)
+
     def add_components(self, *components):
         """
         Add one or more components as children of this device. Components can be other devices.

@@ -872,7 +872,6 @@ def get_symbol(name, catalog, size=None):
             return pixbuf
 
 
-
 def register_icons():
     """
     Register named icons

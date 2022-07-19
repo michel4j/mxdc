@@ -14,6 +14,7 @@
         <file compressed="true">data/humidity.ui</file>
         <file compressed="true">data/mxdc_hutch.ui</file>
         <file compressed="true">data/mxdc_main.ui</file>
+        <file compressed="true">data/mxdc_new.ui</file>
         <file compressed="true">data/scanplot.ui</file>
         <file compressed="true">data/settings.ui</file>
         <file compressed="true">data/browser.ui</file>

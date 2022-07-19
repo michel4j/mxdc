@@ -480,7 +480,7 @@ class DSClient(BaseService):
     def __init__(self, address):
         super().__init__()
         self.name = 'Data Synchronization Service'
-        self.service = szrpc.client.Client(address)
+        self.service = szrpc.client.Client(address, methods=('setup_folder', 'configure'))
         self.set_state(active=True, health=(0, '', ''))
 
     def configure(self, **kwargs):

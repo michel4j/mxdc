@@ -111,6 +111,7 @@ class BaseMCA(Device):
                         self.energy_to_channel(v - self.half_roi_width),
                         self.energy_to_channel(v + self.half_roi_width))
             if k == 'nozzle' and self.nozzle:
+                logger.warning(f'Configuring Nozzle {v}')
                 if v:
                     self.nozzle.on()
                 else:

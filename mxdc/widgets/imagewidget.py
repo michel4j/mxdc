@@ -494,7 +494,7 @@ class ImageWidget(Gtk.DrawingArea):
             ctx.save()
             ctx.scale(self.scale, self.scale)
             ctx.translate(-self.extents[0], -self.extents[1])
-            ctx.set_source_surface(selfq.surface, 0, 0)
+            ctx.set_source_surface(self.surface, 0, 0)
             if self.scale >= 1:
                 ctx.get_source().set_filter(cairo.FILTER_FAST)
             else:

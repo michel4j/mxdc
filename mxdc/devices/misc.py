@@ -310,37 +310,42 @@ class OnOffToggle(Device):
     class Signals:
         changed = Signal("changed", arg_types=(bool,))
 
-    def __init__(self, pv_name, values=(1, 0)):
+    def __init__(self, pv_name, values=(1, 0), wait=0):
         super().__init__()
         self.on_value, self.off_value = values
         self.onoff_cmd = self.add_pv(pv_name)
         self.onoff_cmd.connect('changed', self.on_changed)
+        self.wait_time = wait
 
-    def set_on(self):
+    def set_on(self, wait=False):
         """
         Turn on the device
         """
         self.onoff_cmd.put(self.on_value, wait=True)
+        if wait:
+            time.sleep(self.wait_time)
 
-    def on(self):
+    def on(self, wait=False):
         """
         Alias for :func:`set_on`
 
         """
-        self.set_on()
+        self.set_on(wait)
 
-    def set_off(self):
+    def set_off(self, wait=False):
         """
         Turn off the device
         """
         self.onoff_cmd.put(self.off_value, wait=True)
+        if wait:
+            time.sleep(self.wait_time)
 
-    def off(self):
+    def off(self, wait=False):
         """
         Alias for :func:`set_off`
 
         """
-        self.set_off()
+        self.set_off(wait)
 
     def is_on(self):
         """
@@ -367,12 +372,17 @@ class SimLight(SimPositioner):
     def __init__(self, name, pos=0, units="", active=True):
         super().__init__(name, pos, units, active)
         self._on = 0
+        self.wait_time = 3
 
-    def set_on(self):
+    def set_on(self, wait=False):
         self._on = 1
+        if wait:
+            time.sleep(self.wait_time)
 
-    def set_off(self):
+    def set_off(self, wait=False):
         self._on = 0
+        if wait:
+            time.sleep(self.wait_time)
 
     def is_on(self):
         return self._on == 1

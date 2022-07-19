@@ -229,7 +229,7 @@ class BaseMotor(Device):
             current = current % 360.0
         return abs(round(current - value, self.precision)) <= 10 ** - self.precision
 
-    def wait_start(self, timeout=2, poll=0.05):
+    def wait_start(self, timeout=10, poll=0.05):
         """
         Wait for motor to start moving
         :param timeout: Maximum time to wait before failing
@@ -238,14 +238,15 @@ class BaseMotor(Device):
         """
         if self.is_starting() and not self.is_busy():
             logger.debug('Waiting for {} to start '.format(self.name))
-            elapsed = 0
-            while self.is_starting() and not self.is_busy() and elapsed < timeout:
-                elapsed += poll
+            max_time = time.time() + timeout
+            while self.is_starting() and not self.is_busy() and time.time() < max_time:
+                self.poll()
                 time.sleep(poll)
                 if self.has_reached(self.target_position):
                     logger.debug('{} already at {:g}'.format(self.name, self.target_position))
-            if elapsed >= timeout:
-                logger.warning('"{}" Timed out. Did not move after {:g} sec.'.format(self.name, elapsed))
+                    break
+            if time.time() >= max_time:
+                logger.warning('"{}" Timed out. Did not move after {:g} sec.'.format(self.name, timeout))
                 return False
         return True
 
@@ -259,26 +260,26 @@ class BaseMotor(Device):
         :return: (boolean), True if motor stopped successfully or if it is not moving.
         """
         elapsed = 0
+        max_time = time.time() + timeout
         if target is not None:
             logger.debug('Waiting for {} to reach {:g}.'.format(self.name, target))
-            while (self.is_busy() or not self.has_reached(target)) and elapsed < timeout:
-                elapsed += poll
+            while (self.is_busy() or not self.has_reached(target)) and time.time() < max_time:
+                self.poll()
                 time.sleep(poll)
-
-            if elapsed >= timeout:
+            if time.time() >= max_time:
                 logger.warning(
                     '"{}" Timed-out. Did not reach {:g} after {:g} sec.'.format(
-                        self.name, self.target_position, elapsed)
+                        self.name, self.target_position, timeout)
                 )
                 return False
         else:
             logger.debug('Waiting for {} to stop '.format(self.name))
-            while self.is_busy() and elapsed < timeout:
-                elapsed += poll
+            while self.is_busy() and time.time() < max_time:
+                self.poll()
                 time.sleep(poll)
-            if elapsed >= timeout:
+            if time.time() >= max_time:
                 logger.warning(
-                    '"{}" Timed-out. Did not stop moving after {:g} sec.'.format(self.name, elapsed)
+                    '"{}" Timed-out. Did not stop moving after {:g} sec.'.format(self.name, timeout)
                 )
                 return False
         return True

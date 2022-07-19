@@ -56,10 +56,12 @@ class XRFScan(BasicScan):
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
                 self.beamline.manager.collect(wait=True)
-                self.beamline.mca.configure(cooling=True, energy=None, nozzle=True)
+                self.beamline.mca.configure(cooling=True, energy=None)
                 self.beamline.attenuator.move_to(self.config['attenuation'], wait=True)
+                self.beamline.beamstop_z.move_to(self.beamline.config['xrf_beamstop'], wait=True)
+                self.beamline.mca.nozzle.on(wait=True)
                 self.beamline.energy.wait()
-                self.beamline.goniometer.wait(start=False)
+                self.beamline.goniometer.wait(start=False, stop=True)
                 self.emit("progress", .1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
                 self.raw_data = self.beamline.mca.acquire(self.config.exposure)
@@ -69,7 +71,8 @@ class XRFScan(BasicScan):
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.move_to(saved_attenuation)
-                self.beamline.mca.configure(cooling=False, nozzle=False)
+                self.beamline.mca.configure(cooling=False)
+                self.beamline.mca.nozzle.off()
                 self.beamline.manager.collect()
 
     def finalize(self):

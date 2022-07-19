@@ -116,6 +116,7 @@ class BaseManager(Device):
         """
         raise NotImplementedError('Sub-classes must implement "align"')
 
+
     def get_mode(self):
         """
         Return the current mode

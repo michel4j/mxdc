@@ -323,7 +323,8 @@ class AuntISARA(AutoMounter):
         enabled = (self.enabled_fbk.get() == 1)
         auto_mode = (self.mode_fbk.get() == 1)
         status_value = self.status_fbk.get()
-        cryo_good = (self.autofill_fbk.get() == 0) or (2 <= self.cryo_fbk.get() <= 4)  # good if autofill disabled
+        #cryo_good = (self.autofill_fbk.get() == 0) or (2 <= self.cryo_fbk.get() <= 4)  # good if autofill disabled
+        cryo_good = True
         cur_status = self.get_state('status')
 
         if connected:
