@@ -57,6 +57,9 @@ class ISARAMessages(object):
 
     @staticmethod
     def errors(message):
+        if not isinstance(message, str):
+            message = ''.join(message)
+
         replacements = {
             'high level alarm Dew1': 'Dewar LN2 topped up',
             'WAIT for RdTrsf condition / 9 not TRUE': 'Waiting for endstation-ready ...',
