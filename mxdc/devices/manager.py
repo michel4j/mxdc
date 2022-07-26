@@ -25,10 +25,20 @@ class BaseManager(Device):
     """
 
     class ModeType(Enum):
-        MOUNT, CENTER, COLLECT, ALIGN, BUSY, UNKNOWN = list(range(6))
+        MOUNT, CENTER, COLLECT, SCAN, ALIGN, BUSY, UNKNOWN = list(range(7))
+
+    ACTIVITY_MAP = {
+        ModeType.MOUNT: 'mounting',
+        ModeType.CENTER: 'centering',
+        ModeType.COLLECT: 'collecting',
+        ModeType.ALIGN: 'aligning',
+        ModeType.SCAN: 'scanning',
+        ModeType.UNKNOWN: 'unknown',
+    }
 
     class Signals :
         mode = Signal("mode", arg_types=(object,))
+        activity = Signal("activity", arg_types=(str,))
 
     # Properties
     mode = Property(type=object)
@@ -38,48 +48,33 @@ class BaseManager(Device):
         self.name = name
         self.mode = self.ModeType.UNKNOWN
 
-    def wait(self, *modes, start=True, stop=True, timeout=30):
+    def wait(self, *modes, timeout=30):
         """
         Wait for the one of specified modes.
 
         :param modes: a list of Mode ENUMS or strings to wait for
-        :param start: (bool), Wait for the manager to become busy.
-        :param stop: (bool), Wait for the manager to become idle.
         :param timeout: maximum time in seconds to wait before failing.
         :return: (bool), False if wait timed-out
         """
+        poll = 0.01
 
         mode_set = {m if isinstance(m, self.ModeType) else self.ModeType[m] for m in modes}
         if self.mode in mode_set:
-            logger.debug('Already in requested mode')
+            logger.debug(f'Already in requested mode: {mode_set}')
             return True
 
-        poll = 0.05
-        time_left = 2
-        if start:
-            logger.debug('Waiting for mode manager to start')
-            while not self.is_busy() and time_left > 0:
+        expire_time = time.time() + timeout
+        if not mode_set:
+            logger.debug('Waiting for mode manager stop')
+            while self.is_busy() and time.time() < expire_time:
                 time.sleep(poll)
-                time_left -= poll
-            if time_left <= 0:
-                logger.warn('Timed out waiting for mode manager to start')
+        else:
+            logger.debug(f'Waiting for {self.name}: {mode_set}')
+            while time.time() < expire_time and self.mode not in mode_set:
+                time.sleep(poll)
 
-        if stop:
-            time_left = timeout
-
-            if mode_set:
-                logger.debug('Waiting for {}: {}'.format(self.name, mode_set))
-                while time_left > 0 and (not self.mode in mode_set) and self.is_busy():
-                    time_left -= poll
-                    time.sleep(poll)
-            else:
-                logger.debug('Waiting for {} to stop moving'.format(self.name))
-                while time_left > 0 and self.is_busy():
-                    time_left -= poll
-                    time.sleep(poll)
-
-        if time_left <= 0:
-            logger.warning('Timed out waiting for {}'.format(self.name))
+        if time.time() > expire_time:
+            logger.warning(f'Timed out waiting for {self.name}: {mode_set}')
             return False
 
         return True
@@ -116,6 +111,13 @@ class BaseManager(Device):
         """
         raise NotImplementedError('Sub-classes must implement "align"')
 
+    def scan(self, wait=False):
+        """
+        Switch to Scan mode
+
+        :param wait: wait for switch to complete
+        """
+        raise NotImplementedError('Sub-classes must implement "scan"')
 
     def get_mode(self):
         """
@@ -135,15 +137,26 @@ class SimModeManager(BaseManager):
             self.ModeType.MOUNT: 4,
             self.ModeType.CENTER: 3,
             self.ModeType.COLLECT: 2,
+            self.ModeType.SCAN: 2,
             self.ModeType.ALIGN: 8,
+
         }
-        self.set_state(active=True, busy=False, health=(0, 'faults', ''), mode=self.ModeType.MOUNT)
+        self.set_state(
+            active=True, busy=False, health=(0, 'faults', ''),
+            mode=self.ModeType.MOUNT, activity=self.ACTIVITY_MAP[self.ModeType.MOUNT]
+        )
 
     def _switch_mode(self, mode):
-        self.set_state(busy=True, mode=self.ModeType.BUSY, message='Switching mode ...')
+        self.set_state(
+            busy=True, message='Switching mode ...',
+            mode=self.ModeType.BUSY
+        )
         GLib.timeout_add(self.mode_delay[mode] * 1000, self._notify_mode, mode)
 
     def _notify_mode(self, mode):
+        activity = self.ACTIVITY_MAP.get(mode)
+        if activity in self.ACTIVITY_MAP:
+            self.set_state(activity=activity)
         self.set_state(busy=False, mode=mode)
 
     def mount(self, wait=False):
@@ -157,7 +170,7 @@ class SimModeManager(BaseManager):
 
     def center(self, wait=False):
         """
-        Switch to Mount mode
+        Switch to center mode
         :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.CENTER)
@@ -166,16 +179,25 @@ class SimModeManager(BaseManager):
 
     def collect(self, wait=False):
         """
-        Switch to Mount mode
+        Switch to Collect mode
         :param wait: wait for switch to complete
         """
         self._switch_mode(self.ModeType.COLLECT)
         if wait:
             self.wait(self.ModeType.COLLECT)
 
+    def scan(self, wait=False):
+        """
+        Switch to Scan mode
+        :param wait: wait for switch to complete
+        """
+        self._switch_mode(self.ModeType.SCAN)
+        if wait:
+            self.wait(self.ModeType.SCAN)
+
     def align(self, wait=False):
         """
-        Switch to Mount mode
+        Switch to Align mode
 
         :param wait: wait for switch to complete
         """
@@ -192,9 +214,10 @@ class MD2Manager(BaseManager):
     def __init__(self, root):
         super().__init__(name='Beamline Modes')
 
-        self.mode_cmd = self.add_pv('{}:CurrentPhase'.format(root))
-        self.mode_fbk = self.add_pv("{}:CurrentPhase".format(root))
-        self.state_fbk = self.add_pv("{}:State".format(root))
+        self.mode_cmd = self.add_pv(f"{root}:CurrentPhase")
+        self.mode_fbk = self.add_pv(f"{root}:CurrentPhase")
+        self.state_fbk = self.add_pv("{root}:State")
+        self.mca_nozzle = self.add_pv(f"{root}:FluoDetectorIsBack")
 
         # signal handlers
         self.mode_fbk.connect('changed', self.on_status_changed)
@@ -220,6 +243,7 @@ class MD2Manager(BaseManager):
     def on_status_changed(self, *args, **kwargs):
         state = self.state_fbk.get()
         mode_val = self.mode_fbk.get()
+        mca_pos = self.mca_nozzle.get()
         message = ''
         if state in [5, 6, 7, 8]:
             health = (0, 'faults', '')
@@ -232,9 +256,14 @@ class MD2Manager(BaseManager):
             current_mode = self.ModeType.UNKNOWN
         else:
             current_mode = self.int_to_mode.get(mode_val, self.ModeType.UNKNOWN)
+            if mca_pos == 1 and current_mode == self.ModeType.COLLECT:
+                current_mode = self.ModeType.SCAN
             health = (0, 'faults', '')
             busy = False
 
+        activity = self.ACTIVITY_MAP.get(current_mode)
+        if activity:
+            self.set_state(activity)
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)
         self.props.mode = current_mode
 
@@ -275,6 +304,15 @@ class MD2Manager(BaseManager):
         if wait:
             self.wait(self.ModeType.ALIGN)
 
+    def scan(self, wait=False):
+        """
+        Switch to Scan mode
+        :param wait: wait for switch to complete
+        """
+        self.mca_nozzle.put(0)
+        if wait:
+            self.wait(self.ModeType.SCAN)
+
 
 class ModeManager(BaseManager):
     """
@@ -285,11 +323,11 @@ class ModeManager(BaseManager):
         super().__init__(name='Beamline Modes')
 
         self.mode_commands = {
-            self.ModeType.MOUNT: self.add_pv('{}:Mount:cmd'.format(root)),
-            self.ModeType.CENTER: self.add_pv('{}:Center:cmd'.format(root)),
-            self.ModeType.COLLECT: self.add_pv('{}:Collect:cmd'.format(root)),
-            self.ModeType.ALIGN: self.add_pv('{}:Align:cmd'.format(root)),
-
+            self.ModeType.MOUNT: self.add_pv(f'{root}:Mount:cmd'),
+            self.ModeType.CENTER: self.add_pv(f'{root}:Center:cmd'),
+            self.ModeType.COLLECT: self.add_pv(f'{root}:Collect:cmd'),
+            self.ModeType.ALIGN: self.add_pv(f'{root}:Align:cmd'),
+            self.ModeType.SCAN: self.add_pv(f'{root}:Scan:cmd'),
         }
 
         self.mode_fbk = self.add_pv("{}:mode:fbk".format(root))
@@ -308,6 +346,7 @@ class ModeManager(BaseManager):
             2: self.ModeType.CENTER,
             3: self.ModeType.COLLECT,
             4: self.ModeType.ALIGN,
+            5: self.ModeType.SCAN,
         }
 
     def on_status_changed(self, *args, **kwargs):
@@ -329,6 +368,9 @@ class ModeManager(BaseManager):
             health = (0, 'faults', '')
             busy = False
 
+        activity = self.ACTIVITY_MAP.get(current_mode)
+        if activity:
+            self.set_state(activity=activity)
         self.set_state(health=health, busy=busy, mode=current_mode, message=message)
         self.props.mode = current_mode
 
@@ -343,7 +385,7 @@ class ModeManager(BaseManager):
 
     def center(self, wait=False):
         """
-        Switch to Mount mode
+        Switch to Center mode
         :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.CENTER].put(1)
@@ -352,7 +394,7 @@ class ModeManager(BaseManager):
 
     def collect(self, wait=False):
         """
-        Switch to Mount mode
+        Switch to Collect mode
         :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.COLLECT].put(1)
@@ -361,9 +403,18 @@ class ModeManager(BaseManager):
 
     def align(self, wait=False):
         """
-        Switch to Mount mode
+        Switch to Align mode
         :param wait: wait for switch to complete
         """
         self.mode_commands[self.ModeType.ALIGN].put(1)
         if wait:
             self.wait(self.ModeType.ALIGN)
+
+    def scan(self, wait=False):
+        """
+        Switch to Scan mode
+        :param wait: wait for switch to complete
+        """
+        self.mode_commands[self.ModeType.SCAN].put(1)
+        if wait:
+            self.wait(self.ModeType.SCAN)

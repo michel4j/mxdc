@@ -2,8 +2,6 @@ import logging
 import operator
 
 from gi.repository import Gtk, Pango, GLib
-
-from mxdc.devices.manager import BaseManager
 from mxdc.widgets import timer
 
 
@@ -146,31 +144,28 @@ class BoolMonitor(object):
 
 
 class ModeMonitor(object):
-    MODE_MAP = {
-        BaseManager.ModeType.MOUNT: 'mounting',
-        BaseManager.ModeType.CENTER: 'centering',
-        BaseManager.ModeType.COLLECT: 'collecting',
-        BaseManager.ModeType.ALIGN: 'aligning',
-        BaseManager.ModeType.UNKNOWN: 'unknown',
-    }
 
-    def __init__(self, device, entry, signal='changed'):
+    def __init__(self, device, entry, signal='activity'):
         self.device = device
         self.entry = entry
-        self.value_map = self.MODE_MAP
         self.device.connect(signal, self.on_signal)
+        self.device.connect('busy', self.on_busy)
+        self.activity = ''
 
     def on_signal(self, obj, state):
-        if state == BaseManager.ModeType.BUSY:
+        self.activity = state.upper()
+        style = self.entry.get_style_context()
+        for name in style.list_classes():
+            if name.startswith('activity-'):
+                style.remove_class(name)
+        style.add_class(f'activity-{state}')
+        self.entry.set_text(self.activity)
+
+    def on_busy(self, obj, busy):
+        if busy:
             self.entry.set_text('BUSY')
         else:
-            value = self.value_map.get(state, 'unknown')
-            self.entry.set_text(value.upper())
-            style = self.entry.get_style_context()
-
-            for name in self.value_map.values():
-                style.remove_class(f'mode-{name}')
-            style.add_class(f'mode-{value}')
+            self.entry.set_text(self.activity)
 
 
 class AppNotifier(object):

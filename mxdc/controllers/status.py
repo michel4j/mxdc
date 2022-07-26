@@ -27,7 +27,7 @@ class StatusPanel(object):
             ),
             common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch),
             common.ShutterSwitcher(self.beamline.fast_shutter, self.widget.shutter_switch),
-            common.ModeMonitor(self.beamline.manager, self.widget.mode_fbk, signal='mode'),
+            common.ModeMonitor(self.beamline.manager, self.widget.mode_fbk, signal='activity'),
         ]
 
         align_msg = ("Are you sure? This procedure may damage \n"
