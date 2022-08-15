@@ -960,8 +960,11 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         master_path = os.path.join(directory, master_file)
 
         if os.path.exists(master_path):
-            dset = read_image(master_path)
-            sequence = dset.header.get('dataset', {}).get('sequence', [])
+            try:
+                dset = read_image(master_path)
+                sequence = dset.header.get('dataset', {}).get('sequence', [])
+            except:
+                sequence = []
             return list(sequence), True
         return [], False
 
