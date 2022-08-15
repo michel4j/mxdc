@@ -87,7 +87,7 @@ class DataCollector(Engine):
 
         self.config['analysis'] = analysis
         self.config['anomalous'] = anomalous
-        self.config['take_snapshots'] = take_snapshots
+        self.config['take_snapshot'] = take_snapshots
         self.config['runs'] = run_data[:] if isinstance(run_data, list) else [run_data]
         self.config['datasets'] = {
             run['uuid']: datatools.WedgeDispenser(
@@ -131,7 +131,8 @@ class DataCollector(Engine):
 
         with self.beamline.lock:
             # Take snapshots and prepare end station mode
-            self.take_snapshots()
+            first_dset = next(iter(self.config['datasets'].values()))
+            self.take_snapshot(first_dset.details)
             self.beamline.manager.collect(wait=True)
             self.emit('started', None)
             self.config['start_time'] = datetime.now(tz=pytz.utc)
@@ -293,21 +294,18 @@ class DataCollector(Engine):
             is_first_frame = False
             time.sleep(0)
 
-    def take_snapshots(self):
-        if self.config['take_snapshots'] and self.config['datasets']:
-            names = [dataset.details['name'] for dataset in self.config['datasets'].values()]
-            prefix = os.path.commonprefix(names) or 'SNAPSHOT'
-            dataset = list(self.config['datasets'].values())[0]
+    def take_snapshot(self, params):
+        prefix = params['name']
 
-            # setup folder
-            self.beamline.dss.setup_folder(dataset.details['directory'], misc.get_project_name())
+        # setup folder
+        self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
 
-            # take snapshot
-            snapshot_file = os.path.join(dataset.details['directory'], f'{prefix}.png')
-            if not os.path.exists(snapshot_file) and os.path.exists(dataset.details['directory']):
-                logger.info('Taking snapshot ...')
-                img = self.beamline.sample_camera.get_frame()
-                img.save(snapshot_file)
+        # take snapshot
+        snapshot_file = os.path.join(params['directory'], f'{prefix}.png')
+        if os.path.exists(params['directory']):
+            logger.info('Taking snapshot ...')
+            img = self.beamline.sample_camera.get_frame()
+            img.save(snapshot_file)
 
     def save(self, params):
         template = self.beamline.detector.get_template(params['name'])

@@ -498,7 +498,13 @@ class DSClient(BaseService):
         while not path.exists() and time.time() - t < timeout:
             path.parent.glob('*')
             time.sleep(.5)
-        return success and time.time() - t < timeout
+        success = success and time.time() - t < timeout
+
+        # If folder is still not available locally, try creating it
+        if not path.exists():
+            os.makedirs(folder, exist_ok=True)
+
+        return success
 
     def on_error(self, result, message):
         logger.error(message)
