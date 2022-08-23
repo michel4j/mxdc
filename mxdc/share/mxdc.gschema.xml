@@ -11,6 +11,18 @@
                 Available variables: {sample}, {group}, {container}, {position}, {port}, {date}, {activity}.
             </description>
         </key>
+        <key name='dataset-naming' type='s'>
+            <default>"Manual"</default>
+            <summary>Dataset Naming</summary>
+            <description>
+                Determines how datasets will be named within data runs.  With "Manual" dataset names are specified manually within runs.
+                "Auto" names datasets according to the sample name with an automated suffix appended.
+                It is recommended to use the "Auto" method when using the Automounter with sample information from MxLIVE.
+                "Auto" reverts to "Manual" when no sample is mounted.
+
+                Allowed:   'Manual', 'Auto'.
+            </description>
+        </key>
         <key name='screening-method' type='s'>
             <default>"AutoProcess"</default>
             <summary>Screening Method</summary>

@@ -575,6 +575,24 @@ class DatasetsController(Object):
         self.widget.datasets_collect_btn.set_sensitive(count > 1)
         self.update_cache()
 
+    def update_names(self, sample):
+        count = 0
+        item = self.run_store.get_item(count)
+        name = sample.get('name', 'test')
+        self.names.reset(name)
+
+        while item:
+            if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
+                info = item.info.copy()
+                info['name'] = self.names.fix(name)
+                item.props.info = info
+                item.props.position = count
+
+            count += 1
+            item = self.run_store.get_item(count)
+        self.widget.datasets_collect_btn.set_sensitive(count > 1)
+        self.update_cache()
+
     def update_cache(self):
         count = 0
         item = self.run_store.get_item(count)
@@ -629,7 +647,7 @@ class DatasetsController(Object):
             name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
-        self.names.reset(sample.get('name', 'test'))
+        self.update_names(sample)
         self.widget.dsets_sample_fbk.set_text(sample_text)
 
     def on_save_run(self, obj):

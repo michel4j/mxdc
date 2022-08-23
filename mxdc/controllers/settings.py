@@ -7,6 +7,7 @@ import re
 
 TEMPLATE_VARIABLES = {'sample', 'group', 'container', 'position', 'port', 'date', 'activity'}
 SCREENING_VARIABLES = {'autoprocess', 'mosflm'}
+NAMING_VARIABLES = {'auto', 'manual'}
 
 
 class Setting(Object):
@@ -66,6 +67,8 @@ def valid_template(txt):
 def valid_screening(txt):
     return txt.strip().lower() in SCREENING_VARIABLES
 
+def valid_naming(txt):
+    return txt.strip().lower() in NAMING_VARIABLES
 
 def valid_mode(value):
     print (value)
@@ -79,6 +82,7 @@ class SettingsDialog(gui.BuilderMixin):
 
     OPTIONS = [
         ('directory-template', 'dir-template-symbolic', valid_template),
+        #('dataset-naming', 'insert-text-symbolic', valid_naming),
         ('screening-method', 'error-correct-symbolic', valid_screening),
     ]
 

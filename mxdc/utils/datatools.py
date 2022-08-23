@@ -122,6 +122,7 @@ def update_for_sample(info, sample=None, overwrite=True):
     activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
     dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
     params['directory'] = dir_template.format(**params).replace('//', '/').replace('//', '/')
+
     if not overwrite and os.path.exists(params['directory']):
         for i in range(99):
             new_directory = '{}-{}'.format(params['directory'], i + 1)
