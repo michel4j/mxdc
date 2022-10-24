@@ -48,6 +48,9 @@ down the Ctrl-key will enable rotation of the goniometer with the scroll-button 
 However, in other modes, the Ctrl-key will temporary enable click-centering to allow re-centering the crystal. Rotation
 of the goniometer with the mouse scroll key is only allowed in Centering mode.
 
+The currently centered position can be saved and recovered using the "target" icon.  Saved points are available to be used
+as start and end positions for data collection in the run-editor.
+
 .. note::
    Single-click centering is not available while defining a grid.
 
