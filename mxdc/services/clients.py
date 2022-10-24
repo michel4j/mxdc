@@ -501,8 +501,8 @@ class DSClient(BaseService):
         success = success and time.time() - t < timeout
 
         # If folder is still not available locally, try creating it
-        if not path.exists():
-            os.makedirs(folder, exist_ok=True)
+        # if not path.exists():
+        #     os.makedirs(folder, exist_ok=True)
 
         return success
 

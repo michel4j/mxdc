@@ -4,23 +4,20 @@ import time
 
 import cairo
 import numpy
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Gio, GLib
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.conf import save_cache, load_cache
-from mxdc.devices.interfaces import ICenter
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
-from mxdc.utils import imgproc, colors, misc
+from mxdc.utils import colors, misc
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget
 from . import common
 
-#import gc
-#gc.set_debug(gc.DEBUG_STATS|gc.DEBUG_LEAK|gc.DEBUG_UNCOLLECTABLE)
 
 logger = get_module_logger(__name__)
 
@@ -44,6 +41,28 @@ class IMicroscope(Interface):
     points = Attribute("A list of points")
 
 
+POINTS_MENU_TMPL = """
+<menu id='app-menu'>
+  <section>
+    <item>
+      <attribute name='label' translatable='yes'>_Save Point</attribute>
+      <attribute name='action'>microscope.save_point</attribute>
+    </item>
+  </section>
+  <section>
+    {points}
+  </section>
+</menu>
+"""
+POINT_ITEM_TMPL = """
+    <item>
+      <attribute name='label' translatable='yes'>Goto {name}</attribute>
+      <attribute name='action'>microscope.center_point</attribute>
+      <attribute name='target'>{name}</attribute>
+    </item>
+"""
+
+
 @implementer(IMicroscope)
 class Microscope(Object):
 
@@ -58,7 +77,6 @@ class Microscope(Object):
     grid_frames = Property(type=object)
     grid_cmap = Property(type=object)
     grid_bbox = Property(type=object)
-    points = Property(type=object)
 
     tool = Property(type=int, default=ToolState.DEFAULT)
     mode = Property(type=object)
@@ -73,11 +91,14 @@ class Microscope(Object):
         self.overlay_buffer = None
         self.drawing_overlay = False
         self.last_grid_update = time.time()
+        self.actions = Gio.SimpleActionGroup()
         self.queue_overlay()
 
+        self.points = Gtk.ListStore(str, object)
+        self.points_menu = Gio.Menu()
+        self.points_menu_points = Gio.Menu()
         self.props.grid = None
         self.props.grid_xyz = None
-        self.props.points = []
         self.props.grid_index = None
         self.props.grid_frames = None
         self.props.grid_bbox = []
@@ -106,6 +127,25 @@ class Microscope(Object):
         self.load_from_cache()
 
     def setup(self):
+        # create actions and points menu
+        actions = {
+            'save_point': (self.on_save_point, None),
+            'center_point': (self.on_center_point, GLib.VariantType("s")),
+        }
+
+        # menu = Gtk.Builder.new_from_string('/org/mxdc/data/menus.ui')
+        # self.builder.app_menu_btn.set_menu_model(menu.get_object('app-menu'))
+
+        for name, info in actions.items():
+            action = Gio.SimpleAction.new(name, info[1])
+            action.connect("activate", info[0])
+            action.set_enabled(True)
+            self.actions.add_action(action)
+
+        self.widget.microscope_box.insert_action_group('microscope', self.actions)
+
+        self.points_menu.append_item(Gio.MenuItem.new('Save Point', 'microscope.save_point'))
+        self.points_menu.append_section(None, self.points_menu_points)
 
         # zoom
         low, med, high = self.beamline.config['zoom_levels']
@@ -122,7 +162,6 @@ class Microscope(Object):
         self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'loop')
         self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
-        self.widget.microscope_ai_btn.connect('clicked', self.on_auto_center, 'external')
 
         self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.goniometer.stage.connect('changed', self.update_grid)
@@ -138,17 +177,12 @@ class Microscope(Object):
         self.widget.microscope_save_btn.connect('clicked', self.on_save)
         self.widget.microscope_grid_btn.connect('toggled', self.toggle_grid_mode)
         self.widget.microscope_colorize_tbtn.connect('toggled', self.colorize)
-        self.widget.microscope_point_btn.connect('clicked', self.on_save_point)
-        self.widget.microscope_clear_btn.connect('clicked', self.clear_objects)
+        self.widget.microscope_clear_btn.connect('clicked', self.on_clear_objects)
+        self.widget.microscope_points_mnu.set_menu_model(self.points_menu)
 
         # disable centering buttons on click
         self.centering.connect('started', self.on_scripts_started)
         self.centering.connect('done', self.on_scripts_done)
-
-        aicenter = Registry.get_utility(ICenter)
-        self.widget.microscope_ai_btn.set_sensitive(False)
-        if aicenter:
-            aicenter.connect('active', lambda obj, state: self.widget.microscope_ai_btn.set_sensitive(state))
 
         # lighting monitors
         self.monitors = []
@@ -181,6 +215,11 @@ class Microscope(Object):
         self.connect('notify::grid-xyz', self.update_grid)
         self.connect('notify::tool', self.on_tool_changed)
 
+        # Connect Point Signals
+        for signal in ('row-inserted', 'row-deleted', 'row-changed'):
+            self.points.connect(signal, self.save_to_cache)
+            self.points.connect(signal, self.update_points_menu)
+
     def change_tool(self, tool=None):
         if tool is None:
             self.props.tool, self.prev_tool = self.prev_tool, self.tool
@@ -190,14 +229,14 @@ class Microscope(Object):
     def setup_grid(self, *args, **kwargs):
         if not self.video_ready:
             self.video_ready = True
-            for param in ['grid-xyz', 'points', 'grid-params']:
+            for param in ['grid-xyz', 'grid-params']:
                 self.connect('notify::{}'.format(param), self.save_to_cache)
         self.update_grid()
 
     def save_to_cache(self, *args, **kwargs):
-        config = {k:v for k,v in self.grid_params.items() if k != 'grid'}
+        config = {k: v for k, v in self.grid_params.items() if k != 'grid'}
         cache = {
-            'points': self.props.points,
+            'points': [row[1] for row in self.points],
         }
         save_cache(cache, 'microscope')
 
@@ -208,8 +247,17 @@ class Microscope(Object):
                 if name.startswith('grid'):
                     continue
                 if name == 'points':
-                    value = [tuple(point) for point in value]
-                self.set_property(name, value)
+                    for i, point in enumerate(value):
+                        self.points.append([f'P{i+1}', tuple(point)])
+                else:
+                    self.set_property(name, value)
+
+    def update_points_menu(self, *args, **kwargs):
+        self.points_menu_points.remove_all()
+        for row in self.points:
+            item = Gio.MenuItem.new(f"Go to {row[0]}")
+            item.set_action_and_target_value("microscope.center_point", GLib.Variant.new_string(row[0]))
+            self.points_menu_points.append_item(item)
 
     def save_image(self, filename):
         self.video.save_image(filename)
@@ -318,13 +366,14 @@ class Microscope(Object):
                     cr.stroke()
 
     def draw_points(self, cr):
-        if self.props.points:
+        point_list = [row[1] for row in self.points]
+        if point_list:
             cr.save()
             mm_scale = self.video.mm_scale()
             radius = 0.5e-3 * self.beamline.aperture.get() / (16 * mm_scale)
             cur_point = numpy.array(self.beamline.goniometer.stage.get_xyz())
             center = numpy.array(self.video.get_size()) / 2
-            points = numpy.array(self.props.points) - cur_point
+            points = numpy.array(point_list) - cur_point
             xyz = numpy.zeros_like(points)
             xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
                 points[:, 0], points[:, 1], points[:, 2]
@@ -341,13 +390,14 @@ class Microscope(Object):
                 cr.stroke()
             cr.restore()
 
-    def clear_objects(self, *args, **kwargs):
+    def remove_objects(self):
+        self.points.clear()
         self.props.grid = None
         self.props.grid_xyz = None
         self.props.grid_scores = None
         self.props.grid_index = None
         self.props.grid_frames = None
-        self.props.points = []
+
         self.props.grid_bbox = []
         if self.tool == self.ToolState.GRID:
             self.change_tool(self.ToolState.CENTERING)
@@ -364,7 +414,7 @@ class Microscope(Object):
         self.queue_overlay()
 
     def add_point(self, point):
-        self.props.points = self.props.points + [point]
+        self.points.append([f'P{len(self.points)+1}', point])
         self.queue_overlay()
 
     def make_grid(self, bbox=None, points=None, scaled=True, center=True):
@@ -499,9 +549,26 @@ class Microscope(Object):
     def colorize(self, button):
         self.video.set_colorize(state=button.get_active())
 
+    def on_clear_objects(self, *args,**kwargs):
+        response = dialogs.warning(
+            "Clear Grid & Points?",
+            "All saved points and defined grids will be cleared.\nThis operation cannot be undone!",
+            buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Proceed', Gtk.ButtonsType.OK))
+        )
+        if response == Gtk.ButtonsType.OK:
+            self.remove_objects()
+
     def on_save_point(self, *args, **kwargs):
         self.add_point(self.beamline.goniometer.stage.get_xyz())
         self.save_to_cache()
+
+    def on_center_point(self, action, param):
+        name = param.get_string()
+        for row in self.points:
+            if row[0] == name:
+                point = row[1]
+                self.beamline.goniometer.stage.move_xyz(*point, wait=False)
+                break
 
     def on_tool_changed(self, *args, **kwargs):
         window = self.widget.microscope_bkg.get_window()

@@ -75,7 +75,6 @@ class BasePositioner(Device):
         return True
 
 
-
 class SimPositioner(BasePositioner):
     """
     Simulated positioner
@@ -554,6 +553,70 @@ class Attenuator2(Attenuator):
                 self._close[i].put(1)
             else:
                 self._open[i].put(1)
+
+
+class Attenuator3(BasePositioner):
+    """
+    Single Filter Attenuator
+
+    :param shutter name: root name of attenuator PV
+
+    """
+    def __init__(self, name, opened=0, closed=1):
+        from .shutter import EPICSShutter
+        super().__init__()
+        self.name = 'Attenuator Shutter'
+        self.opened = opened
+        self.closed = closed
+        self.open_cmd = self.add_pv(f"{name}:opr:open")
+        self.close_cmd = self.add_pv(f"{name}:opr:close")
+        self.state = self.add_pv(f"{name}:ctl")
+        self.state.connect('changed', self.signal_change)
+        self.position = 0.0
+
+    def get(self):
+        if self.state.get() == self.opened:
+            return 0.0
+        elif self.position == 0.0:
+            self.position = 70.0
+        return self.position
+
+    def set(self, target, wait=False):
+        if target > 10.0:
+            self.position = min(target, 100)
+            if self.state.get() == self.opened:
+                self.close_cmd.put(1)
+                if wait:
+                    self.wait_for(self.closed)
+        else:
+            self.position = 0.0
+            if self.state.get() == self.closed:
+                self.open_cmd.put(1)
+                if wait:
+                    self.wait_for(self.opened)
+
+    def signal_change(self, obj, value):
+        logger.debug('{} Position Changed'.format(self.name))
+        if value == self.opened:
+            self.set_state(active=True, changed=0.0)
+            self.position = 0.0
+        else:
+            self.set_state(active=True, changed=self.position)
+
+    def wait_for(self, value, timeout=15):
+        """
+        Wait for state to reach value
+        :param timeout: Maximum time to wait before failing
+        """
+
+        logger.debug('Waiting for {} '.format(self.name))
+        max_time = time.time() + timeout
+        while self.state.get() != value and time.time() < max_time:
+            self.poll()
+        if time.time() >= max_time:
+            logger.warning('"{}" Timed out. Did not reach after {:g} sec.'.format(self.name, timeout))
+            return False
+        return True
 
 
 class DiskSpaceMonitor(Device):

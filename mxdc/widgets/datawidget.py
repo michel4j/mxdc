@@ -241,9 +241,6 @@ class DataEditor(gui.BuilderMixin):
         'data/data_form': ['data_form']
     }
 
-    class Column:
-        ID, LABEL, VALUE = range(3)
-
     Fields = (
         gui.FieldSpec('resolution', 'entry', '{:0.3g}', Validator.Float(0.5, 50, 2.0)),
         gui.FieldSpec('delta', 'entry', '{:0.3g}', Validator.AngleFrac(0.001, 720, 1.)),
@@ -259,18 +256,18 @@ class DataEditor(gui.BuilderMixin):
         gui.FieldSpec('name', 'entry', '{}', Validator.Slug(30)),
         gui.FieldSpec('strategy', 'cbox', '{}', Validator.Int(None, None, StrategyType.SINGLE)),
         gui.FieldSpec('inverse', 'check', '{}', Validator.Bool(False)),
-        gui.FieldSpec('p0', 'mbox', '{}', Validator.Int(None, None)),
-        gui.FieldSpec('p1', 'mbox', '{}', Validator.Int(None, None)),
+        gui.FieldSpec('p0', 'mbox', '{}', Validator.Slug(10)),
+        gui.FieldSpec('p1', 'mbox', '{}', Validator.Slug(10)),
         gui.FieldSpec('vector_size', 'spin', '{}', Validator.Int(1, 100, 10)),
         gui.FieldSpec('notes', 'text', '{}', Validator.Pass()),
     )
     disabled = ()
     use_dialog = False
 
-    def __init__(self):
+    def __init__(self, points_model=None):
         self.setup_gui()
         self.beamline = Registry.get_utility(IBeamline)
-        self.points = Gtk.ListStore(int, str, object)
+        self.points = points_model
         if not self.beamline.detector.supports(DetectorFeatures.WEDGING):
             self.disabled += ('first',)
         self.form = DataForm(self, fields=self.Fields, prefix='data', persist=False, disabled=self.disabled)
@@ -350,16 +347,17 @@ class DataEditor(gui.BuilderMixin):
         for id, params in list(Strategy.items()):
             strategy_field.append(str(id), params['desc'])
 
-    def set_points(self, points):
-        self.points.clear()
-        self.points.append([0, '', None])
-        for i, point in enumerate(points):
-            self.points.append([i, 'P{}'.format(i + 1), tuple(point)])
+    def set_points_model(self, model):
+        self.points = model
+        for i, name in enumerate(['p0', 'p1']):
+            field = self.form.get_field(name)
+            if not field: continue
+            field.set_model(self.points)
 
-    def get_point(self, index):
-        for i, row in enumerate(self.points):
-            if i == index:
-                return row[self.Column.VALUE]
+    def get_point(self, key):
+        for row in self.points:
+            if key == row[0]:
+                return row[1]
 
     def on_dir_template(self, btn):
         app = Gio.Application.get_default()
@@ -393,27 +391,26 @@ class RunEditor(DataEditor):
 
     def build_gui(self):
         super().build_gui()
-        self.points.connect('row-changed', self.on_points_updated)
-        self.points.connect('row-deleted', self.on_points_updated)
-        self.points.connect('row-inserted', self.on_points_updated)
 
         adjustment = Gtk.Adjustment(10, 1, 100, 1, 5, 0)
         self.data_vector_size_spin.set_adjustment(adjustment)
         self.data_p1_mbox.bind_property(
             'active-id', self.data_vector_size_spin, 'sensitive', 0, lambda *args: bool(args[1])
         )
-        # self.data_vector_size_spin.bind_property(
-        #     'sensitive', self.data_wedge_entry, 'sensitive', 0, lambda *args: not args[1]
-        # )
+
         for i, name in enumerate(['p0', 'p1']):
             field = self.form.get_field(name)
-            if not field: continue
+            if not field:
+                continue
             renderer_text = Gtk.CellRendererText()
             field.pack_start(renderer_text, True)
-            field.add_attribute(renderer_text, "text", self.Column.LABEL)
+            field.add_attribute(renderer_text, "text", 0)
             field.set_model(self.points)
-            field.set_id_column(self.Column.LABEL)
-            # field.connect('changed', self.sync_choices, choice_column)
+            field.set_id_column(0)
+
+        self.points.connect('row-changed', self.on_points_updated)
+        self.points.connect('row-deleted', self.on_points_updated)
+        self.points.connect('row-inserted', self.on_points_updated)
 
     def on_points_updated(self, *args, **kwargs):
         num_points = len(self.points)

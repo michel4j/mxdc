@@ -231,7 +231,7 @@ class MD2Gonio(BaseGoniometer):
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
-        self.helix_cmd = self.add_pv(f"{root}:startScan4D")
+
 
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
@@ -272,27 +272,37 @@ class MD2Gonio(BaseGoniometer):
             'frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
         }
 
+        # self.helix_cmd = self.add_pv(f"{root}:startScan4D")
+        # self.helix_settings = {
+        #     'time': self.add_pv(f"{root}:ScanExposureTime"),
+        #     'range': self.add_pv(f"{root}:ScanRange"),
+        #     'angle': self.add_pv(f"{root}:ScanStartAngle"),
+        #     'frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
+        #     'start': self.add_pv(f'{root}:setStartScan4D'),
+        #     'stop': self.add_pv(f'{root}:setStopScan4D'),
+        # }
+
+        self.helix_cmd = self.add_pv(f"{root}:startScan4DEx")
         self.helix_settings = {
-            #'time': self.add_pv(f"{root}:startScan4DEx:exposure_time"),
-            #'range': self.add_pv(f"{root}:startScan4DEx:scan_range"),
-            #'angle': self.add_pv(f"{root}:startScan4DEx:start_angle"),
-            'time': self.add_pv(f"{root}:ScanExposureTime"),
-            'range': self.add_pv(f"{root}:ScanRange"),
-            'angle': self.add_pv(f"{root}:ScanStartAngle"),
+            'time': self.add_pv(f"{root}:startScan4DEx:exposure_time"),
+            'range': self.add_pv(f"{root}:startScan4DEx:scan_range"),
+            'angle': self.add_pv(f"{root}:startScan4DEx:start_angle"),
             'frames': self.add_pv(f'{root}:ScanNumberOfFrames'),
 
             # Start position
-            'start_pos': (
+            'start': (
                 self.add_pv(f'{root}:startScan4DEx:start_y'),
-                self.add_pv(f'{root}:startScan4DEx:start_cy'),
+                self.add_pv(f'{root}:startScan4DEx:start_z'),
                 self.add_pv(f'{root}:startScan4DEx:start_cx'),
+                self.add_pv(f'{root}:startScan4DEx:start_cy'),
             ),
 
             # Stop position
-            'end_pos': (
-                self.add_pv(f'{root}:startScan4DEx:start_y'),
-                self.add_pv(f'{root}:startScan4DEx:start_cy'),
-                self.add_pv(f'{root}:startScan4DEx:start_cx'),
+            'stop': (
+                self.add_pv(f'{root}:startScan4DEx:stop_y'),
+                self.add_pv(f'{root}:startScan4DEx:stop_z'),
+                self.add_pv(f'{root}:startScan4DEx:stop_cx'),
+                self.add_pv(f'{root}:startScan4DEx:stop_cy'),
             ),
         }
 
@@ -309,12 +319,13 @@ class MD2Gonio(BaseGoniometer):
             'snake': self.add_pv(f"{root}:startRasterScanEx:invert_direction"),
             'use_table': self.add_pv(f"{root}:startRasterScanEx:use_centring_table"),
             'shutterless': self.add_pv(f'{root}:startRasterScanEx:shutterless'),
-            'start_pos': (
+            'start': (
                 self.add_pv(f'{root}:startRasterScanEx:start_y'),
-                self.add_pv(f'{root}:startRasterScanEx:start_cy'),
+                self.add_pv(f'{root}:startRasterScanEx:start_z'),
                 self.add_pv(f'{root}:startRasterScanEx:start_cx'),
+                self.add_pv(f'{root}:startRasterScanEx:start_cy'),
+
             ),
-            'z_pos': self.add_pv(f'{root}:startRasterScanEx:start_z'),
         }
 
         # self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
@@ -329,17 +340,6 @@ class MD2Gonio(BaseGoniometer):
         #     'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
         #     'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
         # }
-
-        # semi constant but need to be re-applied each scan
-        self.extra_settings = {
-            'z_pos': (
-                self.add_pv(f'{root}:startScan4DEx:stop_z'),
-                self.add_pv(f'{root}:startScan4DEx:start_z'),
-            )
-        }
-        self.extra_values = {
-            'z_pos': None,
-        }
 
     def grid_settings(self):
         return {
@@ -397,13 +397,21 @@ class MD2Gonio(BaseGoniometer):
         self.set_state(message=f'"{kind}" Scanning ...')
 
         # configure device and start scan
-        self.extra_values['z_pos'] = self.gon_z_fbk.get(), self.gon_z_fbk.get()
         if kind in ['simple', 'shutterless']:
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
         elif kind == 'helical':
+            start_y, start_cy, start_cx = kwargs.pop('start_pos')
+            stop_y, stop_cy, stop_cx = kwargs.pop('end_pos')
+            start_z = stop_z = self.gon_z_fbk.get()
+            if self.helix_cmd.name.endswith('Ex'):
+                kwargs['start'] = (start_y, start_z, start_cx, start_cy)
+                kwargs['stop'] = (stop_y, stop_z, stop_cx, stop_cy)
+            else:
+                kwargs['start'] = f"{start_y:0.5f},{start_z:0.5f},{start_cx:0.5f},{start_cy}:0.5f"
+                kwargs['stop'] = f"{stop_y:0.5f},{stop_z:0.5f},{stop_cx:0.5f}, {stop_cy:0.5f}"
+
             misc.set_settings(self.helix_settings, **kwargs)
-            misc.set_settings(self.extra_settings, **self.extra_values)
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             kwargs['snake'] = 1
@@ -421,7 +429,10 @@ class MD2Gonio(BaseGoniometer):
 
             kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = int(self.power_pmac)
-            kwargs['z_pos'] = self.gon_z_fbk.get()
+
+            start_y, start_cy, start_cx = kwargs.pop('start_pos')
+            start_z = self.gon_z_fbk.get()
+            kwargs['start'] = (start_y, start_z, start_cx, start_cy)
 
             # frames and lines are inverted for vertical scans on non-powerpmac systems
             if self.power_pmac or kwargs['width'] > kwargs['height']:

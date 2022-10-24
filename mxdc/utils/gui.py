@@ -653,7 +653,7 @@ class FieldSpec(object):
             elif self.suffix == 'spin':
                 raw_value = field.get_value()
             elif self.suffix == 'mbox' and field.get_model():
-                raw_value = field.get_active()
+                raw_value = field.get_active_id()
             elif self.suffix == 'text':
                 buffer = field.get_buffer()
                 raw_value = buffer.props.text
@@ -683,8 +683,13 @@ class FieldSpec(object):
             elif self.suffix == 'spin':
                 field.set_value(new_value)
             elif self.suffix == 'mbox' and field.get_model():
-                new_value = -1 if new_value in [0, None] else new_value
-                field.set_active(new_value)
+                model = field.get_model()
+                for row in model:
+                    if row[0] == new_value:
+                        break
+                else:
+                    new_value = None
+                field.set_active_id(new_value)
             elif self.suffix == 'text':
                 buffer = field.get_buffer()
                 buffer.set_text(new_value)

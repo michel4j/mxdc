@@ -530,7 +530,7 @@ def import_string(dotted_path):
         ) from err
 
 
-def set_settings(settings, **kwargs):
+def set_settings(settings, debug=False, **kwargs):
     """
     Apply keyword values to PVs in a dictionary if available
     :param settings: dictionary of process variables to set
@@ -544,8 +544,12 @@ def set_settings(settings, **kwargs):
             if isinstance(settings[key], tuple):
                 for p, v in zip(settings[key], value):
                     p.put(v, wait=True)
+                    if debug:
+                        logger.debug(f'SETTING: {p.name} = {v}')
             else:
                 settings[key].put(kwargs[key], wait=True)
+                if debug:
+                    logger.debug(f'SETTING: {settings[key].name} = {kwargs[key]}')
             changed.append(key)
     return changed
 

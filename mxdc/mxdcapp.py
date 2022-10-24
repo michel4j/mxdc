@@ -54,7 +54,7 @@ logger = get_module_logger(__name__)
 class AppBuilder(gui.Builder):
     gui_roots = {
         'data/mxdc_main': [
-            'auto_groups_pop', 'scans_ptable_pop', 'app_window', 'chat_avatars_pop'
+            'auto_groups_pop', 'scans_ptable_pop', 'app_window', 'chat_avatars_pop', 'points_pop'
         ]
     }
 
@@ -73,6 +73,12 @@ class AppBuilder(gui.Builder):
     def on_page_switched(self, stack, params):
         stack.child_set(stack.props.visible_child, needs_attention=False)
 
+
+ACCELERATORS = {
+    '<Control>q': 'quit',
+    '<Control>p': 'preferences',
+    '<Control>s': 'microscope.save_point',
+}
 
 DOCS_URL = 'https://michel4j.github.io/mxdc/'
 
@@ -99,7 +105,6 @@ class Application(Gtk.Application):
         # build GUI
         self.builder = AppBuilder()
         menu = Gtk.Builder.new_from_resource('/org/mxdc/data/menus.ui')
-
         self.builder.app_menu_btn.set_menu_model(menu.get_object('app-menu'))
 
         # initialize beamline

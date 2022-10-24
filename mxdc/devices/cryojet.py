@@ -40,6 +40,7 @@ class CryostatBase(Device):
         - shield (float,): Shield flow-rate
     """
 
+
     class Positions(Enum):
         IN, OUT = range(2)
 
@@ -84,6 +85,8 @@ class CryoJetBase(Device):
     Cryogenic Nozzle Jet Device
 
     """
+    class Features(Enum):
+        ANNEALING = 0
 
     temperature = Property(type=float, default=0.0)
     shield = Property(type=float, default=0.0)
@@ -94,10 +97,7 @@ class CryoJetBase(Device):
         super().__init__()
         self.name = 'Cryojet'
         self._previous_flow = 7.0
-        self.setup(*args, **kwargs)
 
-    def setup(self, *args, **kwargs):
-        pass
 
     def anneal(self, duration):
         """
@@ -152,7 +152,10 @@ class CryoJetBase(Device):
 
 
 class CryoJet(CryoJetBase):
-    def setup(self, name, level_name, nozzle_name):
+    def __init__(self, name, level_name, nozzle_name, **kwargs):
+        super().__init__()
+        self.add_features(self.Features.ANNEALING)
+
         self.temp_fbk = self.add_pv('{}:sensorTemp:get'.format(name))
         self.sample_fbk = self.add_pv('{}:SampleFlow:get'.format(name))
         self.shield_fbk = self.add_pv('{}:ShieldFlow:get'.format(name))
@@ -184,7 +187,8 @@ class CryoJet(CryoJetBase):
 
 
 class CryoJet5(CryoJetBase):
-    def setup(self, name, nozzle_name):
+    def __init__(self, name, nozzle_name):
+        super().__init__()
         self.temp_fbk = self.add_pv('{}:sample:temp:fbk'.format(name))
         self.sample_fbk = self.add_pv('{}:sample:flow:fbk'.format(name))
         self.shield_fbk = self.add_pv('{}:shield:flow:fbk'.format(name))
@@ -201,9 +205,10 @@ class CryoJet5(CryoJetBase):
         self.nozzle.connect('changed', self.on_nozzle)
 
 
-
 class SimCryoJet(CryoJetBase):
-    def setup(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.add_features(self.Features.ANNEALING)
         self.nozzle = mxdc.devices.shutter.SimShutter('Sim Cryo Nozzle')
 
         self.temp_fbk = misc.SimPositioner('Cryo Temperature', pos=102.5, noise=3)

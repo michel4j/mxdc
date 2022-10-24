@@ -1,6 +1,7 @@
 import atexit
 import threading
 import reprlib
+import time
 
 from gi.repository import GObject, GLib
 from gi.types import GObjectMeta
@@ -406,6 +407,7 @@ class Device(Object):
         :return:
         """
         ca.poll(evt=events, iot=io)
+        time.sleep(0.0)
 
     def add_components(self, *components):
         """

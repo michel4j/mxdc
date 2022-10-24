@@ -48,9 +48,13 @@ class CryoController(Object):
             self.cryojet.nozzle, self.widget.cryo_nozzle_fbk,
             {True: 'OUT', False: 'IN'},
         )
-        self.connect('notify::anneal-time', self.on_anneal_time)
-        self.connect('notify::anneal-active', self.on_anneal_state)
-        self.widget.anneal_btn.connect('clicked', self.on_anneal_action)
+        if self.cryojet.supports(self.cryojet.Features.ANNEALING):
+            self.connect('notify::anneal-time', self.on_anneal_time)
+            self.connect('notify::anneal-active', self.on_anneal_state)
+            self.widget.anneal_btn.connect('clicked', self.on_anneal_action)
+        else:
+            self.widget.anneal_btn.set_sensitive(False)
+            self.widget.anneal_entry.set_sensitive(False)
 
     def on_anneal_action(self, btn):
         if self.anneal_active:

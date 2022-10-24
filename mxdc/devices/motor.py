@@ -229,7 +229,7 @@ class BaseMotor(Device):
             current = current % 360.0
         return abs(round(current - value, self.precision)) <= 10 ** - self.precision
 
-    def wait_start(self, timeout=10, poll=0.05):
+    def wait_start(self, timeout=10):
         """
         Wait for motor to start moving
         :param timeout: Maximum time to wait before failing
@@ -241,7 +241,6 @@ class BaseMotor(Device):
             max_time = time.time() + timeout
             while self.is_starting() and not self.is_busy() and time.time() < max_time:
                 self.poll()
-                time.sleep(poll)
                 if self.has_reached(self.target_position):
                     logger.debug('{} already at {:g}'.format(self.name, self.target_position))
                     break
@@ -250,7 +249,7 @@ class BaseMotor(Device):
                 return False
         return True
 
-    def wait_stop(self, target=None, timeout=60*5, poll=0.05):
+    def wait_stop(self, target=None, timeout=60*5):
         """
         Wait for motor to stop moving.
 
@@ -265,7 +264,6 @@ class BaseMotor(Device):
             logger.debug('Waiting for {} to reach {:g}.'.format(self.name, target))
             while (self.is_busy() or not self.has_reached(target)) and time.time() < max_time:
                 self.poll()
-                time.sleep(poll)
             if time.time() >= max_time:
                 logger.warning(
                     '"{}" Timed-out. Did not reach {:g} after {:g} sec.'.format(
@@ -276,7 +274,6 @@ class BaseMotor(Device):
             logger.debug('Waiting for {} to stop '.format(self.name))
             while self.is_busy() and time.time() < max_time:
                 self.poll()
-                time.sleep(poll)
             if time.time() >= max_time:
                 logger.warning(
                     '"{}" Timed-out. Did not stop moving after {:g} sec.'.format(self.name, timeout)
@@ -307,7 +304,7 @@ class SimMotor(BaseMotor):
 
     :param name: name of motor
     :param pos: initial position
-    :param units: unitis
+    :param units: units
     :param speed: speed
     :param active: initial active state
     :param precision: precision

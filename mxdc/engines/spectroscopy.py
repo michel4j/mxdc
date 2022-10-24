@@ -55,7 +55,7 @@ class XRFScan(BasicScan):
             try:
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
-                self.beamline.attenuator.move_to(self.config['attenuation'])
+                #self.beamline.attenuator.move_to(self.config['attenuation'])
                 self.beamline.manager.collect(wait=True)
                 self.beamline.manager.scan(wait=True)  # scan mode is a modification of collect so must be in collect
 
@@ -70,7 +70,7 @@ class XRFScan(BasicScan):
                 self.emit("progress", 1, "Interpreting spectrum ...")
             finally:
                 self.beamline.fast_shutter.close()
-                self.beamline.attenuator.move_to(saved_attenuation)
+                #self.beamline.attenuator.move_to(saved_attenuation)
                 self.beamline.manager.collect()
 
     def finalize(self):

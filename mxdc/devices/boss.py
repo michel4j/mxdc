@@ -268,8 +268,11 @@ class BESTTuner(BaseTuner):
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
         cur = self.current_fbk.get()
-        tgt = 0.0 if cur <= 1 else val * 220 / cur
-        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
+        try:
+            tgt = 0.0 if cur <= 1 else val * 220 / cur
+            perc = 0.0 if ref == 0 else 100.0 * tgt / ref
+        except (TypeError, ValueError, ZeroDivisionError):
+            perc = 0.0
         self.set_state(changed=val, percent=perc)
 
 

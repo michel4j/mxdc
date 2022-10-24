@@ -26,7 +26,7 @@ class SamplesController(Object):
 
     def on_sample_mounted(self, obj, sample):
         if time.time() - self.init_start > 30:
-            self.microscope.clear_objects()
+            self.microscope.remove_objects()
 
 
     def setup(self):
@@ -98,7 +98,7 @@ class HutchSamplesController(Object):
         return None
 
     def on_sample_mounted(self, obj, sample):
-        self.microscope.clear_objects()
+        self.microscope.remove_objects()
         if sample and self.beamline.is_admin():
             self.widget.samples_cur_sample.set_text('...')
             port = sample.get('port')

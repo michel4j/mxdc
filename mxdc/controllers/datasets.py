@@ -354,7 +354,7 @@ class DatasetsController(Object):
         self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
-        self.run_editor = datawidget.RunEditor()
+        self.run_editor = datawidget.RunEditor(points_model=self.microscope.points)
         self.editor_frame = arrowframe.ArrowFrame()
         self.editor_frame.add(self.run_editor.data_form)
         self.widget.datasets_overlay.add_overlay(self.editor_frame)
@@ -372,7 +372,6 @@ class DatasetsController(Object):
     def import_from_cache(self):
         runs = load_cache('runs')
         if runs:
-            self.run_editor.set_points(self.microscope.props.points)
             for run in runs:
                 new_item = datawidget.RunItem(
                     run['info'], state=run['state'], created=run['created'], uid=run['uuid']
@@ -424,7 +423,6 @@ class DatasetsController(Object):
             for name, (dev, lbl, fmt) in list(labels.items())
         }
         self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
-        self.microscope.connect('notify::points', self.on_points)
         self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
 
     def create_run_config(self, item):
@@ -486,8 +484,8 @@ class DatasetsController(Object):
         if self.run_store.get_n_items() < 2:
             self.widget.datasets_collect_btn.set_sensitive(False)
 
-    def on_points(self, *args, **kwargs):
-        self.run_editor.set_points(self.microscope.props.points)
+    #def on_points(self, *args, **kwargs):
+    #    self.run_editor.set_points_model(self.microscope.props.points)
 
     def generate_run_list(self):
         runs = []
@@ -503,7 +501,7 @@ class DatasetsController(Object):
                 # convert points to coordinates and then
                 # make sure point is not empty if end_point is set
                 for name in ['p0', 'p1']:
-                    if run.get(name) not in [-1, 0, None]:
+                    if run.get(name):
                         run[name] = self.run_editor.get_point(run[name])
                     elif name in run:
                         del run[name]

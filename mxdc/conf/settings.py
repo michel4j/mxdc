@@ -62,13 +62,14 @@ def get_session():
     realm = 'session'
     config = load_cache(realm)
     today = date.today()
-    prev_date_string = config.get('session-start', '19900101')
-    prev_date = datetime.strptime(prev_date_string, '%Y%m%d').date()
-    if (today - prev_date).days > SESSION_GAP or not 'session-key' in config:
+    this_week = list(date.today().isocalendar()[:2])
+    session_week = config.get('session-week', [1990, 1])
+
+    if (this_week != session_week) or 'session-key' not in config:
         date_string = today.strftime('%Y%m%d')
         token = ''.join(numpy.random.choice(list(string.digits + string.ascii_letters), size=8))
         config['session-key'] = '{}-{}-{}'.format(PROPERTIES['name'].replace('-', ''), date_string, token)
-        config['session-start'] = date_string
+        config['session-week'] = this_week
         clear_cache(False)  # clear the cache if new session
         save_cache(config, realm)
     return config['session-key']
