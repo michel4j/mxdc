@@ -53,7 +53,10 @@ class PropertyMonitor(object):
         self.warning = warning
         self.error = error
         self.device.connect('notify::{}'.format(self.property), self.on_value_changed)
-        self.device.bind_property(self.property, self.widget, 'text', 0, self.transform)
+        if isinstance(widget, Gtk.Label):
+            self.device.bind_property(self.property, self.widget, 'label', 0, self.transform)
+        else:
+            self.device.bind_property(self.property, self.widget, 'text', 0, self.transform)
 
     def transform(self, obj, value):
         return self.format.format(value)

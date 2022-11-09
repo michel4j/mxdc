@@ -124,7 +124,6 @@ class RasterController(Object):
             self.widget.raster_progress_lbl.set_text("Stopping raster ...")
             self.collector.stop()
         elif self.props.state == self.StateType.READY:
-            self.widget.raster_progress_lbl.set_text("Starting raster ...")
             params = {}
             params.update(self.microscope.grid_params)
             params.update(self.form.get_values())
@@ -138,8 +137,12 @@ class RasterController(Object):
                 'attenuation': self.beamline.attenuator.get_position(),
             })
             params = datatools.update_for_sample(params, self.sample_store.get_current())
-            self.collector.configure(params)
-            self.collector.start()
+            if not self.collector.is_busy():
+                self.widget.raster_progress_lbl.set_text("Starting raster ...")
+                self.collector.configure(params)
+                self.collector.start()
+            else:
+                logger.warning('A raster scan is still active')
 
     def stop_raster(self, *args, **kwargs):
         self.widget.raster_progress_lbl.set_text("Stopping raster ...")
@@ -217,7 +220,6 @@ class RasterController(Object):
         self.widget.raster_progress_lbl.set_text(message)
 
     def on_results(self, collector, index, results):
-
         grid_config = collector.get_grid()
         params = collector.get_parameters()
         pos = grid_config['grid_index'][index]
@@ -243,7 +245,7 @@ class RasterController(Object):
             self.view.expand_row(parent, False)
             self.expanded = True
 
-        self.microscope.update_grid()
+        self.microscope.update_overlay_coords()
 
     def on_result_activated(self, view, path, column=None):
         itr = self.manager.model.get_iter(path)

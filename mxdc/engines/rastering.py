@@ -4,7 +4,9 @@ from datetime import datetime
 
 import numpy
 import pytz
+from queue import Queue
 from collections import defaultdict
+from threading import Thread
 from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Engine
@@ -42,6 +44,9 @@ class RasterCollector(Engine):
         self.count = 0
         self.complete = False
         self.series = defaultdict(int)
+        self.result_queue = Queue()
+        self.results_active = False
+
         Registry.add_utility(IRasterCollector, self)
 
     def is_complete(self):
@@ -86,6 +91,22 @@ class RasterCollector(Engine):
         }
         self.config['params'].update(self.config['properties']['grid_params'])
 
+    def result_processor(self):
+        self.results_active = True
+        try:
+            while True:
+                if not self.result_queue.empty():
+                    score, info = self.result_queue.get()
+                    # on buggy gonios multiple cells may represent the same frame
+                    for index in numpy.where(self.config['properties']['grid_frames'] == info['frame_number'])[0]:
+                        ij = self.config['properties']['grid_index'][index]
+                        self.config['properties']['grid_scores'][ij] = score
+                        self.emit('result', index, info)
+
+                time.sleep(0.01)
+        finally:
+            self.results_active = False
+
     def get_grid(self):
         return self.config['properties']
 
@@ -112,34 +133,38 @@ class RasterCollector(Engine):
         # switch to collect mode
         self.beamline.manager.collect(wait=True)
 
+    def start_signal_strength(self):
+        # prepare for analysis
+        template = self.beamline.detector.get_template(self.config['params']['name'])
+        params = {
+            'template': template,
+            'type': 'file',
+            'directory': self.config['params']['directory'],
+            'first': 1,
+            'num_frames': self.total_frames,
+            'timeout': max(20, min(self.config['params']['exposure'] * 5, 120))
+        }
+        if self.beamline.detector.monitor_type == 'stream':
+            params.update({
+                'type': self.beamline.detector.monitor_type,
+                'address': self.beamline.detector.monitor_address,
+            })
+
+        res = self.beamline.dps.signal_strength(**params, user_name=misc.get_project_name())
+        res.connect('update', self.on_raster_update, os.path.join(self.config['params']['directory'], template, ))
+        res.connect('failed', self.on_raster_failed)
+        res.connect('done', self.on_raster_done)
+
     def run(self, centering=False):
         self.complete = False
         current_attenuation = self.beamline.attenuator.get_position()
+        if not self.results_active:
+            Thread(target=self.result_processor, daemon=True).start()  # Start result thread
+
         with self.beamline.lock:
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             self.emit('started', self.config['params'])
             self.prepare(self.config['params'])
-
-            # prepare for analysis
-            template = self.beamline.detector.get_template(self.config['params']['name'])
-            params = {
-                'template': template,
-                'type': 'file',
-                'directory': self.config['params']['directory'],
-                'first': 1,
-                'num_frames': self.total_frames,
-                'timeout': max(20, min(self.config['params']['exposure'] * 5, 60))
-            }
-            if self.beamline.detector.monitor_type == 'stream':
-                params.update({
-                    'type': self.beamline.detector.monitor_type,
-                    'address': self.beamline.detector.monitor_address,
-                })
-
-            res = self.beamline.dps.signal_strength(**params, user_name=misc.get_project_name())
-            res.connect('update', self.on_raster_update, os.path.join(self.config['params']['directory'], template, ))
-            res.connect('failed', self.on_raster_failed)
-            res.connect('done', self.on_raster_done)
 
             try:
                 # raster scan proper
@@ -147,9 +172,11 @@ class RasterCollector(Engine):
                     self.acquire_slew()
                 else:
                     self.acquire_step()
+
+                time.sleep(1)
                 self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
                 self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
-                time.sleep(1)
+
             finally:
                 self.beamline.fast_shutter.close()
                 if not centering:
@@ -163,6 +190,7 @@ class RasterCollector(Engine):
 
     def acquire_step(self):
         logger.debug('Rastering ... ')
+        self.start_signal_strength()
         for i, frame in enumerate(datatools.grid_frames(self.config['params'])):
             if self.stopped: break
 
@@ -190,17 +218,20 @@ class RasterCollector(Engine):
             # perform scan
             if self.stopped: break
             self.beamline.detector.configure(**detector_parameters)
-            self.beamline.detector.start()
-            self.beamline.goniometer.scan(
-                time=frame['exposure'],
-                range=frame['delta'],
-                frames=1,
-                angle=frame['start'],
-                start_pos=frame['p0'],
-                wait=True,
-                timeout=frame['exposure'] * 20
-            )
-            self.beamline.detector.save()
+            success = self.beamline.detector.start()
+            if success:
+                self.beamline.goniometer.scan(
+                    time=frame['exposure'],
+                    range=frame['delta'],
+                    frames=1,
+                    angle=frame['start'],
+                    start_pos=frame['p0'],
+                    wait=True,
+                    timeout=frame['exposure'] * 20
+                )
+                self.beamline.detector.save()
+            else:
+                logger.error('Detector did not start ...')
             time.sleep(0)
 
     def acquire_slew(self):
@@ -228,39 +259,37 @@ class RasterCollector(Engine):
         }
 
         self.beamline.detector.configure(**detector_parameters)
-        self.beamline.detector.start()
-
-        logger.debug('Performing raster scan ...')
-        self.beamline.goniometer.scan(
-            kind='raster',
-            time=params['exposure'],  # per frame
-            range=params['delta'], # per frame
-            angle=params['angle'],
-            hsteps=params['hsteps'],
-            vsteps=params['vsteps'],
-            width=params['width'],
-            height=params['height'],
-            start_pos=params['grid'][0],
-            wait=True,
-            timeout=max(60, params['exposure'] * self.total_frames * 10),
-        )
-        self.beamline.detector.save()
+        success = self.beamline.detector.start()
+        if success:
+            logger.debug('Performing raster scan ...')
+            self.start_signal_strength()
+            self.beamline.goniometer.scan(
+                kind='raster',
+                time=params['exposure'],  # per frame
+                range=params['delta'], # per frame
+                angle=params['angle'],
+                hsteps=params['hsteps'],
+                vsteps=params['vsteps'],
+                width=params['width'],
+                height=params['height'],
+                start_pos=params['grid'][0],
+                wait=True,
+                timeout=max(60, params['exposure'] * self.total_frames * 10),
+            )
+            self.beamline.detector.save()
+        else:
+            logger.error('Detector did not start ...')
         time.sleep(0)
 
     def on_raster_update(self, result, info, template):
-        score = info.get('bragg_spots', 0) * info.get('signal_avg', 0.0)/1e3
 
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
+        score = info.get('bragg_spots', 0) * info.get('signal_avg', 0.0)/1e3
 
-        # on buggy gonios multiple cells may represent the same frame
-        for index in numpy.where(self.config['properties']['grid_frames'] == info['frame_number'])[0]:
-            ij = self.config['properties']['grid_index'][index]
-            self.config['properties']['grid_scores'][ij] = score
-            self.emit('result', index, info)
-            break
+        self.result_queue.put((score, info))
+
         self.count += 1
-
         fraction = self.count / self.total_frames
         msg = 'Analysis {}: {} of {} complete'.format(self.config['params']['name'], self.count, self.total_frames)
         self.emit('progress', fraction, msg)

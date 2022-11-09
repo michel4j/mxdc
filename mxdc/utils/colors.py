@@ -84,6 +84,9 @@ class ColorMapper(object):
         self.norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
 
     def rescale(self, values):
+        if values is None:
+            return
+
         sel = values > 0
         if sel.sum() > 0:
             self.norm = colors.Normalize(vmin=values[sel].min(), vmax=values[sel].max())

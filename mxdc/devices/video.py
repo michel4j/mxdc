@@ -34,12 +34,12 @@ class VideoSrc(Device):
     class Signals:
         resized = Signal("resized", arg_types=(int,int))
 
-    def __init__(self, name="Basic Camera", maxfps=5.0):
+    def __init__(self, name="Basic Camera", size=(768, 576), maxfps=5.0):
 
         super().__init__()
         self.frame = None
         self.name = name
-        self.size = (768, 576)
+        self.size = size
         self.maxfps = max(1.0, maxfps)
         self.resolution = 1.0e-3
         self.gain_factor = 1.0
@@ -95,9 +95,9 @@ class VideoSrc(Device):
             if self.is_active() and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     img = self.get_frame()
-                    if img and img.size != self.size:
-                        self.size = img.size
-                        self.set_state(resized=self.size)
+                    # if img and img.size != self.size:
+                    #     self.size = img.size
+                    #     self.set_state(resized=self.size)
                     if not img:
                         continue
                     for sink in self.sinks:
@@ -124,8 +124,7 @@ class SimCamera(VideoSrc):
     Simulated Camera
     """
     def __init__(self, name="Camera Simulator", size=(1280, 960)):
-        super().__init__(name=name)
-        self.size = size
+        super().__init__(name=name, size=size)
         self.resolution = 5.34e-3 * numpy.exp(-0.18)
         self._packet_size = self.size[0] * self.size[1]*3
         self._fsource = open('/dev/urandom', 'rb')
@@ -142,12 +141,11 @@ class SimGIFCamera(VideoSrc):
     Simulated Camera
     """
     def __init__(self, gonio=None, name="GIF Camera Simulator"):
-        super().__init__(name=name)
+        super().__init__(name=name, size=(1280, 960))
         self.src = Image.open(os.path.join(conf.APP_DIR, 'share/data/simulated/crystal.gif'))
         self.num_frames = self.src.n_frames
         self.gonio = gonio
         self.index = 0
-        self.size = (1280, 960)
         self.resolution = 5.34e-3 * numpy.exp(-0.18)
         self.set_state(active=True, health=(0, '', ''))
         if self.gonio is not None:
@@ -191,8 +189,7 @@ class MJPGCamera(VideoSrc):
     MJPG Camera
     """
     def __init__(self, url, size=(768, 576), name='MJPG Camera'):
-        VideoSrc.__init__(self, name, maxfps=10.0)
-        self.size = size
+        VideoSrc.__init__(self, name, maxfps=10.0, size=size)
         self._read_size = 1024
         self.url = url
         self._last_frame = time.time()
@@ -230,8 +227,7 @@ class JPGCamera(VideoSrc):
     JPG Camera
     """
     def __init__(self, url, size=(768, 576), name='JPG Camera'):
-        VideoSrc.__init__(self, name, maxfps=10.0)
-        self.size = size
+        VideoSrc.__init__(self, name, maxfps=10.0, size=size)
         self.url = url
         self.session = requests.Session()
         self.set_state(active=True)
@@ -255,12 +251,11 @@ class REDISCamera(VideoSrc):
         'exposure': 'ExposureTimeAbs'
     }
 
-    def __init__(self, server, mac,size=(1280,1024), name='REDIS Camera'):
-        VideoSrc.__init__(self, name, maxfps=15.0)
+    def __init__(self, server, mac, size=(1280, 1024), name='REDIS Camera'):
+        VideoSrc.__init__(self, name, maxfps=15.0, size=size)
         self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
         self.server = server
-        self.size = size
 
         self.set_state(active=True)
         self.lock = threading.Lock()
@@ -289,7 +284,7 @@ class REDISCamera(VideoSrc):
             data = self.store.get('{}:RAW'.format(self.key))
             while len(data) < self.size[0] * self.size[1] * 3:
                 data = self.store.get('{}:RAW'.format(self.key))
-                time.sleep(0.002)
+                time.sleep(0.001)
             img = Image.frombytes('RGB', self.size, data, 'raw')
             self.frame = img.transpose(Image.FLIP_LEFT_RIGHT)
         return self.frame
@@ -305,12 +300,12 @@ class AxisCamera(JPGCamera):
     """
     Axis JPG Camera
     """
-    def __init__(self, hostname, idx=None, name='Axis Camera'):
+    def __init__(self, hostname, idx=None, size=(1280,1024), name='Axis Camera'):
         if idx is None:
             url = 'http://%s/jpg/image.jpg' % hostname
         else:
             url = 'http://%s/jpg/%s/image.jpg' % (hostname, idx)
-        super(AxisCamera, self).__init__(url, name=name)
+        super(AxisCamera, self).__init__(url, name=name, size=size)
 
 
 @implementer(IZoomableCamera)
@@ -341,8 +336,8 @@ class AxisPTZCamera(AxisCamera):
     """
     Axis PTZ Camera
     """
-    def __init__(self, hostname, idx=None, name='Axis PTZ Camera'):
-        AxisCamera.__init__(self, hostname, idx, name)
+    def __init__(self, hostname, idx=None, size=(1920, 1080), name='Axis PTZ Camera'):
+        AxisCamera.__init__(self, hostname, idx=idx, size=size, name=name)
         self.url_root = 'http://{}/axis-cgi/com/ptz.cgi'.format(hostname)
         self._rzoom = 0
         self.presets = []

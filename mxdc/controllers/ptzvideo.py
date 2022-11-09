@@ -16,7 +16,6 @@ class AxisController(object):
         self.widget = widget
 
         self.setup()
-        self.video.set_overlay_func(self.overlay_function)
 
     def save_image(self, filename):
         img = self.camera.get_frame()
@@ -63,7 +62,7 @@ class AxisController(object):
         self.widget.hutch_zoom100_btn.connect('clicked', self.on_unzoom)
 
         # Video Area
-        self.video = VideoWidget(self.camera, mode=VideoBox.PAD)
+        self.video = VideoWidget(self.camera)
         self.widget.hutch_video_frame.add(self.video)
 
         # presets
@@ -75,10 +74,3 @@ class AxisController(object):
 
         # status, save, etc
         self.widget.hutch_save_btn.connect('clicked', self.on_save)
-        # self.widget.hutch_bkg.override_background_color(
-        #     Gtk.StateType.NORMAL, Gdk.RGBA(red=0, green=0, blue=0, alpha=1)
-        # )
-
-    def overlay_function(self, cr):
-        self.widget.hutch_meas_lbl.set_markup("<small>%4.1f fps</small>" % self.video.fps)
-        return True

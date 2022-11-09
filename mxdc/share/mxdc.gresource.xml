@@ -18,6 +18,7 @@
         <file compressed="true">data/scanplot.ui</file>
         <file compressed="true">data/settings.ui</file>
         <file compressed="true">data/browser.ui</file>
+        <file compressed="true">data/main.ui</file>
         <file>data/colormaps.data</file>
         <file>data/diagram.png</file>
         <file>data/icon.svg</file>

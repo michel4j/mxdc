@@ -23,7 +23,7 @@ obj_repr.maxdict = 1
 
 class IBeamline(Interface):
     """
-    Inteface for Beamline Objects
+    Interface for Beamline Objects
     """
     name = Attribute("""Name or description of devices.""")
     config = Attribute("""A dictionary of beamline configuratioin parameters.""")

@@ -23,7 +23,7 @@ class StatusPanel(object):
             common.DeviceMonitor(self.beamline.i0, self.widget.status_i0_fbk, format=misc.sci_fmt),
             common.DeviceMonitor(self.beamline.i1, self.widget.status_i1_fbk, format=misc.sci_fmt),
             common.PropertyMonitor(
-                self.beamline.synchrotron, 'current', self.widget.status_current_fbk, format='{:0.1f}'
+                self.beamline.synchrotron, 'current', self.widget.status_current_fbk, format='{:0.1f} mA'
             ),
             common.ShutterSwitcher(self.beamline.all_shutters, self.widget.beam_switch),
             common.ShutterSwitcher(self.beamline.fast_shutter, self.widget.shutter_switch),

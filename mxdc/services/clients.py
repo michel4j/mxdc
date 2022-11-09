@@ -12,7 +12,7 @@ from szrpc.result.gresult import GResult
 import msgpack
 import redis
 import requests
-szrpc.client.use(GResult)
+#szrpc.client.use(GResult)
 
 from pathlib import Path
 from backports.datetime_fromisoformat import MonkeyPatch

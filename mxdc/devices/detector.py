@@ -215,7 +215,6 @@ class BaseDetector(Device):
         params['num_frames'] = params.get('frame_size', 1) * params.get('num_frames', 1)
         for k, v in list(params.items()):
             if k in self.settings:
-                time.sleep(0.05)
                 self.settings[k].put(v, wait=True)
 
     def delete(self, directory, prefix, frames=()):
@@ -667,7 +666,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = description
 
-        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
+        self.acquire_cmd = self.add_pv("{}:Acquire".format(name))
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
@@ -682,6 +681,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         self.file_format = self.add_pv("{}:FileTemplate".format(name))
         self.saved_frame_fbk = self.add_pv('{}:ArrayCounter_RBV'.format(name))
         self.saved_frame = self.add_pv('{}:ArrayCounter'.format(name))
+        self.file_timeout = self.add_pv('{}:ImageFileTmot'.format(name))
 
         self.saved_frame_fbk.connect('changed', self.on_new_frame)
         self.state_value.connect('changed', self.on_state_value)
@@ -717,17 +717,17 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         }
 
     def initialize(self, wait=True):
-        logger.debug('({}) Initializing Detector ...'.format(self.name))
+        logger.debug('{} Initializing Detector ...'.format(self.name))
 
     def start(self, first=False):
-        logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        logger.debug('{} Starting Acquisition ...'.format(self.name))
         self.acquire_cmd.put(1)
         return self.wait_until(States.ARMED)
 
     def stop(self):
-        logger.debug('({}) Stopping Detector ...'.format(self.name))
-        self.acquire_cmd.put(0, wait=True)
-        self.wait_while()
+        logger.debug('{} Stopping Detector ...'.format(self.name))
+        self.acquire_cmd.put(0)
+        return self.wait_while()
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
@@ -769,11 +769,11 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['polarization'] = self.settings['polarization'].get()
         params['exposure_period'] = params['exposure_time']
         params['exposure_time'] -= self.READOUT_TIME
-
-        # num frames is increased by 50% for Pilatus to avoid hardware timeout issue during raster scans
         params['num_frames'] = int(params.get('frame_size', 1) * params.get('num_frames', 1))
-        self.saved_frame.put(0)
-        self.mode_cmd.put(1)  # External Enable
+
+        self.saved_frame.put(0, wait=True)
+        self.mode_cmd.put(1, wait=True)  # External Enable
+        self.file_timeout.put(120, wait=True)
 
         super().configure(**params)
 
@@ -898,10 +898,10 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def start(self, first=False):
         logger.debug(f'"{self.name}" Arming detector ...')
-        self.frame_counter.put(0)
+        self.frame_counter.put(0, wait=True)
 
         if self.armed_status.get() != 0:
-            self.acquire_cmd.put(0, wait=True)
+            self.acquire_cmd.put(0)
             self.wait_until(States.IDLE, timeout=5)
 
         self.acquire_cmd.put(1)
@@ -909,8 +909,8 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def stop(self):
         logger.debug('"{}" Disarming detector ...'.format(self.name))
-        self.acquire_cmd.put(0, wait=True)
-        self.wait_while()
+        self.acquire_cmd.put(0)
+        return self.wait_while()
 
     def get_origin(self):
         return self.size[0] // 2, self.size[1] // 2
@@ -939,7 +939,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
     def save(self, wait=False):
         time.sleep(2)
-        self.acquire_cmd.put(0, wait=True)
+        self.acquire_cmd.put(0)
         self.wait_until(States.IDLE, timeout=30)
 
     def delete(self, directory, prefix, frames=()):

@@ -23,7 +23,7 @@ class ImageApp(object):
         dialogs.MAIN_WINDOW = self.win
         self.win.connect("destroy", lambda x: Gtk.main_quit())
         self.win.set_title("Diffraction Image Viewer")
-        self.viewer = ImageViewer(int(Gdk.Screen.height() * 0.75))
+        self.viewer = ImageViewer(int(Gdk.Screen.height() * 0.77))
         self.win.add(self.viewer)
         self.win.show_all()
 

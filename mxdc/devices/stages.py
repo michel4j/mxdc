@@ -251,15 +251,159 @@ class SampleStage(BaseSampleStage):
 
 class XYStage(Device):
     """
-    Sample stage based based on x, y1, y2 and omega motors. Y1 and Y2 motors are at 90 degrees.
+    X, Y stage.
 
     :param x: x axis motor
     :param y: y axis motor
     """
+    class Signals:
+        changed = Signal("changed", arg_types=(object,))
 
     def __init__(self, x, y, name="XY Stage"):
         super().__init__()
         self.name = name
         self.x = x
         self.y = y
+        self.moving = False
+        self.motion_mask = {0: 0, 1: 0}
         self.add_components(self.x, self.y)
+        for i, dev in enumerate((self.x, self.y)):
+            dev.connect('changed', self.emit_change)
+            dev.connect('busy', self.check_busy, i)
+
+    def emit_change(self, *args, **kwargs):
+        pos = (self.x.get_position(), self.y.get_position())
+        self.set_state(changed=(pos,))
+
+    def check_busy(self, pv, state, index):
+        self.motion_mask[index] = int(state)
+        self.moving = sum(self.motion_mask.values()) > 0
+
+    def is_busy(self):
+        return self.moving
+
+    def wait(self, start=True, stop=True):
+        """
+        Wait for the busy state to change.
+
+        Kwargs:
+            - `start` (bool): Wait for the motor to start moving.
+            - `stop` (bool): Wait for the motor to stop moving.
+        """
+        poll = 0.001
+        end_time = time.time() + 5
+
+        # initialize precision
+        if start and not self.is_busy():
+            logger.debug(f'{self.name}: Waiting for stage to start moving')
+            while self.is_busy() and time.time() < end_time:
+                time.sleep(poll)
+            if time.time() > end_time:
+                logger.warning('%s timed out waiting for stage to start moving')
+                return False
+            logger.debug(f'{self.name}: Stage is now moving')
+
+        if stop:
+            logger.debug(f'{self.name}: Waiting for to stop moving')
+            end_time = time.time() + 120
+            time.sleep(poll)
+            while self.is_busy() and time.time() < end_time:
+                time.sleep(poll)
+            if time.time() > end_time:
+                logger.warning('%s timed out waiting for stage to stop moving')
+                return False
+        return True
+
+    def stop(self):
+        self.x.stop()
+        self.y.stop()
+
+    def move_xy(self, x, y, wait=False):
+        self.wait(start=False)
+        self.x.move_to(x,  wait=wait)
+        self.y.move_to(y, wait=wait)
+
+    def get_xy(self):
+        return self.x.get_position(), self.y.get_position()
+
+
+class XYZStage(Device):
+    """
+    X, Y, Z stage.
+
+    :param x: x axis motor
+    :param y: y axis motor
+    :param z: z axis motor
+    """
+    class Signals:
+        changed = Signal("changed", arg_types=(object,))
+
+    def __init__(self, x, y, z, name="XYZ Stage"):
+        super().__init__()
+        self.name = name
+        self.x = x
+        self.y = y
+        self.z = z
+        self.moving = False
+        self.motion_mask = {0: 0, 1: 0, 2: 0}
+        self.add_components(self.x, self.y, self.z)
+        for i, dev in enumerate((self.x, self.y, self.z)):
+            dev.connect('changed', self.emit_change)
+            dev.connect('busy', self.check_busy, i)
+
+    def emit_change(self, *args, **kwargs):
+        pos = (self.x.get_position(), self.y.get_position(), self.z.get_position())
+        self.set_state(changed=(pos,))
+
+    def check_busy(self, pv, state, index):
+        self.motion_mask[index] = int(state)
+        self.moving = sum(self.motion_mask.values()) > 0
+
+    def is_busy(self):
+        return self.moving
+
+    def wait(self, start=True, stop=True):
+        """
+        Wait for the busy state to change.
+
+        Kwargs:
+            - `start` (bool): Wait for the motor to start moving.
+            - `stop` (bool): Wait for the motor to stop moving.
+        """
+        poll = 0.001
+        end_time = time.time() + 5
+
+        # initialize precision
+        if start and not self.is_busy():
+            logger.debug(f'{self.name}: Waiting for stage to start moving')
+            while self.is_busy() and time.time() < end_time:
+                time.sleep(poll)
+            if time.time() > end_time:
+                logger.warning('%s timed out waiting for stage to start moving')
+                return False
+            logger.debug(f'{self.name}: Stage is now moving')
+
+        if stop:
+            logger.debug(f'{self.name}: Waiting for to stop moving')
+            end_time = time.time() + 120
+            time.sleep(poll)
+            while self.is_busy() and time.time() < end_time:
+                time.sleep(poll)
+            if time.time() > end_time:
+                logger.warning('%s timed out waiting for stage to stop moving')
+                return False
+        return True
+
+    def stop(self):
+        self.x.stop()
+        self.y.stop()
+        self.z.stop()
+
+    def move_xyz(self, x, y, z, wait=False):
+        self.wait(start=False)
+        self.x.move_to(x,  wait=wait)
+        self.y.move_to(y, wait=wait)
+        self.z.move_to(z, wait=wait)
+
+    def get_xyz(self):
+        return self.x.get_position(), self.y.get_position(), self.z.get_position()

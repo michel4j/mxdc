@@ -115,7 +115,7 @@ class Application(Gtk.Application):
             emails=self.beamline.config['bug_report'], exit_function=self.quit
         )
 
-        self.hook.install()
+        #self.hook.install()
         self.broadcast_service()
 
     def do_activate(self, *args):
@@ -300,6 +300,7 @@ class Application(Gtk.Application):
         logger.info('Stopping ...')
         self.beamline.cleanup()
         clear_loggers()
+
 
 def clear_loggers():
     # disconnect all log handlers first

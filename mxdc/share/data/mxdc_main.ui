@@ -493,7 +493,7 @@
                                 <property name="pixbuf">diagram.png</property>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
+                                <property name="expand">True</property>
                                 <property name="fill">True</property>
                                 <property name="position">0</property>
                               </packing>
@@ -502,6 +502,7 @@
                               <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="valign">end</property>
                                 <property name="orientation">vertical</property>
                                 <child>
                                   <object class="GtkEventBox">
@@ -523,6 +524,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage" id="image12">
                                                     <property name="visible">True</property>
@@ -553,17 +555,6 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkComboBoxText" id="hutch_presets_btn">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
@@ -575,6 +566,7 @@
                                                 <property name="focus-on-click">False</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Zoom Out</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>
@@ -597,6 +589,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Normal Zoom</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage" id="image1">
                                                     <property name="visible">True</property>
@@ -619,6 +612,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Zoom In</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage" id="image2">
                                                     <property name="visible">True</property>
@@ -635,9 +629,17 @@
                                                 <property name="position">2</property>
                                               </packing>
                                             </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="hutch_presets_btn">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -678,31 +680,19 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEventBox" id="hutch_bkg">
+                                  <object class="GtkEventBox" id="hutch_video_frame">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="resize-mode">immediate</property>
                                     <child>
-                                      <object class="GtkAspectFrame" id="hutch_video_frame">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="hexpand">True</property>
-                                        <property name="vexpand">True</property>
-                                        <property name="label-xalign">0</property>
-                                        <property name="shadow-type">none</property>
-                                        <property name="ratio">1.7699999809265137</property>
-                                        <property name="obey-child">False</property>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                      </object>
+                                      <placeholder/>
                                     </child>
                                     <style>
                                       <class name="video-bkg"/>
                                     </style>
                                   </object>
                                   <packing>
-                                    <property name="expand">True</property>
+                                    <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">2</property>
                                   </packing>
@@ -711,7 +701,19 @@
                               <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
+                                <property name="pack-type">end</property>
                                 <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
@@ -1263,6 +1265,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Loop Auto-centering</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>
@@ -1285,6 +1288,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Diffraction Auto-centering</property>
+                                                <property name="relief">none</property>
                                                 <property name="use-underline">True</property>
                                                 <child>
                                                   <object class="GtkImage">
@@ -1308,6 +1312,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Capillary Auto-centering</property>
+                                                <property name="relief">none</property>
                                                 <property name="use-underline">True</property>
                                                 <child>
                                                   <object class="GtkImage">
@@ -1324,9 +1329,6 @@
                                                 <property name="position">3</property>
                                               </packing>
                                             </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1351,6 +1353,7 @@
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Create new grid</property>
+                                                    <property name="relief">none</property>
                                                     <child>
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
@@ -1372,6 +1375,7 @@
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Clear grids/points</property>
+                                                    <property name="relief">none</property>
                                                     <child>
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
@@ -1394,6 +1398,7 @@
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
                                                     <property name="tooltip-text" translatable="yes">Save / Recover Positions</property>
+                                                    <property name="relief">none</property>
                                                     <child>
                                                       <object class="GtkImage">
                                                         <property name="visible">True</property>
@@ -1408,9 +1413,6 @@
                                                     <property name="position">2</property>
                                                   </packing>
                                                 </child>
-                                                <style>
-                                                  <class name="linked"/>
-                                                </style>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -1429,6 +1431,7 @@
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">False</property>
                                                     <property name="tooltip-text" translatable="yes">Save Image</property>
+                                                    <property name="relief">none</property>
                                                     <child>
                                                       <object class="GtkImage" id="image6">
                                                         <property name="visible">True</property>
@@ -1470,6 +1473,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
                                                 <property name="tooltip-text" translatable="yes">Rotate by -90°</property>
+                                                <property name="relief">none</property>
                                                 <property name="use-underline">True</property>
                                                 <child>
                                                   <object class="GtkLabel">
@@ -1493,6 +1497,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
                                                 <property name="tooltip-text" translatable="yes">Rotate by +180°</property>
+                                                <property name="relief">none</property>
                                                 <property name="use-underline">True</property>
                                                 <child>
                                                   <object class="GtkLabel">
@@ -1516,6 +1521,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
                                                 <property name="tooltip-text" translatable="yes">Rotate by +90°</property>
+                                                <property name="relief">none</property>
                                                 <property name="use-underline">True</property>
                                                 <child>
                                                   <object class="GtkLabel">
@@ -1533,9 +1539,6 @@
                                                 <property name="position">3</property>
                                               </packing>
                                             </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1566,6 +1569,7 @@
                                                 <property name="focus-on-click">False</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Zoom Out</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>
@@ -1588,6 +1592,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Normal Zoom</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage" id="image3">
                                                     <property name="visible">True</property>
@@ -1610,6 +1615,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Zoom In</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage" id="image4">
                                                     <property name="visible">True</property>
@@ -1626,9 +1632,6 @@
                                                 <property name="position">2</property>
                                               </packing>
                                             </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1661,29 +1664,19 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEventBox" id="microscope_bkg">
+                                  <object class="GtkEventBox" id="microscope_video_frame">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="resize-mode">immediate</property>
                                     <child>
-                                      <object class="GtkAspectFrame" id="microscope_video_frame">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="hexpand">True</property>
-                                        <property name="vexpand">True</property>
-                                        <property name="label-xalign">0</property>
-                                        <property name="shadow-type">none</property>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                      </object>
+                                      <placeholder/>
                                     </child>
                                     <style>
                                       <class name="video-bkg"/>
                                     </style>
                                   </object>
                                   <packing>
-                                    <property name="expand">True</property>
+                                    <property name="expand">False</property>
                                     <property name="fill">True</property>
                                     <property name="position">2</property>
                                   </packing>
@@ -1896,9 +1889,21 @@
                                 </child>
                               </object>
                               <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="pack-type">end</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                              </object>
+                              <packing>
                                 <property name="expand">True</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
@@ -1971,13 +1976,14 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Select all displayed samples</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="halign">center</property>
                                                     <property name="icon-name">checkbox-checked-symbolic</property>
-                                                    <property name="icon_size">2</property>
+                                                    <property name="icon_size">1</property>
                                                   </object>
                                                 </child>
                                               </object>
@@ -1993,13 +1999,14 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Deselect displayed samples</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="halign">center</property>
                                                     <property name="icon-name">checkbox-symbolic</property>
-                                                    <property name="icon_size">2</property>
+                                                    <property name="icon_size">1</property>
                                                   </object>
                                                 </child>
                                               </object>
@@ -2016,13 +2023,14 @@
                                                 <property name="focus-on-click">False</property>
                                                 <property name="receives-default">False</property>
                                                 <property name="tooltip-text" translatable="yes">Refresh Sample List</property>
+                                                <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage" id="image11">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="halign">center</property>
                                                     <property name="icon-name">emblem-synchronizing-symbolic</property>
-                                                    <property name="icon_size">2</property>
+                                                    <property name="icon_size">1</property>
                                                   </object>
                                                 </child>
                                               </object>
@@ -2033,9 +2041,6 @@
                                                 <property name="position">2</property>
                                               </packing>
                                             </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>

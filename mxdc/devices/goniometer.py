@@ -144,7 +144,7 @@ class ParkerGonio(BaseGoniometer):
     :param root: (str), PV name of goniometer EPICS record.
     """
 
-    def __init__(self, root, xname, y1name, y2name):
+    def __init__(self, root, xname, y1name, y2name, yname, zname):
         super().__init__()
 
         # initialize process variables
@@ -158,11 +158,14 @@ class ParkerGonio(BaseGoniometer):
         self.sample_x = motor.VMEMotor(xname)
         self.sample_y1 = motor.VMEMotor(y1name)
         self.sample_y2 = motor.VMEMotor(y2name)
+        self.support_y = motor.VMEMotor(yname)
+        self.support_z = motor.VMEMotor(zname)
 
         self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
         self.stage = stages.SampleStage(
             self.sample_x, self.sample_y1, self.sample_y2, self.omega, linked=False
         )
+        self.support = stages.XYZStage(self.samlple_x, self.support_y, self.support_z)
 
         # parameters
         self.settings = {
@@ -231,8 +234,6 @@ class MD2Gonio(BaseGoniometer):
 
         # initialize process variables
         self.scan_cmd = self.add_pv(f"{root}:startScan")
-
-
         self.abort_cmd = self.add_pv(f"{root}:abort")
         self.fluor_cmd = self.add_pv(f"{root}:FluoDetectorIsBack")
         self.save_pos_cmd = self.add_pv(f"{root}:saveCentringPositions")
@@ -252,7 +253,11 @@ class MD2Gonio(BaseGoniometer):
         self.sample_x = motor.PseudoMotor(f'{root}:PMTR:gonX:mm')
         self.sample_y1 = motor.PseudoMotor(f'{root}:PMTR:smplY:mm')
         self.sample_y2 = motor.PseudoMotor(f'{root}:PMTR:smplZ:mm')
-        self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2)
+        self.support_y = motor.PseudoMotor(f'{root}:PMTR:gonY:mm')
+        self.support_z = motor.PseudoMotor(f'{root}:PMTR:gonZ:mm')
+
+        self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2, self.support_y, self.support_z)
+
         if self.supports(GonioFeatures.KAPPA):
             self.phi = motor.PseudoMotor(f'{root}:PMTR:phi:deg')
             self.chi = motor.PseudoMotor(f'{root}:PMTR:chi:deg')
@@ -262,7 +267,7 @@ class MD2Gonio(BaseGoniometer):
             self.sample_x, self.sample_y1, self.sample_y2, self.omega,
             invert_x=True, invert_omega=True,
         )
-
+        self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z)
         # config parameters
         self.settings = {
             'time': self.add_pv(f"{root}:ScanExposureTime"),
@@ -493,8 +498,11 @@ class SimGonio(BaseGoniometer):
         self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.6)
         self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
         self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
+        self.support_y = motor.SimMotor('Support Y', 0.0, limits=(-5, 5), units='mm', speed=0.6)
+        self.support_z = motor.SimMotor('Support Y', 0.0, limits=(-5, 5), units='mm', speed=0.6)
 
         self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
+        self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_y)
 
         if self.supports(GonioFeatures.KAPPA):
             self.kappa = motor.SimMotor('Kappa', 0.0, limits=(-1, 180), units='deg', speed=30)

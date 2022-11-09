@@ -37,6 +37,7 @@ def add_decorations(img, x, y, bh):
     img = ovl_img
     return img
 
+
 def add_hc_decorations(img, x1, x2, y1, y2):
     img = img.convert('RGBA')
     w, h = img.size
