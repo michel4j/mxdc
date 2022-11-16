@@ -75,7 +75,7 @@ class DataCollector(Engine):
                     logger.error(str(e))
             time.sleep(1)
 
-    def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
+    def configure(self, run_data, take_snapshots=False, analysis=None, anomalous=False):
         """
         Configure the data collection engine
 
@@ -131,8 +131,10 @@ class DataCollector(Engine):
 
         with self.beamline.lock:
             # Take snapshots and prepare end station mode
-            first_dset = next(iter(self.config['datasets'].values()))
-            self.take_snapshot(first_dset.details)
+            if self.config['take_snapshot']:
+                first_dset = next(iter(self.config['datasets'].values()))
+                self.take_snapshot(first_dset.details)
+
             self.beamline.manager.collect(wait=True)
             self.emit('started', None)
             self.config['start_time'] = datetime.now(tz=pytz.utc)
@@ -295,17 +297,15 @@ class DataCollector(Engine):
             time.sleep(0)
 
     def take_snapshot(self, params):
-        prefix = params['name']
-
         # setup folder
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
 
         # take snapshot
-        snapshot_file = os.path.join(params['directory'], f'{prefix}.png')
+        snapshot_file = os.path.join(params['directory'], f"{params['name']}.png")
         if os.path.exists(params['directory']):
             logger.info('Taking snapshot ...')
-            img = self.beamline.sample_camera.get_frame()
-            img.save(snapshot_file)
+            self.beamline.sample_camera.save_frame(snapshot_file)
+            logger.debug('Snapshot saved...')
 
     def save(self, params):
         template = self.beamline.detector.get_template(params['name'])

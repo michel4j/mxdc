@@ -94,14 +94,11 @@ class VideoSrc(Device):
             t = time.time()
             if self.is_active() and any(not (sink.stopped) for sink in self.sinks):
                 try:
-                    img = self.get_frame()
-                    # if img and img.size != self.size:
-                    #     self.size = img.size
-                    #     self.set_state(resized=self.size)
-                    if not img:
+                    self.fetch_frame()
+                    if not self.frame:
                         continue
                     for sink in self.sinks:
-                        sink.display(img)
+                        sink.display(self.frame)
                 except Exception as e:
                     logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
                     raise
@@ -113,7 +110,23 @@ class VideoSrc(Device):
 
         :return: A PIL Image object.
         """
+        return self.frame
+
+    def fetch_frame(self):
+        """
+        Update the current frame from the camera
+        """
         pass
+
+    def save_frame(self, filename):
+        """
+        Save current frame to filename
+        :param filename:
+        """
+        self.fetch_frame()
+        if self.frame:
+            logger.debug(f'Saving Frame ...{filename}')
+            self.frame.save(filename)
 
     def cleanup(self):
         self.stop()
@@ -130,10 +143,9 @@ class SimCamera(VideoSrc):
         self._fsource = open('/dev/urandom', 'rb')
         self.set_state(active=True, health=(0, '', ''))
 
-    def get_frame(self):
+    def fetch_frame(self):
         data = self._fsource.read(self._packet_size)
         self.frame = Image.frombytes('RGB', self.size, data)
-        return self.frame
 
 
 class SimGIFCamera(VideoSrc):
@@ -154,12 +166,11 @@ class SimGIFCamera(VideoSrc):
     def on_gonio(self, obj, pos):
         self.index = int(self.num_frames * (pos % 360.)/360.)
 
-    def get_frame(self):
+    def fetch_frame(self):
         self.src.seek(self.index)
         if self.gonio is None:
             self.index = (self.index + 1) % self.num_frames
         self.frame = self.src.resize(self.size, Image.NEAREST).convert('RGB')
-        return self.frame
 
 
 @implementer(IPTZCameraController)
@@ -195,31 +206,25 @@ class MJPGCamera(VideoSrc):
         self._last_frame = time.time()
         self.stream = None
         self.set_state(active=True)
-        self.lock = threading.Lock()
 
-    def get_frame(self):
-        return self.get_frame_raw()
-
-    def get_frame_raw(self):
+    def fetch_frame(self):
         if not self.stream:
             self.stream = requests.get(self.url, stream=True).raw
         try:
-            with self.lock:
-                both_found = False
-                while not both_found:
-                    self.data += self.stream.read(self._read_size)
-                    b = self.data.rfind('\xff\xd9')
-                    a = self.data[:b].rfind('\xff\xd8')
-                    if a != -1 and b != -1:
-                        jpg = self.data[a:b + 2]
-                        self.data = self.data[b + 2:]
-                        self.frame = Image.open(StringIO(jpg))
-                        both_found = True
-                    time.sleep(0)
+            both_found = False
+            while not both_found:
+                self.data += self.stream.read(self._read_size)
+                b = self.data.rfind('\xff\xd9')
+                a = self.data[:b].rfind('\xff\xd8')
+                if a != -1 and b != -1:
+                    jpg = self.data[a:b + 2]
+                    self.data = self.data[b + 2:]
+                    self.frame = Image.open(StringIO(jpg))
+                    both_found = True
+                time.sleep(0.001)
         except Exception as e:
             logger.error(e)
             self.stream = requests.get(self.url, stream=True).raw
-        return self.frame
 
 
 class JPGCamera(VideoSrc):
@@ -232,14 +237,10 @@ class JPGCamera(VideoSrc):
         self.session = requests.Session()
         self.set_state(active=True)
 
-    def get_frame(self):
-        return self.get_frame_raw()
-
-    def get_frame_raw(self):
+    def fetch_frame(self):
         r = self.session.get(self.url)
         if r.status_code == 200:
             self.frame = Image.open(BytesIO(r.content))
-        return self.frame
 
 
 class REDISCamera(VideoSrc):
@@ -253,14 +254,23 @@ class REDISCamera(VideoSrc):
 
     def __init__(self, server, mac, size=(1280, 1024), name='REDIS Camera'):
         VideoSrc.__init__(self, name, maxfps=15.0, size=size)
-        self.store = redis.Redis(host=server, port=6379, db=0)
         self.key = mac
+        self.stores = {
+            threading.current_thread(): redis.Redis(host=server, port=6379, db=0)
+        }
         self.server = server
-
         self.set_state(active=True)
-        self.lock = threading.Lock()
+
+    def get_store(self):
+        thread = threading.current_thread()
+        if thread in self.stores:
+            return self.stores[thread]
+        else:
+            self.stores[thread] = redis.Redis(host=self.server, port=6379, db=0)
+            return self.stores[thread]
 
     def configure(self, **kwargs):
+        conn = self.get_store()
         if 'gain_factor' in kwargs:
             self.gain_factor = kwargs.pop('gain_factor')
             kwargs['gain'] = self.gain_value
@@ -274,26 +284,24 @@ class REDISCamera(VideoSrc):
                 value = max(1, min(22, self.gain_factor * self.gain_value))
             else:
                 value = v
-            self.store.publish('{}:CFG:{}'.format(self.key, attr), value)
+            conn.publish('{}:CFG:{}'.format(self.key, attr), value)
 
-    def get_frame(self):
-        return self.get_frame_jpg()
+    def fetch_frame_raw(self):
+        conn = self.get_store()
+        data = conn.get('{}:RAW'.format(self.key))
+        while len(data) < self.size[0] * self.size[1] * 3:
+            data = conn.get('{}:RAW'.format(self.key))
+            time.sleep(0.001)
+        img = Image.frombytes('RGB', self.size, data, 'raw')
+        self.frame = img.transpose(Image.FLIP_LEFT_RIGHT)
 
-    def get_frame_raw(self):
-        with self.lock:
-            data = self.store.get('{}:RAW'.format(self.key))
-            while len(data) < self.size[0] * self.size[1] * 3:
-                data = self.store.get('{}:RAW'.format(self.key))
-                time.sleep(0.001)
-            img = Image.frombytes('RGB', self.size, data, 'raw')
-            self.frame = img.transpose(Image.FLIP_LEFT_RIGHT)
-        return self.frame
+    def fetch_frame_jpg(self):
+        conn = self.get_store()
+        data = conn.get('{}:JPG'.format(self.key))
+        self.frame = Image.open(BytesIO(data))
 
-    def get_frame_jpg(self):
-        with self.lock:
-            data = self.store.get('{}:JPG'.format(self.key))
-            self.frame = Image.open(BytesIO(data))
-        return self.frame
+    def fetch_frame(self):
+        self.fetch_frame_jpg()
 
 
 class AxisCamera(JPGCamera):

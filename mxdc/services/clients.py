@@ -487,24 +487,15 @@ class DSClient(BaseService):
         return self.service.configure(**kwargs)
 
     def setup_folder(self, folder, user_name):
-        timeout = 10
-        t = time.time()
+        logger.debug('Setting up data collection folder ...')
         res = self.service.setup_folder(folder=folder, user_name=user_name)
         res.connect('failed', self.on_error)
-        success = res.wait(timeout=timeout)
-
-        # Wait up to 10 seconds until folder is available locally before proceeding
+        success = res.wait(timeout=10)
+        logger.debug('Folder ready ...')
         path = Path(folder)
-        while not path.exists() and time.time() - t < timeout:
-            path.parent.glob('*')
-            time.sleep(.5)
-        success = success and time.time() - t < timeout
-
-        # If folder is still not available locally, try creating it
-        # if not path.exists():
-        #     os.makedirs(folder, exist_ok=True)
-
-        return success
+        if not (success and path.exists()):
+            os.makedirs(folder, exist_ok=True)
+        return True
 
     def on_error(self, result, message):
         logger.error(message)

@@ -388,6 +388,7 @@ class ModeManager(BaseManager):
         Switch to Center mode
         :param wait: wait for switch to complete
         """
+        logger.debug('Switching to collect mode ...')
         self.mode_commands[self.ModeType.CENTER].put(1)
         if wait:
             self.wait(self.ModeType.CENTER)
@@ -397,6 +398,7 @@ class ModeManager(BaseManager):
         Switch to Collect mode
         :param wait: wait for switch to complete
         """
+        logger.debug('Switching to collect mode ...')
         self.mode_commands[self.ModeType.COLLECT].put(1)
         if wait:
             self.wait(self.ModeType.COLLECT)
@@ -406,6 +408,7 @@ class ModeManager(BaseManager):
         Switch to Align mode
         :param wait: wait for switch to complete
         """
+        logger.debug('Switching to collect mode ...')
         self.mode_commands[self.ModeType.ALIGN].put(1)
         if wait:
             self.wait(self.ModeType.ALIGN)
