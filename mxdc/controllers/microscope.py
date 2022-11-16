@@ -476,7 +476,7 @@ class Microscope(Object):
             self.make_grid(points=xyz[:, :2], center=False)
 
     def on_rotate(self, widget, angle):
-        cur_omega = int(self.beamline.goniometer.omega.get_position())
+        cur_omega = round(self.beamline.goniometer.omega.get_position())
         target = (cur_omega + angle)
         target = (target > 360) and (target % 360) or target
         self.beamline.goniometer.omega.move_to(target)

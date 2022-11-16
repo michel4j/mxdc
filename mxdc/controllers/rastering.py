@@ -191,7 +191,6 @@ class RasterController(Object):
         current_dir = directory.replace(home_dir, '~')
         self.widget.dsets_dir_fbk.set_text(current_dir)
 
-
         # collapse existing data
         self.view.collapse_all()
         self.expanded = False

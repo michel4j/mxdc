@@ -377,7 +377,7 @@ class VideoWidget(Gtk.DrawingArea):
                 cr.rectangle(ox, oy, width, width)
                 cr.fill()
             else:
-                cr.set_source_rgba(1, 1, 1, 0.35)
+                cr.set_source_rgba(0.5, 0.5, 0.5, 0.35)
                 cr.rectangle(ox, oy, width-0.5, width-0.5)
                 cr.fill()
 

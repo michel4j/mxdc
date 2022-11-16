@@ -84,6 +84,7 @@ class Centering(Engine):
 
     def get_video_frame(self):
         self.beamline.goniometer.wait(start=False, stop=True)
+        self.beamline.sample_video.fetch_frame()
         raw = self.beamline.sample_video.get_frame()
         return cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
 
