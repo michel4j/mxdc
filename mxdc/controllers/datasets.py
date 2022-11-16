@@ -388,6 +388,7 @@ class DatasetsController(Object):
             item = self.run_store.get_item(pos)
 
     def setup(self):
+        self.run_sg = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)
         self.widget.datasets_list.bind_model(self.run_store, self.create_run_config)
         self.widget.datasets_viewer_box.add(self.image_viewer)
         self.widget.datasets_clean_btn.connect('clicked', self.on_clean_runs)
@@ -427,6 +428,7 @@ class DatasetsController(Object):
 
     def create_run_config(self, item):
         config = datawidget.RunConfig()
+        self.run_sg.add_widget(config.data_title_box)
         config.set_item(item)
         return config.get_widget()
 
