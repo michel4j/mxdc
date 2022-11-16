@@ -178,6 +178,7 @@ class SampleStage(BaseSampleStage):
         self.x = x
         self.y1 = y1
         self.y2 = y2
+        self.moving = False
         self.motion_mask = {0: 0, 1: 0, 2 : 0, 3 : 0}
         self.offset = offset
         self.linked = linked

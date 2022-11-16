@@ -259,10 +259,10 @@ class RasterCollector(Engine):
         }
 
         self.beamline.detector.configure(**detector_parameters)
+        self.start_signal_strength()
         success = self.beamline.detector.start()
         if success:
             logger.debug('Performing raster scan ...')
-            self.start_signal_strength()
             self.beamline.goniometer.scan(
                 kind='raster',
                 time=params['exposure'],  # per frame
