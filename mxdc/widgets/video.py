@@ -257,17 +257,22 @@ class VideoWidget(Gtk.DrawingArea):
     def do_draw(self, cr):
         if self.next_surface is not None:
             self.this_surface = self.next_surface
-            cr.set_source_surface(self.this_surface, 0, 0)
+
+            target = cairo.ImageSurface(cairo.FORMAT_ARGB32, *self.size)
+            ctx = cairo.Context(target)
+            ctx.set_source_surface(self.this_surface, 0, 0)
+            ctx.paint()
+            self.draw_beam(ctx)
+            self.draw_ruler(ctx)
+            self.draw_box(ctx)
+            self.draw_points(ctx)
+            self.draw_grid(ctx)
+
+            cr.set_source_surface(target, 0, 0)
             cr.paint()
-            self.draw_beam(cr)
-            self.draw_ruler(cr)
-            self.draw_box(cr)
-            self.draw_points(cr)
-            self.draw_grid(cr)
 
             if self.save_file:
-                surface = cr.get_target()
-                surface.write_to_png(self.save_file)
+                target.write_to_png(self.save_file)
                 logger.info('{} saved'.format(self.save_file))
                 self.save_file = None
 
