@@ -158,7 +158,10 @@ class DataCollector(Engine):
                 }
                 self.emit('stopped', completion)
             else:
-                self.emit('done', None)
+                self.emit('done', {
+                    uid: 1.0
+                    for uid, dataset in self.config['datasets'].items()
+                })
 
             self.beamline.attenuator.move_to(current_attenuation, wait=True)  # restore attenuation
 

@@ -328,7 +328,7 @@ class SimDetector(BaseDetector):
         if high and self.get_state('state') in [States.ACQUIRING, States.ARMED]:
             self.trigger_count += 1
         else:
-            self._copy_frame(self.trigger_count)
+            self._copy_frame(self.trigger_count-1)
             logger.debug(f'Received trigger for frame: {self.trigger_count}')
 
     def _select_dir(self, name='junk'):

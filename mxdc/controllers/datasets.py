@@ -14,6 +14,7 @@ from mxdc.engines.diffraction import DataCollector
 from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe
+from mxdc.widgets.datawidget import RunItem
 
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from . import common
@@ -28,6 +29,8 @@ logger = get_module_logger(__name__)
     RESPONSE_SKIP,
     RESPONSE_CANCEL,
 ) = list(range(4))
+
+MAX_RUNS = 10
 
 
 class IDatasets(Interface):
@@ -84,7 +87,7 @@ class AutomationController(Object):
         self.automation_queue = SampleQueue(self.widget.auto_queue)
         self.automator = Automator()
 
-        self.config = datawidget.RunItem()
+        self.config = RunItem()
         self.config_display = ConfigDisplay(self.config, self.widget, 'auto')
 
         self.start_time = 0
@@ -332,7 +335,6 @@ class AutomationController(Object):
 
 
 class DatasetsController(Object):
-
     class Signals:
         changed = Signal('samples-changed', arg_types=(object,))
         active = Signal('active-sample', arg_types=(object,))
@@ -358,7 +360,7 @@ class DatasetsController(Object):
         self.editor_frame = arrowframe.ArrowFrame()
         self.editor_frame.add(self.run_editor.data_form)
         self.widget.datasets_overlay.add_overlay(self.editor_frame)
-        self.run_store = Gio.ListStore(item_type=datawidget.RunItem)
+        self.run_store = Gio.ListStore(item_type=RunItem)
         self.run_store.connect('items-changed', self.on_runs_changed)
 
         self.collector.connect('done', self.on_done)
@@ -371,13 +373,16 @@ class DatasetsController(Object):
 
     def import_from_cache(self):
         runs = load_cache('runs')
+        names = load_cache('names')
+        names = {} if not names else names
         if runs:
             for run in runs:
-                new_item = datawidget.RunItem(
+                new_item = RunItem(
                     run['info'], state=run['state'], created=run['created'], uid=run['uuid']
                 )
-                self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+                self.run_store.insert_sorted(new_item, RunItem.sorter)
             self.widget.datasets_collect_btn.set_sensitive(True)
+        self.names.set_database(names)
 
     def update_positions(self):
         pos = 0
@@ -404,8 +409,8 @@ class DatasetsController(Object):
 
         self.import_from_cache()
 
-        new_item = datawidget.RunItem(state=datawidget.RunItem.StateType.ADD)
-        pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+        new_item = RunItem(state=RunItem.StateType.ADD)
+        pos = self.run_store.insert_sorted(new_item, RunItem.sorter)
         self.run_editor.set_item(new_item)
         first_row = self.widget.datasets_list.get_row_at_index(pos)
         self.editor_frame.set_row(first_row)
@@ -435,26 +440,37 @@ class DatasetsController(Object):
     def auto_save_run(self):
         item = self.run_editor.item
         # auto save current parameters
-        if item and item.props.state not in [datawidget.RunItem.StateType.ADD, datawidget.RunItem.StateType.COMPLETE]:
+        if item and item.props.state not in [RunItem.StateType.ADD, RunItem.StateType.COMPLETE]:
             info = self.run_editor.get_parameters()
             item.props.info = info
-            item.props.state = datawidget.RunItem.StateType.DRAFT
+            item.props.state = RunItem.StateType.DRAFT
             self.check_run_store()
+
+    def add_new_run(self, config):
+        sample = self.sample_store.get_current()
+        name = sample.get('name', 'test')
+        config['name'] = self.names.get(name)
+
+        item = RunItem({}, state=RunItem.StateType.DRAFT)
+        item.props.info = config
+        self.run_store.insert_sorted(item, RunItem.sorter)
+        self.check_run_store()
+
+        next_row = self.widget.datasets_list.get_row_at_index(item.position)
+        self.editor_frame.set_row(next_row)
+        self.run_editor.set_item(item)
 
     def on_row_activated(self, list, row):
         self.auto_save_run()
         self.editor_frame.set_row(row)
         position = row.get_index()
         item = self.run_store.get_item(position)
+
         num_items = self.run_store.get_n_items()
-
-        # add a new run
-        sample = self.sample_store.get_current()
-        if item.state == item.StateType.ADD and num_items < 8:
-            if position > 0:
-                prev = self.run_store.get_item(position - 1)
+        if item.state == item.StateType.ADD and num_items < MAX_RUNS:
+            if num_items >= 2:
+                prev = self.run_store.get_item(num_items - 2)
                 config = prev.info.copy()
-
             else:
                 config = self.run_editor.get_default(datawidget.StrategyType.FULL)
                 energy = self.beamline.bragg_energy.get_position()
@@ -470,24 +486,14 @@ class DatasetsController(Object):
                     'attenuation': attenuation,
                     'distance': distance,
                 })
-            name = sample.get('name', config['name'])
-            config['name'] = self.names.get(name)
-            item.props.info = config
-            item.props.state = datawidget.RunItem.StateType.DRAFT
-            new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
-            self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
-            self.check_run_store()
-
-        # switch focus
-        self.run_editor.set_item(item)
+            self.add_new_run(config)
+        else:
+            self.run_editor.set_item(item)
 
     def on_runs_changed(self, model, position, removed, added):
         self.update_positions()
         if self.run_store.get_n_items() < 2:
             self.widget.datasets_collect_btn.set_sensitive(False)
-
-    #def on_points(self, *args, **kwargs):
-    #    self.run_editor.set_points_model(self.microscope.props.points)
 
     def generate_run_list(self):
         runs = []
@@ -560,38 +566,21 @@ class DatasetsController(Object):
         return success, config_data, collected
 
     def check_run_store(self):
+        editable_states = (RunItem.StateType.DRAFT, RunItem.StateType.ACTIVE)
+        draft_names = [item.info['name'] for item in self.run_store if item.state in editable_states]
+        root = self.sample_store.get_current().get('name', 'test')
+        new_names = self.names.fix(root, *draft_names)
         count = 0
-        item = self.run_store.get_item(count)
-        self.names.reset()
-        while item:
-            if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
+        for i, item in enumerate(self.run_store):
+            if item.props.state in editable_states:
+                count += 1
                 info = item.info.copy()
-                info['name'] = self.names.fix(info['name'])
+                info['name'] = new_names.pop(0)
                 item.props.info = info
-                item.props.position = count
+                item.props.position = i
 
-            count += 1
-            item = self.run_store.get_item(count)
-        self.widget.datasets_collect_btn.set_sensitive(count > 1)
         self.update_cache()
-
-    def update_names(self, sample):
-        count = 0
-        item = self.run_store.get_item(count)
-        name = sample.get('name', 'test')
-        self.names.reset(name)
-
-        while item:
-            if item.props.state in [item.StateType.DRAFT, item.StateType.ACTIVE]:
-                info = item.info.copy()
-                info['name'] = self.names.fix(name)
-                item.props.info = info
-                item.props.position = count
-
-            count += 1
-            item = self.run_store.get_item(count)
-        self.widget.datasets_collect_btn.set_sensitive(count > 1)
-        self.update_cache()
+        self.widget.datasets_collect_btn.set_sensitive(count > 0)
 
     def update_cache(self):
         count = 0
@@ -611,6 +600,7 @@ class DatasetsController(Object):
             count += 1
             item = self.run_store.get_item(count)
         save_cache(cache, 'runs')
+        save_cache(self.names.get_database(), 'names')
 
     def add_runs(self, runs):
         num_items = self.run_store.get_n_items()
@@ -632,9 +622,9 @@ class DatasetsController(Object):
                 'energy': energy,
                 'name': run['name'],
             })
-            new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.DRAFT)
+            new_item = RunItem({}, state=RunItem.StateType.DRAFT)
             new_item.props.info = info
-            self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+            self.run_store.insert_sorted(new_item, RunItem.sorter)
         self.check_run_store()
 
     def open_terminal(self, button):
@@ -647,48 +637,85 @@ class DatasetsController(Object):
             name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
-        self.update_names(sample)
         self.widget.dsets_sample_fbk.set_text(sample_text)
+        self.remove_runs()
+
+        config = self.run_editor.get_default(datawidget.StrategyType.SCREEN_2)
+        energy = self.beamline.bragg_energy.get_position()
+        distance = self.beamline.distance.get_position()
+        resolution = converter.dist_to_resol(
+            distance, self.beamline.detector.mm_size, energy
+        )
+        attenuation = self.beamline.attenuator.get_position()
+        config.update({
+            'resolution': round(resolution, 4),
+            'strategy': datawidget.StrategyType.SCREEN_2,
+            'energy': energy,
+            'attenuation': attenuation,
+            'distance': distance,
+        })
+        self.add_new_run(config)
 
     def on_save_run(self, obj):
         item = self.run_editor.item
         if not item: return
-        if item.props.state == datawidget.RunItem.StateType.ADD:
-            new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.ADD)
-            self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+        if item.props.state == RunItem.StateType.ADD:
+            new_item = RunItem({}, state=RunItem.StateType.ADD)
+            self.run_store.insert_sorted(new_item, RunItem.sorter)
         info = self.run_editor.get_parameters()
         item.props.info = info
-        item.props.state = datawidget.RunItem.StateType.DRAFT
+        item.props.state = RunItem.StateType.DRAFT
         self.check_run_store()
 
     def on_delete_run(self, obj):
         item = self.run_editor.item
-        if item.state != datawidget.RunItem.StateType.ADD:
+        if item.state != RunItem.StateType.ADD:
             pos = item.position
             self.run_store.remove(item.position)
             item = self.run_store.get_item(pos)
+            if item.state == RunItem.StateType.ADD and pos > 0:
+                pos -= 1
+                item = self.run_store.get_item(pos)
             next_row = self.widget.datasets_list.get_row_at_index(pos)
             self.run_editor.set_item(item)
             self.editor_frame.set_row(next_row)
         self.check_run_store()
 
     def on_clean_runs(self, obj):
-        count = 0
-        item = self.run_store.get_item(count)
-        while item.state in [item.StateType.COMPLETE, item.StateType.ERROR]:
-            count += 1
-            item = self.run_store.get_item(count)
-        if count > 0:
-            self.run_store.splice(0, count, [])
-            self.check_run_store()
+        self.remove_runs(RunItem.StateType.COMPLETE, RunItem.StateType.ERROR)
+        self.check_run_store()
+
+    def remove_runs(self, *states, keep=()):
+        all_states = (
+            RunItem.StateType.DRAFT,
+            RunItem.StateType.ACTIVE,
+            RunItem.StateType.PAUSED,
+            RunItem.StateType.ERROR,
+            RunItem.StateType.COMPLETE
+        )
+        states = states if states else all_states
+
+        i = 0
+        item = self.run_store[i]
+        while item.state != RunItem.StateType.ADD:
+            if item.state in states and not item.state in keep:
+                self.run_store.remove(i)
+                item = self.run_store[i]
+            else:
+                i += 1
+                if i == self.run_store.get_n_items():
+                    break
+                else:
+                    item = self.run_store[i]
+        self.check_run_store()
 
     def on_copy_run(self, obj):
         num_items = self.run_store.get_n_items()
         if num_items > 7:
             return
-        new_item = datawidget.RunItem({}, state=datawidget.RunItem.StateType.DRAFT)
+        new_item = RunItem({}, state=RunItem.StateType.DRAFT)
         new_item.props.info = self.run_editor.get_parameters()
-        pos = self.run_store.insert_sorted(new_item, datawidget.RunItem.sorter)
+        pos = self.run_store.insert_sorted(new_item, RunItem.sorter)
         self.check_run_store()
         next_row = self.widget.datasets_list.get_row_at_index(pos)
         self.run_editor.set_item(new_item)
@@ -696,20 +723,19 @@ class DatasetsController(Object):
 
     def on_recycle_run(self, obj):
         item = self.run_editor.item
-        if item.state != datawidget.RunItem.StateType.ADD:
+        if item.state != RunItem.StateType.ADD:
             info = item.info.copy()
 
             sample = self.sample_store.get_current()
-            name = sample.get('name')
-            name = name if name is not None else info['name']
+            root = sample.get('name', 'test')
 
             energy = self.beamline.energy.get_position()
             info.update({
                 'energy': energy,
-                'name': self.names.fix(name),
+                'name': self.names.get(root),
                 'notes': ''
             })
-            item.state = datawidget.RunItem.StateType.DRAFT
+            item.state = RunItem.StateType.DRAFT
             item.props.info = info
         self.auto_save_run()
         self.check_run_store()
@@ -730,7 +756,6 @@ class DatasetsController(Object):
         self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.widget.collect_pbar.set_fraction(1.0)
         self.widget.collect_progress_lbl.set_text('Acquisition complete!')
-        self.update_cache()
 
     def on_stopped(self, obj, completion):
         self.complete_run(completion)
@@ -743,7 +768,7 @@ class DatasetsController(Object):
             self.widget.notifier.notify(message, duration=30, show_timer=True)
             self.pause_info = False
 
-    def complete_run(self, completion):
+    def complete_run(self, completion=None):
         self.widget.datasets_collect_btn.set_sensitive(True)
         self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR)
         self.widget.datasets_clean_btn.set_sensitive(True)
@@ -755,15 +780,15 @@ class DatasetsController(Object):
 
         # mark runs as complete
         completion = {} if not completion else completion
-        count = 0
-        item = self.run_store.get_item(count)
-        changed = False
-        while item:
-            changed = item.set_progress(completion.get(item.uuid, 1.0))
-            count += 1
-            item = self.run_store.get_item(count)
-        if changed:
-            self.update_cache()
+        sample = self.sample_store.get_current()
+        root = sample.get('name', 'test')
+
+        for item in self.run_store:
+            if item.state != RunItem.StateType.ADD:
+                item.set_progress(completion.get(item.uuid, 1.0))
+                if completion.get(item.uuid, 1.0) > 0.0:
+                    self.names.update(root, item.info['name'])
+        self.update_cache()
 
     def on_started(self, obj, wedge):
         if wedge is None:  # Overall start for all wedges
@@ -779,7 +804,7 @@ class DatasetsController(Object):
             os.chdir(os.path.abspath(wedge['directory']))
 
             progress_text = "Acquiring from {:g}-{:g}° for '{}' ...".format(
-                wedge['start'], wedge['start']+wedge['num_frames']*wedge['delta'], wedge['name']
+                wedge['start'], wedge['start'] + wedge['num_frames'] * wedge['delta'], wedge['name']
             )
             self.widget.collect_progress_lbl.set_text(progress_text)
 

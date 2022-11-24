@@ -157,6 +157,12 @@ class DataLoader(Object):
         """
         self.inbox.append(path)
 
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
+
     def show(self, dataset):
         """
         Prepare and display externally loaded dataset
@@ -206,33 +212,34 @@ class DataLoader(Object):
     def run(self):
         while not self.stopped:
             # Setup any frames in the deque and add them to the display queue
-            if len(self.frames):
-                frame = self.frames.popleft()
-                frame.setup(self.colormap)
-                self.outbox.append(frame)
+            if not self.paused:
+                if len(self.frames):
+                    frame = self.frames.popleft()
+                    frame.setup(self.colormap)
+                    self.outbox.append(frame)
 
-            if self.cur_frame:
-                try:
-                    success = False
-                    if self.load_next:
-                        success = self.cur_frame.next_frame()
-                    elif self.load_prev:
-                        success = self.cur_frame.prev_frame()
-                    if success:
+                if self.cur_frame:
+                    try:
+                        success = False
+                        if self.load_next:
+                            success = self.cur_frame.next_frame()
+                        elif self.load_prev:
+                            success = self.cur_frame.prev_frame()
+                        if success:
 
-                        frame = Frame(self.cur_frame.dataset)
-                        frame.setup()
-                        self.outbox.append(frame)
-                except NotImplementedError:
-                    pass
-            self.load_next = self.load_prev = False
+                            frame = Frame(self.cur_frame.dataset)
+                            frame.setup()
+                            self.outbox.append(frame)
+                    except NotImplementedError:
+                        pass
+                self.load_next = self.load_prev = False
 
-            # load any images from specified paths in the inbox
-            if len(self.inbox):
-                path = self.inbox.popleft()
-                self.load(path)
+                # load any images from specified paths in the inbox
+                if len(self.inbox):
+                    path = self.inbox.popleft()
+                    self.load(path)
 
-            time.sleep(0.01)
+            time.sleep(0.05)
 
 
 class ImageWidget(Gtk.DrawingArea):
@@ -287,7 +294,6 @@ class ImageWidget(Gtk.DrawingArea):
         if self.all_spots is not None and self.frame is not None:
             sel = (self.all_spots[:, 2] >= self.frame.frame_number - 5)
             sel &= (self.all_spots[:, 2] <= self.frame.frame_number + 5)
-            #sel = self.all_spots[:,3] == 0
             self.frame_spots = self.all_spots[sel]
         else:
             self.frame_spots = None
@@ -334,7 +340,7 @@ class ImageWidget(Gtk.DrawingArea):
     def open(self, filename):
         self.data_loader.open(filename)
 
-    def show(self, frame):
+    def show_frame(self, frame):
         self.data_loader.show(frame)
 
     def load_next(self):
@@ -546,6 +552,12 @@ class ImageWidget(Gtk.DrawingArea):
         else:
             window.set_cursor(Gdk.Cursor.new(cursor))
         Gtk.main_iteration()
+
+    def pause(self):
+        self.data_loader.pause()
+
+    def resume(self):
+        self.data_loader.resume()
 
     # callbacks
     def on_mouse_motion(self, widget, event):

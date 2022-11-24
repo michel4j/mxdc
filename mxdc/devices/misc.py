@@ -578,7 +578,7 @@ class Attenuator3(BasePositioner):
         if self.state.get() == self.opened:
             return 0.0
         elif self.position == 0.0:
-            self.position = 70.0
+            self.position = 80.0
         return self.position
 
     def set(self, target, wait=False):

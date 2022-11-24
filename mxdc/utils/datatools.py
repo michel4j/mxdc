@@ -92,6 +92,7 @@ ScreeningAngles = {
     StrategyType.SCREEN_1: (0,),
 }
 
+
 class AnalysisType:
     MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
 
@@ -139,36 +140,70 @@ class NameManager(object):
     unique names are generated
     """
 
-    def __init__(self, sample='test'):
-        self.sample = sample
-        self.history = defaultdict(list)
+    def __init__(self, database: dict = None):
+        """
+        :param database: dict of sample suffixes Entry keys are samples names
+        and  value is the last integer suffix
+        """
+        self.database = {} if database is None else database
 
-    def reset(self, sample=None):
-        if sample is not None:
-            self.sample = sample
-        self.history = defaultdict(list)
+    def set_database(self, database: dict):
+         """
+        :param database: dict of sample suffixes Entry keys are samples names
+        and  value is the last integer suffix
+        """
+         self.database = database
 
-    def fix(self, name):
-        m = re.match(rf'^(.+)-(\d+)$', name)
+    def get_database(self):
+        """
+        Return a dictionary similar to what is expected for initialization
+        """
+        return self.database
+
+    @staticmethod
+    def split_name(root, name):
+        m = re.match(rf'^({root})(-\d*)?$', name)
         if m:
-            root = m.group(1)
-            num = int(m.group(2))
+            number = 0 if m.group(2) is None else abs(int(m.group(2)))
         else:
+            number = 0
             root = name
-            num = 0
+        return root, number
 
-        if num not in self.history[root]:
-            new_num = num
+    def fix(self, sample, *names):
+        last = self.database.get(sample, -1)
+        fixed_names = []
+        for name in names:
+            root, number = self.split_name(sample, name)
+            if root == sample:
+                if last < 0:
+                    last += 1
+                    fixed_names.append(root)
+                elif number > last:
+                    last = number
+                    fixed_names.append(f'{sample}-{last}')
+                else:
+                    last += 1
+                    fixed_names.append(f'{sample}-{last}')
+            else:
+                fixed_names.append(name)
+        return fixed_names
+
+    def get(self, sample):
+        last = self.database.get(sample)
+        if last is None:
+            return sample
         else:
-            new_num = max(self.history[root]) + 1
-        self.history[root].append(new_num)
+            return f'{sample}-{last+1}'
 
-        new_name = root if new_num == 0 else f'{root}-{new_num}'
-        return new_name
-
-    def get(self, name=None):
-        name = name if name else self.sample
-        return self.fix(name)
+    def update(self, sample, name):
+        root, number = self.split_name(sample, name)
+        last = self.database.get('sample')
+        if sample == root:
+            if last in [None, 0]:
+                self.database[sample] = number
+            elif number > last:
+                self.database[sample] = number
 
 
 def summarize_list(values):
@@ -340,6 +375,7 @@ def count_frameset(frame_set):
         for pair in frame_set.split(',')
     )
 
+
 def merge_framesets(*args):
     frame_set = ','.join(filter(None, args))
     sequence = frameset_to_list(frame_set)
@@ -363,7 +399,7 @@ def grid_frames(params: dict):
     """
     return (
         {
-            'name': params['name'],
+            'name': misc.slugify(params['name']),
             'uuid': params['uuid'],
             'saved': False,
             'first': i + 1,

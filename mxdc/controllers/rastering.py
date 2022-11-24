@@ -195,6 +195,9 @@ class RasterController(Object):
         self.view.collapse_all()
         self.expanded = False
 
+        image_viewer = Registry.get_utility(IImageViewer)
+        image_viewer.set_collect_mode(True)
+
     def on_complete(self, collector, data):
         self.props.state = self.StateType.READY
         self.widget.raster_progress_lbl.set_text("Rastering analysis complete.")

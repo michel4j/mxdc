@@ -536,9 +536,10 @@ class SimGonio(BaseGoniometer):
                 self.settings['angle'],
                 self.settings['angle'] + self.settings['range'],
                 self.settings['range'] / self.settings.get('frames', 1)
-            )
+            ).tolist()
             if self.supports(GonioFeatures.TRIGGERING):
-                GLib.idle_add(self.send_triggers)
+                logger.debug('starting triggers for {}'.format(self.trigger_positions))
+                GLib.timeout_add(int(self._frame_exposure*1000), self.send_triggers)
             self.omega.move_to(self.settings['angle'] + self.settings['range'] + 0.05, wait=True)
             bl.fast_shutter.close()
             self.omega.configure(speed=config['speed'])
@@ -546,16 +547,11 @@ class SimGonio(BaseGoniometer):
             self.set_state(message='Scan complete!', busy=False)
             self._scanning = False
 
-    @async_call
     def send_triggers(self):
-        logger.debug('starting triggers for {}'.format(self.trigger_positions))
-        while self._scanning and self.trigger_index < len(self.trigger_positions):
-            if self.omega.get_position() >= self.trigger_positions[self.trigger_index]:
-                self.trigger.on(self._frame_exposure * 0.5)
-                self.trigger_index += 1
-            if self.trigger_index > len(self.trigger_positions):
-                break
-            time.sleep(0.001)
+        if len(self.trigger_positions):
+            self.trigger_positions.pop(0)
+            self.trigger.on(self._frame_exposure * 0.5)
+        return self._scanning
 
     def scan(self, **kwargs):
         """

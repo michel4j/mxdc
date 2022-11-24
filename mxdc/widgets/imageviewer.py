@@ -46,7 +46,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         'detector_type': '{}',
     }
 
-    def __init__(self, size=680):
+    def __init__(self, size=700):
         super(ImageViewer, self).__init__()
         self.setup_gui()
         self.set(0.5, 0.5, 1, 1)
@@ -56,7 +56,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.following = False
         self.collecting = False
         self.following_id = None
-        self.last_follow_time = 0
         self.reflections = []
 
         self.build_gui()
@@ -70,7 +69,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.canvas.connect('motion_notify_event', self.on_mouse_motion)
 
         self.info_btn.connect('clicked', self.on_image_info)
-        self.follow_tbtn.connect('toggled', self.on_follow_toggled)
+        self.follow_tbtn.connect('clicked', self.on_follow_toggled)
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
         self.reset_btn.connect('clicked', self.on_reset_filters)
 
@@ -82,7 +81,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.back_btn.connect('clicked', self.on_go_back, False)
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
         self.info_close_btn.connect('clicked', self.on_info_hide)
-
+        self.get_style_context().add_class('image-viewer')
         self.add(self.image_viewer)
         self.show_all()
 
@@ -97,6 +96,11 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def set_collect_mode(self, state=True):
         self.collecting = state
+        self.follow_tbtn.set_active(state)
+        if state:
+            self.canvas.resume()
+        else:
+            self.canvas.pause()
 
     def on_reset_filters(self, widget):
         self.canvas.reset_filters()
@@ -138,7 +142,6 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 else:
                     txt = fmt.format(info[name])
                 field.set_text(txt)
-        self.last_follow_time = time.time()
 
     def open_frame(self, filename):
         # select spots and display for current image
@@ -147,14 +150,11 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.canvas.open(filename)
 
     def show_frame(self, frame):
-        self.canvas.show(frame)
+        self.canvas.show_frame(frame)
 
     def follow_frames(self):
-        if time.time() - self.last_follow_time < MAX_FOLLOW_DURATION:
-            self.canvas.load_next()
-            return True
-        else:
-            self.follow_tbtn.set_active(False)
+        self.canvas.load_next()
+        return self.follow_tbtn.get_active()
 
     def on_image_info(self, obj):
         self.on_data_loaded()
@@ -194,12 +194,11 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.canvas.colorize(self.colorize_tbtn.get_active())
 
     def on_follow_toggled(self, widget):
-        self.following = widget.get_active()
-        if self.following:
-            if not self.collecting:
-                self.following_id = GLib.timeout_add(100, self.follow_frames)
-        else:
-            if self.following_id:
-                GLib.source_remove(self.following_id)
-                self.following_id = None
+        if widget.get_active():
+            self.following_id = GLib.timeout_add(100, self.follow_frames)
+            self.canvas.resume()
+        elif self.following_id:
+            GLib.source_remove(self.following_id)
+            self.following_id = None
+            self.canvas.pause()
 

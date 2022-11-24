@@ -2617,20 +2617,18 @@
                         <property name="vexpand">True</property>
                         <property name="spacing">12</property>
                         <child>
-                          <object class="GtkFrame" id="datasets_viewer_box">
+                          <object class="GtkEventBox" id="datasets_viewer_box">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="label-xalign">0</property>
-                            <property name="shadow-type">out</property>
                             <child>
                               <placeholder/>
                             </child>
-                            <child type="label_item">
-                              <placeholder/>
-                            </child>
+                            <style>
+                              <class name="shaded-bg"/>
+                            </style>
                           </object>
                           <packing>
-                            <property name="expand">True</property>
+                            <property name="expand">False</property>
                             <property name="fill">True</property>
                             <property name="position">0</property>
                           </packing>
