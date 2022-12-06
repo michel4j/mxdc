@@ -468,17 +468,18 @@ class DatasetsController(Object):
 
         num_items = self.run_store.get_n_items()
         if item.state == item.StateType.ADD and num_items < MAX_RUNS:
+            energy = self.beamline.bragg_energy.get_position()
+            distance = self.beamline.distance.get_position()
+            resolution = converter.dist_to_resol(
+                distance, self.beamline.detector.mm_size, energy
+            )
+            attenuation = self.beamline.attenuator.get_position()
+
             if num_items >= 2:
                 prev = self.run_store.get_item(num_items - 2)
                 config = prev.info.copy()
             else:
                 config = self.run_editor.get_default(datawidget.StrategyType.FULL)
-                energy = self.beamline.bragg_energy.get_position()
-                distance = self.beamline.distance.get_position()
-                resolution = converter.dist_to_resol(
-                    distance, self.beamline.detector.mm_size, energy
-                )
-                attenuation = self.beamline.attenuator.get_position()
                 config.update({
                     'resolution': round(resolution, 4),
                     'strategy': datawidget.StrategyType.FULL,
@@ -486,6 +487,10 @@ class DatasetsController(Object):
                     'attenuation': attenuation,
                     'distance': distance,
                 })
+            config.update({
+                'energy': energy,
+                'attenuation': attenuation,
+            })
             self.add_new_run(config)
         else:
             self.run_editor.set_item(item)

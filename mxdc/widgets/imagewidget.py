@@ -3,6 +3,7 @@ import math
 import pathlib
 import threading
 import time
+import traceback
 from collections import deque
 
 import cairo
@@ -180,7 +181,7 @@ class DataLoader(Object):
                 self.show(dataset)
                 success = True
             except Exception as e:
-                logger.debug(str(e))
+                logger.exception(e)
                 success = False
             attempts += 1
             time.sleep(0.25)
@@ -230,8 +231,9 @@ class DataLoader(Object):
                             frame = Frame(self.cur_frame.dataset)
                             frame.setup()
                             self.outbox.append(frame)
-                    except NotImplementedError:
-                        pass
+                    except Exception as e:
+                        print(e)
+                        logger.exception(e)
                 self.load_next = self.load_prev = False
 
                 # load any images from specified paths in the inbox

@@ -133,7 +133,7 @@ class AuntISARA(AutoMounter):
 
         status_pvs = [
             self.status_fbk, self.enabled_fbk, self.connected_fbk, self.autofill_fbk, self.cryo_fbk,
-            self.mode_fbk
+            self.mode_fbk, self.path_fbk
         ]
         for pv in status_pvs:
             pv.connect('changed', self.on_state_changed)
@@ -145,7 +145,7 @@ class AuntISARA(AutoMounter):
         return False
 
     def is_valid(self, port):
-        return port[:2] in self.PUCKS[1:] and 1<= int(port[2:]) <=16
+        return port[:2] in self.PUCKS[1:] and 1 <= int(port[2:]) <= 16
 
     def power_on(self):
         if self.power_fbk.get() == 0:
@@ -326,36 +326,39 @@ class AuntISARA(AutoMounter):
         enabled = (self.enabled_fbk.get() == 1)
         auto_mode = (self.mode_fbk.get() == 1)
         status_value = self.status_fbk.get()
-        #cryo_good = (self.autofill_fbk.get() == 0) or (2 <= self.cryo_fbk.get() <= 4)  # good if autofill disabled
+        drying = self.position_fbk.get().startswith('DRYER')
+        path = self.path_fbk.get()
         cryo_good = True
         cur_status = self.get_state('status')
 
-        if connected:
-            if not enabled:
-                status = State.DISABLED
-                health |= 16
-                diagnosis += ['Disabled by staff']
-            elif status_value in [1, 2]:
-                status = State.BUSY
-            elif status_value == 3:
-                status = State.STANDBY
-            elif status_value == 4:
-                status = State.ERROR
-            else:
-                status = State.PREPARING if cur_status == State.PREPARING else State.IDLE
-        elif not auto_mode:
-            status = State.ERROR
-            self.set_state(message='Staff Needed! Wrong Mode/Tool.')
-        else:
+        if not connected:
             health |= 4
             diagnosis += ['Controller Disconnected! Staff Needed.']
             status = State.ERROR
+        elif not enabled:
+            status = State.WARNING
+            health |= 16
+            diagnosis += ['Disabled by staff']
+        elif not auto_mode:
+            status = State.WARNING
+            self.set_state(message='Wrong Mode/Tool! Staff Needed.')
+        elif drying or status_value in [3, ]:
+            status = State.STANDBY
+        elif path != "None" or status_value in [1, 2]:
+            status = State.BUSY
+        elif status_value in [4, ]:
+            status = State.ERROR
+        elif cur_status == State.PREPARING:
+            status = State.PREPARING
+        else:
+            status = State.IDLE
 
         if not cryo_good:
             health |= 4
             diagnosis += ['Cryo Level Problem! Staff Needed.']
 
-        self.set_state(status=status)
+        if self.get_state('status') != status:
+            self.set_state(status=status)
         self.set_state(health=(health, 'notices', 'Staff Needed'), message=', '.join(diagnosis))
 
     def on_message(self, obj, value, transform):
