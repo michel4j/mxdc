@@ -1,28 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="title" translatable="yes">window1</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox" id="image_viewer">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkAspectFrame" id="image_frame">
-            <property name="width_request">640</property>
-            <property name="height_request">640</property>
+            <property name="width-request">640</property>
+            <property name="height-request">640</property>
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label_xalign">0</property>
-            <property name="shadow_type">none</property>
-            <property name="obey_child">False</property>
+            <property name="can-focus">False</property>
+            <property name="label-xalign">0</property>
+            <property name="shadow-type">none</property>
+            <property name="obey-child">False</property>
             <child>
               <placeholder/>
             </child>
@@ -36,17 +33,17 @@
         <child>
           <object class="GtkToolbar" id="toolbar1">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="valign">end</property>
-            <property name="toolbar_style">icons</property>
-            <property name="show_arrow">False</property>
+            <property name="toolbar-style">icons</property>
+            <property name="show-arrow">False</property>
             <property name="icon_size">2</property>
             <child>
               <object class="GtkToolButton" id="open_btn">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">document-open-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">document-open-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -57,10 +54,10 @@
               <object class="GtkToolButton" id="save_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Save PNG</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">media-floppy-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Save PNG</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">media-floppy-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -70,7 +67,7 @@
             <child>
               <object class="GtkSeparatorToolItem" id="separatortoolitem1">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -81,10 +78,10 @@
               <object class="GtkToolButton" id="back_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Go Back</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">go-previous-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Go Back</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">go-previous-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -95,9 +92,9 @@
               <object class="GtkToolButton" id="zoom_fit_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">zoom-fit-best-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">zoom-fit-best-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -108,9 +105,9 @@
               <object class="GtkToggleToolButton" id="colorize_tbtn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="tooltip_text" translatable="yes">Colorize Image</property>
-                <property name="icon_name">applications-graphics-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Colorize Image</property>
+                <property name="icon-name">applications-graphics-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -121,9 +118,9 @@
               <object class="GtkToolButton" id="reset_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">emblem-synchronizing-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">emblem-synchronizing-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -134,9 +131,22 @@
               <object class="GtkToolButton" id="prev_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">media-skip-backward-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">media-skip-backward-symbolic</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="play_btn">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">False</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">media-playback-start-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -147,22 +157,9 @@
               <object class="GtkToolButton" id="next_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">media-skip-forward-symbolic</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkToggleToolButton" id="follow_tbtn">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">media-playlist-repeat-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">media-skip-forward-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -173,8 +170,8 @@
               <object class="GtkToolButton" id="info_btn">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
-                <property name="can_focus">False</property>
-                <property name="icon_name">dialog-information-symbolic</property>
+                <property name="can-focus">False</property>
+                <property name="icon-name">dialog-information-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -184,7 +181,7 @@
             <child>
               <object class="GtkSeparatorToolItem" id="expand_separator">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="draw">False</property>
               </object>
               <packing>
@@ -195,17 +192,17 @@
             <child>
               <object class="GtkToolItem" id="toolitem1">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="visible_vertical">False</property>
+                <property name="can-focus">False</property>
+                <property name="visible-vertical">False</property>
                 <child>
                   <object class="GtkLabel" id="info_pos">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">end</property>
-                    <property name="use_markup">True</property>
+                    <property name="use-markup">True</property>
                     <property name="wrap">True</property>
                     <property name="ellipsize">end</property>
-                    <property name="angle">0.040000000000000001</property>
+                    <property name="angle">0.04</property>
                   </object>
                 </child>
               </object>
@@ -217,18 +214,18 @@
             <child>
               <object class="GtkToolItem" id="toolitem2">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="visible_vertical">False</property>
+                <property name="visible-vertical">False</property>
                 <child>
                   <object class="GtkLabel" id="info_data">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">end</property>
-                    <property name="use_markup">True</property>
+                    <property name="use-markup">True</property>
                     <property name="wrap">True</property>
                     <property name="ellipsize">end</property>
-                    <property name="angle">0.040000000000000001</property>
+                    <property name="angle">0.04</property>
                   </object>
                 </child>
               </object>
@@ -241,7 +238,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="pack_type">end</property>
+            <property name="pack-type">end</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -249,27 +246,24 @@
     </child>
   </object>
   <object class="GtkWindow" id="brightness_popup">
-    <property name="can_focus">False</property>
-    <property name="border_width">6</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">6</property>
     <property name="type">popup</property>
     <property name="resizable">False</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="type_hint">utility</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
+    <property name="destroy-with-parent">True</property>
+    <property name="type-hint">utility</property>
     <child>
       <object class="GtkBox" id="hbox1">
-        <property name="width_request">200</property>
+        <property name="width-request">200</property>
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="spacing">6</property>
         <child>
           <object class="GtkImage" id="adjust_icon">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="xpad">6</property>
-            <property name="icon_name">display-brightness-symbolic</property>
+            <property name="icon-name">display-brightness-symbolic</property>
             <property name="icon_size">3</property>
           </object>
           <packing>
@@ -281,10 +275,10 @@
         <child>
           <object class="GtkHScale" id="brightness">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="show_fill_level">True</property>
-            <property name="round_digits">1</property>
-            <property name="draw_value">False</property>
+            <property name="can-focus">True</property>
+            <property name="show-fill-level">True</property>
+            <property name="round-digits">1</property>
+            <property name="draw-value">False</property>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -296,27 +290,24 @@
     </child>
   </object>
   <object class="GtkWindow" id="contrast_popup">
-    <property name="can_focus">False</property>
-    <property name="border_width">6</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">6</property>
     <property name="type">popup</property>
     <property name="resizable">False</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="type_hint">utility</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
+    <property name="destroy-with-parent">True</property>
+    <property name="type-hint">utility</property>
     <child>
       <object class="GtkBox" id="hbox2">
-        <property name="width_request">200</property>
+        <property name="width-request">200</property>
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="spacing">6</property>
         <child>
           <object class="GtkImage" id="adjust_icon1">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="xpad">6</property>
-            <property name="icon_name">multimedia-volume-control-symbolic</property>
+            <property name="icon-name">multimedia-volume-control-symbolic</property>
             <property name="icon_size">3</property>
           </object>
           <packing>
@@ -328,10 +319,10 @@
         <child>
           <object class="GtkHScale" id="contrast">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="show_fill_level">True</property>
-            <property name="round_digits">1</property>
-            <property name="draw_value">False</property>
+            <property name="can-focus">True</property>
+            <property name="show-fill-level">True</property>
+            <property name="round-digits">1</property>
+            <property name="draw-value">False</property>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -343,36 +334,33 @@
     </child>
   </object>
   <object class="GtkDialog" id="info_dialog">
-    <property name="can_focus">False</property>
-    <property name="border_width">12</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">12</property>
     <property name="title" translatable="yes">Image Header Information</property>
     <property name="resizable">False</property>
-    <property name="window_position">center-on-parent</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="type_hint">dialog</property>
+    <property name="window-position">center-on-parent</property>
+    <property name="destroy-with-parent">True</property>
+    <property name="type-hint">dialog</property>
     <property name="deletable">False</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox">
-        <property name="width_request">450</property>
+        <property name="width-request">450</property>
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="info_close_btn">
                 <property name="label">gtk-close</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -384,341 +372,342 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="pack-type">end</property>
             <property name="position">2</property>
           </packing>
         </child>
         <child>
+          <!-- n-columns=4 n-rows=7 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="row_spacing">6</property>
-            <property name="column_spacing">6</property>
-            <property name="row_homogeneous">True</property>
-            <property name="column_homogeneous">True</property>
+            <property name="can-focus">False</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">6</property>
+            <property name="row-homogeneous">True</property>
+            <property name="column-homogeneous">True</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Detector:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="detector_type_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Image Size:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="detector_size_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Pixel Size:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">1</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="pixel_size_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">1</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="two_theta_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="exposure_time_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">3</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="average_intensity_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">4</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="max_intensity_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">5</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Overloads:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">6</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="overloads_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">6</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Wavelength:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">5</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="wavelength_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">5</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Angle/Frame:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">4</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="delta_angle_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">4</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Start Angle:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">3</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="start_angle_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">3</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Beam Center:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">2</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="beam_center_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="selectable">True</property>
                 <style>
                   <class name="value-fbk"/>
                 </style>
               </object>
               <packing>
-                <property name="left_attach">3</property>
-                <property name="top_attach">2</property>
+                <property name="left-attach">3</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Distance:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">1</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel" id="distance_lbl">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
                 <property name="justify">center</property>
                 <property name="selectable">True</property>
                 <style>
@@ -726,64 +715,64 @@
                 </style>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">1</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">TwoTheta:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Exposure:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">3</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Average:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">4</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="opacity">0.69999999999999996</property>
                 <property name="halign">end</property>
                 <property name="label" translatable="yes">Maximum:</property>
-                <property name="use_markup">True</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">5</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
@@ -802,7 +791,7 @@
         <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>

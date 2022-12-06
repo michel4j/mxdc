@@ -53,9 +53,15 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.dataset = None
         self.canvas = None
         self.size = size
+
         self.following = False
+        self.updating = True
         self.collecting = False
-        self.following_id = None
+        self.icons = {
+            'on': 'media-playback-pause-symbolic',
+            'off': 'media-playback-pause-symbolic',
+        }
+
         self.reflections = []
 
         self.build_gui()
@@ -69,7 +75,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.canvas.connect('motion_notify_event', self.on_mouse_motion)
 
         self.info_btn.connect('clicked', self.on_image_info)
-        self.follow_tbtn.connect('clicked', self.on_follow_toggled)
+        self.play_btn.connect('clicked', self.on_play)
         self.colorize_tbtn.connect('toggled', self.on_colorize_toggled)
         self.reset_btn.connect('clicked', self.on_reset_filters)
 
@@ -95,12 +101,16 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             logger.error('Could not load reflections from %s' % filename)
 
     def set_collect_mode(self, state=True):
+        self.following = False
         self.collecting = state
-        self.follow_tbtn.set_active(state)
-        if state:
-            self.canvas.resume()
+        if self.collecting:
+            self.updating = True
+            status = 'on'
+        elif not self.updating:
+            status = 'off'
         else:
-            self.canvas.pause()
+            status = 'on'
+        self.play_btn.set_icon_name(self.icons[status])
 
     def on_reset_filters(self, widget):
         self.canvas.reset_filters()
@@ -127,7 +137,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.zoom_fit_btn.set_sensitive(True)
         self.colorize_tbtn.set_sensitive(True)
         self.reset_btn.set_sensitive(True)
-        self.follow_tbtn.set_sensitive(True)
+        self.play_btn.set_sensitive(True)
         self.info_btn.set_sensitive(True)
         self.prev_btn.set_sensitive(True)
         self.next_btn.set_sensitive(True)
@@ -150,11 +160,13 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.canvas.open(filename)
 
     def show_frame(self, frame):
-        self.canvas.show_frame(frame)
+        if self.updating:
+            self.canvas.show_frame(frame)
 
     def follow_frames(self):
         self.canvas.load_next()
-        return self.follow_tbtn.get_active()
+        print(self.following)
+        return self.following
 
     def on_image_info(self, obj):
         self.on_data_loaded()
@@ -193,12 +205,24 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def on_colorize_toggled(self, button):
         self.canvas.colorize(self.colorize_tbtn.get_active())
 
-    def on_follow_toggled(self, widget):
-        if widget.get_active():
-            self.following_id = GLib.timeout_add(100, self.follow_frames)
-            self.canvas.resume()
-        elif self.following_id:
-            GLib.source_remove(self.following_id)
-            self.following_id = None
-            self.canvas.pause()
+    def on_play(self, widget):
+        if self.collecting:
+            self.following = False
+            if not self.updating:
+                self.updating = True
+                status = "on"
+                self.canvas.resume()
+            else:
+                self.updating = False
+                status = "off"
+                self.canvas.pause()
+        else:
+            if not self.following:
+                self.following = True
+                status = "on"
+                GLib.timeout_add(100, self.follow_frames)
+            else:
+                self.following = False
+                status = "off"
+        self.play_btn.set_icon_name(self.icons[status])
 

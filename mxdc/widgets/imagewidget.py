@@ -343,13 +343,13 @@ class ImageWidget(Gtk.DrawingArea):
         self.data_loader.open(filename)
 
     def show_frame(self, frame):
-        self.data_loader.show(frame)
+        return self.data_loader.show(frame)
 
     def load_next(self):
-        self.data_loader.next_frame()
+        return self.data_loader.next_frame()
 
     def load_prev(self):
-        self.data_loader.prev_frame()
+        return self.data_loader.prev_frame()
 
     def get_image_info(self):
         return self.frame
