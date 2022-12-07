@@ -1,9 +1,7 @@
 import logging
 import math
-import pathlib
 import threading
 import time
-import traceback
 from collections import deque
 
 import cairo
@@ -23,8 +21,9 @@ from mxdc.utils.gui import color_palette
 
 logger = logging.getLogger('mxdc.imagewidget')
 
-ZSCALE_MULTIPLIER = 3
-MAX_ZSCALE = 12
+RESCALE_TIMEOUT = 30  # duration between images to apply auto-rescale
+ZSCALE_MULTIPLIER = 3.0
+MAX_ZSCALE = 12.0
 MIN_ZSCALE = 0.0
 COLORMAPS = ('binary', 'inferno')
 MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for file to be done writing to disk
@@ -63,8 +62,28 @@ def adjust_spines(ax, spines, color):
         ax.xaxis.set_ticks([])
 
 
+class FrameSettings:
+    def __init__(self):
+        self.scale: float = 1.0
+        self.multiplier: float = ZSCALE_MULTIPLIER
+        self.default: float = ZSCALE_MULTIPLIER
+
+    def update(self, min_value: float, max_value: float, avg_value: float, std_dev: float):
+        if std_dev > 0:
+            self.default = ZSCALE_MULTIPLIER * (max_value - avg_value)/std_dev
+        self.scale = avg_value + self.multiplier * std_dev
+
+    def adjust(self, direction: int = None, avg_value: float = 0.0, std_dev: float = 0.0):
+        if direction is None:
+            self.multiplier = self.default
+        else:
+            step = direction * max(round(self.multiplier / 10, 2), 0.1)
+            self.multiplier = min(MAX_ZSCALE, max(MIN_ZSCALE, self.multiplier + step))
+        self.scale = avg_value + self.multiplier * std_dev
+
+
 class Frame(object):
-    def __init__(self, dataset):
+    def __init__(self, dataset, colormap: str = 'binary', rescale: bool = True):
         self.dataset = dataset
         self.header = dataset.header
         self.data = dataset.data
@@ -72,13 +91,11 @@ class Frame(object):
 
         self.image = None
         self.needs_redraw = False
+        self.needs_setup = False
+        self.rescale = rescale
         self.needs_setup = True
-        self.ready = False
-
-        self.colormap = self.colormap = cmap(COLORMAPS[0])
-        self.default_zscale = ZSCALE_MULTIPLIER
-        self.zscale = ZSCALE_MULTIPLIER
-        self.scale = 1.0
+        self.colormap = cmap(colormap)
+        self.settings = None
 
         # needed for display
         self.delta_angle = self.header['delta_angle']
@@ -92,36 +109,31 @@ class Frame(object):
         else:
             raise AttributeError('{} does not have attribute: {}'.format(self, key))
 
-    def setup(self, index=None):
-        if not self.ready:
+    def setup(self, rescale: bool = False, settings: FrameSettings = None):
+        if settings is not None:
+            self.settings = settings
+        elif self.settings is None:
+            self.settings = FrameSettings()
+
+        if rescale:
             p_lo, p_hi = numpy.percentile(self.stats_data, (1., 99.))
             self.header['percentiles'] = p_lo, p_hi
-            if self.header['std_dev'] != 0.0:
-                self.default_zscale = ZSCALE_MULTIPLIER * (self.header['percentiles'][1] - self.header['average_intensity']) / self.header['std_dev']
-                self.zscale = self.default_zscale
-                self.scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
+            self.settings.update(p_lo, p_hi, self.header['average_intensity'], self.header['std_dev'])
 
-            del self.stats_data
-            self.ready = True
-        if index is not None:
-            self.set_colormap(index)
-        img0 = cv2.convertScaleAbs(self.data, None, 255 / self.scale, 0)
+        img0 = cv2.convertScaleAbs(self.data, None, 255 / self.settings.scale, 0)
         img1 = cv2.applyColorMap(img0, self.colormap)
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         self.needs_setup = False
         self.needs_redraw = True
 
-    def set_colormap(self, index):
-        self.colormap = cmap(COLORMAPS[index])
+    def set_colormap(self, colormap: str):
+        self.colormap = cmap(colormap)
         self.needs_setup = True
 
     def adjust(self, direction=None):
-        if not direction:
-            self.zscale = self.default_zscale
-        else:
-            step = direction * max(round(self.zscale / 10, 2), 0.1)
-            self.zscale = min(MAX_ZSCALE, max(MIN_ZSCALE, self.zscale + step))
-        self.scale = self.header['average_intensity'] + self.zscale * self.header['std_dev']
+        self.settings.adjust(
+            direction=direction, avg_value=self.header['average_intensity'], std_dev=self.header['std_dev']
+        )
         self.needs_setup = True
 
     def next_frame(self):
@@ -143,11 +155,10 @@ class DataLoader(Object):
         self.frames = deque(maxlen=2)
         self.inbox = deque(maxlen=2)
         self.outbox = outbox
-
+        self.settings = FrameSettings()
         self.load_next = False
         self.load_prev = False
-
-        self.set_colormap(0)
+        self.set_colormap()
         self.start()
 
     def open(self, path):
@@ -189,8 +200,8 @@ class DataLoader(Object):
             logger.warning("Unable to load {}".format(path))
         return success
 
-    def set_colormap(self, index):
-        self.colormap = index
+    def set_colormap(self, name: str = 'binary'):
+        self.colormap = name
 
     def set_current_frame(self, frame):
         self.cur_frame = frame
@@ -211,14 +222,17 @@ class DataLoader(Object):
         self.stopped = True
 
     def run(self):
+        last_update = 0
         while not self.stopped:
             # Setup any frames in the deque and add them to the display queue
             if not self.paused:
+                rescale = (time.time() - last_update > RESCALE_TIMEOUT)
                 if len(self.frames):
                     frame = self.frames.popleft()
-                    frame.setup(self.colormap)
+                    frame.set_colormap(self.colormap)
+                    frame.setup(settings=self.settings, rescale=rescale)
                     self.outbox.append(frame)
-
+                    last_update = time.time()
                 if self.cur_frame:
                     try:
                         success = False
@@ -227,12 +241,12 @@ class DataLoader(Object):
                         elif self.load_prev:
                             success = self.cur_frame.prev_frame()
                         if success:
-
-                            frame = Frame(self.cur_frame.dataset)
-                            frame.setup()
+                            rescale = (time.time() - last_update > RESCALE_TIMEOUT)
+                            frame = Frame(self.cur_frame.dataset, colormap=self.colormap)
+                            frame.setup(settings=self.settings, rescale=rescale)
                             self.outbox.append(frame)
+                            last_update = time.time()
                     except Exception as e:
-                        print(e)
                         logger.exception(e)
                 self.load_next = self.load_prev = False
 
@@ -476,9 +490,9 @@ class ImageWidget(Gtk.DrawingArea):
         return len(self.extents_back) > 0
 
     def colorize(self, color=False):
-        self.data_loader.set_colormap(int(color))
+        self.data_loader.set_colormap(COLORMAPS[int(color)])
         if self.frame is not None:
-            self.frame.set_colormap(int(color))
+            self.frame.set_colormap(COLORMAPS[int(color)])
 
     def reset_filters(self):
         if self.frame is not None:
