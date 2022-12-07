@@ -6,7 +6,7 @@ gepics
 pyepics
 h5py
 hdf5plugin
-matplotlib==3.5.3
+matplotlib
 msgpack
 msgpack_numpy
 opencv-python
