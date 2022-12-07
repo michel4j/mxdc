@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
   <object class="GtkApplicationWindow" id="app_window">
@@ -2699,6 +2699,7 @@
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">True</property>
                                                 <property name="tooltip-text" translatable="yes">Clean run list</property>
+                                                <property name="relief">none</property>
                                                 <property name="always-show-image">True</property>
                                                 <child>
                                                   <object class="GtkImage">
@@ -6530,15 +6531,10 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkFrame" id="scans_plot_frame">
+                          <object class="GtkEventBox" id="scans_plot_frame">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="label-xalign">0</property>
-                            <property name="shadow-type">out</property>
                             <child>
-                              <placeholder/>
-                            </child>
-                            <child type="label_item">
                               <placeholder/>
                             </child>
                           </object>

@@ -184,18 +184,14 @@ class DataLoader(Object):
         self.frames.append(Frame(dataset))
 
     def load(self, path):
-        attempts = 0
-        success = False
-        while not success and attempts < 5:
-            try:
-                dataset = read_image(path)
-                self.show(dataset)
-                success = True
-            except Exception as e:
-                logger.exception(e)
-                success = False
-            attempts += 1
-            time.sleep(0.25)
+        try:
+            dataset = read_image(path)
+            self.show(dataset)
+            success = True
+        except Exception as e:
+            logger.exception(e)
+            success = False
+
         if not success:
             logger.warning("Unable to load {}".format(path))
         return success
@@ -233,6 +229,7 @@ class DataLoader(Object):
                     frame.setup(settings=self.settings, rescale=rescale)
                     self.outbox.append(frame)
                     last_update = time.time()
+
                 if self.cur_frame:
                     try:
                         success = False

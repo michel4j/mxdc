@@ -2,8 +2,8 @@
 import numpy
 from gi.repository import Gtk
 from matplotlib import cm, transforms
-from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.colors import Normalize
 from matplotlib.dates import MinuteLocator, SecondLocator
 from matplotlib.figure import Figure
@@ -16,7 +16,7 @@ GRID_COLORMAP = 'viridis'
 GRID_INTERPOLATION = 'nearest'  # nearest
 
 
-class PlotterToolbar(NavigationToolbar2GTK3):
+class PlotterToolbar(NavigationToolbar):
 
     toolitems = (
         ('Home', 'Reset original view', 'go-home', 'home'),
@@ -31,58 +31,19 @@ class PlotterToolbar(NavigationToolbar2GTK3):
 
     def __init__(self, canvas, window):
         super().__init__(canvas, window)
-        for i, toolitem in enumerate(self):
-            if isinstance(toolitem, Gtk.ToolButton):
+        self.widgets = {}
+
+        for i, item in enumerate(self):
+            if isinstance(item, Gtk.ToolButton):
                 icon_name = f'{self.toolitems[i][2]}-symbolic'
-                image = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)
-                toolitem.set_icon_widget(image)
+                name = self.toolitems[i][0]
+                item.get_icon_widget().set_from_icon_name(icon_name, Gtk.IconSize.SMALL_TOOLBAR)
+                self.widgets[name] = item
 
 
-    # toolitems = (
-    #     ('Home', 'Reset original view', 'go-home-symbolic', 'home'),
-    #     ('Back', 'Back to  previous view', 'go-previous-symbolic', 'back'),
-    #     ('Forward', 'Forward to next view', 'go-next-symbolic', 'forward'),
-    #     (None, None, None, None),
-    #     ('Pan', 'Pan axes with left mouse, zoom with right', 'view-fullscreen-symbolic', 'pan'),
-    #     ('Zoom', 'Zoom to rectangle', 'zoom-fit-best-symbolic', 'zoom'),
-    #     (None, None, None, None),
-    #     ('Save', 'Save the figure', 'media-floppy-symbolic', 'save_figure'),
-    # )
-    #
-    # def _init_toolbar(self):
-    #     self.set_style(Gtk.ToolbarStyle.ICONS)
-    #
-    #     self._gtk_ids = {}
-    #     for text, tooltip_text, icon, callback in self.toolitems:
-    #         if text is None:
-    #             self.insert(Gtk.SeparatorToolItem(), -1)
-    #             continue
-    #         self._gtk_ids[text] = tbutton = Gtk.ToolButton.new(
-    #             Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.SMALL_TOOLBAR)
-    #         )
-    #         tbutton.set_label(text)
-    #         self.insert(tbutton, -1)
-    #         tbutton.connect('clicked', getattr(self, callback))
-    #         tbutton.set_tooltip_text(tooltip_text)
-    #
-    #     toolitem = Gtk.SeparatorToolItem()
-    #     self.insert(toolitem, -1)
-    #     toolitem.set_draw(False)
-    #     toolitem.set_expand(True)
-    #
-    #     toolitem = Gtk.ToolItem()
-    #     self.insert(toolitem, -1)
-    #     self.message = Gtk.Label()
-    #     toolitem.add(self.message)
-    #     self.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
-    #     self.show_all()
-
-
-class Plotter(Gtk.Alignment):
-    def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=80):
-        super().__init__()
-        self.set(0.5, 0.5, 1, 1)
-
+class Plotter(Gtk.Box):
+    def __init__(self, loop=False, buffer_size=2500, xformat='%g', dpi=72):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.format_x = FormatStrFormatter(xformat)
         self.ring_buffer = loop
         self.buffer_size = buffer_size
@@ -103,17 +64,15 @@ class Plotter(Gtk.Alignment):
         self.grid_norm = Normalize()
         self.grid_snake = False
 
-        self.fig = Figure(figsize=(10, 6), dpi=dpi)
+        self.fig = Figure(dpi=dpi)
         self.clear()
 
         self.canvas = FigureCanvas(self.fig)  # a Gtk.DrawingArea
         self.canvas.mpl_connect('motion_notify_event', self.on_mouse_motion)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.toolbar = PlotterToolbar(self.canvas, dialogs.MAIN_WINDOW)
 
-        box.pack_start(self.canvas, True, True, 0)
-        box.pack_start(self.toolbar, False, False, 0)
-        self.add(box)
+        self.pack_start(self.canvas, True, True, 0)
+        self.pack_end(self.toolbar, False, False, 0)
         self.show_all()
 
     def clear(self, specs=None):
@@ -135,7 +94,7 @@ class Plotter(Gtk.Alignment):
         self.grid_image = None
         self.grid_norm = Normalize()
 
-        ax = self.fig.add_subplot(111)
+        ax = self.fig.add_subplot()
         ax.yaxis.tick_right()
         ax.yaxis.set_major_formatter(ScalarFormatter())
         self.axis = {'default': ax}

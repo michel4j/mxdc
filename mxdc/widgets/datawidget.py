@@ -415,10 +415,19 @@ class RunEditor(DataEditor):
         self.points.connect('row-changed', self.on_points_updated)
         self.points.connect('row-deleted', self.on_points_updated)
         self.points.connect('row-inserted', self.on_points_updated)
+        self.data_pin_btn.connect('toggled', self.on_pin_run)
+
+    def set_item(self, item):
+        super().set_item(item)
+        self.data_pin_btn.set_active(item.props.pinned)
 
     def on_points_updated(self, *args, **kwargs):
         num_points = len(self.points)
         self.data_vector_box.set_sensitive(num_points > 1)
+
+    def on_pin_run(self, btn):
+        if self.item is not None and self.item.state != RunItem.StateType.ADD:
+            self.item.props.pinned = btn.get_active()
 
     def configure(self, info):
         super().configure(info)
@@ -467,7 +476,7 @@ class RunConfig(gui.Builder):
 
     def set_item(self, item):
         self.item = item
-        for param in ['state', 'title', 'progress', 'subtitle', 'info', 'position']:
+        for param in ['state', 'title', 'progress', 'subtitle', 'info', 'position', 'pinned']:
             item.connect('notify::{}'.format(param), self.on_item_changed)
 
     def on_item_changed(self, item, param):
@@ -495,3 +504,8 @@ class RunConfig(gui.Builder):
             dur = timedelta(seconds=self.item.duration)
             self.data_duration.set_markup(f'<small><tt>{dur}</tt></small>')
             self.data_duration_box.set_visible(True)
+
+        if self.item.pinned:
+            self.data_pinned_icon.set_visible(True)
+        else:
+            self.data_pinned_icon.set_visible(False)

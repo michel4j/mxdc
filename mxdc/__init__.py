@@ -26,7 +26,7 @@ class IBeamline(Interface):
     Interface for Beamline Objects
     """
     name = Attribute("""Name or description of devices.""")
-    config = Attribute("""A dictionary of beamline configuratioin parameters.""")
+    config = Attribute("""A dictionary of beamline configuration parameters.""")
     lock = Attribute("""A reentrant lock""")
 
 

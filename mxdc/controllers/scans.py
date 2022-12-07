@@ -559,7 +559,7 @@ class ScanManager(Object):
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = Registry.get_utility(ISampleStore)
-        self.plotter = plotter.Plotter(xformat='%g', dpi=90)
+        self.plotter = plotter.Plotter(xformat='%g')
         min_energy, max_energy = self.beamline.config['energy_range']
         self.edge_selector = periodictable.EdgeSelector(
             min_energy=min_energy, max_energy=max_energy, xrf_offset=ENERGY_OFFSET
