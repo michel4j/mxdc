@@ -46,7 +46,7 @@ class BaseManager(Device):
     def __init__(self, name='Beamline Modes'):
         super().__init__()
         self.name = name
-        self.mode = self.ModeType.UNKNOWN
+        self.props.mode = self.ModeType.UNKNOWN
 
     def wait(self, *modes, timeout=30):
         """
@@ -57,27 +57,33 @@ class BaseManager(Device):
         :return: (bool), False if wait timed-out
         """
         poll = 0.01
-
+        success = True
         mode_set = {m if isinstance(m, self.ModeType) else self.ModeType[m] for m in modes}
-        if self.mode in mode_set:
+        if self.props.mode in mode_set:
             logger.debug(f'Already in requested mode: {mode_set}')
-            return True
+            return success
 
         expire_time = time.time() + timeout
         if not mode_set:
             logger.debug('Waiting for mode manager stop')
-            while self.is_busy() and time.time() < expire_time:
+            while time.time() < expire_time:
                 time.sleep(poll)
+                if not self.is_busy():
+                    break
+            else:
+                logger.debug('Timed-out waiting for mode manager stop')
+                success = False
         else:
             logger.debug(f'Waiting for {self.name}: {mode_set}')
-            while time.time() < expire_time and self.mode not in mode_set:
+            while time.time() < expire_time:
                 time.sleep(poll)
+                if self.props.mode in mode_set:
+                    break
+            else:
+                logger.debug('Timed-out waiting for mode manager stop')
+                success = False
 
-        if time.time() > expire_time:
-            logger.warning(f'Timed out waiting for {self.name}: {mode_set}')
-            return False
-
-        return True
+        return success
 
     def mount(self, wait=False):
         """
@@ -154,10 +160,9 @@ class SimModeManager(BaseManager):
         GLib.timeout_add(self.mode_delay[mode] * 1000, self._notify_mode, mode)
 
     def _notify_mode(self, mode):
-        activity = self.ACTIVITY_MAP.get(mode)
-        if activity in self.ACTIVITY_MAP:
-            self.set_state(activity=activity)
-        self.set_state(busy=False, mode=mode)
+        activity = self.ACTIVITY_MAP.get(mode, 'unknown')
+        self.props.mode = mode
+        self.set_state(busy=False, activity=activity, mode=mode)
 
     def mount(self, wait=False):
         """
@@ -261,11 +266,9 @@ class MD2Manager(BaseManager):
             health = (0, 'faults', '')
             busy = False
 
-        activity = self.ACTIVITY_MAP.get(current_mode)
-        if activity:
-            self.set_state(activity)
-        self.set_state(health=health, busy=busy, mode=current_mode, message=message)
         self.props.mode = current_mode
+        activity = self.ACTIVITY_MAP.get(current_mode, 'unknown')
+        self.set_state(health=health, busy=busy, mode=current_mode, message=message, activity=activity)
 
     def mount(self, wait=False):
         """
@@ -368,11 +371,9 @@ class ModeManager(BaseManager):
             health = (0, 'faults', '')
             busy = False
 
-        activity = self.ACTIVITY_MAP.get(current_mode)
-        if activity:
-            self.set_state(activity=activity)
-        self.set_state(health=health, busy=busy, mode=current_mode, message=message)
         self.props.mode = current_mode
+        activity = self.ACTIVITY_MAP.get(current_mode, "unknown")
+        self.set_state(health=health, busy=busy, mode=current_mode, activity=activity, message=message)
 
     def mount(self, wait=False):
         """

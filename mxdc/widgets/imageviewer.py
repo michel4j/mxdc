@@ -12,7 +12,7 @@ from zope.interface import Interface
 
 logger = logging.getLogger(__name__)
 
-MAX_FOLLOW_DURATION = 20
+MAX_FOLLOW_DURATION = 5
 
 
 class IImageViewer(Interface):
@@ -55,11 +55,12 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.size = size
 
         self.following = False
+        self.follow_timeout = 0
         self.updating = True
         self.collecting = False
         self.icons = {
             'on': 'media-playback-pause-symbolic',
-            'off': 'media-playback-pause-symbolic',
+            'off': 'media-playback-start-symbolic',
         }
 
         self.reflections = []
@@ -104,12 +105,11 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.following = False
         self.collecting = state
         if self.collecting:
+            logger.debug('Monitoring dataset images during collection ...')
             self.updating = True
             status = 'on'
-        elif not self.updating:
-            status = 'off'
         else:
-            status = 'on'
+            status = 'off'
         self.play_btn.set_icon_name(self.icons[status])
 
     def on_reset_filters(self, widget):
@@ -152,6 +152,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 else:
                     txt = fmt.format(info[name])
                 field.set_text(txt)
+        self.follow_timeout = time.time() + MAX_FOLLOW_DURATION
 
     def open_frame(self, filename):
         # select spots and display for current image
@@ -165,7 +166,10 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def follow_frames(self):
         self.canvas.load_next()
-        print(self.following)
+        if time.time() > self.follow_timeout:
+            self.following = False
+            status = 'off'
+            self.play_btn.set_icon_name(self.icons[status])
         return self.following
 
     def on_image_info(self, obj):
@@ -186,6 +190,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
             parent=self.get_toplevel(), default_folder=os.getcwd()
         )
         if filename and os.path.isfile(filename):
+            self.following = False
             os.chdir(os.path.dirname(os.path.abspath(filename)))
             file_type = flt.get_name()
             if file_type in ['XDS Spot files', 'XDS ASCII file']:
@@ -208,21 +213,22 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def on_play(self, widget):
         if self.collecting:
             self.following = False
-            if not self.updating:
-                self.updating = True
+            self.updating = not self.updating
+            if self.updating:
                 status = "on"
                 self.canvas.resume()
             else:
-                self.updating = False
                 status = "off"
                 self.canvas.pause()
         else:
-            if not self.following:
-                self.following = True
+            self.following = not self.following
+            if self.following:
                 status = "on"
+                logger.debug('Replaying the dataset images ...')
                 GLib.timeout_add(100, self.follow_frames)
+                self.follow_timeout = time.time() + MAX_FOLLOW_DURATION
             else:
-                self.following = False
+                logger.debug('Done replaying the dataset images ...')
                 status = "off"
         self.play_btn.set_icon_name(self.icons[status])
 

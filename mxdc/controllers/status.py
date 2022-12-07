@@ -89,6 +89,7 @@ class StatusPanel(object):
         script.start()
 
     def on_mode_change(self, obj, mode):
+        logger.debug(f'Status mode changed to {mode}')
         for btn, btn_mode in list(self.button_modes.items()):
             btn.set_sensitive(mode != btn_mode)
         if mode.name == 'ALIGN':

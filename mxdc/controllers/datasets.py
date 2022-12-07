@@ -774,6 +774,7 @@ class DatasetsController(Object):
             self.pause_info = False
 
     def complete_run(self, completion=None):
+        self.image_viewer.set_collect_mode(False)
         self.widget.datasets_collect_btn.set_sensitive(True)
         self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR)
         self.widget.datasets_clean_btn.set_sensitive(True)
