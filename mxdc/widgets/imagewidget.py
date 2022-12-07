@@ -116,7 +116,7 @@ class Frame(object):
             self.settings = FrameSettings()
 
         if rescale:
-            p_lo, p_hi = numpy.percentile(self.stats_data, (1., 99.))
+            p_lo, p_hi = numpy.percentile(self.stats_data, (5., 95.))
             self.header['percentiles'] = p_lo, p_hi
             self.settings.update(p_lo, p_hi, self.header['average_intensity'], self.header['std_dev'])
 
@@ -215,7 +215,7 @@ class DataLoader(Object):
     def start(self):
         self.stopped = False
         self.paused = False
-        worker_thread = threading.Thread(target=self.run, daemon=True, name=self.__class__.__name__)
+        worker_thread = threading.Thread(target=self.run, daemon=True, name="DataLoader")
         worker_thread.start()
 
     def stop(self):

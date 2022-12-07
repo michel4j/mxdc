@@ -60,6 +60,7 @@ class RunItem(Object):
     duration = Property(type=int, default=0)
     subtitle = Property(type=str, default="")
     notes = Property(type=str, default="")
+    pinned = Property(type=bool, default=False)
     created = Property(type=float, default=0.0)
 
     def __init__(self, info=None, state=StateType.DRAFT, uid=None, created=None):
@@ -97,6 +98,9 @@ class RunItem(Object):
         if progress >= 0.95:
             self.props.state = RunItem.StateType.COMPLETE
         return state != self.props.state  # return True if state changed
+
+    def set_pinned(self, state):
+        self.props.pinned = state
 
     @staticmethod
     def sorter(a_pointer, b_pointer):

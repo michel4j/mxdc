@@ -690,7 +690,7 @@ class DatasetsController(Object):
         self.remove_runs(RunItem.StateType.COMPLETE, RunItem.StateType.ERROR)
         self.check_run_store()
 
-    def remove_runs(self, *states, keep=()):
+    def remove_runs(self, *states, keep=(), force=False):
         all_states = (
             RunItem.StateType.DRAFT,
             RunItem.StateType.ACTIVE,
@@ -703,7 +703,7 @@ class DatasetsController(Object):
         i = 0
         item = self.run_store[i]
         while item.state != RunItem.StateType.ADD:
-            if item.state in states and not item.state in keep:
+            if item.state in states and not (item.state in keep or item.pinned):
                 self.run_store.remove(i)
                 item = self.run_store[i]
             else:
