@@ -137,6 +137,7 @@ class RasterCollector(Engine):
         # prepare for analysis
         template = self.beamline.detector.get_template(self.config['params']['name'])
         params = {
+            'name': self.config['params']['name'],
             'template': template,
             'type': 'file',
             'directory': self.config['params']['directory'],
