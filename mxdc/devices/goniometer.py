@@ -65,6 +65,55 @@ class BaseGoniometer(Device):
         """
         pass
 
+    def wait_start(self, timeout=5):
+        """
+        Wait for device to start
+        :param timeout: maximum time in seconds to wait before failing.
+        :return: bool, False if timeout
+        """
+
+        end_time = time.time() + timeout
+        success = False
+        self.stopped = False
+        logger.debug(f'{self.name}: Waiting to start ...')
+        while time.time() < end_time:
+            if self.stopped or self.is_busy():
+                logger.debug(f'{self.name}: started ...')
+                success = True
+                break
+            time.sleep(0.01)
+        else:
+            logger.warn(f'{self.name}: Timed-out waiting to stop after {timeout} sec')
+        return success
+
+    def wait_stop(self, timeout=None):
+        """
+        Wait for device to start
+        :param timeout: maximum time in seconds to wait before failing.
+        :return: bool, False if timeout
+        """
+        success = False
+        self.stopped = False
+        logger.debug(f'{self.name}: Waiting to stop ...')
+        if timeout is None:
+            while self.is_busy() and not self.stopped:
+                time.sleep(0.01)
+            else:
+                logger.debug(f'{self.name}: stopped ...')
+                success = True
+        else:
+            end_time = time.time() + timeout
+            while time.time() < end_time:
+                if self.stopped or not self.is_busy():
+                    logger.debug(f'{self.name}: stopped ...')
+                    success = True
+                    break
+                time.sleep(0.01)
+            else:
+                logger.warn(f'{self.name}: Timed-out waiting to stop after {timeout} sec')
+        return success
+
+
     def wait(self, start=True, stop=True, timeout=None):
         """
         Wait for the goniometer busy state to change.
@@ -75,41 +124,16 @@ class BaseGoniometer(Device):
         :return: (bool), False if wait timed-out
         """
         timeout = self.default_timeout if timeout is None else timeout
-        poll = 0.05
-        success = False
+
         self.stopped = False
+        success_start = True
+        success_stop = True
         if start:
-            time_left = timeout
-            logger.debug('Waiting for goniometer to start moving')
-            while not self.is_busy() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
-                if self.stopped: break
-
-            if self.stopped:
-                success = False
-            elif time_left <= 0:
-                logger.warn('Timed out waiting for goniometer to start moving')
-                success = False
-            else:
-                success = True
-
+            success_start = self.wait_start()
         if stop:
-            time_left = timeout
-            logger.debug('Waiting for goniometer to stop')
-            while self.is_busy() and time_left > 0:
-                time.sleep(poll)
-                time_left -= poll
-                if self.stopped: break
-            if self.stopped:
-                success = False
-            elif time_left <= 0:
-                logger.warn('Timed out waiting for goniometer to stop')
-                success = False
-            else:
-                success = True
+            success_stop = self.wait_stop(timeout)
 
-        return success
+        return success_start and success_stop
 
     def stop(self):
         """
@@ -333,19 +357,6 @@ class MD2Gonio(BaseGoniometer):
             ),
         }
 
-        # self.raster_cmd = self.add_pv(f"{root}:startRasterScan")
-        # self.raster_settings = {
-        #     'time': self.add_pv(f"{root}:ScanExposureTime"),
-        #     'range': self.add_pv(f"{root}:ScanRange"),
-        #     'angle': self.add_pv(f"{root}:ScanStartAngle"),
-        #
-        #     'frames': self.add_pv(f"{root}:startRasterScan:frames_per_lines"),
-        #     'lines': self.add_pv(f"{root}:startRasterScan:number_of_lines"),
-        #     'width': self.add_pv(f"{root}:startRasterScan:horizontal_range"),
-        #     'height': self.add_pv(f"{root}:startRasterScan:vertical_range"),
-        #     'snake': self.add_pv(f"{root}:startRasterScan:invert_direction"),
-        # }
-
     def grid_settings(self):
         return {
             "snake": True,
@@ -440,12 +451,15 @@ class MD2Gonio(BaseGoniometer):
             kwargs['start'] = (start_y, start_z, start_cx, start_cy)
 
             # frames and lines are inverted for vertical scans on non-powerpmac systems
-            if self.power_pmac or kwargs['width'] > kwargs['height']:
-                frames, lines = kwargs.get('hsteps', 1), kwargs.get('vsteps', 1)
-                line_size = kwargs['width']
-            else:
+            if kwargs['width'] < kwargs['height'] and not self.power_pmac:
                 frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
                 line_size = max(kwargs['width'], kwargs['height'])
+                y_offset = kwargs['height']/2
+                self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
+
+            else:
+                frames, lines = kwargs.get('hsteps', 1), kwargs.get('vsteps', 1)
+                line_size = kwargs['width']
 
             kwargs['frames'] = max(frames,1)
             kwargs['lines'] = max(lines,2)
@@ -455,17 +469,17 @@ class MD2Gonio(BaseGoniometer):
             # Check exposure
             kwargs['time'] = line_size / min(self.MAX_RASTER_SPEED, line_size/kwargs['time'])
             misc.set_settings(self.raster_settings, **kwargs)
+            self.wait_stop(timeout=30)
             self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or (10 + 2 * kwargs['time'])
         success = self.wait(start=True, stop=wait, timeout=timeout)
-        if wait:
-            if success:
-                msg = f'"{kind}" scan complete!'
-            else:
-                msg = f'"{kind}" scan failed!'
-            logger.info(msg)
-            self.set_state(message=msg)
+        if success:
+            msg = f'"{kind}" scan complete!'
+        else:
+            msg = f'"{kind}" scan failed!'
+        logger.info(msg)
+        self.set_state(message=msg)
 
     def stop(self):
         """

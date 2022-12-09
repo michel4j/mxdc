@@ -124,7 +124,7 @@ class BaseSampleStage(Device):
         """
         return numpy.radians(self.omega.get_position() - self.offset)
 
-    def wait(self, start=True, stop=True):
+    def wait(self, start=True, stop=True, timeout=30):
         """
         Wait for the busy state to change.
 
@@ -132,29 +132,32 @@ class BaseSampleStage(Device):
             - `start` (bool): Wait for the motor to start moving.
             - `stop` (bool): Wait for the motor to stop moving.
         """
-        poll = 0.001
-        end_time = time.time() + 5
 
         # initialize precision
-        if start and not self.is_busy():
-            logger.debug(f'{self.name}: Waiting for stage to start moving')
-            while self.is_busy() and time.time() < end_time:
-                time.sleep(poll)
-            if time.time() > end_time:
-                logger.warning('%s timed out waiting for sample stage to start moving')
-                return False
-            logger.debug(f'{self.name}: Stage is now moving')
-
+        success = True
+        if start:
+            logger.debug(f'{self.name}: Waiting to start')
+            end_time = time.time() + timeout
+            while time.time() < end_time:
+                if self.is_busy():
+                    logger.debug(f'{self.name}: moving ...')
+                    break
+                time.sleep(0.01)
+            else:
+                logger.warning(f'{self.name}: Timed-out waiting to start after {timeout} sec')
+                success = False
         if stop:
-            logger.debug(f'{self.name}: Waiting for stage to stop moving')
-            end_time = time.time() + 120
-            time.sleep(poll)
-            while self.is_busy() and time.time() < end_time:
-                time.sleep(poll)
-            if time.time() > end_time:
-                logger.warning('%s timed out waiting for sample stage to stop moving')
-                return False
-        return True
+            logger.debug(f'{self.name}: Waiting to stop')
+            end_time = time.time() + timeout
+            while time.time() < end_time:
+                if not self.is_busy():
+                    logger.debug(f'{self.name}: stopped moving!')
+                    break
+                time.sleep(0.01)
+            else:
+                logger.warning(f'{self.name}: Timed-out waiting to stop after {timeout} sec')
+                success = False
+        return success
 
 
 class SampleStage(BaseSampleStage):

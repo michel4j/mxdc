@@ -32,7 +32,7 @@ class RasterResultsManager(TreeManager):
         (Data.X_POS, 'X (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Y_POS, 'Y (mm)', ColumnType.NUMBER, '{:0.4f}', True),
         (Data.Z_POS, 'Z (mm)', ColumnType.NUMBER, '{:0.4f}', True),
-        (Data.SCORE, 'Score', ColumnType.NUMBER, '{:0.1f}', True),
+        (Data.SCORE, 'Score', ColumnType.NUMBER, '{:0.2f}', True),
         (Data.COLOR, '', ColumnType.COLORSCALE, '{}', False),
     )
     parent = Data.NAME

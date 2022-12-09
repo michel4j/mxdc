@@ -180,6 +180,7 @@ class RasterCollector(Engine):
 
             finally:
                 self.beamline.fast_shutter.close()
+                self.beamline.detector.stop()
                 if not centering:
                     self.beamline.manager.center(wait=True)
                     self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
