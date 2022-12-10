@@ -16,6 +16,12 @@ from mxdc.utils.misc import check_call
 logger = get_module_logger(__name__)
 
 
+try:
+    from importlib.metadata import version, PackageNotFoundError
+    __version__ = version("mxdc")
+except (ImportError, PackageNotFoundError):
+    __version__ = "unknown version"
+
 obj_repr = reprlib.Repr()
 obj_repr.maxlevel = 4
 obj_repr.maxdict = 1

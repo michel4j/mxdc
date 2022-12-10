@@ -244,7 +244,7 @@ class DataLoader(Object):
                             self.outbox.append(frame)
                             last_update = time.time()
                     except Exception as e:
-                        logger.exception(e)
+                        logger.exception("Unable to read file")
                 self.load_next = self.load_prev = False
 
                 # load any images from specified paths in the inbox

@@ -14,7 +14,7 @@ from twisted.internet import gtk3reactor
 
 gtk3reactor.install()
 
-from mxdc import conf
+from mxdc import __version__, conf
 from mxdc.conf import settings
 from mxdc.services import server
 from mxdc.utils import mdns, gui
@@ -32,13 +32,12 @@ from matplotlib import pyplot
 from twisted.internet import reactor
 from twisted.spread import pb
 
-from . import version
 
 USE_TWISTED = True
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
 DARK_STYLE = os.path.join(conf.SHARE_DIR, 'dark.mplstyle')
 
-VERSION = version.get_version()
+VERSION = __version__
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)

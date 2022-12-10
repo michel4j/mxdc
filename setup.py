@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-from mxdc.version import get_version
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
@@ -7,9 +6,21 @@ with open("README.rst", "r") as fh:
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
+def my_version():
+    from setuptools_scm.version import get_local_dirty_tag
+
+    def clean_scheme(version):
+        return get_local_dirty_tag(version) if version.dirty else ''
+
+    def version_scheme(version):
+        print(str(version))
+        return str(version.format_with('{tag}.{distance}'))
+
+    return {'local_scheme': clean_scheme, 'version_scheme': version_scheme}
+
 setup(
     name='mxdc',
-    version=get_version(),
+    use_scm_version=my_version,
     url="https://github.com/michel4j/mxdc",
     license='MIT',
     author='Michel Fodje',
@@ -33,7 +44,7 @@ setup(
         ]
     },
     install_requires=requirements + [
-        'importlib-metadata ~= 1.0 ; python_version < "3.8"',
+        'importlib-metadata ~= 1.0 ; python_version < "3.8"', 'setuptools-scm'
     ],
     scripts=[
         'bin/archiver',

@@ -28,3 +28,4 @@ pandas
 backports-datetime-fromisoformat
 szrpc
 wget
+setuptools_scm

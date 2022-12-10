@@ -14,7 +14,7 @@ from twisted.internet import gtk3reactor
 gtk3reactor.install()
 
 
-from mxdc import conf
+from mxdc import conf, __version__
 from mxdc.utils.log import get_module_logger
 from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs
@@ -24,7 +24,7 @@ from twisted.internet import reactor
 
 USE_TWISTED = True
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
-VERSION = "2020.02"
+VERSION = __version__
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
 
 logger = get_module_logger(__name__)

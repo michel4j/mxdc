@@ -14,10 +14,8 @@
 import os
 import sys
 from datetime import date
+from importlib.metadata import version
 
-sys.path.insert(0, os.path.abspath('../..'))
-
-from mxdc.version import get_version
 
 # -- Project information -----------------------------------------------------
 
@@ -26,8 +24,9 @@ copyright = '2006-{}, Canadian Light Source, Inc'.format(date.today().year)
 author = 'Michel Fodje'
 
 # The full version, including alpha/beta/rc tags
-release = get_version()
-version = release
+release = version('mxdc')
+version = '.'.join(release.split('.')[:2])
+
 
 # -- General configuration ---------------------------------------------------
 
