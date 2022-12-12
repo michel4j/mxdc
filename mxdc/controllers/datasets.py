@@ -2,7 +2,7 @@ import copy
 import time
 import os
 from datetime import timedelta
-
+from enum import Enum
 from gi.repository import Gio, Gtk
 from zope.interface import Interface
 
@@ -13,7 +13,7 @@ from mxdc.engines.automation import Automator
 from mxdc.engines.diffraction import DataCollector
 from mxdc.utils import converter, datatools, misc
 from mxdc.utils.log import get_module_logger
-from mxdc.widgets import datawidget, dialogs, arrowframe
+from mxdc.widgets import datawidget, dialogs, arrowframe, status
 from mxdc.widgets.datawidget import RunItem
 
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
@@ -79,10 +79,15 @@ class AutomationController(Object):
 
     def __init__(self, widget):
         super().__init__()
-        self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.image_viewer = Registry.get_utility(IImageViewer)
+
+        self.widget = widget
+        self.status = status.DataStatus()
+        self.status_controller = common.DataStatusController(self.beamline, self.status)
+        self.widget.auto_datasets_box.pack_end(self.status, False, True, 0)
         self.run_dialog = datawidget.DataDialog()
+
         self.widget.auto_edit_acq_btn.set_popover(self.run_dialog.popover)
         self.automation_queue = SampleQueue(self.widget.auto_queue)
         self.automator = Automator()
@@ -143,6 +148,24 @@ class AutomationController(Object):
         }
         self.setup()
 
+    def setup(self):
+        self.import_from_cache()
+        self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
+        self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
+        self.status.action_btn.set_sensitive(True)
+
+        for btn in list(self.tasks.values()):
+            btn.connect('toggled', self.on_save_acquisition)
+
+        self.status.action_btn.connect('clicked', self.on_start_automation)
+        self.status.stop_btn.connect('clicked', self.on_stop_automation)
+
+        self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
+        self.widget.auto_groups_btn.set_popover(self.widget.auto_groups_pop)
+        self.widget.center_task_btn.bind_property('active', self.widget.center_options_box, 'sensitive')
+        self.widget.analyse_task_btn.bind_property('active', self.widget.analyse_options_box, 'sensitive')
+        self.widget.acquire_task_btn.bind_property('active', self.widget.acquire_options_box, 'sensitive')
+
     def import_from_cache(self):
         config = load_cache('auto')
         if config:
@@ -182,54 +205,38 @@ class AutomationController(Object):
 
     def on_state_changed(self, obj, param):
         if self.props.state == self.StateType.ACTIVE:
-            self.widget.auto_collect_icon.set_from_icon_name(
+            self.status.action_icon.set_from_icon_name(
                 "media-playback-pause-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.widget.auto_stop_btn.set_sensitive(True)
-            self.widget.auto_collect_btn.set_sensitive(True)
+            self.status.stop_btn.set_sensitive(True)
+            self.status.action_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(False)
             self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.StateType.PAUSED:
-            self.widget.auto_progress_lbl.set_text("Automation paused!")
-            self.widget.auto_collect_icon.set_from_icon_name(
+            self.status.progress_fbk.set_text("Automation paused!")
+            self.status.action_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.widget.auto_stop_btn.set_sensitive(True)
-            self.widget.auto_collect_btn.set_sensitive(True)
+            self.status.stop_btn.set_sensitive(True)
+            self.status.action_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(False)
             self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.StateType.PENDING:
-            self.widget.auto_collect_icon.set_from_icon_name(
+            self.status.action_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.auto_sequence_box.set_sensitive(False)
-            self.widget.auto_collect_btn.set_sensitive(False)
-            self.widget.auto_stop_btn.set_sensitive(False)
+            self.status.action_btn.set_sensitive(False)
+            self.status.stop_btn.set_sensitive(False)
             self.widget.auto_groups_btn.set_sensitive(False)
         else:
-            self.widget.auto_collect_icon.set_from_icon_name(
+            self.status.action_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.widget.auto_stop_btn.set_sensitive(False)
-            self.widget.auto_collect_btn.set_sensitive(True)
+            self.status.stop_btn.set_sensitive(False)
+            self.status.action_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(True)
             self.widget.auto_groups_btn.set_sensitive(True)
-
-    def setup(self):
-        self.import_from_cache()
-        self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
-        self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
-
-        for btn in list(self.tasks.values()):
-            btn.connect('toggled', self.on_save_acquisition)
-
-        self.widget.auto_collect_btn.connect('clicked', self.on_start_automation)
-        self.widget.auto_stop_btn.connect('clicked', self.on_stop_automation)
-        self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
-        self.widget.auto_groups_btn.set_popover(self.widget.auto_groups_pop)
-        self.widget.center_task_btn.bind_property('active', self.widget.center_options_box, 'sensitive')
-        self.widget.analyse_task_btn.bind_property('active', self.widget.analyse_options_box, 'sensitive')
-        self.widget.acquire_task_btn.bind_property('active', self.widget.acquire_options_box, 'sensitive')
 
     def on_edit_acquisition(self, obj):
         info = self.config.info
@@ -251,9 +258,9 @@ class AutomationController(Object):
         used_time = time.time() - self.start_time
         remaining_time = 0 if not fraction else int((1 - fraction) * used_time / fraction)
         eta_time = timedelta(seconds=remaining_time)
-        self.widget.auto_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.widget.auto_pbar.set_fraction(fraction)
-        self.widget.auto_progress_lbl.set_text(message)
+        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.status.progress_bar.set_fraction(fraction)
+        self.status.progress_fbk.set_text(message)
 
     def on_sample_done(self, obj, uuid):
         self.automation_queue.mark_progress(uuid, SampleStore.Progress.DONE)
@@ -263,14 +270,14 @@ class AutomationController(Object):
 
     def on_done(self, obj, data):
         self.props.state = self.StateType.STOPPED
-        self.widget.auto_progress_lbl.set_text("Automation Completed.")
         eta_time = timedelta(seconds=0)
-        self.widget.auto_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.widget.auto_pbar.set_fraction(1.0)
+        self.status.progress_fbk.set_text("Automation Completed.")
+        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.status.progress_bar.set_fraction(1.0)
 
     def on_stopped(self, obj, data):
         self.props.state = self.StateType.STOPPED
-        self.widget.auto_progress_lbl.set_text("Automation Stopped.")
+        self.status.progress_fbk.set_text("Automation Stopped.")
 
     def on_pause(self, obj, paused, reason):
         if paused:
@@ -313,10 +320,10 @@ class AutomationController(Object):
 
     def on_start_automation(self, obj):
         if self.props.state == self.StateType.ACTIVE:
-            self.widget.auto_progress_lbl.set_text("Pausing automation ...")
+            self.status.progress_fbk.set_text("Pausing automation ...")
             self.automator.pause()
         elif self.props.state == self.StateType.PAUSED:
-            self.widget.auto_progress_lbl.set_text("Resuming automation ...")
+            self.status.progress_fbk.set_text("Resuming automation ...")
             self.automator.resume()
         elif self.props.state == self.StateType.STOPPED:
             tasks = self.get_task_list()
@@ -326,10 +333,10 @@ class AutomationController(Object):
                 msg2 = 'Please add samples and try again.'
                 dialogs.warning(msg1, msg2)
             else:
-                self.widget.auto_progress_lbl.set_text("Starting automation ...")
+                self.status.progress_fbk.set_text("Starting automation ...")
                 self.props.state = self.StateType.PENDING
                 self.automator.configure(samples, tasks)
-                self.widget.auto_pbar.set_fraction(0)
+                self.status.progress_bar.set_fraction(0)
                 self.automator.start()
                 self.image_viewer.set_collect_mode(True)
 
@@ -340,36 +347,80 @@ class DatasetsController(Object):
         active = Signal('active-sample', arg_types=(object,))
         selected = Signal('sample-selected', arg_types=(object,))
 
+    class StateType(Enum):
+        STARTING, ACTIVE, STOPPING, STOPPED = range(4)
+
+    state = Property(type=object)
+
     def __init__(self, widget):
         super().__init__()
-        self.widget = widget
-        self.beamline = Registry.get_utility(IBeamline)
-        self.collector = DataCollector()
-        self.collecting = False
-        self.stopping = False
         self.pause_info = False
         self.start_time = 0
         self.frame_monitor = None
         self.starting = True
+        self.widget = widget
 
+        self.beamline = Registry.get_utility(IBeamline)
+        self.collector = DataCollector()
         self.names = datatools.NameManager()
-        self.monitors = {}
         self.image_viewer = ImageViewer()
         self.microscope = Registry.get_utility(IMicroscope)
+        self.sample_store = Registry.get_utility(ISampleStore)
+
+        self.status = status.DataStatus()
+        self.status_controller = common.DataStatusController(self.beamline, self.status)
+        self.widget.manual_datasets_box.pack_end(self.status, False, True, 0)
+
         self.run_editor = datawidget.RunEditor(points_model=self.microscope.points)
         self.editor_frame = arrowframe.ArrowFrame()
         self.editor_frame.add(self.run_editor.data_form)
         self.widget.datasets_overlay.add_overlay(self.editor_frame)
         self.run_store = Gio.ListStore(item_type=RunItem)
-        self.run_store.connect('items-changed', self.on_runs_changed)
+        self.run_sg = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)
 
+        self.state_values =         {
+            self.StateType.STARTING: (False, False),
+            self.StateType.ACTIVE: (False, True),
+            self.StateType.STOPPING: (False, False),
+            self.StateType.STOPPED: (True, False)
+        }
+        self.setup()
+        Registry.add_utility(IDatasets, self)
+
+    def setup(self):
+        #self.status.action_btn.set_sensitive(False)
+        self.run_store.connect('items-changed', self.on_runs_changed)
         self.collector.connect('done', self.on_done)
         self.collector.connect('paused', self.on_pause)
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
-        Registry.add_utility(IDatasets, self)
-        self.setup()
+        self.connect('notify::state', self.on_state_changed)
+
+        self.widget.datasets_list.bind_model(self.run_store, self.create_run_config)
+        self.widget.datasets_viewer_box.add(self.image_viewer)
+        self.widget.datasets_clean_btn.connect('clicked', self.on_clean_runs)
+        self.widget.datasets_list.connect('row-activated', self.on_row_activated)
+
+        self.run_editor.data_delete_btn.connect('clicked', self.on_delete_run)
+        self.run_editor.data_copy_btn.connect('clicked', self.on_copy_run)
+        self.run_editor.data_recycle_btn.connect('clicked', self.on_recycle_run)
+        self.run_editor.data_save_btn.connect('clicked', self.on_save_run)
+        self.sample_store.connect('updated', self.on_sample_updated)
+
+        self.import_from_cache()
+
+        new_item = RunItem(state=RunItem.StateType.ADD)
+        pos = self.run_store.insert_sorted(new_item, RunItem.sorter)
+        self.run_editor.set_item(new_item)
+        first_row = self.widget.datasets_list.get_row_at_index(pos)
+        self.editor_frame.set_row(first_row)
+
+        self.status.action_btn.connect('clicked', self.on_start)
+        self.status.stop_btn.connect('clicked', self.on_stop)
+
+        self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
+        self.props.state = self.StateType.STOPPED
 
     def import_from_cache(self):
         runs = load_cache('runs')
@@ -381,7 +432,7 @@ class DatasetsController(Object):
                     run['info'], state=run['state'], created=run['created'], uid=run['uuid']
                 )
                 self.run_store.insert_sorted(new_item, RunItem.sorter)
-            self.widget.datasets_collect_btn.set_sensitive(True)
+            self.status.action_btn.set_sensitive(True)
         self.names.set_database(names)
 
     def update_positions(self):
@@ -392,44 +443,6 @@ class DatasetsController(Object):
             pos += 1
             item = self.run_store.get_item(pos)
 
-    def setup(self):
-        self.run_sg = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)
-        self.widget.datasets_list.bind_model(self.run_store, self.create_run_config)
-        self.widget.datasets_viewer_box.add(self.image_viewer)
-        self.widget.datasets_clean_btn.connect('clicked', self.on_clean_runs)
-        self.widget.datasets_list.connect('row-activated', self.on_row_activated)
-        self.widget.dsets_dir_btn.connect('clicked', self.open_terminal)
-
-        self.run_editor.data_delete_btn.connect('clicked', self.on_delete_run)
-        self.run_editor.data_copy_btn.connect('clicked', self.on_copy_run)
-        self.run_editor.data_recycle_btn.connect('clicked', self.on_recycle_run)
-        self.run_editor.data_save_btn.connect('clicked', self.on_save_run)
-        self.sample_store = Registry.get_utility(ISampleStore)
-        self.sample_store.connect('updated', self.on_sample_updated)
-
-        self.import_from_cache()
-
-        new_item = RunItem(state=RunItem.StateType.ADD)
-        pos = self.run_store.insert_sorted(new_item, RunItem.sorter)
-        self.run_editor.set_item(new_item)
-        first_row = self.widget.datasets_list.get_row_at_index(pos)
-        self.editor_frame.set_row(first_row)
-
-        labels = {
-            'omega': (self.beamline.goniometer.omega, self.widget.dsets_omega_fbk, '{:0.1f}°'),
-            'energy': (self.beamline.energy, self.widget.dsets_energy_fbk, '{:0.3f} keV'),
-            'attenuation': (self.beamline.attenuator, self.widget.dsets_attenuation_fbk, '{:0.0f} %'),
-            'maxres': (self.beamline.maxres, self.widget.dsets_maxres_fbk, '{:0.2f} Å'),
-            'aperture': (self.beamline.aperture, self.widget.dsets_aperture_fbk, '{:0.0f} µm'),
-            'two_theta': (self.beamline.two_theta, self.widget.dsets_2theta_fbk, '{:0.0f}°'),
-        }
-        self.group_selectors = []
-        self.monitors = {
-            name: common.DeviceMonitor(dev, lbl, fmt)
-            for name, (dev, lbl, fmt) in list(labels.items())
-        }
-        self.widget.datasets_collect_btn.connect('clicked', self.on_collect_btn)
-        self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
 
     def create_run_config(self, item):
         config = datawidget.RunConfig()
@@ -498,7 +511,7 @@ class DatasetsController(Object):
     def on_runs_changed(self, model, position, removed, added):
         self.update_positions()
         if self.run_store.get_n_items() < 2:
-            self.widget.datasets_collect_btn.set_sensitive(False)
+            self.status.action_btn.set_sensitive(False)
 
     def generate_run_list(self):
         runs = []
@@ -585,7 +598,7 @@ class DatasetsController(Object):
                 item.props.position = i
 
         self.update_cache()
-        self.widget.datasets_collect_btn.set_sensitive(count > 0)
+        self.status.action_btn.set_sensitive(count > 0)
 
     def update_cache(self):
         count = 0
@@ -632,9 +645,21 @@ class DatasetsController(Object):
             self.run_store.insert_sorted(new_item, RunItem.sorter)
         self.check_run_store()
 
-    def open_terminal(self, button):
-        directory = self.widget.dsets_dir_fbk.get_text()
-        misc.open_terminal(directory)
+    def on_state_changed(self, obj, param):
+        action_state, stop_state = self.state_values.get(self.props.state, (False, False))
+        self.status.stop_btn.set_sensitive(stop_state)
+        self.status.action_btn.set_sensitive(action_state)
+        if self.props.state == self.StateType.STOPPED:
+            self.widget.datasets_clean_btn.set_sensitive(True)
+            self.widget.datasets_overlay.set_sensitive(True)
+        else:
+            self.widget.datasets_clean_btn.set_sensitive(False)
+            self.widget.datasets_overlay.set_sensitive(False)
+
+        if self.props.state == self.StateType.STARTING:
+            self.status.progress_fbk.set_text("Starting acquisition ...")
+        elif self.props.state == self.StateType.STOPPING:
+            self.status.progress_fbk.set_text("Stopping acquisition ...")
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
@@ -642,7 +667,7 @@ class DatasetsController(Object):
             name=sample.get('name', '...'),
             port=sample.get('port', '...')
         ).replace('|...', '')
-        self.widget.dsets_sample_fbk.set_text(sample_text)
+        self.status.sample_fbk.set_text(sample_text)
         self.remove_runs()
 
         config = self.run_editor.get_default(datawidget.StrategyType.SCREEN_2)
@@ -752,15 +777,15 @@ class DatasetsController(Object):
             eta_time = timedelta(seconds=remaining_time)
         else:
             eta_time = timedelta(seconds=0)
-        self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.widget.collect_pbar.set_fraction(fraction)
+        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.status.progress_bar.set_fraction(fraction)
 
     def on_done(self, obj, completion):
         self.complete_run(completion)
         eta_time = timedelta(seconds=0)
-        self.widget.collect_eta.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.widget.collect_pbar.set_fraction(1.0)
-        self.widget.collect_progress_lbl.set_text('Acquisition complete!')
+        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.status.progress_bar.set_fraction(1.0)
+        self.status.progress_fbk.set_text('Acquisition complete!')
 
     def on_stopped(self, obj, completion):
         self.complete_run(completion)
@@ -775,12 +800,7 @@ class DatasetsController(Object):
 
     def complete_run(self, completion=None):
         self.image_viewer.set_collect_mode(False)
-        self.widget.datasets_collect_btn.set_sensitive(True)
-        self.widget.collect_btn_icon.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR)
-        self.widget.datasets_clean_btn.set_sensitive(True)
-        self.widget.datasets_overlay.set_sensitive(True)
-        self.collecting = False
-        self.stopping = False
+        self.props.state = self.StateType.STOPPED
         if self.pause_info:
             self.widget.notifier.close()
 
@@ -799,20 +819,16 @@ class DatasetsController(Object):
     def on_started(self, obj, wedge):
         if wedge is None:  # Overall start for all wedges
             self.start_time = time.time()
-            self.first_frame = True
-            self.widget.datasets_collect_btn.set_sensitive(True)
-            self.widget.datasets_clean_btn.set_sensitive(False)
-            self.widget.datasets_overlay.set_sensitive(False)
+            self.props.state = self.StateType.ACTIVE
             logger.info("Acquisition started ...")
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
-            self.widget.dsets_dir_fbk.set_text(wedge['directory'])
-            os.chdir(os.path.abspath(wedge['directory']))
+            self.status_controller.set_directory(os.path.realpath(wedge['directory']))
 
             progress_text = "Acquiring from {:g}-{:g}° for '{}' ...".format(
                 wedge['start'], wedge['start'] + wedge['num_frames'] * wedge['delta'], wedge['name']
             )
-            self.widget.collect_progress_lbl.set_text(progress_text)
+            self.status.progress_fbk.set_text(progress_text)
 
             # mark progress
             count = 0
@@ -830,29 +846,24 @@ class DatasetsController(Object):
             self.image_viewer.show_frame(frame)
         self.starting = False
 
-    def on_collect_btn(self, obj):
-        self.widget.datasets_collect_btn.set_sensitive(False)
-        if self.collecting:
-            self.stopping = True
-            self.widget.collect_progress_lbl.set_text("Stopping acquisition ...")
+    def on_stop(self, btn):
+        if self.props.state not in [self.StateType.STOPPING, self.StateType.STOPPED]:
+            self.props.state = self.StateType.STOPPING
             self.collector.stop()
-        else:
-            self.auto_save_run()
-            runs = self.generate_run_list()
-            if not runs:
-                msg1 = 'Run list is empty!'
-                msg2 = 'Please define and save a run before collecting.'
-                dialogs.warning(msg1, msg2)
-                return
-            success, checked_runs, existing = self.check_runlist(runs)
 
-            if success:
-                self.collecting = True
-                self.widget.collect_btn_icon.set_from_icon_name(
-                    "media-playback-stop-symbolic", Gtk.IconSize.SMALL_TOOLBAR
-                )
-                self.widget.collect_progress_lbl.set_text("Starting acquisition ...")
-                self.widget.collect_pbar.set_fraction(0)
-                self.collector.configure(checked_runs, analysis='default')
-                self.collector.start()
-                self.image_viewer.set_collect_mode(True)
+    def on_start(self, obj):
+        self.auto_save_run()
+        runs = self.generate_run_list()
+        if not runs:
+            msg1 = 'Run list is empty!'
+            msg2 = 'Please define and save a run before collecting.'
+            dialogs.warning(msg1, msg2)
+            return
+        success, checked_runs, existing = self.check_runlist(runs)
+
+        if success and self.props.state != self.StateType.STARTING:
+            self.props.state = self.StateType.STARTING
+            self.status.progress_bar.set_fraction(0)
+            self.collector.configure(checked_runs, analysis='default')
+            self.collector.start()
+            self.image_viewer.set_collect_mode(True)

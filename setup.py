@@ -43,9 +43,7 @@ setup(
             'share/imgsync.tac',
         ]
     },
-    install_requires=requirements + [
-        'importlib-metadata ~= 1.0 ; python_version < "3.8"', 'setuptools-scm'
-    ],
+    install_requires=requirements,
     scripts=[
         'bin/archiver',
         'bin/blconsole',

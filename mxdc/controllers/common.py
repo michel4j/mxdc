@@ -1,9 +1,16 @@
 import logging
 import operator
+import subprocess
+import os
 
+import mxdc.beamlines
+from mxdc.utils import misc, log
+from pathlib import Path
 from gi.repository import Gtk, Pango, GLib
-from mxdc.widgets import timer
+from mxdc.widgets import timer, status
 
+
+logger = log.get_module_logger(__name__)
 
 def value_class(val, warning, error):
     if (val < warning < error) or (val > warning > error):
@@ -338,4 +345,61 @@ class Tuner(object):
     def cancel_tuning(self, *args, **kwargs):
         self.tune_func = None
 
+
+
+class DataDirectory:
+    def __init__(self, button: Gtk.Button, label: Gtk.Label):
+        self.button = button
+        self.label = label
+        self.directory = Path(misc.get_project_home())
+        self.label.set_text(str(self.directory).replace(misc.get_project_home(), '~'))
+        self.button.connect('clicked', self.open_terminal)
+
+    def update_view(self):
+        if self.directory.exists():
+            os.chdir(self.directory)
+            self.label.set_text(str(self.directory).replace(misc.get_project_home(), '~'))
+            return False
+        else:
+            return True
+
+    def get_directory(self):
+        return self.directory
+
+    def set_directory(self, path: Path | str):
+        logger.debug(f'Setting working directory to {path}')
+        self.directory = Path(str(path))
+        GLib.timeout_add(3000, self.update_view)
+
+    def open_terminal(self, btn):
+        commands = [
+            'gnome-terminal',
+            '--geometry=132x24',
+            '--working-directory={}'.format(self.directory),
+        ]
+        subprocess.Popen(commands)
+
+
+class DataStatusController:
+    def __init__(self, beamline: mxdc.beamlines.Beamline, view: status.DataStatus):
+        self.view = view
+        self.config = [
+            (beamline.goniometer.omega, self.view.omega_fbk, '{:0.1f}°'),
+            (beamline.energy, self.view.energy_fbk, '{:0.3f} keV'),
+            (beamline.attenuator, self.view.attenuation_fbk, '{:0.0f} %'),
+            (beamline.maxres, self.view.max_res_fbk, '{:0.2f} Å'),
+            (beamline.aperture, self.view.aperture_fbk, '{:0.0f} µm'),
+            (beamline.two_theta, self.view.two_theta_fbk, '{:0.0f}°'),
+        ]
+        self.monitors = [
+            DeviceMonitor(dev, lbl, fmt)
+            for (dev, lbl, fmt) in self.config
+        ]
+        self.data_folder = DataDirectory(self.view.directory_btn, self.view.directory_fbk)
+
+    def get_directory(self):
+        return self.data_folder.get_directory()
+
+    def set_directory(self, path):
+        self.data_folder.set_directory(path)
 

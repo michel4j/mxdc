@@ -5,7 +5,7 @@ import time
 import numpy
 from scipy import interpolate
 from gi.repository import GLib
-from mxdc import conf, Signal, Device
+from mxdc import Signal, Device, APP_DIR
 from mxdc.utils import fitting
 from mxdc.utils.log import get_module_logger
 from zope.interface import implementer
@@ -425,7 +425,7 @@ class VortexMCA(BaseMCA):
         return _crs
 
 
-SIM_XRF_TEMPLATE = os.path.join(conf.APP_DIR, 'share/data/simulated/xrf_{:03d}.raw')
+SIM_XRF_TEMPLATE = os.path.join(APP_DIR, 'share/data/simulated/xrf_{:03d}.raw')
 SIM_XRF_FILES = [1, 2, 3]
 
 

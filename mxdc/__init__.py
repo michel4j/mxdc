@@ -2,6 +2,7 @@ import atexit
 import threading
 import reprlib
 import time
+import os
 
 from gi.repository import GObject, GLib
 from gi.types import GObjectMeta
@@ -15,12 +16,24 @@ from mxdc.utils.misc import check_call
 
 logger = get_module_logger(__name__)
 
-
 try:
     from importlib.metadata import version, PackageNotFoundError
+except ModuleNotFoundError:
+    from importlib_metadata import version, PackageNotFoundError
+
+try:
     __version__ = version("mxdc")
-except (ImportError, PackageNotFoundError):
+except PackageNotFoundError:
     __version__ = "unknown version"
+
+
+
+# setup directories
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+SHARE_DIR = os.path.join(APP_DIR, 'share')
+CONFIG_DIR = os.path.abspath(os.environ.get('MXDC_CONFIG', os.path.join(os.path.dirname(APP_DIR), 'deploy')))
+DOCS_DIR = os.path.join(os.path.dirname(APP_DIR), 'docs/build/html')
+
 
 obj_repr = reprlib.Repr()
 obj_repr.maxlevel = 4

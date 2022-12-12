@@ -12,7 +12,7 @@ from PIL import Image
 from zope.interface import implementer
 
 from mxdc import Signal, Device
-from mxdc import conf
+from mxdc import APP_DIR
 from mxdc.utils.log import get_module_logger
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController
 
@@ -154,7 +154,7 @@ class SimGIFCamera(VideoSrc):
     """
     def __init__(self, gonio=None, name="GIF Camera Simulator"):
         super().__init__(name=name, size=(1280, 960))
-        self.src = Image.open(os.path.join(conf.APP_DIR, 'share/data/simulated/crystal.gif'))
+        self.src = Image.open(os.path.join(APP_DIR, 'share/data/simulated/crystal.gif'))
         self.num_frames = self.src.n_frames
         self.gonio = gonio
         self.index = 0

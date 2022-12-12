@@ -32,7 +32,6 @@ class IRasterCollector(Interface):
 class RasterCollector(Engine):
     class Signals:
         result = Signal('result', arg_types=(int, object))
-        grid = Signal('grid', arg_types=(object,))
         complete = Signal('complete', arg_types=(object,))
 
     def __init__(self):
@@ -276,7 +275,7 @@ class RasterCollector(Engine):
                 height=params['height'],
                 start_pos=params['grid'][0],
                 wait=True,
-                timeout=max(60, params['exposure'] * self.total_frames * 10),
+                timeout=max(60, params['exposure'] * self.total_frames * 3),
             )
             self.beamline.detector.save()
         else:
@@ -353,11 +352,13 @@ class RasterCollector(Engine):
         misc.save_metadata(metadata, filename)
         self.beamline.lims.upload_data(self.beamline.name, filename)
         grid_file = os.path.join(metadata['directory'], '{}.grid'.format(metadata['name']))
-        numpy.savez(
-            grid_file,
-            scores=self.config['properties']['grid_scores'],
-            indices=self.config['properties']['grid_index'],
-            frames=self.config['properties']['grid_frames'],
-            xyz=self.config['params']['grid']
-        )
+        # numpy.savez(
+        #     grid_file,
+        #     scores=self.config['properties']['grid_scores'],
+        #     indices=self.config['properties']['grid_index'],
+        #     frames=self.config['properties']['grid_frames'],
+        #     xyz=self.config['params']['grid']
+        # )
+        self.config['params']['template'] = template
+        misc.save_pickle((self.config['params'], self.config['properties']), grid_file)
         return metadata

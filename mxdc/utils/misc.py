@@ -6,6 +6,7 @@ import os
 import pwd
 import grp
 import gzip
+import pickle
 import re
 import reprlib
 import socket
@@ -216,19 +217,6 @@ def logistic_score(x, best=1, fair=0.5):
     return 1 / (1 + numpy.exp(-t))
 
 
-def open_terminal(directory=None):
-    if not directory:
-        directory = get_project_home()
-    else:
-        directory = directory.replace('~', get_project_home())
-    commands = [
-        'gnome-terminal',
-        '--geometry=132x24',
-        '--working-directory={}'.format(directory),
-    ]
-    subprocess.Popen(commands)
-
-
 def save_metadata(metadata, filename):
     try:
         if os.path.exists(filename) and not metadata.get('id'):
@@ -241,10 +229,30 @@ def save_metadata(metadata, filename):
     return metadata
 
 
+def save_pickle(data, filename):
+    with open(filename, 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_pickle(filename):
+    with open(filename, 'rb') as handle:
+        data = pickle.load(handle)
+    return data
+
+
 def load_metadata(filename):
     with open(filename, 'r') as handle:
         metadata = json.load(handle)
     return metadata
+
+def load_grid_data(filename):
+    data = numpy.load(filelname)
+    return {
+        'grid_scores': data['scores'],
+        'grid_index': data['indices'],
+        'grid_frames': data['frames'],
+        'grid': data['grid']
+    }
 
 def load_json(filename):
     with open(filename, 'r') as handle:

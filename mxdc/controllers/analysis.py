@@ -17,6 +17,7 @@ from mxdc.engines import auto
 from mxdc.widgets import dialogs
 from mxdc.controllers.datasets import IDatasets
 from .samplestore import ISampleStore
+from . import common
 
 logger = get_module_logger(__name__)
 
@@ -129,8 +130,7 @@ class AnalysisController(Object):
         browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
         self.widget.proc_single_option.set_active(True)
-
-        self.widget.proc_dir_btn.connect('clicked', self.open_terminal)
+        self.data_folder = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
         self.widget.proc_strategy_btn.connect('clicked', self.use_strategy)
         self.widget.proc_reports_view.connect('row-activated', self.on_row_activated)
@@ -146,10 +146,6 @@ class AnalysisController(Object):
             'integrate': self.widget.proc_integrate_option,
             'anomalous': self.widget.proc_anom_btn
         }
-
-    def open_terminal(self, button):
-        directory = self.widget.proc_dir_fbk.get_text()
-        misc.open_terminal(directory)
 
     def clear_reports(self, *args, **kwargs):
         self.reports.clear_selection()

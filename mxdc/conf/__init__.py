@@ -9,16 +9,11 @@ gi.require_version('Gio', '2.0')
 import msgpack
 from gi.repository import Gio
 
+from mxdc import SHARE_DIR, CONFIG_DIR
 from mxdc.utils import misc
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
-
-APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHARE_DIR = os.path.join(APP_DIR, 'share')
-CONFIG_DIR = os.path.abspath(os.environ.get('MXDC_CONFIG', os.path.join(APP_DIR, '../deploy')))
-
-DOCS_DIR = os.path.join(APP_DIR, '../docs/build/html')
 
 
 APP_CACHE_DIR = ''
