@@ -13,7 +13,6 @@ if not CONFIGS:
 
 _KEY_FILE = os.path.join(os.path.dirname(APP_CACHE_DIR), 'keys.dsa')
 DEBUG = bool(os.environ.get('MXDC_DEBUG'))
-SESSION_GAP = 5
 
 
 def get_string(*args):

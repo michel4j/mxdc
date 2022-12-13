@@ -155,7 +155,7 @@ class AnalysisController(Object):
             ('MxDC Meta-File', ["*.meta"]),
             ('AutoProcess Meta-File', ["*.json"]),
         ]
-        directory = os.path.join(misc.get_project_home(), settings.get_session())
+        directory = os.path.join(misc.get_project_home(), self.beamline.session_key)
         filename, filter = dialogs.select_opensave_file(
             'Select Meta-File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
             default_folder=directory

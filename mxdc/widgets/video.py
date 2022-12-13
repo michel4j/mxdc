@@ -4,7 +4,6 @@ import gi
 import numpy
 from enum import Enum
 from PIL import Image
-from dataclasses import dataclass
 
 gi.require_version('Gtk', '3.0')
 
@@ -14,6 +13,7 @@ from gi.repository import Gtk
 from zope.interface import implementer
 import cairo
 
+from mxdc.utils.decorators import async_call
 from mxdc.utils import cmaps, colors
 from mxdc.utils.gui import color_palette
 from mxdc.devices.interfaces import IVideoSink
@@ -272,9 +272,13 @@ class VideoWidget(Gtk.DrawingArea):
             cr.paint()
 
             if self.save_file:
-                target.write_to_png(self.save_file)
-                logger.info('{} saved'.format(self.save_file))
+                self.save_snapshot(target, self.save_file)
                 self.save_file = None
+
+    @async_call
+    def save_snapshot(self, target, filename):
+        target.write_to_png(filename)
+        logger.info('{} saved'.format(filename))
 
     def draw_beam(self, cr):
         if self.overlays.get('beam') is None:

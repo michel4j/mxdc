@@ -77,6 +77,7 @@ class ScanController(Object):
         self.form = FormManager(self.widget, fields=self.Fields, prefix=self.prefix, persist=True, disabled=self.disabled)
         self.edge_selector = edge_selector
         self.sample_store = Registry.get_utility(ISampleStore)
+        self.beamline = Registry.get_utility(IBeamline)
 
         self.pause_dialog = None
         self.start_time = 0
@@ -127,7 +128,9 @@ class ScanController(Object):
             params['uuid'] = str(uuid.uuid4())
             params['name'] = datetime.now().strftime('%y%m%d-%H%M')
             params['activity'] = '{}-scan'.format(self.prefix)
-            params = datatools.update_for_sample(params, self.sample_store.get_current())
+            params = datatools.update_for_sample(
+                params, sample=self.sample_store.get_current(), session=self.beamline.session_key
+            )
             self.props.config = params
             self.scanner.configure(**self.props.config)
             self.scanner.start()

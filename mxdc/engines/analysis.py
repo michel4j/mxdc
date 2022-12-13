@@ -63,13 +63,13 @@ class Analyst(Engine):
             'activity': 'proc-{}'.format(suffix),
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample, overwrite=False)
+        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
         res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
         params.update({
             "uuid": res.identity,
             'state': self.manager.State.ACTIVE,
         })
-        self.manager.add_item(params, False)
+        self.manager.add_item(params)
         data_id = [_f for _f in [metadata.get('id')] if _f]
         res.connect('done', self.on_process_done, data_id)
         res.connect('failed', self.on_process_failed)
@@ -96,13 +96,13 @@ class Analyst(Engine):
             'activity': 'proc-{}'.format(suffix),
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample, overwrite=False)
+        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
         res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
         params.update({
             "uuid": res.identity,
             'state': self.manager.State.ACTIVE,
         })
-        self.manager.add_item(params, False)
+        self.manager.add_item(params)
         data_id = [_f for _f in [metadata.get('id') for metadata in metadatas] if _f]
         res.connect('done', self.on_process_done, data_id)
         res.connect('failed', self.on_process_failed)
@@ -124,7 +124,7 @@ class Analyst(Engine):
         }
 
         method = settings.get_string('screening-method').lower()
-        params = datatools.update_for_sample(params, sample, overwrite=False)
+        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
         if method == 'autoprocess':
             res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
         else:
@@ -133,7 +133,7 @@ class Analyst(Engine):
             "uuid": res.identity,
             'state': self.manager.State.ACTIVE,
         })
-        self.manager.add_item(params, False)
+        self.manager.add_item(params)
         data_id = [_f for _f in [metadata.get('id')] if _f]
         res.connect('done', self.on_process_done, data_id)
         res.connect('failed', self.on_process_failed)
@@ -142,7 +142,7 @@ class Analyst(Engine):
         params.update({
             'activity': 'proc-raster',
         })
-        params = datatools.update_for_sample(params, sample, overwrite=False)
+        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
         data_id = [_f for _f in [params.get('id')] if _f]
         res = self.beamline.dps.signal_strength(**params, user_name=misc.get_project_name())
         res.connect('done', self.on_raster_done, data_id)
@@ -165,13 +165,13 @@ class Analyst(Engine):
             'activity': 'proc-xrd',
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample, overwrite=False)
+        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
         res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
         params.update({
             "uuid": res.identity,
             'state': self.manager.State.ACTIVE,
         })
-        self.manager.add_item(params, False)
+        self.manager.add_item(params)
         res.connect('done', self.on_process_done, metadata)
         res.connect('failed', self.on_process_failed)
 

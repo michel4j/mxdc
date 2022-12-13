@@ -243,7 +243,9 @@ class Centering(Engine):
             else:
                 params.update({'hsteps': 4, 'vsteps': max(5, int(height*1.5//aperture))})
 
-            params = datatools.update_for_sample(params, self.sample_store.get_current())
+            params = datatools.update_for_sample(
+                params, sample=self.sample_store.get_current(), session=self.beamline.session_key
+            )
             logger.info('Finding best diffraction spot in grid')
             self.collector.configure(params)
             self.collector.run(centering=(step == "edge"))

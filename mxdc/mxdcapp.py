@@ -292,7 +292,7 @@ class Application(Gtk.Application):
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
-        self.beamline.lims.open_session(self.beamline.name, settings.get_session())
+        self.beamline.lims.open_session(self.beamline.name, self.beamline.session_key)
         reactor.listenTCP(MXDC_PORT, pb.PBServerFactory(server.IPerspectiveMXDC(self.service)))
 
     def on_shutdown(self, *args):

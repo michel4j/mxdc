@@ -142,6 +142,9 @@ class Frame(object):
     def prev_frame(self):
         return self.dataset.prev_frame()
 
+    def load_frame(self, number):
+        return self.dataset.get_frame(number)
+
 
 class DataLoader(Object):
     class Signals:
@@ -158,6 +161,7 @@ class DataLoader(Object):
         self.settings = FrameSettings()
         self.load_next = False
         self.load_prev = False
+        self.load_number = None
         self.set_colormap()
         self.start()
 
@@ -202,6 +206,9 @@ class DataLoader(Object):
     def set_current_frame(self, frame):
         self.cur_frame = frame
 
+    def load_frame(self, number):
+        self.load_number = number
+
     def next_frame(self):
         self.load_next = True
 
@@ -237,6 +244,9 @@ class DataLoader(Object):
                             success = self.cur_frame.next_frame()
                         elif self.load_prev:
                             success = self.cur_frame.prev_frame()
+                        elif self.load_number:
+                            success = self.cur_frame.load_frame(self.load_number)
+                            self.load_number = None
                         if success:
                             rescale = (time.time() - last_update > RESCALE_TIMEOUT)
                             frame = Frame(self.cur_frame.dataset, colormap=self.colormap)
@@ -361,6 +371,9 @@ class ImageWidget(Gtk.DrawingArea):
 
     def load_prev(self):
         return self.data_loader.prev_frame()
+
+    def load_frame(self, number):
+        return self.data_loader.load_frame(number)
 
     def get_image_info(self):
         return self.frame

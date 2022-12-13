@@ -144,6 +144,8 @@ class RasterController(Object):
             self.beamline.goniometer.omega.move_to(params['angle'])
             self.microscope.load_grid(grid_config)
             template = params['template']
+            self.results[params['uuid']] = grid_config
+
             for i, pos in enumerate(grid_config['grid_index']):
                 pos = grid_config['grid_index'][i]
                 score = grid_config['grid_scores'][pos]
@@ -152,7 +154,6 @@ class RasterController(Object):
                 x, y, z = self.microscope.props.grid_xyz[i]
                 self.add_result_item(
                    params['name'], params['angle'], frame, x, y, z, score, filename, params['uuid'],
-                   None if i > 0 else grid_config,
                 )
 
     def on_clean(self, btn):
@@ -173,7 +174,9 @@ class RasterController(Object):
             'delta': RASTER_DELTA,
             'attenuation': self.beamline.attenuator.get_position(),
         })
-        params = datatools.update_for_sample(params, self.sample_store.get_current())
+        params = datatools.update_for_sample(
+            params, sample=self.sample_store.get_current(), session=self.beamline.session_key
+        )
         if not self.collector.is_busy():
             self.status.progress_fbk.set_text("Starting raster ...")
             self.collector.configure(params)
@@ -213,7 +216,7 @@ class RasterController(Object):
         grid_config = collector.get_grid()
         self.microscope.load_grid(grid_config)
         self.results[config['uuid']] = grid_config
-        self.status_controller.set_directory(os.path.realpath(config['directory']))
+        self.status_controller.set_directory(config['directory'])
 
         # collapse existing data
         self.view.collapse_all()
@@ -234,6 +237,9 @@ class RasterController(Object):
         self.status.eta_fbk.set_text('--:--')
         self.status.progress_bar.set_fraction(1.0)
 
+        image_viewer = Registry.get_utility(IImageViewer)
+        image_viewer.set_collect_mode(False)
+
     def on_stopped(self, obj, data):
         self.props.state = self.StateType.READY
         self.status.progress_fbk.set_text("Rastering Stopped.")
@@ -253,11 +259,10 @@ class RasterController(Object):
         pos = grid_config['grid_index'][index]
         score = grid_config['grid_scores'][pos]
         frame = grid_config['grid_frames'][index]
-
+        self.results[params['uuid']] = grid_config
         x, y, z = self.microscope.props.grid_xyz[index]
         self.add_result_item(
-            params['name'], params['angle'], frame, x, y, z, score, results['filename'],
-            None if index > 0 else grid_config, params['uuid'],
+            params['name'], params['angle'], frame, x, y, z, score, results['filename'], params['uuid']
         )
 
         self.microscope.update_overlay_coords()
@@ -270,7 +275,7 @@ class RasterController(Object):
             self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
             config = self.results[item['uuid']]
             self.microscope.load_grid(config)
-            self.status_controller.set_directory(os.path.realpath(config['info']['directory']))
+            self.status_controller.set_directory(config['info']['directory'])
         else:
             image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
@@ -281,7 +286,7 @@ class RasterController(Object):
         if params is not None and 'width' in params and 'height' in params:
             self.form.set_values({'width': params['width'], 'height': params['height']}, propagate=True)
 
-    def add_result_item(self, name, angle, cell, x, y, z, score, filename, id_key, config=None):
+    def add_result_item(self, name, angle, cell, x, y, z, score, filename, id_key):
         parent, child = self.manager.add_item({
             'name': name,
             'angle': angle,
@@ -293,7 +298,6 @@ class RasterController(Object):
             'color': score,
             'filename': filename,
             'uuid': id_key,
-            'info': config,
         })
         self.widget.raster_clean_btn.set_sensitive(True)
         if parent and not self.expanded:

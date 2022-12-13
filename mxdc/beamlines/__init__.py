@@ -48,6 +48,7 @@ class Beamline(Object):
         super().__init__()
         self.console = console
         self.config_files = settings.get_configs()
+        self.session_key = settings.get_session()
         self.registry = {}
         self.config = DotDict()
         self.lock = threading.RLock()

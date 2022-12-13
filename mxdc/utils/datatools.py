@@ -97,7 +97,7 @@ class AnalysisType:
     MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
 
 
-def update_for_sample(info, sample=None, overwrite=True):
+def update_for_sample(info, sample=None, session="", overwrite=True):
     # Add directory and related auxillary information to dictionary
     # provides values for {session} {sample}, {group}, {container}, {port}, {date}, {activity}
 
@@ -107,7 +107,7 @@ def update_for_sample(info, sample=None, overwrite=True):
     params = copy.deepcopy(info)
 
     params.update({
-        'session': settings.get_session(),
+        'session': session,
         'sample': misc.slugify(sample.get('name', '')),
         'group': misc.slugify(sample.get('group', '')),
         'container': misc.slugify(sample.get('container', '')),

@@ -1870,6 +1870,9 @@
                                         <property name="position">2</property>
                                       </packing>
                                     </child>
+                                    <style>
+                                      <class name="tool-box"/>
+                                    </style>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -2648,7 +2651,7 @@
                                 <property name="halign">center</property>
                                 <property name="valign">center</property>
                                 <property name="margin-top">6</property>
-                                <property name="margin-bottom">12</property>
+                                <property name="margin-bottom">24</property>
                                 <property name="stack">datasets_stack</property>
                               </object>
                               <packing>

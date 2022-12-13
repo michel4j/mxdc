@@ -1,6 +1,7 @@
 import time
 import logging
 import os
+import numpy
 
 from gi.repository import GLib
 from gi.repository import Gtk
@@ -19,15 +20,15 @@ class IImageViewer(Interface):
     """Image Viewer."""
 
     def queue_frame(filename):
-        pass
+        ...
 
     def add_frame(filename):
-        pass
+        ...
 
 
 class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     gui_roots = {
-        'data/image_viewer': ['image_viewer', 'info_dialog']
+        'data/image_viewer': ['image_viewer', 'info_dialog', 'frames_pop']
     }
     Formats = {
         'average_intensity': '{:0.2f}',
@@ -64,13 +65,17 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         }
 
         self.reflections = []
-
+        self.data_adjustment = Gtk.Adjustment(1, 1, 360, 1, 10, 0)
         self.build_gui()
         Registry.add_utility(IImageViewer, self)
 
     def build_gui(self):
         self.info_dialog.set_transient_for(dialogs.MAIN_WINDOW)
         self.canvas = ImageWidget(self.size)
+        self.frames_scale.set_adjustment(self.data_adjustment)
+        self.frames_scale.connect('value-changed', self.on_frames_changed)
+        self.frames_scale.connect('change-value', self.on_frames_updated)
+        self.frames_close_btn.connect('clicked', self.on_frames_popup_closed)
         self.canvas.connect('image-loaded', self.on_data_loaded)
         self.image_frame.add(self.canvas)
         self.canvas.connect('motion_notify_event', self.on_mouse_motion)
@@ -85,6 +90,7 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.save_btn.connect('clicked', self.on_file_save)
         self.prev_btn.connect('clicked', self.on_prev_frame)
         self.next_btn.connect('clicked', self.on_next_frame)
+        self.frames_btn.connect('toggled', self.on_frames_toggled)
         self.back_btn.connect('clicked', self.on_go_back, False)
         self.zoom_fit_btn.connect('clicked', self.on_go_back, True)
         self.info_close_btn.connect('clicked', self.on_info_hide)
@@ -129,7 +135,9 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def on_data_loaded(self, obj=None):
         self.dataset = self.canvas.get_image_info()
-        if self.dataset.header.get('dataset'):
+        directory = self.dataset.header.get('dataset', {}).get('directory')
+        self.reset_frames()
+        if directory:
             os.chdir(self.dataset.header['dataset']['directory'])
 
         self.save_btn.set_sensitive(True)
@@ -163,6 +171,21 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
     def show_frame(self, frame):
         if self.updating:
             self.canvas.show_frame(frame)
+
+    def reset_frames(self):
+        sequence = self.dataset.header.get('dataset', {}).get('sequence', [])
+        if len(sequence):
+            self.frames_btn.set_sensitive(True)
+            self.data_adjustment.set_lower(sequence[0])
+            self.data_adjustment.set_upper(sequence[-1])
+        else:
+            self.frames_btn.set_sensitive(False)
+
+        self.frames_scale.set_value(self.dataset.header['frame_number'])
+        values = numpy.unique(numpy.linspace(sequence[0], sequence[-1], 5).astype(int))
+        self.frames_scale.clear_marks()
+        for value in values:
+            self.frames_scale.add_mark(value, Gtk.PositionType.BOTTOM, f'{value}')
 
     def follow_frames(self):
         self.canvas.load_next()
@@ -232,3 +255,32 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
                 status = "off"
         self.play_btn.set_icon_name(self.icons[status])
 
+    def on_frames_toggled(self, widget):
+        if self.frames_btn.get_active():
+            # configure the marks
+            self.reset_frames()
+
+            # position the popup
+            window = dialogs.MAIN_WINDOW
+            ox, oy = window.get_position()
+            geom = self.canvas.get_window().get_geometry()
+            cx = ox + geom.x + geom.width / 2 - 150
+            cy = oy + geom.y + geom.height - 50
+            self.frames_pop.move(cx, cy)
+            self.frames_pop.set_transient_for(window)
+            self.frames_pop.show_all()
+        else:
+            self.frames_pop.hide()
+
+    def on_frames_popup_closed(self, widget):
+        self.frames_btn.set_active(False)
+        self.frames_pop.hide()
+
+    def on_frames_changed(self, scale):
+        pass
+
+    def on_frames_updated(self, scale, scroll, value):
+        sequence = self.dataset.header.get('dataset', {}).get('sequence', [])
+        frame_number = int(value)
+        if frame_number in sequence:
+            self.canvas.load_frame(frame_number)

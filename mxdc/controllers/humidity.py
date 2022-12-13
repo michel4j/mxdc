@@ -80,7 +80,9 @@ class HumidityController(gui.Builder):
         params['uuid'] = str(uuid.uuid4())
         params['name'] = datetime.now().strftime('%y%m%d-%H%M%S')
         params['activity'] = 'humidity'
-        params = datatools.update_for_sample(params, self.sample_store.get_current())
+        params = datatools.update_for_sample(
+            params, sample=self.sample_store.get_current(), session=self.beamline.session_key
+        )
 
         self.collector.configure(params)
         self.collector.start()

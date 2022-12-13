@@ -534,7 +534,7 @@ class DatasetsController(Object):
                 if 'p1' in run and 'p0' not in run:
                     run['p0'] = run.pop('p1')
 
-                run = datatools.update_for_sample(run, sample)
+                run = datatools.update_for_sample(run, sample=sample, session=self.beamline.session_key)
                 runs.append(run)
             pos += 1
             item = self.run_store.get_item(pos)
@@ -823,7 +823,7 @@ class DatasetsController(Object):
             logger.info("Acquisition started ...")
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
-            self.status_controller.set_directory(os.path.realpath(wedge['directory']))
+            self.status_controller.set_directory(wedge['directory'])
 
             progress_text = "Acquiring from {:g}-{:g}° for '{}' ...".format(
                 wedge['start'], wedge['start'] + wedge['num_frames'] * wedge['delta'], wedge['name']

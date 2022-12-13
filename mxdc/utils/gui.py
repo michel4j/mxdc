@@ -175,19 +175,23 @@ class TreeManager(GObject.GObject):
         self.view.connect('row-activated', self.row_activated)
         self.keys = [item.name.lower() for item in self.Data]
 
-    def add_item(self, item, add_parent=True):
+    def add_item(self, item):
         """
         Add an item to the tree
         :param item: a dict
         :return: a tuple of Gtk.TreePath objects for (parent, child), parent path is None for flat trees
         """
+
         if not self.flat:
-            parent_path = None
             parent_itr = self.find_parent_iter(item)
             if parent_itr:
-                if not self.model.iter_has_child(parent_itr) and add_parent:
+                parent_path = self.model.get_path(parent_itr)
+                if not self.model.iter_has_child(parent_itr):
                     row = list(self.model[parent_itr])
                     self.model.append(parent_itr, row=row)
+            else:
+                row = [item.get(key) for key in self.keys]
+                parent_itr = self.model.append(None, row=row)
                 parent_path = self.model.get_path(parent_itr)
         else:
             parent_itr = parent_path = None

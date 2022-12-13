@@ -92,7 +92,7 @@ class Automator(Engine):
                         params = {}
                         params.update(task['options'])
                         params.update({'name': sample['name'], 'uuid': str(uuid.uuid4())})
-                        params = datatools.update_for_sample(params, sample)
+                        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key)
                         logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             sample['name'], params['directory']
                         ))

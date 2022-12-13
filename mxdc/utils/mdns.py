@@ -9,6 +9,7 @@ from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, ServiceInfo, 
 from mxdc import Object, Signal
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import get_address
+from mxdc.utils.decorators import async_call
 
 # get logging object
 logger = get_module_logger(__name__)
@@ -103,9 +104,10 @@ class Provider(Object):
     def start(self):
         self.add_service()
 
+    @async_call
     def add_service(self):
         """
-        Add a the service
+        Add the service
         """
 
         # Check if service already exists
