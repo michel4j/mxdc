@@ -35,7 +35,7 @@ CONFIG = {
 tmp1 = motor.SimMotor('Detector Distance', 150.0, 'mm', speed=50.0)  # use the same motor for distance and z
 tmp2 = motor.SimMotor('Energy', 12.5, 'keV', speed=0.2, precision=4)
 trig1 = detector.Trigger() # internal trigger
-gon = goniometer.SimGonio(kappa_enabled=True, trigger=trig1)
+gonio = goniometer.SimGonio(kappa_enabled=True, trigger=trig1)
 
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
@@ -46,7 +46,7 @@ DEVICES = {
 
     # Goniometer/goniometer head devices
     'manager': manager.SimModeManager(),
-    'goniometer': gon,
+    'goniometer': gonio,
     'aperture': misc.SimChoicePositioner('Beam Size', 25, choices=[200, 150, 100, 50, 25], units='um'),
 
     # Detector, distance & two_theta
@@ -64,7 +64,7 @@ DEVICES = {
     'beamstop_z': motor.SimMotor('Beamstop Z', 30.0, 'mm', speed=15),
     'sample_zoom': motor.SimMotor('Sample Zoom', 2.0, speed=8),
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
-    'sample_camera': video.SimGIFCamera(gonio=gon.omega),
+    'sample_camera': video.SimGIFCamera(gonio=gonio),
     'hutch_video': video.SimPTZCamera(),
     'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
     'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),

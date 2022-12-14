@@ -26,7 +26,7 @@ class IImageViewer(Interface):
         ...
 
 
-class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
+class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
     gui_roots = {
         'data/image_viewer': ['image_viewer', 'info_dialog', 'frames_pop']
     }
@@ -49,8 +49,9 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
 
     def __init__(self, size=700):
         super(ImageViewer, self).__init__()
+        self.set_halign(Gtk.Align.CENTER)
+        self.set_valign(Gtk.Align.CENTER)
         self.setup_gui()
-        self.set(0.5, 0.5, 1, 1)
         self.dataset = None
         self.canvas = None
         self.size = size
@@ -73,10 +74,11 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         self.info_dialog.set_transient_for(dialogs.MAIN_WINDOW)
         self.canvas = ImageWidget(self.size)
         self.frames_scale.set_adjustment(self.data_adjustment)
-        self.frames_scale.connect('value-changed', self.on_frames_changed)
         self.frames_scale.connect('change-value', self.on_frames_updated)
         self.frames_close_btn.connect('clicked', self.on_frames_popup_closed)
+
         self.canvas.connect('image-loaded', self.on_data_loaded)
+        self.frames_pop.connect('closed', self.on_frames_popup_closed)
         self.image_frame.add(self.canvas)
         self.canvas.connect('motion_notify_event', self.on_mouse_motion)
 
@@ -259,25 +261,15 @@ class ImageViewer(Gtk.Alignment, gui.BuilderMixin):
         if self.frames_btn.get_active():
             # configure the marks
             self.reset_frames()
-
-            # position the popup
-            window = dialogs.MAIN_WINDOW
-            ox, oy = window.get_position()
-            geom = self.canvas.get_window().get_geometry()
-            cx = ox + geom.x + geom.width / 2 - 150
-            cy = oy + geom.y + geom.height - 50
-            self.frames_pop.move(cx, cy)
-            self.frames_pop.set_transient_for(window)
-            self.frames_pop.show_all()
+            self.frames_pop.set_relative_to(self.frames_btn)
+            self.frames_pop.set_position(Gtk.PositionType.TOP)
+            self.frames_pop.popup()
         else:
-            self.frames_pop.hide()
+            self.frames_pop.popdown()
 
     def on_frames_popup_closed(self, widget):
         self.frames_btn.set_active(False)
-        self.frames_pop.hide()
-
-    def on_frames_changed(self, scale):
-        pass
+        self.frames_pop.popdown()
 
     def on_frames_updated(self, scale, scroll, value):
         sequence = self.dataset.header.get('dataset', {}).get('sequence', [])

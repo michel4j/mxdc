@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow">
@@ -31,18 +31,19 @@
           </packing>
         </child>
         <child>
-          <object class="GtkToolbar" id="toolbar1">
+          <object class="GtkToolbar" id="image_toolbar">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="valign">end</property>
             <property name="toolbar-style">icons</property>
             <property name="show-arrow">False</property>
-            <property name="icon_size">2</property>
+            <property name="icon_size">1</property>
             <child>
               <object class="GtkToolButton" id="open_btn">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Open Dataset</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">document-open-symbolic</property>
               </object>
@@ -57,6 +58,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Save PNG</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">media-floppy-symbolic</property>
               </object>
@@ -69,6 +71,8 @@
               <object class="GtkSeparatorToolItem" id="separatortoolitem1">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">3</property>
+                <property name="margin-bottom">3</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -81,6 +85,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Go Back</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">edit-undo-symbolic</property>
               </object>
@@ -95,6 +100,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Best Fit</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">zoom-fit-best-symbolic</property>
               </object>
@@ -109,6 +115,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Colorize Image</property>
+                <property name="valign">center</property>
                 <property name="icon-name">applications-graphics-symbolic</property>
               </object>
               <packing>
@@ -122,6 +129,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Reset View</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">emblem-synchronizing-symbolic</property>
               </object>
@@ -136,6 +144,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Previous Frame</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">media-skip-backward-symbolic</property>
               </object>
@@ -150,6 +159,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Follow Frames</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">media-playback-start-symbolic</property>
               </object>
@@ -164,6 +174,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Next Frame</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">media-skip-forward-symbolic</property>
               </object>
@@ -178,6 +189,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Select Frames</property>
+                <property name="valign">center</property>
                 <property name="use-underline">True</property>
                 <property name="icon-name">media-tape</property>
               </object>
@@ -192,6 +204,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="tooltip-text" translatable="yes">Frame Details</property>
+                <property name="valign">center</property>
                 <property name="icon-name">dialog-information-symbolic</property>
               </object>
               <packing>
@@ -203,6 +216,7 @@
               <object class="GtkSeparatorToolItem" id="expand_separator">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="valign">center</property>
                 <property name="draw">False</property>
               </object>
               <packing>
@@ -214,6 +228,7 @@
               <object class="GtkToolItem" id="toolitem1">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="valign">center</property>
                 <property name="visible-vertical">False</property>
                 <child>
                   <object class="GtkLabel" id="info_pos">
@@ -237,6 +252,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">end</property>
+                <property name="valign">center</property>
                 <property name="visible-vertical">False</property>
                 <child>
                   <object class="GtkLabel" id="info_data">
@@ -266,19 +282,23 @@
             <property name="position">1</property>
           </packing>
         </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
       </object>
     </child>
   </object>
-  <object class="GtkWindow" id="frames_pop">
-    <property name="width-request">300</property>
+  <object class="GtkPopover" id="frames_pop">
     <property name="can-focus">False</property>
-    <property name="border-width">3</property>
-    <property name="type">popup</property>
-    <property name="resizable">False</property>
-    <property name="window-position">center-on-parent</property>
-    <property name="destroy-with-parent">True</property>
-    <property name="type-hint">utility</property>
-    <property name="gravity">center</property>
+    <property name="modal">False</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -288,11 +308,11 @@
         <property name="spacing">6</property>
         <child>
           <object class="GtkScale" id="frames_scale">
-            <property name="width-request">250</property>
+            <property name="width-request">300</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="show-fill-level">True</property>
-            <property name="round-digits">1</property>
+            <property name="restrict-to-fill-level">False</property>
+            <property name="round-digits">0</property>
             <property name="digits">0</property>
           </object>
           <packing>
