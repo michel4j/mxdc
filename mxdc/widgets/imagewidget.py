@@ -2,6 +2,8 @@ import logging
 import math
 import threading
 import time
+from typing import Any
+from enum import Enum
 from collections import deque
 from dataclasses import dataclass
 
@@ -20,7 +22,7 @@ from mxdc.utils import cmaps, colors
 from mxdc.utils.frames import line, bounding_box
 from mxdc.utils.gui import color_palette
 
-logger = logging.getLogger('mxdc.imagewidget')
+logger = logging.getLogger('imagewidget')
 
 RESCALE_TIMEOUT = 30  # duration between images to apply auto-rescale
 ZSCALE_MULTIPLIER = 3.0
@@ -85,8 +87,6 @@ class Spots:
             self.selected = None
 
 
-
-
 @dataclass
 class FrameSettings:
     scale: float = 1.0
@@ -105,6 +105,22 @@ class FrameSettings:
             step = direction * max(round(self.multiplier / 10, 2), 0.1)
             self.multiplier = min(MAX_ZSCALE, max(MIN_ZSCALE, self.multiplier + step))
         self.scale = avg_value + self.multiplier * std_dev
+
+
+class MouseMode(Enum):
+    NONE, PANNING, MEASURING, SELECTING = range(4)
+
+
+@dataclass
+class ImageSettings:
+    scale: float = 1.0
+    mode: MouseMode = MouseMode.NONE
+    initialized: bool = False
+    annotate: bool = False
+    width: int = 0
+    height: int = 0
+    histogram: Any = None
+    surface: Any = None
 
 
 class Frame:
@@ -295,20 +311,14 @@ class ImageWidget(Gtk.DrawingArea):
 
     def __init__(self, size):
         super().__init__()
-        self.surface = None
-        self.is_rubber_banding = False
-        self.is_shifting = False
-        self.is_measuring = False
 
-        self.initialized = False
-        self.show_histogram = False
-        self.show_rings = False
-
-        self.scale = 1.0
+        self.settings = ImageSettings()
         self.frame = None
+        self.surface = None
         self.spots = Spots()
         self.view = Box()
         self.view_stack = deque()
+        self.inbox = deque(maxlen=5)
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
@@ -329,7 +339,7 @@ class ImageWidget(Gtk.DrawingArea):
             True: color_palette(cmaps.inferno),
             False: color_palette(cmaps.binary)
         }
-        self.inbox = deque(maxlen=5)
+
         self.data_loader = DataLoader(self.inbox)
         display_thread = threading.Thread(target=self.frame_monitor, daemon=True, name=self.__class__.__name__ + ':Display')
         display_thread.start()
@@ -349,23 +359,23 @@ class ImageWidget(Gtk.DrawingArea):
             time.sleep(0.01)
 
     def create_surface(self, full=False):
-        self.image_width, self.image_height = self.frame.image_size
-        width = min(self.image_width, self.image_height)
+        self.settings.width, self.settings.height = self.frame.image_size
+        width = min(self.settings.width, self.settings.height)
         if not self.view.width or full:
             self.view = Box(x=1, y=1, width=width - 2, height=width - 2)
         else:
-            x = min(self.view.x, self.image_width)
-            y = min(self.view.y, self.image_height)
-            w = h = max(16, min(self.view.width, self.view.height, self.image_width - x, self.image_height - y))
+            x = min(self.view.x, self.settings.width)
+            y = min(self.view.y, self.settings.height)
+            w = h = max(16, min(self.view.width, self.view.height, self.settings.width - x, self.settings.height - y))
             self.view = Box(x=x, y=y, width=w, height=h)
         self.surface = cairo.ImageSurface.create_for_data(
-            self.frame.image, cairo.FORMAT_ARGB32, self.image_width, self.image_height
+            self.frame.image, cairo.FORMAT_ARGB32, self.settings.width, self.settings.height
         )
 
     def redraw(self):
         self.queue_draw()
         self.emit('image-loaded')
-        self.initialized = True
+        self.settings.initialized= True
         self.frame.needs_redraw = False
 
     def set_reflections(self, reflections=None):
@@ -394,8 +404,8 @@ class ImageWidget(Gtk.DrawingArea):
     def get_line_profile(self, x1, y1, x2, y2, width=1):
         x1, y1 = self.get_position(x1, y1)[:2]
         x2, y2 = self.get_position(x2, y2)[:2]
-        vmin = 0
-        vmax = self.frame.saturated_value
+        min_value = 0
+        max_value = self.frame.saturated_value
 
         coords = line(x1, y1, x2, y2)
 
@@ -406,7 +416,7 @@ class ImageWidget(Gtk.DrawingArea):
             iy = max(1, iy)
             data[n][0] = n
             src = self.frame.data[iy - width:iy + width, ix - width:ix + width, ]
-            sel = (src > vmin) & (src < vmax)
+            sel = (src > min_value) & (src < max_value)
             if sel.sum():
                 val = src[sel].mean()
             else:
@@ -440,26 +450,17 @@ class ImageWidget(Gtk.DrawingArea):
         width, height = canvas.get_width_height()
         renderer = RendererCairo(canvas.figure.dpi)
         renderer.set_width_height(width, height)
-        self.plot_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        renderer.set_ctx_from_surface(self.plot_surface)
+        self.settings.histogram = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+        renderer.set_ctx_from_surface(self.settings.histogram)
         canvas.figure.draw(renderer)
-        self.show_histogram = True
 
     def draw_overlay_cairo(self, cr):
-        # rubber band
-        cr.set_line_width(2)
-        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
-        if self.is_rubber_banding:
-            x, y, w, h = bounding_box(self.rubber_x0, self.rubber_y0, self.rubber_x1, self.rubber_y1)
-            cr.rectangle(x, y, w, h)
-            cr.stroke()
-
         # cross
         x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
-        radius = 16 * self.scale
+        radius = 16 * self.settings.scale
         if (0 < (self.frame.beam_x - x) < x + w) and (0 < (self.frame.beam_y - y) < y + h):
-            cx = int((self.frame.beam_x - x) * self.scale)
-            cy = int((self.frame.beam_y - y) * self.scale)
+            cx = int((self.frame.beam_x - x) * self.settings.scale)
+            cy = int((self.frame.beam_y - y) * self.settings.scale)
             cr.move_to(cx - radius, cy)
             cr.line_to(cx + radius, cy)
             cr.stroke()
@@ -468,8 +469,16 @@ class ImageWidget(Gtk.DrawingArea):
             cr.stroke()
             cr.arc(cx, cy, radius / 2, 0, 2.0 * numpy.pi)
 
+        # select box
+        cr.set_line_width(2)
+        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+        if self.settings.mode == MouseMode.SELECTING:
+            x, y, w, h = bounding_box(self.rubber_x0, self.rubber_y0, self.rubber_x1, self.rubber_y1)
+            cr.rectangle(x, y, w, h)
+            cr.stroke()
+
         # measuring
-        if self.is_measuring:
+        if self.settings.mode == MouseMode.MEASURING:
             cr.set_line_width(2)
             cr.move_to(self.meas_x0, self.meas_y0)
             cr.line_to(self.meas_x1, self.meas_y1)
@@ -498,24 +507,24 @@ class ImageWidget(Gtk.DrawingArea):
                 else:
                     cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
                 if (0 < (sx - x) < x + w) and (0 < (sy - y) < y + h):
-                    cx = int((sx - x) * self.scale)
-                    cy = int((sy - y) * self.scale)
-                    cr.arc(cx, cy, 12 * self.scale, 0, 2.0 * numpy.pi)
+                    cx = int((sx - x) * self.settings.scale)
+                    cy = int((sy - y) * self.settings.scale)
+                    cr.arc(cx, cy, 12 * self.settings.scale, 0, 2.0 * numpy.pi)
                     cr.stroke()
 
     def draw_rings(self, cr):
-        if self.frame and self.show_rings:
+        if self.frame and self.settings.annotate:
             x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
-            cx = int((self.frame.beam_x - x) * self.scale)
-            cy = int((self.frame.beam_y - y) * self.scale)
+            cx = int((self.frame.beam_x - x) * self.settings.scale)
+            cy = int((self.frame.beam_y - y) * self.settings.scale)
             cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
             cr.set_line_width(0.5)
             for d in [1.48, 1.66, 1.91, 2.34, 3.31]:
                 r = self.resolution_to_radius(d)
-                cr.arc(cx, cy, r*self.scale, 0, 2.0*numpy.pi)
+                cr.arc(cx, cy, r*self.settings.scale, 0, 2.0*numpy.pi)
                 cr.stroke()
-                lx = cx + r * self.scale * math.cos(numpy.pi / 8)
-                ly = cy + r * self.scale * math.sin(numpy.pi / 8)
+                lx = cx + r * self.settings.scale * math.cos(numpy.pi / 8)
+                ly = cy + r * self.settings.scale * math.sin(numpy.pi / 8)
                 cr.move_to(lx, ly)
                 cr.show_text(f'{d:0.2f}')
                 cr.stroke()
@@ -524,7 +533,7 @@ class ImageWidget(Gtk.DrawingArea):
         if self.view_stack and not full:
             self.view = self.view_stack.pop()
         else:
-            self.view = Box(x=1, y=1, width=self.image_width - 2, height=self.image_height - 2)
+            self.view = Box(x=1, y=1, width=self.settings.width - 2, height=self.settings.height - 2)
             self.view_stack.clear()
         self.queue_draw()
         return bool(self.view_stack)
@@ -539,7 +548,7 @@ class ImageWidget(Gtk.DrawingArea):
             self.frame.adjust()
 
     def get_position(self, x, y):
-        if not self.initialized:
+        if not self.settings.initialized:
             return 0, 0, 0.0, 0
 
         ix, iy = self.screen_to_image(x, y)
@@ -552,22 +561,13 @@ class ImageWidget(Gtk.DrawingArea):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, alloc.width, alloc.height)
             ctx = cairo.Context(surface)
 
-            ctx.save()
-            ctx.scale(self.scale, self.scale)
-            ctx.translate(-self.view.x, -self.view.y)
-            ctx.set_source_surface(self.surface, 0, 0)
-            if self.scale >= 1:
-                ctx.get_source().set_filter(cairo.FILTER_FAST)
-            else:
-                ctx.get_source().set_filter(cairo.FILTER_BEST)
-            ctx.paint()
-            ctx.restore()
+            self.paint_image(ctx, self.settings.scale)
 
-            if self.show_histogram:
-                px = alloc.width - self.plot_surface.get_width() - 10
-                py = alloc.height - self.plot_surface.get_height() - 10
+            if self.settings.histogram:
+                px = alloc.width - self.settings.histogram.get_width() - 10
+                py = alloc.height - self.settings.histogram.get_height() - 10
                 ctx.save()
-                ctx.set_source_surface(self.plot_surface, px, py)
+                ctx.set_source_surface(self.settings.histogram, px, py)
                 ctx.paint()
                 ctx.restore()
 
@@ -579,10 +579,10 @@ class ImageWidget(Gtk.DrawingArea):
             logger.info('Image saved to PNG: {}'.format(path))
 
     def screen_to_image(self, x, y):
-        ix = int(x / self.scale) + self.view.x
-        iy = int(y / self.scale) + self.view.y
-        ix = max(1, min(ix, self.image_width - 2))
-        iy = max(1, min(iy, self.image_height - 2))
+        ix = int(x / self.settings.scale) + self.view.x
+        iy = int(y / self.settings.scale) + self.view.y
+        ix = max(1, min(ix, self.settings.width - 2))
+        iy = max(1, min(iy, self.settings.height - 2))
         return ix, iy
 
     def image_resolution(self, x, y):
@@ -613,6 +613,9 @@ class ImageWidget(Gtk.DrawingArea):
             window.set_cursor(Gdk.Cursor.new(cursor))
         Gtk.main_iteration()
 
+    def set_annotations(self, state: bool = False):
+        self.settings.annotate = state
+
     def pause(self):
         self.data_loader.pause()
 
@@ -621,121 +624,115 @@ class ImageWidget(Gtk.DrawingArea):
 
     # callbacks
     def on_mouse_motion(self, widget, event):
-        if not self.initialized:
-            return False
+        if self.settings.initialized:
+            alloc = self.get_allocation()
+            w, h = alloc.width, alloc.height
+            if 'GDK_BUTTON1_MASK' in event.get_state().value_names and self.settings.mode == MouseMode.SELECTING:
 
-        # print event.get_state().value_names
-        alloc = self.get_allocation()
-        w, h = alloc.width, alloc.height
-        if 'GDK_BUTTON1_MASK' in event.get_state().value_names and self.is_rubber_banding:
-            self.rubber_x1 = max(min(w - 1, event.x), 0) + 0.5
-            self.rubber_y1 = max(min(h - 1, event.y), 0) + 0.5
-            self.queue_draw()
-        elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and self.is_shifting:
-            self.shift_x1 = event.x
-            self.shift_y1 = event.y
-            ox, oy, ow, oh = self.view.x, self.view.y, self.view.width, self.view.height
-            nx = int((self.shift_x0 - self.shift_x1) / self.scale) + ox
-            ny = int((self.shift_y0 - self.shift_y1) / self.scale) + oy
-            nw = ow
-            nh = oh
-            nx = max(0, nx)
-            ny = max(0, ny)
-            if nx + nw > self.image_width:
-                nx = self.image_width - nw
-            if ny + nh > self.image_height:
-                ny = self.image_height - nh
-            new_view = Box(x=nx, y=ny, width=nw, height=nh)
-            if self.view != new_view:
-                self.view = new_view
-                self.shift_x0 = self.shift_x1
-                self.shift_y0 = self.shift_y1
+                self.rubber_x1 = max(min(w - 1, event.x), 0) + 0.5
+                self.rubber_y1 = max(min(h - 1, event.y), 0) + 0.5
                 self.queue_draw()
-        elif 'GDK_BUTTON3_MASK' in event.get_state().value_names and self.is_measuring:
-            self.meas_x1 = int(max(min(w - 1, event.x), 0)) + 0.5
-            self.meas_y1 = int(max(min(h - 1, event.y), 0)) + 0.5
-            self.queue_draw()
-
-        return False
+            elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and  self.settings.mode == MouseMode.PANNING:
+                self.shift_x1 = event.x
+                self.shift_y1 = event.y
+                ox, oy, ow, oh = self.view.x, self.view.y, self.view.width, self.view.height
+                nx = int((self.shift_x0 - self.shift_x1) / self.settings.scale) + ox
+                ny = int((self.shift_y0 - self.shift_y1) / self.settings.scale) + oy
+                nw = ow
+                nh = oh
+                nx = max(0, nx)
+                ny = max(0, ny)
+                if nx + nw > self.settings.width:
+                    nx = self.settings.width - nw
+                if ny + nh > self.settings.height:
+                    ny = self.settings.height - nh
+                new_view = Box(x=nx, y=ny, width=nw, height=nh)
+                if self.view != new_view:
+                    self.view = new_view
+                    self.shift_x0 = self.shift_x1
+                    self.shift_y0 = self.shift_y1
+                    self.queue_draw()
+            elif 'GDK_BUTTON3_MASK' in event.get_state().value_names and  self.settings.mode == MouseMode.MEASURING:
+                self.meas_x1 = int(max(min(w - 1, event.x), 0)) + 0.5
+                self.meas_y1 = int(max(min(h - 1, event.y), 0)) + 0.5
+                self.queue_draw()
 
     def on_mouse_scroll(self, widget, event):
-        if not self.initialized:
-            return False
-        if event.direction == Gdk.ScrollDirection.UP:
-            self.frame.adjust(1)
-        elif event.direction == Gdk.ScrollDirection.DOWN:
-            self.frame.adjust(-1)
+        if self.settings.initialized:
+            if event.direction == Gdk.ScrollDirection.UP:
+                self.frame.adjust(1)
+            elif event.direction == Gdk.ScrollDirection.DOWN:
+                self.frame.adjust(-1)
 
     def on_mouse_press(self, widget, event):
-        self.show_histogram = False
-        if not self.initialized:
-            return False
+        if self.settings.initialized:
+            self.settings.histogram = None
+            alloc = self.get_allocation()
+            w, h = alloc.width, alloc.height
+            if event.button == 1:
+                self.rubber_x0 = max(min(w, event.x), 0) + 0.5
+                self.rubber_y0 = max(min(h, event.y), 0) + 0.5
+                self.rubber_x1, self.rubber_y1 = self.rubber_x0, self.rubber_y0
 
-        alloc = self.get_allocation()
-        w, h = alloc.width, alloc.height
-        if event.button == 1:
-            self.rubber_x0 = max(min(w, event.x), 0) + 0.5
-            self.rubber_y0 = max(min(h, event.y), 0) + 0.5
-            self.rubber_x1, self.rubber_y1 = self.rubber_x0, self.rubber_y0
-            self.is_rubber_banding = True
-            self.set_cursor_mode(Gdk.CursorType.TCROSS)
-        elif event.button == 2:
-            self.set_cursor_mode(Gdk.CursorType.FLEUR)
-            self.shift_x0 = max(min(w, event.x), 0)
-            self.shift_y0 = max(min(w, event.y), 0)
-            self.shift_x1, self.shift_y1 = self.shift_x0, self.shift_y0
-            self._shift_start_view = self.view
-            self.is_shifting = True
-            self.set_cursor_mode(Gdk.CursorType.FLEUR)
-        elif event.button == 3:
-            self.meas_x0 = int(max(min(w, event.x), 0))
-            self.meas_y0 = int(max(min(h, event.y), 0))
-            self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
-            self.is_measuring = True
-            self.set_cursor_mode(Gdk.CursorType.TCROSS)
+                self.set_cursor_mode(Gdk.CursorType.TCROSS)
+                self.settings.mode = MouseMode.SELECTING
+            elif event.button == 2:
+                self.shift_x0 = max(min(w, event.x), 0)
+                self.shift_y0 = max(min(w, event.y), 0)
+                self.shift_x1, self.shift_y1 = self.shift_x0, self.shift_y0
+                self._shift_start_view = self.view
+                self.set_cursor_mode(Gdk.CursorType.FLEUR)
+                self.settings.mode = MouseMode.PANNING
+            elif event.button == 3:
+                self.meas_x0 = int(max(min(w, event.x), 0))
+                self.meas_y0 = int(max(min(h, event.y), 0))
+                self.meas_x1, self.meas_y1 = self.meas_x0, self.meas_y0
+                self.set_cursor_mode(Gdk.CursorType.TCROSS)
+                self.settings.mode = MouseMode.MEASURING
 
     def on_mouse_release(self, widget, event):
-        if not self.initialized:
-            return False
-        if self.is_rubber_banding:
-            self.is_rubber_banding = False
-            x0, y0 = self.screen_to_image(self.rubber_x0, self.rubber_y0)
-            x1, y1 = self.screen_to_image(self.rubber_x1, self.rubber_y1)
-            x, y, w, h = bounding_box(x0, y0, x1, y1)
-            if min(w, h) < 10:
-                return
-            self.view_stack.append(self.view)
-            self.view = Box(x=x, y=y, width=w, height=h)
-            self.queue_draw()
-        elif self.is_measuring:
-            self.is_measuring = False
-            # prevent zero-length lines
-            self.histogram_data = self.get_line_profile(self.meas_x0, self.meas_y0, self.meas_x1, self.meas_y1, 2)
-            if len(self.histogram_data) > 4:
-                self.make_histogram(self.histogram_data, show_axis=['left', ])
-                self.queue_draw()
-        elif self.is_shifting:
-            self.is_shifting = False
-            self.view_stack.append(self._shift_start_view)
+        if self.settings.initialized:
+            if self.settings.mode == MouseMode.SELECTING:
+                self.settings.mode = None
+                x0, y0 = self.screen_to_image(self.rubber_x0, self.rubber_y0)
+                x1, y1 = self.screen_to_image(self.rubber_x1, self.rubber_y1)
+                x, y, w, h = bounding_box(x0, y0, x1, y1)
+                if min(w, h) > 10:
+                    self.view_stack.append(self.view)
+                    self.view = Box(x=x, y=y, width=w, height=h)
+                    self.queue_draw()
+            elif self.settings.mode == MouseMode.SELECTING:
+                self.settings.mode = None
 
-        self.set_cursor_mode()
+                data = self.get_line_profile(self.meas_x0, self.meas_y0, self.meas_x1, self.meas_y1, 2)
+                if len(data) > 4:
+                    self.make_histogram(data, show_axis=['left', ])
+                    self.queue_draw()
+
+            elif self.settings.mode == MouseMode.PANNING:
+                self.settings.mode = None
+                self.view_stack.append(self._shift_start_view)
+
+            self.set_cursor_mode()
+
+    def paint_image(self, cr, scale):
+        cr.save()
+        cr.scale(scale, scale)
+        cr.translate(-self.view.x, -self.view.y)
+        cr.set_source_surface(self.surface, 0, 0)
+        if scale >= 1:
+            cr.get_source().set_filter(cairo.FILTER_FAST)
+        else:
+            cr.get_source().set_filter(cairo.FILTER_GOOD)
+        cr.paint()
+        cr.restore()
 
     def do_draw(self, cr):
         if self.surface is not None:
             alloc = self.get_allocation()
             width = min(alloc.width, alloc.height)
-            self.scale = float(width) / self.view.width
-
-            cr.save()
-            cr.scale(self.scale, self.scale)
-            cr.translate(-self.view.x, -self.view.y)
-            cr.set_source_surface(self.surface, 0, 0)
-            if self.scale >= 1:
-                cr.get_source().set_filter(cairo.FILTER_FAST)
-            else:
-                cr.get_source().set_filter(cairo.FILTER_GOOD)
-            cr.paint()
-            cr.restore()
+            self.settings.scale = float(width) / self.view.width
+            self.paint_image(cr, self.settings.scale)
 
             if self.show_histogram:
                 px = alloc.width - self.plot_surface.get_width() - 10
