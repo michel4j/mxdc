@@ -3,6 +3,7 @@ import math
 import threading
 import time
 from collections import deque
+from dataclasses import dataclass
 
 import cairo
 import cv2
@@ -62,11 +63,35 @@ def adjust_spines(ax, spines, color):
         ax.xaxis.set_ticks([])
 
 
+@dataclass
+class Box:
+    x: int = 0
+    y: int = 0
+    width: int = 0
+    height: int = 0
+
+
+@dataclass
+class Spots:
+    data: numpy.ndarray = None
+    selected: numpy.ndarray = None
+
+    def select(self, frame_number, span=5):
+        if self.data:
+            sel = (self.data[:, 2] >= frame_number - span//2)
+            sel &= (self.data[:, 2] <= frame_number + span//2)
+            self.selected = self.data[sel]
+        else:
+            self.selected = None
+
+
+
+
+@dataclass
 class FrameSettings:
-    def __init__(self):
-        self.scale: float = 1.0
-        self.multiplier: float = ZSCALE_MULTIPLIER
-        self.default: float = ZSCALE_MULTIPLIER
+    scale: float = 1.0
+    multiplier: float = ZSCALE_MULTIPLIER
+    default: float = ZSCALE_MULTIPLIER
 
     def update(self, min_value: float, max_value: float, avg_value: float, std_dev: float):
         if std_dev > 0:
@@ -82,7 +107,7 @@ class FrameSettings:
         self.scale = avg_value + self.multiplier * std_dev
 
 
-class Frame(object):
+class Frame:
     def __init__(self, dataset, colormap: str = 'binary', rescale: bool = True):
         self.dataset = dataset
         self.header = dataset.header
@@ -185,7 +210,7 @@ class DataLoader(Object):
 
         :param dataset: dataset
         """
-        self.frames.append(Frame(dataset))
+        self.frames.append(Frame(dataset=dataset))
 
     def load(self, path):
         try:
@@ -249,11 +274,11 @@ class DataLoader(Object):
                             self.load_number = None
                         if success:
                             rescale = (time.time() - last_update > RESCALE_TIMEOUT)
-                            frame = Frame(self.cur_frame.dataset, colormap=self.colormap)
+                            frame = Frame(dataset=self.cur_frame.dataset, colormap=self.colormap)
                             frame.setup(settings=self.settings, rescale=rescale)
                             self.outbox.append(frame)
                             last_update = time.time()
-                    except Exception as e:
+                    except Exception:
                         logger.exception("Unable to read file")
                 self.load_next = self.load_prev = False
 
@@ -274,20 +299,16 @@ class ImageWidget(Gtk.DrawingArea):
         self.is_rubber_banding = False
         self.is_shifting = False
         self.is_measuring = False
-        self.pseudocolor = True
-        self.image_loaded = False
-        self.show_histogram = False
-        self._canvas_is_clean = False
 
-        self.display_gamma = 1.0
-        self.gamma = 0
+        self.initialized = False
+        self.show_histogram = False
+        self.show_rings = False
+
         self.scale = 1.0
         self.frame = None
-        self.all_spots = None
-        self.frame_spots = None
-        self.extents_back = []
-        self.extents_forward = []
-        self.extents = None
+        self.spots = Spots()
+        self.view = Box()
+        self.view_stack = deque()
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
@@ -313,14 +334,6 @@ class ImageWidget(Gtk.DrawingArea):
         display_thread = threading.Thread(target=self.frame_monitor, daemon=True, name=self.__class__.__name__ + ':Display')
         display_thread.start()
 
-    def select_spots(self):
-        if self.all_spots is not None and self.frame is not None:
-            sel = (self.all_spots[:, 2] >= self.frame.frame_number - 5)
-            sel &= (self.all_spots[:, 2] <= self.frame.frame_number + 5)
-            self.frame_spots = self.all_spots[sel]
-        else:
-            self.frame_spots = None
-
     def frame_monitor(self):
         while True:
             if self.frame is not None:
@@ -331,21 +344,20 @@ class ImageWidget(Gtk.DrawingArea):
                     GLib.idle_add(self.redraw)
             if len(self.inbox):
                 self.frame = self.inbox.popleft()
-                self.select_spots()
+                self.spots.select(self.frame.frame_number)
                 self.data_loader.set_current_frame(self.frame)
             time.sleep(0.01)
 
     def create_surface(self, full=False):
         self.image_width, self.image_height = self.frame.image_size
         width = min(self.image_width, self.image_height)
-        if not self.extents or full:
-            self.extents = (1, 1, width - 2, width - 2)
+        if not self.view.width or full:
+            self.view = Box(x=1, y=1, width=width - 2, height=width - 2)
         else:
-            ox, oy, ow, oh = self.extents
-            nx = min(ox, self.image_width)
-            ny = min(oy, self.image_height)
-            nw = nh = max(16, min(ow, oh, self.image_width - nx, self.image_height - ny))
-            self.extents = (nx, ny, nw, nh)
+            x = min(self.view.x, self.image_width)
+            y = min(self.view.y, self.image_height)
+            w = h = max(16, min(self.view.width, self.view.height, self.image_width - x, self.image_height - y))
+            self.view = Box(x=x, y=y, width=w, height=h)
         self.surface = cairo.ImageSurface.create_for_data(
             self.frame.image, cairo.FORMAT_ARGB32, self.image_width, self.image_height
         )
@@ -353,12 +365,13 @@ class ImageWidget(Gtk.DrawingArea):
     def redraw(self):
         self.queue_draw()
         self.emit('image-loaded')
-        self.image_loaded = True
+        self.initialized = True
         self.frame.needs_redraw = False
 
     def set_reflections(self, reflections=None):
-        self.all_spots = reflections
-        self.select_spots()
+        self.spots.data = reflections
+        if self.frame:
+            self.spots.select(self.frame.frame_number)
 
     def open(self, filename):
         self.data_loader.open(filename)
@@ -442,7 +455,7 @@ class ImageWidget(Gtk.DrawingArea):
             cr.stroke()
 
         # cross
-        x, y, w, h = self.extents
+        x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
         radius = 16 * self.scale
         if (0 < (self.frame.beam_x - x) < x + w) and (0 < (self.frame.beam_y - y) < y + h):
             cx = int((self.frame.beam_x - x) * self.scale)
@@ -474,11 +487,11 @@ class ImageWidget(Gtk.DrawingArea):
 
     def draw_spots(self, cr):
         # draw spots
-        if self.frame_spots is not None:
-            x, y, w, h = self.extents
+        if self.spots.selected is not None:
+            x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
             cr.set_line_width(0.75)
 
-            for spot in self.frame_spots:
+            for spot in self.spots.selected:
                 sx, sy, sn, st = spot
                 if spot[3] == 0:
                     cr.set_source_rgba(1.0, 0.0, 0.0, 1.0)
@@ -490,14 +503,31 @@ class ImageWidget(Gtk.DrawingArea):
                     cr.arc(cx, cy, 12 * self.scale, 0, 2.0 * numpy.pi)
                     cr.stroke()
 
+    def draw_rings(self, cr):
+        if self.frame and self.show_rings:
+            x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
+            cx = int((self.frame.beam_x - x) * self.scale)
+            cy = int((self.frame.beam_y - y) * self.scale)
+            cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+            cr.set_line_width(0.5)
+            for d in [1.48, 1.66, 1.91, 2.34, 3.31]:
+                r = self.resolution_to_radius(d)
+                cr.arc(cx, cy, r*self.scale, 0, 2.0*numpy.pi)
+                cr.stroke()
+                lx = cx + r * self.scale * math.cos(numpy.pi / 8)
+                ly = cy + r * self.scale * math.sin(numpy.pi / 8)
+                cr.move_to(lx, ly)
+                cr.show_text(f'{d:0.2f}')
+                cr.stroke()
+
     def go_back(self, full=False):
-        if len(self.extents_back) > 0 and not full:
-            self.extents = self.extents_back.pop()
+        if self.view_stack and not full:
+            self.view = self.view_stack.pop()
         else:
-            self.extents = (1, 1, self.image_width - 2, self.image_height - 2)
-            self.extents_back = []
+            self.view = Box(x=1, y=1, width=self.image_width - 2, height=self.image_height - 2)
+            self.view_stack.clear()
         self.queue_draw()
-        return len(self.extents_back) > 0
+        return bool(self.view_stack)
 
     def colorize(self, color=False):
         self.data_loader.set_colormap(COLORMAPS[int(color)])
@@ -509,15 +539,14 @@ class ImageWidget(Gtk.DrawingArea):
             self.frame.adjust()
 
     def get_position(self, x, y):
-        if not self.image_loaded:
+        if not self.initialized:
             return 0, 0, 0.0, 0
 
         ix, iy = self.screen_to_image(x, y)
-        Res = self.image_resolution(ix, iy)
-        return ix, iy, Res, self.frame.data[iy, ix]
+        res = self.image_resolution(ix, iy)
+        return ix, iy, res, self.frame.data[iy, ix]
 
     def save_surface(self, path):
-
         if self.surface is not None:
             alloc = self.get_allocation()
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, alloc.width, alloc.height)
@@ -525,7 +554,7 @@ class ImageWidget(Gtk.DrawingArea):
 
             ctx.save()
             ctx.scale(self.scale, self.scale)
-            ctx.translate(-self.extents[0], -self.extents[1])
+            ctx.translate(-self.view.x, -self.view.y)
             ctx.set_source_surface(self.surface, 0, 0)
             if self.scale >= 1:
                 ctx.get_source().set_filter(cairo.FILTER_FAST)
@@ -544,13 +573,14 @@ class ImageWidget(Gtk.DrawingArea):
 
             self.draw_overlay_cairo(ctx)
             self.draw_spots(ctx)
+            self.draw_rings(ctx)
 
             surface.write_to_png(path)
             logger.info('Image saved to PNG: {}'.format(path))
 
     def screen_to_image(self, x, y):
-        ix = int(x / self.scale) + self.extents[0]
-        iy = int(y / self.scale) + self.extents[1]
+        ix = int(x / self.scale) + self.view.x
+        iy = int(y / self.scale) + self.view.y
         ix = max(1, min(ix, self.image_width - 2))
         iy = max(1, min(iy, self.image_height - 2))
         return ix, iy
@@ -564,6 +594,10 @@ class ImageWidget(Gtk.DrawingArea):
         if angle < 1e-3:
             angle = 1e-3
         return self.frame.wavelength / (2.0 * math.sin(angle))
+
+    def resolution_to_radius(self, d):
+        angle = math.asin(self.frame.wavelength /(2 * d))
+        return self.frame.distance * math.tan(2*angle)/self.frame.pixel_size
 
     def radial_distance(self, x0, y0, x1, y1):
         d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.frame.pixel_size
@@ -587,7 +621,7 @@ class ImageWidget(Gtk.DrawingArea):
 
     # callbacks
     def on_mouse_motion(self, widget, event):
-        if not self.image_loaded:
+        if not self.initialized:
             return False
 
         # print event.get_state().value_names
@@ -600,7 +634,7 @@ class ImageWidget(Gtk.DrawingArea):
         elif 'GDK_BUTTON2_MASK' in event.get_state().value_names and self.is_shifting:
             self.shift_x1 = event.x
             self.shift_y1 = event.y
-            ox, oy, ow, oh = self.extents
+            ox, oy, ow, oh = self.view.x, self.view.y, self.view.width, self.view.height
             nx = int((self.shift_x0 - self.shift_x1) / self.scale) + ox
             ny = int((self.shift_y0 - self.shift_y1) / self.scale) + oy
             nw = ow
@@ -611,8 +645,9 @@ class ImageWidget(Gtk.DrawingArea):
                 nx = self.image_width - nw
             if ny + nh > self.image_height:
                 ny = self.image_height - nh
-            if self.extents != (nx, ny, nw, nh):
-                self.extents = (nx, ny, nw, nh)
+            new_view = Box(x=nx, y=ny, width=nw, height=nh)
+            if self.view != new_view:
+                self.view = new_view
                 self.shift_x0 = self.shift_x1
                 self.shift_y0 = self.shift_y1
                 self.queue_draw()
@@ -624,7 +659,7 @@ class ImageWidget(Gtk.DrawingArea):
         return False
 
     def on_mouse_scroll(self, widget, event):
-        if not self.image_loaded:
+        if not self.initialized:
             return False
         if event.direction == Gdk.ScrollDirection.UP:
             self.frame.adjust(1)
@@ -633,7 +668,7 @@ class ImageWidget(Gtk.DrawingArea):
 
     def on_mouse_press(self, widget, event):
         self.show_histogram = False
-        if not self.image_loaded:
+        if not self.initialized:
             return False
 
         alloc = self.get_allocation()
@@ -649,7 +684,7 @@ class ImageWidget(Gtk.DrawingArea):
             self.shift_x0 = max(min(w, event.x), 0)
             self.shift_y0 = max(min(w, event.y), 0)
             self.shift_x1, self.shift_y1 = self.shift_x0, self.shift_y0
-            self._shift_start_extents = self.extents
+            self._shift_start_view = self.view
             self.is_shifting = True
             self.set_cursor_mode(Gdk.CursorType.FLEUR)
         elif event.button == 3:
@@ -660,16 +695,17 @@ class ImageWidget(Gtk.DrawingArea):
             self.set_cursor_mode(Gdk.CursorType.TCROSS)
 
     def on_mouse_release(self, widget, event):
-        if not self.image_loaded:
+        if not self.initialized:
             return False
         if self.is_rubber_banding:
             self.is_rubber_banding = False
             x0, y0 = self.screen_to_image(self.rubber_x0, self.rubber_y0)
             x1, y1 = self.screen_to_image(self.rubber_x1, self.rubber_y1)
             x, y, w, h = bounding_box(x0, y0, x1, y1)
-            if min(w, h) < 10: return
-            self.extents_back.append(self.extents)
-            self.extents = (x, y, w, h)
+            if min(w, h) < 10:
+                return
+            self.view_stack.append(self.view)
+            self.view = Box(x=x, y=y, width=w, height=h)
             self.queue_draw()
         elif self.is_measuring:
             self.is_measuring = False
@@ -680,7 +716,7 @@ class ImageWidget(Gtk.DrawingArea):
                 self.queue_draw()
         elif self.is_shifting:
             self.is_shifting = False
-            self.extents_back.append(self._shift_start_extents)
+            self.view_stack.append(self._shift_start_view)
 
         self.set_cursor_mode()
 
@@ -688,11 +724,11 @@ class ImageWidget(Gtk.DrawingArea):
         if self.surface is not None:
             alloc = self.get_allocation()
             width = min(alloc.width, alloc.height)
-            self.scale = float(width) / self.extents[2]
+            self.scale = float(width) / self.view.width
 
             cr.save()
             cr.scale(self.scale, self.scale)
-            cr.translate(-self.extents[0], -self.extents[1])
+            cr.translate(-self.view.x, -self.view.y)
             cr.set_source_surface(self.surface, 0, 0)
             if self.scale >= 1:
                 cr.get_source().set_filter(cairo.FILTER_FAST)
@@ -711,7 +747,7 @@ class ImageWidget(Gtk.DrawingArea):
 
             self.draw_overlay_cairo(cr)
             self.draw_spots(cr)
-            self._canvas_is_clean = True
+            self.draw_rings(cr)
 
     def on_visibility_notify(self, obj, event):
         if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
