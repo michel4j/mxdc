@@ -230,8 +230,6 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             if file_type in ['XDS Spot files', 'XDS ASCII file']:
                 refl = self.open_reflections(filename, hkl=(file_type == 'XDS ASCII file'))
                 self.canvas.set_reflections(refl)
-                if self.canvas.initialized:
-                    GLib.idle_add(self.canvas.queue_draw)
             else:
                 self.open_frame(os.path.abspath(filename))
 

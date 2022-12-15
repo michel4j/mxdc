@@ -159,7 +159,7 @@ class StreamMonitor(DataMonitor):
                 time.sleep(0.0)
 
 
-def line(x1, y1, x2, y2):
+def bressenham_line(x1, y1, x2, y2):
     steep = 0
     coords = []
     dx = abs(x2 - x1)

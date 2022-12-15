@@ -378,6 +378,9 @@
                         <property name="bottom-margin">2</property>
                       </object>
                     </child>
+                    <style>
+                      <class name="note-pad"/>
+                    </style>
                   </object>
                   <packing>
                     <property name="expand">True</property>

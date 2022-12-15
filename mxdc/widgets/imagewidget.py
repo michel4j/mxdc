@@ -2,7 +2,7 @@ import logging
 import math
 import threading
 import time
-from typing import Any
+from typing import Any, Tuple, List
 from enum import Enum
 from collections import deque
 from dataclasses import dataclass, field
@@ -16,15 +16,15 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', "1.0")
 
-from gi.repository import Gdk, Gtk, GLib, PangoCairo
+from gi.repository import Gdk, Gtk, GLib, PangoCairo, Pango
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
-from mxio import read_image
+from mxio import read_image, formats
 
 from mxdc import Signal, Object
 from mxdc.utils import cmaps, colors
-from mxdc.utils.frames import line
+from mxdc.utils.frames import bressenham_line
 from mxdc.utils.gui import color_palette
 
 logger = logging.getLogger('image-widget')
@@ -33,15 +33,9 @@ RESCALE_TIMEOUT = 30    # duration between images to apply auto-rescale
 SCALE_MULTIPLIER = 3.0
 MAX_SCALE = 12.0
 MIN_SCALE = 0.0
+LABEL_GAP = 0.005       # Annotation label gap
 COLOR_MAPS = ('binary', 'inferno')
 MAX_SAVE_JITTER = 0.5   # maximum amount of time in seconds to wait for file to be done writing to disk
-
-
-def cmap(name):
-    c_map = matplotlib.cm.get_cmap(name, 256)
-    rgba_data = matplotlib.cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
-    rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
-    return rgba_data[:, :, ::-1]
 
 
 
@@ -74,11 +68,11 @@ class Box:
 
 @dataclass
 class Spots:
-    data: numpy.ndarray = None
-    selected: numpy.ndarray = None
+    data: Any = None
+    selected: Any = None
 
     def select(self, frame_number, span=5):
-        if self.data:
+        if self.data is not None:
             sel = (self.data[:, 2] >= frame_number - span//2)
             sel &= (self.data[:, 2] <= frame_number + span//2)
             self.selected = self.data[sel]
@@ -125,79 +119,102 @@ class ImageSettings:
     def __post_init__(self):
         self.mouse_box = Box()
 
-
+@dataclass
 class Frame:
-    def __init__(self, dataset, colormap: str = 'binary', rescale: bool = True):
-        self.dataset = dataset
-        self.header = dataset.header
-        self.data = dataset.data
-        self.stats_data = dataset.stats_data
+    dataset: formats.DataSet
+    rescale: bool = True
+    color_map: Any = field(init=False, repr=False)
+    data: numpy.ndarray = field(init=False, repr=False)
+    stats_data: numpy.ndarray = field(init=False, repr=False)
+    settings: ScaleSettings = field(init=False, repr=False)
+    header: dict = field(init=False, repr=False)
+    image: Any = field(init=False, repr=False)
+    redraw: bool = False
+    dirty: bool = True
 
-        self.image = None
-        self.needs_redraw = False
-        self.needs_setup = False
-        self.rescale = rescale
-        self.needs_setup = True
-        self.colormap = cmap(colormap)
-        self.settings = None
+    name: str = field(init=False)
+    size: Tuple[int, int] = field(init=False)
+    pixel_size: float = field(init=False)
+    beam_x: float = field(init=False)
+    beam_y: float = field(init=False)
+    index: int = field(init=False)
+    delta_angle: float = field(init=False)
+    distance: float = field(init=False)
+    wavelength: float = field(init=False)
+    saturated_value: float = field(init=False)
+    resolution_shells: List[float] = field(init=False)
 
-        # needed for display
-        #self.delta_angle = self.header['delta_angle']
+    def __post_init__(self):
+        self.set_colormap('binary')
+        self.header = self.dataset.header
+        self.data = self.dataset.data
+        self.stats_data = self.dataset.stats_data
+        self.size = self.header['detector_size']
+        self.index = self.header['frame_number']
+        self.name = f'{self.header["name"]} [ {self.index} ]'
         self.beam_x, self.beam_y = self.header['beam_center']
-        self.name = '{} [ {} ]'.format(self.header['name'], self.frame_number)
-        self.image_size = self.header['detector_size']
+        self.delta_angle =  self.header['delta_angle']
+        self.pixel_size = self.header['pixel_size']
+        self.distance = self.header['distance']
+        self.wavelength = self.header['wavelength']
+        self.saturated_value = self.header['saturated_value']
 
-    def __getattr__(self, key):
-        if key in self.header:
-            return self.header[key]
-        else:
-            raise AttributeError('{} does not have attribute: {}'.format(self, key))
+        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), 22.5/self.pixel_size)[1:]
+        self.resolution_shells = self.radius_to_resolution(radii)
 
     def setup(self, rescale: bool = False, settings: ScaleSettings = None):
+        if self.dirty:
+            if settings is not None:
+                self.settings = settings
+            elif self.settings is None:
+                self.settings = ScaleSettings()
 
-        if settings is not None:
-            self.settings = settings
-        elif self.settings is None:
-            self.settings = ScaleSettings()
+            if rescale:
+                p_lo, p_hi = numpy.percentile(self.stats_data, (5., 95.))
+                self.header['percentiles'] = p_lo, p_hi
+                self.settings.update(p_lo, p_hi, self.header['average_intensity'], self.header['std_dev'])
 
-        if rescale:
-            p_lo, p_hi = numpy.percentile(self.stats_data, (5., 95.))
-            self.header['percentiles'] = p_lo, p_hi
-            self.settings.update(p_lo, p_hi, self.header['average_intensity'], self.header['std_dev'])
-
-        img0 = cv2.convertScaleAbs(self.data, None, 255 / self.settings.scale, 0)
-        img1 = cv2.applyColorMap(img0, self.colormap)
-        self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
-        self.needs_setup = False
-        self.needs_redraw = True
+            img0 = cv2.convertScaleAbs(self.data, None, 255 / self.settings.scale, 0)
+            img1 = cv2.applyColorMap(img0, self.color_map)
+            self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
+        self.dirty = False
+        self.redraw = True
 
     def image_resolution(self, x, y):
-        displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
-        if self.distance == 0.0:
-            angle = math.pi / 2
-        else:
-            angle = 0.5 * math.atan(displacement / self.distance)
-        if angle < 1e-3:
-            angle = 1e-3
-        return self.wavelength / (2.0 * math.sin(angle))
+        displacement = self.pixel_size * numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
+        # if self.distance == 0.0:
+        #     angle = math.pi / 2
+        # else:
+        #     angle = 0.5 * math.atan(displacement / self.distance)
+        # if angle < 1e-3:
+        #     angle = 1e-3
+        #return self.wavelength / (2.0 * math.sin(angle))
+        return self.radius_to_resolution(displacement)
 
     def resolution_to_radius(self, d):
-        angle = math.asin(self.wavelength /(2 * d))
-        return self.distance * math.tan(2*angle)/self.pixel_size
+        angle = numpy.arcsin(numpy.float(self.wavelength) /(2 * d))
+        return self.distance * numpy.tan(2*angle)/self.pixel_size
+
+    def radius_to_resolution(self, r):
+        angle =  0.5 * numpy.arctan2(r * self.pixel_size, self.distance)
+        return numpy.float(self.wavelength) / (2 * numpy.sin(angle))
 
     def radial_distance(self, x0, y0, x1, y1):
-        d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
+        d = numpy.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
         return d
 
-    def set_colormap(self, colormap: str):
-        self.colormap = cmap(colormap)
-        self.needs_setup = True
+    def set_colormap(self, name: str):
+        c_map = matplotlib.cm.get_cmap(name, 256)
+        rgba_data = matplotlib.cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
+        rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
+        self.color_map = rgba_data[:, :, ::-1]
+        self.dirty = True
 
     def adjust(self, direction=None):
         self.settings.adjust(
             direction=direction, avg_value=self.header['average_intensity'], std_dev=self.header['std_dev']
         )
-        self.needs_setup = True
+        self.dirty = True
 
     def next_frame(self):
         return self.dataset.next_frame()
@@ -225,7 +242,7 @@ class DataLoader(Object):
         self.load_next = False
         self.load_prev = False
         self.load_number = None
-        self.set_colormap()
+        self.color_scheme = 'binary'
         self.start()
 
     def open(self, path):
@@ -264,7 +281,7 @@ class DataLoader(Object):
         return success
 
     def set_colormap(self, name: str = 'binary'):
-        self.colormap = name
+        self.color_scheme = name
 
     def set_current_frame(self, frame):
         self.cur_frame = frame
@@ -295,7 +312,7 @@ class DataLoader(Object):
                 rescale = (time.time() - last_update > RESCALE_TIMEOUT)
                 if len(self.frames):
                     frame = self.frames.popleft()
-                    frame.set_colormap(self.colormap)
+                    frame.set_colormap(self.color_scheme)
                     frame.setup(settings=self.settings, rescale=rescale)
                     self.outbox.append(frame)
                     last_update = time.time()
@@ -312,7 +329,8 @@ class DataLoader(Object):
                             self.load_number = None
                         if success:
                             rescale = (time.time() - last_update > RESCALE_TIMEOUT)
-                            frame = Frame(dataset=self.cur_frame.dataset, colormap=self.colormap)
+                            frame = Frame(dataset=self.cur_frame.dataset)
+                            frame.set_colormap(self.color_scheme)
                             frame.setup(settings=self.settings, rescale=rescale)
                             self.outbox.append(frame)
                             last_update = time.time()
@@ -368,19 +386,18 @@ class ImageWidget(Gtk.DrawingArea):
     def frame_monitor(self):
         while True:
             if self.frame is not None:
-                if self.frame.needs_setup:
-                    self.frame.setup()
-                if self.frame.needs_redraw:
+                self.frame.setup()
+                if self.frame.redraw:
                     self.create_surface()
                     GLib.idle_add(self.redraw)
             if len(self.inbox):
                 self.frame = self.inbox.popleft()
-                self.spots.select(self.frame.frame_number)
+                self.spots.select(self.frame.index)
                 self.data_loader.set_current_frame(self.frame)
             time.sleep(0.01)
 
     def create_surface(self, full=False):
-        self.settings.width, self.settings.height = self.frame.image_size
+        self.settings.width, self.settings.height = self.frame.size
         width = min(self.settings.width, self.settings.height)
         if not self.view.width or full:
             self.view = Box(x=1, y=1, width=width - 2, height=width - 2)
@@ -397,12 +414,13 @@ class ImageWidget(Gtk.DrawingArea):
         self.queue_draw()
         self.emit('image-loaded')
         self.settings.initialized = True
-        self.frame.needs_redraw = False
+        self.frame.redraw = False
 
     def set_reflections(self, reflections=None):
         self.spots.data = reflections
         if self.frame:
-            self.spots.select(self.frame.frame_number)
+            self.spots.select(self.frame.index)
+        self.queue_draw()
 
     def open(self, filename):
         self.data_loader.open(filename)
@@ -428,7 +446,7 @@ class ImageWidget(Gtk.DrawingArea):
         min_value = 0
         max_value = self.frame.saturated_value
 
-        coords = line(x1, y1, x2, y2)
+        coords = bressenham_line(x1, y1, x2, y2)
 
         data = numpy.zeros((len(coords), 3))
         n = 0
@@ -483,7 +501,7 @@ class ImageWidget(Gtk.DrawingArea):
 
         # cross
         x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
-        radius = 16 * self.settings.scale
+        radius = 32 * self.settings.scale
         if (0 < (self.frame.beam_x - x) < x + w) and (0 < (self.frame.beam_y - y) < y + h):
             cx = int((self.frame.beam_x - x) * self.settings.scale)
             cy = int((self.frame.beam_y - y) * self.settings.scale)
@@ -540,20 +558,35 @@ class ImageWidget(Gtk.DrawingArea):
     def draw_rings(self, cr):
         if self.settings.annotate:
             cr.save()
+            cr.set_operator(cairo.OPERATOR_DIFFERENCE)
+            cr.set_source_rgba(1.0, 0.8, 0.7, 1.0)
+            cr.set_line_width(0.5)
             x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
             cx = int((self.frame.beam_x - x) * self.settings.scale)
             cy = int((self.frame.beam_y - y) * self.settings.scale)
-            cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
-            cr.set_line_width(0.5)
-            for d in [1.48, 1.66, 1.91, 2.34, 3.31]:
+
+            vx = (w//2)*self.settings.scale
+            vy = (h//2)*self.settings.scale
+            label_angle = numpy.arctan2(vy - cy, vx - cx)    # optimal angle for labels
+            ux = self.settings.scale * math.cos(label_angle)
+            uy = self.settings.scale * math.sin(label_angle)
+
+            layout = self.create_pango_layout()
+            for d in self.frame.resolution_shells:
                 r = self.frame.resolution_to_radius(d)
-                cr.arc(cx, cy, r*self.settings.scale, 0, 2.0*numpy.pi)
+                offset = d * LABEL_GAP / self.settings.scale
+                cr.arc(cx, cy, r * self.settings.scale, label_angle + offset, label_angle - offset)
                 cr.stroke()
-                lx = cx + r * self.settings.scale * math.cos(numpy.pi / 8)
-                ly = cy + r * self.settings.scale * math.sin(numpy.pi / 8)
-                cr.move_to(lx, ly)
-                cr.show_text(f'{d:0.2f}')
+
+                lx = cx + r * ux
+                ly = cy + r * uy
+
+                layout.set_text(f'{d:0.2f}')
+                ink, logical = layout.get_pixel_extents()
+                cr.move_to(lx - logical.width/2, ly - logical.height/2)
+                PangoCairo.show_layout(cr, layout)
                 cr.fill()
+
             cr.restore()
 
     def go_back(self, full=False):
