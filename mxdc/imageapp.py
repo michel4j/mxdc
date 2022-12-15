@@ -17,9 +17,13 @@ logger = get_module_logger(__name__)
 class ImageApp(object):
     def __init__(self):
         self.win = Gtk.Window()
+
         self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
+        theme = Gtk.IconTheme.get_default()
+        theme.add_resource_path('/org/mxdc/data/icons')
+
         dialogs.MAIN_WINDOW = self.win
         self.win.connect("destroy", lambda x: Gtk.main_quit())
         self.win.set_title("Diffraction Image Viewer")

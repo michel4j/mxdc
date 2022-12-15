@@ -655,7 +655,7 @@ class ImageWidget(Gtk.DrawingArea):
         cr.paint()
         cr.restore()
 
-    def draw_histogram(self, cr):
+    def draw_profile(self, cr):
         if self.settings.profile:
             alloc = self.get_allocation()
             px = alloc.width - self.settings.profile.get_width() - 10
@@ -664,6 +664,17 @@ class ImageWidget(Gtk.DrawingArea):
             cr.set_source_surface(self.settings.profile, px, py)
             cr.paint()
             cr.restore()
+
+    def do_draw(self, cr):
+        if self.surface is not None:
+            alloc = self.get_allocation()
+            width = min(alloc.width, alloc.height)
+            self.settings.scale = float(width) / self.view.width
+            self.paint_image(cr, self.settings.scale)
+            self.draw_profile(cr)
+            self.draw_overlay_cairo(cr)
+            self.draw_spots(cr)
+            self.draw_rings(cr)
 
     # callbacks
     def on_mouse_motion(self, widget, event):
@@ -699,12 +710,8 @@ class ImageWidget(Gtk.DrawingArea):
     def on_mouse_press(self, widget, event):
         if self.settings.initialized and event.button:
             self.settings.profile = None
-            alloc = self.get_allocation()
-            clipped_x = max(min(alloc.width - 1, event.x), 0) + 0.5
-            clipped_y = max(min(alloc.height - 1, event.y), 0) + 0.5
             self.settings.mouse_box.set_start(event.x, event.y)
             self.settings.mouse_box.set_end(event.x, event.y)
-
             if event.button == Gdk.BUTTON_PRIMARY:
                 self.set_cursor_mode(Gdk.CursorType.TCROSS)
                 self.settings.mode = MouseMode.SELECTING
@@ -717,7 +724,7 @@ class ImageWidget(Gtk.DrawingArea):
                 self.settings.mode = MouseMode.MEASURING
 
     def on_mouse_release(self, widget, event):
-        if self.settings.initialized and self.settings.mode is not None:
+        if self.settings.initialized:
             if self.settings.mode == MouseMode.SELECTING:
                 x0, y0 = self.screen_to_image(*self.settings.mouse_box.get_start())
                 x1, y1 = self.screen_to_image(*self.settings.mouse_box.get_end())
@@ -735,19 +742,8 @@ class ImageWidget(Gtk.DrawingArea):
             elif self.settings.mode == MouseMode.PANNING:
                 self.view_stack.append(self._shift_start_view)
 
-            self.settings.mode = None
-            self.set_cursor_mode()
-
-    def do_draw(self, cr):
-        if self.surface is not None:
-            alloc = self.get_allocation()
-            width = min(alloc.width, alloc.height)
-            self.settings.scale = float(width) / self.view.width
-            self.paint_image(cr, self.settings.scale)
-            self.draw_histogram(cr)
-            self.draw_overlay_cairo(cr)
-            self.draw_spots(cr)
-            self.draw_rings(cr)
+        self.settings.mode = None
+        self.set_cursor_mode()
 
     def on_visibility_notify(self, obj, event):
         if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
