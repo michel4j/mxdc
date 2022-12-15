@@ -5,6 +5,7 @@ import time
 from typing import Any, Tuple, List
 from enum import Enum
 from collections import deque
+from functools import lru_cache
 from dataclasses import dataclass, field
 
 import cairo
@@ -16,7 +17,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', "1.0")
 
-from gi.repository import Gdk, Gtk, GLib, PangoCairo, Pango
+from gi.repository import Gdk, Gtk, GLib, PangoCairo
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
@@ -33,10 +34,10 @@ RESCALE_TIMEOUT = 30    # duration between images to apply auto-rescale
 SCALE_MULTIPLIER = 3.0
 MAX_SCALE = 12.0
 MIN_SCALE = 0.0
-LABEL_GAP = 0.005       # Annotation label gap
+RESOLUTION_STEP_SIZE = 30      # Radial step size between resolution rings in mm
+LABEL_GAP = 0.0075       # Annotation label gap
 COLOR_MAPS = ('binary', 'inferno')
 MAX_SAVE_JITTER = 0.5   # maximum amount of time in seconds to wait for file to be done writing to disk
-
 
 
 @dataclass
@@ -65,6 +66,7 @@ class Box:
         self.width = int(abs(self.width))
         self.y = int(min(self.y, self.y + self.height))
         self.height = int(abs(self.height))
+
 
 @dataclass
 class Spots:
@@ -159,7 +161,7 @@ class Frame:
         self.wavelength = self.header['wavelength']
         self.saturated_value = self.header['saturated_value']
 
-        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), 22.5/self.pixel_size)[1:]
+        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE/self.pixel_size)[1:]
         self.resolution_shells = self.radius_to_resolution(radii)
 
     def setup(self, rescale: bool = False, settings: ScaleSettings = None):
@@ -177,18 +179,32 @@ class Frame:
             img0 = cv2.convertScaleAbs(self.data, None, 255 / self.settings.scale, 0)
             img1 = cv2.applyColorMap(img0, self.color_map)
             self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
-        self.dirty = False
-        self.redraw = True
+
+            self.dirty = False
+            self.redraw = True
+
+    @lru_cache(maxsize=10)
+    def get_resolution_rings(self, view_x, view_y, view_width, view_height, scale):
+        x, y, w, h = view_x, view_y, view_width, view_height
+        cx = int((self.beam_x - x) * scale)
+        cy = int((self.beam_y - y) * scale)
+
+        vx = (w // 2) * scale
+        vy = (h // 2) * scale
+        label_angle = numpy.arctan2(vy - cy, vx - cx)  # optimal angle for labels
+        ux = scale * math.cos(label_angle)
+        uy = scale * math.sin(label_angle)
+
+        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
+        shells = self.radius_to_resolution(radii)
+        lx = cx + radii * ux
+        ly = cy + radii * uy
+        offset = shells * LABEL_GAP / scale
+
+        return zip(radii*scale, shells, lx, ly, label_angle + offset, label_angle - offset), (cx, cy)
 
     def image_resolution(self, x, y):
-        displacement = self.pixel_size * numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
-        # if self.distance == 0.0:
-        #     angle = math.pi / 2
-        # else:
-        #     angle = 0.5 * math.atan(displacement / self.distance)
-        # if angle < 1e-3:
-        #     angle = 1e-3
-        #return self.wavelength / (2.0 * math.sin(angle))
+        displacement = numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
         return self.radius_to_resolution(displacement)
 
     def resolution_to_radius(self, d):
@@ -560,27 +576,17 @@ class ImageWidget(Gtk.DrawingArea):
             cr.save()
             cr.set_operator(cairo.OPERATOR_DIFFERENCE)
             cr.set_source_rgba(1.0, 0.8, 0.7, 1.0)
-            cr.set_line_width(0.5)
-            x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
-            cx = int((self.frame.beam_x - x) * self.settings.scale)
-            cy = int((self.frame.beam_y - y) * self.settings.scale)
+            cr.set_line_width(0.75)
 
-            vx = (w//2)*self.settings.scale
-            vy = (h//2)*self.settings.scale
-            label_angle = numpy.arctan2(vy - cy, vx - cx)    # optimal angle for labels
-            ux = self.settings.scale * math.cos(label_angle)
-            uy = self.settings.scale * math.sin(label_angle)
+            rings, (cx, cy) = self.frame.get_resolution_rings(
+                self.view.x, self.view.y, self.view.width, self.view.height, self.settings.scale
+            )
 
             layout = self.create_pango_layout()
-            for d in self.frame.resolution_shells:
-                r = self.frame.resolution_to_radius(d)
-                offset = d * LABEL_GAP / self.settings.scale
-                cr.arc(cx, cy, r * self.settings.scale, label_angle + offset, label_angle - offset)
+            for r, d, lx, ly, start_ang, end_ang in rings:
+
+                cr.arc(cx, cy, r, start_ang, end_ang)
                 cr.stroke()
-
-                lx = cx + r * ux
-                ly = cy + r * uy
-
                 layout.set_text(f'{d:0.2f}')
                 ink, logical = layout.get_pixel_extents()
                 cr.move_to(lx - logical.width/2, ly - logical.height/2)
@@ -693,7 +699,6 @@ class ImageWidget(Gtk.DrawingArea):
     # callbacks
     def on_mouse_motion(self, widget, event):
         if self.settings.initialized:
-            alloc = self.get_allocation()
             if event.get_state() & Gdk.ModifierType.BUTTON1_MASK and self.settings.mode == MouseMode.SELECTING:
                 self.settings.mouse_box.set_end(event.x, event.y)
                 self.queue_draw()
