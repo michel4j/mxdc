@@ -102,7 +102,7 @@
                 <property name="tooltip-text" translatable="yes">Best Fit</property>
                 <property name="valign">center</property>
                 <property name="use-underline">True</property>
-                <property name="icon-name">zoom-fit-best-symbolic</property>
+                <property name="icon-name">view-full-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -114,7 +114,7 @@
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Colorize Image</property>
+                <property name="tooltip-text" translatable="yes">Colorize</property>
                 <property name="valign">center</property>
                 <property name="icon-name">applications-graphics-symbolic</property>
               </object>
@@ -128,10 +128,10 @@
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
-                <property name="tooltip-text" translatable="yes">Reset View</property>
+                <property name="tooltip-text" translatable="yes">Auto Scale</property>
                 <property name="valign">center</property>
                 <property name="use-underline">True</property>
-                <property name="icon-name">emblem-synchronizing-symbolic</property>
+                <property name="icon-name">auto-scale-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -223,6 +223,7 @@
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Resolution Rings</property>
                 <property name="icon-name">resol-rings-symbolic</property>
               </object>
               <packing>

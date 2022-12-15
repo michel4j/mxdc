@@ -1,8 +1,6 @@
 import json
 import math
-import os
-import re
-import subprocess
+import numpy
 import threading
 import time
 from collections import deque
@@ -165,16 +163,14 @@ def line(x1, y1, x2, y2):
     steep = 0
     coords = []
     dx = abs(x2 - x1)
-    sx = 1 if (x2 - x1) > 0 else -1
+    sx = numpy.sign(x2 - x1)
 
     dy = abs(y2 - y1)
-    sy = 1 if (y2 - y1) > 0 else -1
+    sy = numpy.sign(y2 - y1)
 
     if dy > dx:
         steep = 1
-        x1, y1 = y1, x1
-        dx, dy = dy, dx
-        sx, sy = sy, sx
+        x1, y1, dx, dy, sx, sy = y1, x1, dy, dx, sy, sx
 
     d = (2 * dy) - dx
     for i in range(0, dx):
@@ -193,9 +189,10 @@ def line(x1, y1, x2, y2):
     return coords
 
 
+
 def bounding_box(x0, y0, x1, y1):
     x = int(min(x0, x1))
     y = int(min(y0, y1))
     w = int(abs(x0 - x1))
     h = int(abs(y0 - y1))
-    return (x, y, w, h)
+    return x, y, w, h

@@ -11,7 +11,12 @@ import cairo
 import cv2
 import matplotlib
 import numpy
-from gi.repository import Gdk, Gtk, GLib
+import gi
+
+gi.require_version('Gtk', '3.0')
+gi.require_version('PangoCairo', "1.0")
+
+from gi.repository import Gdk, Gtk, GLib, PangoCairo
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
@@ -19,17 +24,17 @@ from mxio import read_image
 
 from mxdc import Signal, Object
 from mxdc.utils import cmaps, colors
-from mxdc.utils.frames import line, bounding_box
+from mxdc.utils.frames import line
 from mxdc.utils.gui import color_palette
 
-logger = logging.getLogger('imagewidget')
+logger = logging.getLogger('image-widget')
 
-RESCALE_TIMEOUT = 30  # duration between images to apply auto-rescale
-ZSCALE_MULTIPLIER = 3.0
-MAX_ZSCALE = 12.0
-MIN_ZSCALE = 0.0
-COLORMAPS = ('binary', 'inferno')
-MAX_SAVE_JITTER = 0.5  # maxium amount of time in seconds to wait for file to be done writing to disk
+RESCALE_TIMEOUT = 30    # duration between images to apply auto-rescale
+SCALE_MULTIPLIER = 3.0
+MAX_SCALE = 12.0
+MIN_SCALE = 0.0
+COLOR_MAPS = ('binary', 'inferno')
+MAX_SAVE_JITTER = 0.5   # maximum amount of time in seconds to wait for file to be done writing to disk
 
 
 def cmap(name):
@@ -38,31 +43,6 @@ def cmap(name):
     rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
     return rgba_data[:, :, ::-1]
 
-
-def adjust_spines(ax, spines, color):
-    for loc, spine in list(ax.spines.items()):
-        if loc in spines:
-            spine.set_position(('outward', 10))  # outward by 10 points
-            spine.set_color(color)
-        else:
-            spine.set_color('none')  # don't draw spine
-
-    ax.xaxis.set_tick_params(color=color, labelcolor=color)
-    ax.yaxis.set_tick_params(color=color, labelcolor=color)
-    ax.patch.set_alpha(0.0)
-
-    # turn off ticks where there is no spine
-    if 'left' in spines:
-        ax.yaxis.set_ticks_position('left')
-    elif 'right' in spines:
-        ax.yaxis.set_ticks_position('right')
-    else:
-        ax.yaxis.set_ticks([])
-
-    if 'bottom' in spines:
-        ax.xaxis.set_ticks_position('bottom')
-    else:
-        ax.xaxis.set_ticks([])
 
 
 @dataclass
@@ -86,6 +66,11 @@ class Box:
         self.x = x
         self.y = y
 
+    def normalize(self):
+        self.x = int(min(self.x, self.x + self.width))
+        self.width = int(abs(self.width))
+        self.y = int(min(self.y, self.y + self.height))
+        self.height = int(abs(self.height))
 
 @dataclass
 class Spots:
@@ -102,14 +87,14 @@ class Spots:
 
 
 @dataclass
-class FrameSettings:
+class ScaleSettings:
     scale: float = 1.0
-    multiplier: float = ZSCALE_MULTIPLIER
-    default: float = ZSCALE_MULTIPLIER
+    multiplier: float = SCALE_MULTIPLIER
+    default: float = SCALE_MULTIPLIER
 
     def update(self, min_value: float, max_value: float, avg_value: float, std_dev: float):
         if std_dev > 0:
-            self.default = ZSCALE_MULTIPLIER * (max_value - avg_value)/std_dev
+            self.default = SCALE_MULTIPLIER * (max_value - avg_value) / std_dev
         self.scale = avg_value + self.multiplier * std_dev
 
     def adjust(self, direction: int = None, avg_value: float = 0.0, std_dev: float = 0.0):
@@ -117,7 +102,7 @@ class FrameSettings:
             self.multiplier = self.default
         else:
             step = direction * max(round(self.multiplier / 10, 2), 0.1)
-            self.multiplier = min(MAX_ZSCALE, max(MIN_ZSCALE, self.multiplier + step))
+            self.multiplier = min(MAX_SCALE, max(MIN_SCALE, self.multiplier + step))
         self.scale = avg_value + self.multiplier * std_dev
 
 
@@ -157,7 +142,7 @@ class Frame:
         self.settings = None
 
         # needed for display
-        self.delta_angle = self.header['delta_angle']
+        #self.delta_angle = self.header['delta_angle']
         self.beam_x, self.beam_y = self.header['beam_center']
         self.name = '{} [ {} ]'.format(self.header['name'], self.frame_number)
         self.image_size = self.header['detector_size']
@@ -168,11 +153,12 @@ class Frame:
         else:
             raise AttributeError('{} does not have attribute: {}'.format(self, key))
 
-    def setup(self, rescale: bool = False, settings: FrameSettings = None):
+    def setup(self, rescale: bool = False, settings: ScaleSettings = None):
+
         if settings is not None:
             self.settings = settings
         elif self.settings is None:
-            self.settings = FrameSettings()
+            self.settings = ScaleSettings()
 
         if rescale:
             p_lo, p_hi = numpy.percentile(self.stats_data, (5., 95.))
@@ -184,6 +170,24 @@ class Frame:
         self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
         self.needs_setup = False
         self.needs_redraw = True
+
+    def image_resolution(self, x, y):
+        displacement = self.pixel_size * math.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
+        if self.distance == 0.0:
+            angle = math.pi / 2
+        else:
+            angle = 0.5 * math.atan(displacement / self.distance)
+        if angle < 1e-3:
+            angle = 1e-3
+        return self.wavelength / (2.0 * math.sin(angle))
+
+    def resolution_to_radius(self, d):
+        angle = math.asin(self.wavelength /(2 * d))
+        return self.distance * math.tan(2*angle)/self.pixel_size
+
+    def radial_distance(self, x0, y0, x1, y1):
+        d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
+        return d
 
     def set_colormap(self, colormap: str):
         self.colormap = cmap(colormap)
@@ -217,7 +221,7 @@ class DataLoader(Object):
         self.frames = deque(maxlen=2)
         self.inbox = deque(maxlen=2)
         self.outbox = outbox
-        self.settings = FrameSettings()
+        self.settings = ScaleSettings()
         self.load_next = False
         self.load_prev = False
         self.load_number = None
@@ -252,7 +256,7 @@ class DataLoader(Object):
             self.show(dataset)
             success = True
         except Exception as e:
-            logger.exception(e)
+            logger.error(e)
             success = False
 
         if not success:
@@ -312,8 +316,8 @@ class DataLoader(Object):
                             frame.setup(settings=self.settings, rescale=rescale)
                             self.outbox.append(frame)
                             last_update = time.time()
-                    except Exception:
-                        logger.exception("Unable to read file")
+                    except Exception as e:
+                        logger.error(f"Unable to read frame: {e}")
                 self.load_next = self.load_prev = False
 
                 # load any images from specified paths in the inbox
@@ -340,18 +344,17 @@ class ImageWidget(Gtk.DrawingArea):
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
-            Gdk.EventMask.LEAVE_NOTIFY_MASK |
             Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK |
             Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.POINTER_MOTION_HINT_MASK |
-            Gdk.EventMask.VISIBILITY_NOTIFY_MASK | Gdk.EventMask.SCROLL_MASK
+            Gdk.EventMask.SCROLL_MASK
         )
 
-        self.connect('visibility-notify-event', self.on_visibility_notify)
-        self.connect('unmap', self.on_unmap)
+        self.connect('unmap', self.on_visibility, False)
+        self.connect('map', self.on_visibility, True)
         self.connect('motion-notify-event', self.on_mouse_motion)
-        self.connect('button_press_event', self.on_mouse_press)
+        self.connect('button-press-event', self.on_mouse_press)
         self.connect('scroll-event', self.on_mouse_scroll)
-        self.connect('button_release_event', self.on_mouse_release)
+        self.connect('button-release-event', self.on_mouse_release)
         self.set_size_request(size, size)
         self.palettes = {
             True: color_palette(cmaps.inferno),
@@ -393,7 +396,7 @@ class ImageWidget(Gtk.DrawingArea):
     def redraw(self):
         self.queue_draw()
         self.emit('image-loaded')
-        self.settings.initialized= True
+        self.settings.initialized = True
         self.frame.needs_redraw = False
 
     def set_reflections(self, reflections=None):
@@ -440,28 +443,29 @@ class ImageWidget(Gtk.DrawingArea):
             else:
                 val = numpy.nan
             data[n][2] = val
-            data[n][1] = self.radial_distance(ix, iy, coords[0][0], coords[0][1])
+            data[n][1] = self.frame.radial_distance(ix, iy, coords[0][0], coords[0][1])
             n += 1
         return data[:, 1:]
 
-    def plot_profile(self, data, show_axis=None, distance=True):
+    def plot_profile(self, data):
         color = colors.Category.CAT20C[0]
-        matplotlib.rcParams.update({'font.size': 9.5})
+        formatter = FormatStrFormatter('%g')
+
         figure = Figure(frameon=False, figsize=(4, 2), dpi=72, edgecolor=color)
         specs = matplotlib.gridspec.GridSpec(ncols=8, nrows=1, figure=figure)
-        plot = figure.add_subplot(specs[0,1:7])
-        plot.patch.set_alpha(1.0)
-        adjust_spines(plot, ['left'], color)
-        formatter = FormatStrFormatter('%g')
-        plot.yaxis.set_major_formatter(formatter)
-        plot.yaxis.set_major_locator(MaxNLocator(5))
 
-        if distance:
-            plot.plot(data[:, 0], data[:, 1], lw=0.75)
-        else:
-            plot.vlines(data[:, 0], 0, data[:, 1])
+        ax = figure.add_subplot(specs[0,1:7])
+        ax.patch.set_alpha(0.0)
+        ax.yaxis.set_tick_params(color=color, labelcolor=color)
+        ax.yaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_locator(MaxNLocator(5))
+        ax.spines['left'].set_position(('outward', 10))
+        ax.spines['left'].set_color(color)
+        ax.spines[['right', 'bottom', 'top']].set_visible(False)
+        ax.xaxis.set_ticks([])
 
-        plot.set_xlim(min(data[:, 0]), max(data[:, 0]))
+        ax.plot(data[:, 0], data[:, 1], lw=0.75)
+        ax.set_xlim(min(data[:, 0]), max(data[:, 0]))
 
         # Ask matplotlib to render the figure to a bitmap using the Agg backend
         canvas = FigureCanvasCairo(figure)
@@ -473,6 +477,10 @@ class ImageWidget(Gtk.DrawingArea):
         canvas.figure.draw(renderer)
 
     def draw_overlay_cairo(self, cr):
+        cr.save()
+        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+        cr.set_line_width(1)
+
         # cross
         x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
         radius = 16 * self.settings.scale
@@ -486,10 +494,9 @@ class ImageWidget(Gtk.DrawingArea):
             cr.line_to(cx, cy + radius)
             cr.stroke()
             cr.arc(cx, cy, radius / 2, 0, 2.0 * numpy.pi)
+            cr.stroke()
 
         # select box
-        cr.set_line_width(2)
-        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
         if self.settings.mode == MouseMode.SELECTING:
             cr.rectangle(
                 self.settings.mouse_box.x, self.settings.mouse_box.y,
@@ -499,20 +506,18 @@ class ImageWidget(Gtk.DrawingArea):
 
         # measuring
         if self.settings.mode == MouseMode.MEASURING:
-            cr.set_line_width(2)
             cr.move_to(*self.settings.mouse_box.get_start())
             cr.line_to(*self.settings.mouse_box.get_end())
             cr.stroke()
 
         # Filename
-        pcontext = self.get_pango_context()
         alloc = self.get_allocation()
-        font_desc = pcontext.get_font_description()
-        cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        cr.set_font_size(11)
-        cr.move_to(6, alloc.height - 6)
-        cr.show_text(self.frame.name)
-        cr.stroke()
+        layout = self.create_pango_layout(self.frame.name)
+        ink, logical = layout.get_pixel_extents()
+        cr.move_to(12, alloc.height - 12 - ink.height)
+        PangoCairo.show_layout(cr, layout)
+        cr.fill()
+        cr.restore()
 
     def draw_spots(self, cr):
         # draw spots
@@ -534,20 +539,22 @@ class ImageWidget(Gtk.DrawingArea):
 
     def draw_rings(self, cr):
         if self.settings.annotate:
+            cr.save()
             x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
             cx = int((self.frame.beam_x - x) * self.settings.scale)
             cy = int((self.frame.beam_y - y) * self.settings.scale)
             cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
             cr.set_line_width(0.5)
             for d in [1.48, 1.66, 1.91, 2.34, 3.31]:
-                r = self.resolution_to_radius(d)
+                r = self.frame.resolution_to_radius(d)
                 cr.arc(cx, cy, r*self.settings.scale, 0, 2.0*numpy.pi)
                 cr.stroke()
                 lx = cx + r * self.settings.scale * math.cos(numpy.pi / 8)
                 ly = cy + r * self.settings.scale * math.sin(numpy.pi / 8)
                 cr.move_to(lx, ly)
                 cr.show_text(f'{d:0.2f}')
-                cr.stroke()
+                cr.fill()
+            cr.restore()
 
     def go_back(self, full=False):
         if self.view_stack and not full:
@@ -559,9 +566,9 @@ class ImageWidget(Gtk.DrawingArea):
         return bool(self.view_stack)
 
     def colorize(self, color=False):
-        self.data_loader.set_colormap(COLORMAPS[int(color)])
+        self.data_loader.set_colormap(COLOR_MAPS[int(color)])
         if self.frame is not None:
-            self.frame.set_colormap(COLORMAPS[int(color)])
+            self.frame.set_colormap(COLOR_MAPS[int(color)])
 
     def reset_filters(self):
         if self.frame is not None:
@@ -572,7 +579,7 @@ class ImageWidget(Gtk.DrawingArea):
             return 0, 0, 0.0, 0
 
         ix, iy = self.screen_to_image(x, y)
-        res = self.image_resolution(ix, iy)
+        res = self.frame.image_resolution(ix, iy)
         return ix, iy, res, self.frame.data[iy, ix]
 
     def save_surface(self, path):
@@ -582,15 +589,7 @@ class ImageWidget(Gtk.DrawingArea):
             ctx = cairo.Context(surface)
 
             self.paint_image(ctx, self.settings.scale)
-
-            if self.settings.profile:
-                px = alloc.width - self.settings.profile.get_width() - 10
-                py = alloc.height - self.settings.profile.get_height() - 10
-                ctx.save()
-                ctx.set_source_surface(self.settings.profile, px, py)
-                ctx.paint()
-                ctx.restore()
-
+            self.draw_profile(ctx)
             self.draw_overlay_cairo(ctx)
             self.draw_spots(ctx)
             self.draw_rings(ctx)
@@ -605,24 +604,6 @@ class ImageWidget(Gtk.DrawingArea):
         iy = max(1, min(iy, self.settings.height - 2))
         return ix, iy
 
-    def image_resolution(self, x, y):
-        displacement = self.frame.pixel_size * math.sqrt((x - self.frame.beam_x) ** 2 + (y - self.frame.beam_y) ** 2)
-        if self.frame.distance == 0.0:
-            angle = math.pi / 2
-        else:
-            angle = 0.5 * math.atan(displacement / self.frame.distance)
-        if angle < 1e-3:
-            angle = 1e-3
-        return self.frame.wavelength / (2.0 * math.sin(angle))
-
-    def resolution_to_radius(self, d):
-        angle = math.asin(self.frame.wavelength /(2 * d))
-        return self.frame.distance * math.tan(2*angle)/self.frame.pixel_size
-
-    def radial_distance(self, x0, y0, x1, y1):
-        d = math.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.frame.pixel_size
-        return d  # (self.wavelength * self.distance/d)
-
     def set_cursor_mode(self, cursor=None):
         window = self.get_window()
         if window is None:
@@ -631,7 +612,7 @@ class ImageWidget(Gtk.DrawingArea):
             window.set_cursor(None)
         else:
             window.set_cursor(Gdk.Cursor.new(cursor))
-        Gtk.main_iteration()
+        self.queue_draw()
 
     def set_annotations(self, state: bool = False):
         self.settings.annotate = state
@@ -712,11 +693,12 @@ class ImageWidget(Gtk.DrawingArea):
             self.settings.profile = None
             self.settings.mouse_box.set_start(event.x, event.y)
             self.settings.mouse_box.set_end(event.x, event.y)
+
             if event.button == Gdk.BUTTON_PRIMARY:
                 self.set_cursor_mode(Gdk.CursorType.TCROSS)
                 self.settings.mode = MouseMode.SELECTING
             elif event.button == Gdk.BUTTON_MIDDLE:
-                self._shift_start_view = self.view
+                self.view_stack.append(self.view)
                 self.set_cursor_mode(Gdk.CursorType.FLEUR)
                 self.settings.mode = MouseMode.PANNING
             elif event.button == Gdk.BUTTON_SECONDARY:
@@ -728,28 +710,24 @@ class ImageWidget(Gtk.DrawingArea):
             if self.settings.mode == MouseMode.SELECTING:
                 x0, y0 = self.screen_to_image(*self.settings.mouse_box.get_start())
                 x1, y1 = self.screen_to_image(*self.settings.mouse_box.get_end())
-                x, y, w, h = bounding_box(x0, y0, x1, y1)
-                if min(w, h) > 10:
+                new_view = Box(x=x0, y=y0)
+                new_view.set_end(x1, y1)
+                new_view.normalize()
+                if min(new_view.width, new_view.height) > 10:
                     self.view_stack.append(self.view)
-                    self.view = Box(x=x, y=y, width=w, height=h)
+                    self.view = new_view
                     self.queue_draw()
             elif self.settings.mode == MouseMode.MEASURING:
                 data = self.get_line_profile(self.settings.mouse_box, 2)
                 if len(data) > 4:
-                    self.plot_profile(data, show_axis=['left', ])
+                    self.plot_profile(data)
                     self.queue_draw()
-
-            elif self.settings.mode == MouseMode.PANNING:
-                self.view_stack.append(self._shift_start_view)
 
         self.settings.mode = None
         self.set_cursor_mode()
 
-    def on_visibility_notify(self, obj, event):
-        if event.get_state() == Gdk.VisibilityState.FULLY_OBSCURED:
-            self.stopped = True
+    def on_visibility(self, obj, state):
+        if state:
+            self.data_loader.resume()
         else:
-            self.stopped = False
-
-    def on_unmap(self, obj):
-        self.stopped = True
+            self.data_loader.pause()
