@@ -183,7 +183,7 @@ class Frame:
             self.dirty = False
             self.redraw = True
 
-    @lru_cache(maxsize=10)
+    #@lru_cache(maxsize=10)
     def get_resolution_rings(self, view_x, view_y, view_width, view_height, scale):
         x, y, w, h = view_x, view_y, view_width, view_height
         cx = int((self.beam_x - x) * scale)
