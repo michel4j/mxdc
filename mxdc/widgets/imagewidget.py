@@ -30,14 +30,14 @@ from mxdc.utils.gui import color_palette
 
 logger = logging.getLogger('image-widget')
 
-RESCALE_TIMEOUT = 30    # duration between images to apply auto-rescale
+RESCALE_TIMEOUT = 30  # duration between images to apply auto-rescale
 SCALE_MULTIPLIER = 3.0
 MAX_SCALE = 12.0
 MIN_SCALE = 0.0
-RESOLUTION_STEP_SIZE = 30      # Radial step size between resolution rings in mm
-LABEL_GAP = 0.0075       # Annotation label gap
+RESOLUTION_STEP_SIZE = 30  # Radial step size between resolution rings in mm
+LABEL_GAP = 0.0075  # Annotation label gap
 COLOR_MAPS = ('binary', 'inferno')
-MAX_SAVE_JITTER = 0.5   # maximum amount of time in seconds to wait for file to be done writing to disk
+MAX_SAVE_JITTER = 0.5  # maximum amount of time in seconds to wait for file to be done writing to disk
 
 
 @dataclass
@@ -48,7 +48,7 @@ class Box:
     height: int = 0
 
     def get_start(self):
-        return self.x , self.y
+        return self.x, self.y
 
     def get_end(self):
         return self.x + self.width, self.y + self.height
@@ -75,8 +75,8 @@ class Spots:
 
     def select(self, frame_number, span=5):
         if self.data is not None:
-            sel = (self.data[:, 2] >= frame_number - span//2)
-            sel &= (self.data[:, 2] <= frame_number + span//2)
+            sel = (self.data[:, 2] >= frame_number - span // 2)
+            sel &= (self.data[:, 2] <= frame_number + span // 2)
             self.selected = self.data[sel]
         else:
             self.selected = None
@@ -121,6 +121,7 @@ class ImageSettings:
     def __post_init__(self):
         self.mouse_box = Box()
 
+
 @dataclass
 class Frame:
     dataset: formats.DataSet
@@ -155,13 +156,13 @@ class Frame:
         self.index = self.header['frame_number']
         self.name = f'{self.header["name"]} [ {self.index} ]'
         self.beam_x, self.beam_y = self.header['beam_center']
-        self.delta_angle =  self.header['delta_angle']
+        self.delta_angle = self.header['delta_angle']
         self.pixel_size = self.header['pixel_size']
         self.distance = self.header['distance']
         self.wavelength = self.header['wavelength']
         self.saturated_value = self.header['saturated_value']
 
-        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE/self.pixel_size)[1:]
+        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
         self.resolution_shells = self.radius_to_resolution(radii)
 
     def setup(self, rescale: bool = False, settings: ScaleSettings = None):
@@ -176,7 +177,8 @@ class Frame:
                 self.header['percentiles'] = p_lo, p_hi
                 self.settings.update(p_lo, p_hi, self.header['average_intensity'], self.header['std_dev'])
 
-            img0 = cv2.convertScaleAbs(self.data, None, 255 / self.settings.scale, 0)
+            t = time.time()
+            img0 = cv2.convertScaleAbs(self.data, None, 256 / self.settings.scale, 0)
             img1 = cv2.applyColorMap(img0, self.color_map)
             self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
 
@@ -201,15 +203,15 @@ class Frame:
         ly = cy + radii * uy
         offset = shells * LABEL_GAP / scale
 
-        return numpy.column_stack((radii*scale, shells, lx, ly, label_angle + offset, label_angle - offset)), (cx, cy)
+        return numpy.column_stack((radii * scale, shells, lx, ly, label_angle + offset, label_angle - offset)), (cx, cy)
 
     def image_resolution(self, x, y):
         displacement = numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
         return self.radius_to_resolution(displacement)
 
     def resolution_to_radius(self, d):
-        angle = numpy.arcsin(numpy.float(self.wavelength) /(2 * d))
-        return self.distance * numpy.tan(2*angle)/self.pixel_size
+        angle = numpy.arcsin(numpy.float(self.wavelength) / (2 * d))
+        return self.distance * numpy.tan(2 * angle) / self.pixel_size
 
     def radius_to_resolution(self, r):
         angle = 0.5 * numpy.arctan2(r * self.pixel_size, self.distance)
@@ -222,7 +224,7 @@ class Frame:
     def set_colormap(self, name: str):
         c_map = matplotlib.cm.get_cmap(name, 256)
         rgba_data = matplotlib.cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
-        rgba_data = rgba_data[:, 0:-1].reshape((256, 1, 3))
+        rgba_data = rgba_data[:, :-1].reshape((256, 1, 3))
         self.color_map = rgba_data[:, :, ::-1]
         self.dirty = True
 
@@ -323,43 +325,46 @@ class DataLoader(Object):
     def run(self):
         last_update = 0
         while not self.stopped:
-            # Setup any frames in the deque and add them to the display queue
-            if not self.paused:
-                rescale = (time.time() - last_update > RESCALE_TIMEOUT)
-                if len(self.frames):
-                    frame = self.frames.popleft()
-                    frame.set_colormap(self.color_scheme)
-                    frame.setup(settings=self.settings, rescale=rescale)
-                    self.outbox.append(frame)
-                    last_update = time.time()
-
-                if self.cur_frame:
-                    try:
-                        success = False
-                        if self.load_next:
-                            success = self.cur_frame.next_frame()
-                        elif self.load_prev:
-                            success = self.cur_frame.prev_frame()
-                        elif self.load_number:
-                            success = self.cur_frame.load_frame(self.load_number)
-                            self.load_number = None
-                        if success:
-                            rescale = (time.time() - last_update > RESCALE_TIMEOUT)
-                            frame = Frame(dataset=self.cur_frame.dataset)
-                            frame.set_colormap(self.color_scheme)
-                            frame.setup(settings=self.settings, rescale=rescale)
-                            self.outbox.append(frame)
-                            last_update = time.time()
-                    except Exception as e:
-                        logger.error(f"Unable to read frame: {e}")
-                self.load_next = self.load_prev = False
-
-                # load any images from specified paths in the inbox
-                if len(self.inbox):
-                    path = self.inbox.popleft()
-                    self.load(path)
-
             time.sleep(0.05)
+            if self.paused:
+                continue
+
+            # Setup any frames in the deque and add them to the display queue
+            rescale = (time.time() - last_update > RESCALE_TIMEOUT)
+            if len(self.frames):
+                frame = self.frames.popleft()
+                frame.set_colormap(self.color_scheme)
+                frame.setup(settings=self.settings, rescale=rescale)
+                self.outbox.append(frame)
+                last_update = time.time()
+
+            if self.cur_frame:
+                try:
+                    success = False
+                    if self.load_next:
+                        success = self.cur_frame.next_frame()
+                        self.load_next = False
+                    elif self.load_prev:
+                        success = self.cur_frame.prev_frame()
+                        self.load_prev = False
+                    elif self.load_number:
+                        success = self.cur_frame.load_frame(self.load_number)
+                        self.load_number = None
+                    if success:
+                        rescale = (time.time() - last_update > RESCALE_TIMEOUT)
+                        frame = Frame(dataset=self.cur_frame.dataset)
+                        frame.set_colormap(self.color_scheme)
+                        frame.setup(settings=self.settings, rescale=rescale)
+                        self.outbox.append(frame)
+                        last_update = time.time()
+                except Exception as e:
+                    logger.error(f"Unable to read frame: {e}")
+            self.load_next = self.load_prev = False
+
+            # load any images from specified paths in the inbox
+            if len(self.inbox):
+                path = self.inbox.popleft()
+                self.load(path)
 
 
 class ImageWidget(Gtk.DrawingArea):
@@ -396,7 +401,8 @@ class ImageWidget(Gtk.DrawingArea):
         }
 
         self.data_loader = DataLoader(self.inbox)
-        display_thread = threading.Thread(target=self.frame_monitor, daemon=True, name=self.__class__.__name__ + ':Display')
+        display_thread = threading.Thread(target=self.frame_monitor, daemon=True,
+                                          name=self.__class__.__name__ + ':Display')
         display_thread.start()
 
     def frame_monitor(self):
@@ -463,7 +469,6 @@ class ImageWidget(Gtk.DrawingArea):
         max_value = self.frame.saturated_value
 
         coords = bressenham_line(x1, y1, x2, y2)
-
         data = numpy.zeros((len(coords), 3))
         n = 0
         for ix, iy in coords:
@@ -488,7 +493,7 @@ class ImageWidget(Gtk.DrawingArea):
         figure = Figure(frameon=False, figsize=(4, 2), dpi=72, edgecolor=color)
         specs = matplotlib.gridspec.GridSpec(ncols=8, nrows=1, figure=figure)
 
-        ax = figure.add_subplot(specs[0,1:7])
+        ax = figure.add_subplot(specs[0, 1:7])
         ax.patch.set_alpha(0.0)
         ax.yaxis.set_tick_params(color=color, labelcolor=color)
         ax.yaxis.set_major_formatter(formatter)
@@ -588,7 +593,7 @@ class ImageWidget(Gtk.DrawingArea):
                 cr.stroke()
                 layout.set_text(f'{d:0.2f}')
                 ink, logical = layout.get_pixel_extents()
-                cr.move_to(lx - logical.width/2, ly - logical.height/2)
+                cr.move_to(lx - logical.width / 2, ly - logical.height / 2)
                 PangoCairo.show_layout(cr, layout)
                 cr.fill()
             cr.restore()
