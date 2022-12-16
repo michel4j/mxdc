@@ -1,13 +1,15 @@
 import time
 import logging
 import os
+
 import numpy
 
 from gi.repository import GLib
 from gi.repository import Gtk
+
 from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs
-from mxdc.widgets.imagewidget import ImageWidget
+from mxdc.widgets.imagewidget import ImageWidget, logger
 from mxdc import Registry
 from zope.interface import Interface
 
@@ -66,7 +68,6 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             'off': 'media-playback-start-symbolic',
         }
 
-        self.reflections = []
         self.data_adjustment = Gtk.Adjustment(1, 1, 360, 1, 10, 0)
         self.build_gui()
         Registry.add_utility(IImageViewer, self)
@@ -124,11 +125,10 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             status = 'off'
         self.play_btn.set_icon_name(self.icons[status])
 
-    def open_frame(self, filename):
-        # select spots and display for current image
-        if len(self.reflections) > 0:
-            self.canvas.set_reflections(None)
-        self.canvas.open(filename)
+    def open_dataset(self, filename):
+        #self.pause()
+        self.canvas.open_path(filename)
+
 
     def show_frame(self, frame):
         if self.updating:
@@ -145,7 +145,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         else:
             self.frames_btn.set_sensitive(False)
 
-        self.frames_scale.set_value(self.frame.header['frame_number'])
+        self.frames_scale.set_value(self.frame.index)
         values = numpy.unique(numpy.linspace(sequence[0], sequence[-1], 5).astype(int))
         self.frames_scale.clear_marks()
         for value in values:
@@ -158,6 +158,12 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             status = 'off'
             self.play_btn.set_icon_name(self.icons[status])
         return self.following
+
+    def pause(self):
+        self.following = False
+        self.updating = False
+        self.canvas.pause()
+        self.play_btn.set_icon_name(self.icons["off"])
 
     def on_reset_filters(self, widget):
         self.canvas.reset_filters()
@@ -178,6 +184,8 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         self.frame = self.canvas.get_image_info()
         if self.frame.dataset is not self.dataset:
             self.reset_dataset()
+
+        self.frames_scale.set_value(self.frame.index)
 
         directory = self.frame.header.get('dataset', {}).get('directory')
         if directory:
@@ -231,7 +239,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
                 refl = self.open_reflections(filename, hkl=(file_type == 'XDS ASCII file'))
                 self.canvas.set_reflections(refl)
             else:
-                self.open_frame(os.path.abspath(filename))
+                self.open_dataset(os.path.abspath(filename))
 
     def on_file_save(self, widget):
         filename, flt = dialogs.select_save_file("Save display to file")
@@ -256,11 +264,9 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             self.following = not self.following
             if self.following:
                 status = "on"
-                logger.debug('Replaying the dataset images ...')
                 GLib.timeout_add(100, self.follow_frames)
                 self.follow_timeout = time.time() + MAX_FOLLOW_DURATION
             else:
-                logger.debug('Done replaying the dataset images ...')
                 status = "off"
         self.play_btn.set_icon_name(self.icons[status])
 
@@ -282,3 +288,5 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         frame_number = int(value)
         if frame_number in sequence:
             self.canvas.load_frame(frame_number)
+
+

@@ -18,7 +18,7 @@ from zope.interface import implementer
 from gi.repository import GLib
 
 from mxdc import Signal, Device, Object
-from mxdc.utils import frames, decorators, misc
+from mxdc.utils import images, decorators, misc
 from mxdc.utils.log import get_module_logger
 from .interfaces import IImagingDetector
 
@@ -271,9 +271,9 @@ class SimDetector(BaseDetector):
 
     FRAME_DIGITS = 5
 
-    def __init__(self, name, size, pixel_size=0.073242, images='/tmp', extension='cbf', trigger=None):
+    def __init__(self, name, size, pixel_size=0.073242, data='/tmp', extension='cbf', trigger=None):
         super().__init__()
-        self.monitor = frames.FileMonitor(self)
+        self.monitor = images.FileMonitor(self)
 
         self.size = size
         self.resolution = pixel_size
@@ -282,7 +282,7 @@ class SimDetector(BaseDetector):
         self.detector_type = self.DETECTOR_TYPES.get(extension, 'MX300')
         self.file_extension = extension
         self.set_state(active=True, health=(0, '', ''), state=States.IDLE)
-        self.sim_images_src = images
+        self.sim_images_src = data
         self._datasets = {}
         self._selection = ('', '', 0)
         self.parameters = {}

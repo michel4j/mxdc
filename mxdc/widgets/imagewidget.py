@@ -1,18 +1,16 @@
 import logging
-import math
 import threading
 import time
-from typing import Any, Tuple, List
-from enum import Enum
 from collections import deque
-from methodtools import lru_cache
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Union
 
 import cairo
-import cv2
+import gi
 import matplotlib
 import numpy
-import gi
+from mxio import read_image
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', "1.0")
@@ -21,85 +19,124 @@ from gi.repository import Gdk, Gtk, GLib, PangoCairo
 from matplotlib.backends.backend_cairo import FigureCanvasCairo, RendererCairo
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
-from mxio import read_image, formats
 
+from mxdc.utils.images import Box
 from mxdc import Signal, Object
-from mxdc.utils import cmaps, colors
-from mxdc.utils.frames import bressenham_line
+from mxdc.utils import cmaps, colors, images
 from mxdc.utils.gui import color_palette
 
 logger = logging.getLogger('image-widget')
 
-RESCALE_TIMEOUT = 30  # duration between images to apply auto-rescale
-SCALE_MULTIPLIER = 3.0
-MAX_SCALE = 12.0
-MIN_SCALE = 0.0
-RESOLUTION_STEP_SIZE = 30  # Radial step size between resolution rings in mm
-LABEL_GAP = 0.0075  # Annotation label gap
-COLOR_MAPS = ('binary', 'inferno')
-MAX_SAVE_JITTER = 0.5  # maximum amount of time in seconds to wait for file to be done writing to disk
+RESCALE_TIMEOUT = 10  # duration between images to apply auto-rescale
 
 
-@dataclass
-class Box:
-    x: int = 0
-    y: int = 0
-    width: int = 0
-    height: int = 0
+class DataLoader(Object):
+    #class Signals:
+    #    new_image = Signal("new-image", arg_types=())
 
-    def get_start(self):
-        return self.x, self.y
+    def __init__(self, view_queue: deque):
+        super().__init__()
 
-    def get_end(self):
-        return self.x + self.width, self.y + self.height
+        self.frame: Union[images.Frame, None] = None
+        self.pending_datasets = deque(maxlen=2)
+        self.pending_files = deque(maxlen=2)
+        self.view_queue = view_queue
 
-    def set_end(self, x, y):
-        self.width = x - self.x
-        self.height = y - self.y
+        self.load_next = False
+        self.load_prev = False
+        self.load_number = None
+        self.stopped = False
+        self.paused = False
+        self.color_scheme = 'binary'
+        self.start()
 
-    def set_start(self, x, y):
-        self.x = x
-        self.y = y
+    def open_path(self, path):
+        """
+        Add data path to queue for lazy loading
 
-    def normalize(self):
-        self.x = int(min(self.x, self.x + self.width))
-        self.width = int(abs(self.width))
-        self.y = int(min(self.y, self.y + self.height))
-        self.height = int(abs(self.height))
+        :param path: full path to data frame
+        """
+        self.pending_files.append(path)
 
+    def pause(self):
+        self.paused = True
 
-@dataclass
-class Spots:
-    data: Any = None
-    selected: Any = None
+    def resume(self):
+        self.paused = False
 
-    def select(self, frame_number, span=5):
-        if self.data is not None:
-            sel = (self.data[:, 2] >= frame_number - span // 2)
-            sel &= (self.data[:, 2] <= frame_number + span // 2)
-            self.selected = self.data[sel]
-        else:
-            self.selected = None
+    def show_from_dataset(self, dataset):
+        """
+        Prepare and display externally loaded dataset
 
+        :param dataset: dataset
+        """
+        self.pending_datasets.append(dataset)
 
-@dataclass
-class ScaleSettings:
-    scale: float = 1.0
-    multiplier: float = SCALE_MULTIPLIER
-    default: float = SCALE_MULTIPLIER
+    def set_colormap(self, name: str = 'binary'):
+        self.color_scheme = name
 
-    def update(self, min_value: float, max_value: float, avg_value: float, std_dev: float):
-        if std_dev > 0:
-            self.default = SCALE_MULTIPLIER * (max_value - avg_value) / std_dev
-        self.scale = avg_value + self.multiplier * std_dev
+    def set_frame(self, frame):
+        self.frame = frame
 
-    def adjust(self, direction: int = None, avg_value: float = 0.0, std_dev: float = 0.0):
-        if direction is None:
-            self.multiplier = self.default
-        else:
-            step = direction * max(round(self.multiplier / 10, 2), 0.1)
-            self.multiplier = min(MAX_SCALE, max(MIN_SCALE, self.multiplier + step))
-        self.scale = avg_value + self.multiplier * std_dev
+    def load_frame(self, number):
+        self.load_number = number
+
+    def next_frame(self):
+        self.load_next = True
+
+    def prev_frame(self):
+        self.load_prev = True
+
+    def start(self):
+        self.stopped = False
+        self.paused = False
+        worker_thread = threading.Thread(target=self.run, daemon=True, name="DataLoader")
+        worker_thread.start()
+
+    def stop(self):
+        self.stopped = True
+
+    def run(self):
+        while not self.stopped:
+            time.sleep(0.01)
+            if self.paused:
+                continue
+
+            try:
+                if len(self.pending_files):
+                    # Load and set up the next pending file name and add frame to display queue
+                    path = self.pending_files.popleft()
+                    dataset = read_image(path)
+                    frame = images.Frame(dataset=dataset, color_scheme=self.color_scheme)
+                    self.view_queue.append(frame)
+
+                elif len(self.pending_datasets):
+                    # Set up the next pending dataset and add frame to display queue
+                    dataset = self.pending_datasets.popleft()
+                    settings = None
+                    if self.frame and self.frame.name != self.frame.header['name']:
+                        settings = self.frame.settings
+                    frame = images.Frame(dataset=dataset, color_scheme=self.color_scheme, settings=settings)
+                    self.view_queue.append(frame)
+
+                if self.frame:
+                    success = False
+                    if self.load_next:
+                        success = self.frame.next_frame()
+                    elif self.load_prev:
+                        success = self.frame.prev_frame()
+                    elif self.load_number:
+                        success = self.frame.load_frame(self.load_number)
+                        self.load_number = None
+                    if success:
+                        frame = images.Frame(
+                            dataset=self.frame.dataset, color_scheme=self.color_scheme, settings=self.frame.settings
+                        )
+                        self.view_queue.append(frame)
+
+                self.load_next = self.load_prev = False
+            except IOError:
+                logger.exception("Unable to load frame")
 
 
 class MouseMode(Enum):
@@ -122,251 +159,6 @@ class ImageSettings:
         self.mouse_box = Box()
 
 
-@dataclass
-class Frame:
-    dataset: formats.DataSet
-    rescale: bool = True
-    color_map: Any = field(init=False, repr=False)
-    data: numpy.ndarray = field(init=False, repr=False)
-    stats_data: numpy.ndarray = field(init=False, repr=False)
-    settings: ScaleSettings = field(init=False, repr=False)
-    header: dict = field(init=False, repr=False)
-    image: Any = field(init=False, repr=False)
-    redraw: bool = False
-    dirty: bool = True
-
-    name: str = field(init=False)
-    size: Tuple[int, int] = field(init=False)
-    pixel_size: float = field(init=False)
-    beam_x: float = field(init=False)
-    beam_y: float = field(init=False)
-    index: int = field(init=False)
-    delta_angle: float = field(init=False)
-    distance: float = field(init=False)
-    wavelength: float = field(init=False)
-    saturated_value: float = field(init=False)
-    resolution_shells: List[float] = field(init=False)
-
-    def __post_init__(self):
-        self.set_colormap('binary')
-        self.header = self.dataset.header
-        self.data = self.dataset.data
-        self.stats_data = self.dataset.stats_data
-        self.size = self.header['detector_size']
-        self.index = self.header['frame_number']
-        self.name = f'{self.header["name"]} [ {self.index} ]'
-        self.beam_x, self.beam_y = self.header['beam_center']
-        self.delta_angle = self.header['delta_angle']
-        self.pixel_size = self.header['pixel_size']
-        self.distance = self.header['distance']
-        self.wavelength = self.header['wavelength']
-        self.saturated_value = self.header['saturated_value']
-
-        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
-        self.resolution_shells = self.radius_to_resolution(radii)
-
-    def setup(self, rescale: bool = False, settings: ScaleSettings = None):
-        if self.dirty:
-            if settings is not None:
-                self.settings = settings
-            elif self.settings is None:
-                self.settings = ScaleSettings()
-
-            if rescale:
-                p_lo, p_hi = numpy.percentile(self.stats_data, (5., 95.))
-                self.header['percentiles'] = p_lo, p_hi
-                self.settings.update(p_lo, p_hi, self.header['average_intensity'], self.header['std_dev'])
-
-            t = time.time()
-            img0 = cv2.convertScaleAbs(self.data, None, 256 / self.settings.scale, 0)
-            img1 = cv2.applyColorMap(img0, self.color_map)
-            self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
-
-            self.dirty = False
-            self.redraw = True
-
-    @lru_cache()
-    def get_resolution_rings(self, view_x, view_y, view_width, view_height, scale):
-        x, y, w, h = view_x, view_y, view_width, view_height
-        cx = int((self.beam_x - x) * scale)
-        cy = int((self.beam_y - y) * scale)
-
-        vx = (w // 2) * scale
-        vy = (h // 2) * scale
-        label_angle = numpy.arctan2(vy - cy, vx - cx)  # optimal angle for labels
-        ux = scale * math.cos(label_angle)
-        uy = scale * math.sin(label_angle)
-
-        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
-        shells = self.radius_to_resolution(radii)
-        lx = cx + radii * ux
-        ly = cy + radii * uy
-        offset = shells * LABEL_GAP / scale
-
-        return numpy.column_stack((radii * scale, shells, lx, ly, label_angle + offset, label_angle - offset)), (cx, cy)
-
-    def image_resolution(self, x, y):
-        displacement = numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
-        return self.radius_to_resolution(displacement)
-
-    def resolution_to_radius(self, d):
-        angle = numpy.arcsin(numpy.float(self.wavelength) / (2 * d))
-        return self.distance * numpy.tan(2 * angle) / self.pixel_size
-
-    def radius_to_resolution(self, r):
-        angle = 0.5 * numpy.arctan2(r * self.pixel_size, self.distance)
-        return numpy.float(self.wavelength) / (2 * numpy.sin(angle))
-
-    def radial_distance(self, x0, y0, x1, y1):
-        d = numpy.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
-        return d
-
-    def set_colormap(self, name: str):
-        c_map = matplotlib.cm.get_cmap(name, 256)
-        rgba_data = matplotlib.cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
-        rgba_data = rgba_data[:, :-1].reshape((256, 1, 3))
-        self.color_map = rgba_data[:, :, ::-1]
-        self.dirty = True
-
-    def adjust(self, direction=None):
-        self.settings.adjust(
-            direction=direction, avg_value=self.header['average_intensity'], std_dev=self.header['std_dev']
-        )
-        self.dirty = True
-
-    def next_frame(self):
-        return self.dataset.next_frame()
-
-    def prev_frame(self):
-        return self.dataset.prev_frame()
-
-    def load_frame(self, number):
-        return self.dataset.get_frame(number)
-
-
-class DataLoader(Object):
-    class Signals:
-        new_image = Signal("new-image", arg_types=())
-
-    def __init__(self, outbox: deque):
-        super().__init__()
-        self.stopped = False
-        self.paused = False
-        self.cur_frame = None
-        self.frames = deque(maxlen=2)
-        self.inbox = deque(maxlen=2)
-        self.outbox = outbox
-        self.settings = ScaleSettings()
-        self.load_next = False
-        self.load_prev = False
-        self.load_number = None
-        self.color_scheme = 'binary'
-        self.start()
-
-    def open(self, path):
-        """
-        Add data path to queue for lazy loading
-
-        :param path: full path to data frame
-        """
-        self.inbox.append(path)
-
-    def pause(self):
-        self.paused = True
-
-    def resume(self):
-        self.paused = False
-
-    def show(self, dataset):
-        """
-        Prepare and display externally loaded dataset
-
-        :param dataset: dataset
-        """
-        self.frames.append(Frame(dataset=dataset))
-
-    def load(self, path):
-        try:
-            dataset = read_image(path)
-            self.show(dataset)
-            success = True
-        except Exception as e:
-            logger.error(e)
-            success = False
-
-        if not success:
-            logger.warning("Unable to load {}".format(path))
-        return success
-
-    def set_colormap(self, name: str = 'binary'):
-        self.color_scheme = name
-
-    def set_current_frame(self, frame):
-        self.cur_frame = frame
-
-    def load_frame(self, number):
-        self.load_number = number
-
-    def next_frame(self):
-        self.load_next = True
-
-    def prev_frame(self):
-        self.load_prev = True
-
-    def start(self):
-        self.stopped = False
-        self.paused = False
-        worker_thread = threading.Thread(target=self.run, daemon=True, name="DataLoader")
-        worker_thread.start()
-
-    def stop(self):
-        self.stopped = True
-
-    def run(self):
-        last_update = 0
-        while not self.stopped:
-            time.sleep(0.05)
-            if self.paused:
-                continue
-
-            # Setup any frames in the deque and add them to the display queue
-            rescale = (time.time() - last_update > RESCALE_TIMEOUT)
-            if len(self.frames):
-                frame = self.frames.popleft()
-                frame.set_colormap(self.color_scheme)
-                frame.setup(settings=self.settings, rescale=rescale)
-                self.outbox.append(frame)
-                last_update = time.time()
-
-            if self.cur_frame:
-                try:
-                    success = False
-                    if self.load_next:
-                        success = self.cur_frame.next_frame()
-                        self.load_next = False
-                    elif self.load_prev:
-                        success = self.cur_frame.prev_frame()
-                        self.load_prev = False
-                    elif self.load_number:
-                        success = self.cur_frame.load_frame(self.load_number)
-                        self.load_number = None
-                    if success:
-                        rescale = (time.time() - last_update > RESCALE_TIMEOUT)
-                        frame = Frame(dataset=self.cur_frame.dataset)
-                        frame.set_colormap(self.color_scheme)
-                        frame.setup(settings=self.settings, rescale=rescale)
-                        self.outbox.append(frame)
-                        last_update = time.time()
-                except Exception as e:
-                    logger.error(f"Unable to read frame: {e}")
-            self.load_next = self.load_prev = False
-
-            # load any images from specified paths in the inbox
-            if len(self.inbox):
-                path = self.inbox.popleft()
-                self.load(path)
-
-
 class ImageWidget(Gtk.DrawingArea):
     image_loaded = Signal("image-loaded", arg_types=())
 
@@ -376,10 +168,10 @@ class ImageWidget(Gtk.DrawingArea):
         self.settings = ImageSettings()
         self.frame = None
         self.surface = None
-        self.spots = Spots()
-        self.view = Box()
-        self.view_stack = deque()
-        self.inbox = deque(maxlen=5)
+        self.spots = images.Spots()  # used for reflections
+        self.view = images.Box()  # the rectangle region of the image to display
+        self.view_stack = deque()  # view box history for undoing zoom
+        self.display_queue = deque(maxlen=5)  # images.Frames waiting to be displayed
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
@@ -400,9 +192,10 @@ class ImageWidget(Gtk.DrawingArea):
             False: color_palette(cmaps.binary)
         }
 
-        self.data_loader = DataLoader(self.inbox)
-        display_thread = threading.Thread(target=self.frame_monitor, daemon=True,
-                                          name=self.__class__.__name__ + ':Display')
+        self.data_loader = DataLoader(self.display_queue)
+        display_thread = threading.Thread(
+            target=self.frame_monitor, daemon=True, name=self.__class__.__name__ + ':Display'
+        )
         display_thread.start()
 
     def frame_monitor(self):
@@ -412,22 +205,22 @@ class ImageWidget(Gtk.DrawingArea):
                 if self.frame.redraw:
                     self.create_surface()
                     GLib.idle_add(self.redraw)
-            if len(self.inbox):
-                self.frame = self.inbox.popleft()
+            if len(self.display_queue):
+                self.frame = self.display_queue.popleft()
                 self.spots.select(self.frame.index)
-                self.data_loader.set_current_frame(self.frame)
+                self.data_loader.set_frame(self.frame)
             time.sleep(0.01)
 
     def create_surface(self, full=False):
         self.settings.width, self.settings.height = self.frame.size
         width = min(self.settings.width, self.settings.height)
         if not self.view.width or full:
-            self.view = Box(x=1, y=1, width=width - 2, height=width - 2)
+            self.view = images.Box(x=0, y=0, width=width, height=width)
         else:
             x = min(self.view.x, self.settings.width)
             y = min(self.view.y, self.settings.height)
             w = h = max(16, min(self.view.width, self.view.height, self.settings.width - x, self.settings.height - y))
-            self.view = Box(x=x, y=y, width=w, height=h)
+            self.view = images.Box(x=x, y=y, width=w, height=h)
         self.surface = cairo.ImageSurface.create_for_data(
             self.frame.image, cairo.FORMAT_ARGB32, self.settings.width, self.settings.height
         )
@@ -444,11 +237,11 @@ class ImageWidget(Gtk.DrawingArea):
             self.spots.select(self.frame.index)
         self.queue_draw()
 
-    def open(self, filename):
-        self.data_loader.open(filename)
+    def open_path(self, filename):
+        self.data_loader.open_path(filename)
 
-    def show_frame(self, frame):
-        return self.data_loader.show(frame)
+    def show_frame(self, dataset):
+        return self.data_loader.show_from_dataset(dataset)
 
     def load_next(self):
         return self.data_loader.next_frame()
@@ -468,7 +261,7 @@ class ImageWidget(Gtk.DrawingArea):
         min_value = 0
         max_value = self.frame.saturated_value
 
-        coords = bressenham_line(x1, y1, x2, y2)
+        coords = images.bressenham_line(x1, y1, x2, y2)
         data = numpy.zeros((len(coords), 3))
         n = 0
         for ix, iy in coords:
@@ -602,15 +395,15 @@ class ImageWidget(Gtk.DrawingArea):
         if self.view_stack and not full:
             self.view = self.view_stack.pop()
         else:
-            self.view = Box(x=1, y=1, width=self.settings.width - 2, height=self.settings.height - 2)
+            self.view = images.Box(x=1, y=1, width=self.settings.width - 2, height=self.settings.height - 2)
             self.view_stack.clear()
         self.queue_draw()
         return bool(self.view_stack)
 
     def colorize(self, color=False):
-        self.data_loader.set_colormap(COLOR_MAPS[int(color)])
+        self.data_loader.set_colormap(images.COLOR_MAPS[int(color)])
         if self.frame is not None:
-            self.frame.set_colormap(COLOR_MAPS[int(color)])
+            self.frame.set_colormap(images.COLOR_MAPS[int(color)])
 
     def reset_filters(self):
         if self.frame is not None:
@@ -713,7 +506,7 @@ class ImageWidget(Gtk.DrawingArea):
                 nw, nh = ow, oh
                 nx = min(max(0, nx), self.settings.width - nw)
                 ny = min(max(0, ny), self.settings.height - nh)
-                new_view = Box(x=nx, y=ny, width=nw, height=nh)
+                new_view = images.Box(x=nx, y=ny, width=nw, height=nh)
                 if self.view != new_view:
                     self.view = new_view
                     self.settings.mouse_box.set_start(event.x, event.y)
@@ -751,7 +544,7 @@ class ImageWidget(Gtk.DrawingArea):
             if self.settings.mode == MouseMode.SELECTING:
                 x0, y0 = self.screen_to_image(*self.settings.mouse_box.get_start())
                 x1, y1 = self.screen_to_image(*self.settings.mouse_box.get_end())
-                new_view = Box(x=x0, y=y0)
+                new_view = images.Box(x=x0, y=y0)
                 new_view.set_end(x1, y1)
                 new_view.normalize()
                 if min(new_view.width, new_view.height) > 10:
