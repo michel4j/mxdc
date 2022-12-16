@@ -30,7 +30,7 @@ logger = logging.getLogger('image-widget')
 RESCALE_TIMEOUT = 10  # duration between images to apply auto-rescale
 
 
-class DataLoader(Object):
+class DataLoader:
     #class Signals:
     #    new_image = Signal("new-image", arg_types=())
 
@@ -97,6 +97,7 @@ class DataLoader(Object):
         self.stopped = True
 
     def run(self):
+        last_display_time = 0
         while not self.stopped:
             time.sleep(0.01)
             if self.paused:
@@ -109,15 +110,17 @@ class DataLoader(Object):
                     dataset = read_image(path)
                     frame = images.Frame(dataset=dataset, color_scheme=self.color_scheme)
                     self.view_queue.append(frame)
+                    last_display_time = time.time()
 
                 elif len(self.pending_datasets):
                     # Set up the next pending dataset and add frame to display queue
                     dataset = self.pending_datasets.popleft()
                     settings = None
-                    if self.frame and self.frame.name != self.frame.header['name']:
+                    if self.frame and time.time() - last_display_time > 10:
                         settings = self.frame.settings
                     frame = images.Frame(dataset=dataset, color_scheme=self.color_scheme, settings=settings)
                     self.view_queue.append(frame)
+                    last_display_time = time.time()
 
                 if self.frame:
                     success = False
