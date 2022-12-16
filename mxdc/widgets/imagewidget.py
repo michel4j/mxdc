@@ -5,7 +5,7 @@ import time
 from typing import Any, Tuple, List
 from enum import Enum
 from collections import deque
-from functools import lru_cache
+from methodtools import lru_cache
 from dataclasses import dataclass, field
 
 import cairo
@@ -183,7 +183,7 @@ class Frame:
             self.dirty = False
             self.redraw = True
 
-    #@lru_cache(maxsize=10)
+    @lru_cache()
     def get_resolution_rings(self, view_x, view_y, view_width, view_height, scale):
         x, y, w, h = view_x, view_y, view_width, view_height
         cx = int((self.beam_x - x) * scale)
@@ -201,7 +201,7 @@ class Frame:
         ly = cy + radii * uy
         offset = shells * LABEL_GAP / scale
 
-        return zip(radii*scale, shells, lx, ly, label_angle + offset, label_angle - offset), (cx, cy)
+        return numpy.column_stack((radii*scale, shells, lx, ly, label_angle + offset, label_angle - offset)), (cx, cy)
 
     def image_resolution(self, x, y):
         displacement = numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
@@ -212,7 +212,7 @@ class Frame:
         return self.distance * numpy.tan(2*angle)/self.pixel_size
 
     def radius_to_resolution(self, r):
-        angle =  0.5 * numpy.arctan2(r * self.pixel_size, self.distance)
+        angle = 0.5 * numpy.arctan2(r * self.pixel_size, self.distance)
         return numpy.float(self.wavelength) / (2 * numpy.sin(angle))
 
     def radial_distance(self, x0, y0, x1, y1):
@@ -573,6 +573,7 @@ class ImageWidget(Gtk.DrawingArea):
 
     def draw_rings(self, cr):
         if self.settings.annotate:
+
             cr.save()
             cr.set_operator(cairo.OPERATOR_DIFFERENCE)
             cr.set_source_rgba(1.0, 0.8, 0.7, 1.0)
@@ -581,10 +582,8 @@ class ImageWidget(Gtk.DrawingArea):
             rings, (cx, cy) = self.frame.get_resolution_rings(
                 self.view.x, self.view.y, self.view.width, self.view.height, self.settings.scale
             )
-
             layout = self.create_pango_layout()
             for r, d, lx, ly, start_ang, end_ang in rings:
-
                 cr.arc(cx, cy, r, start_ang, end_ang)
                 cr.stroke()
                 layout.set_text(f'{d:0.2f}')
@@ -592,7 +591,6 @@ class ImageWidget(Gtk.DrawingArea):
                 cr.move_to(lx - logical.width/2, ly - logical.height/2)
                 PangoCairo.show_layout(cr, layout)
                 cr.fill()
-
             cr.restore()
 
     def go_back(self, full=False):

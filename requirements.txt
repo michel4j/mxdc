@@ -30,3 +30,4 @@ szrpc
 wget
 setuptools_scm
 importlib-metadata; python_version<"3.8"
+methodtools
