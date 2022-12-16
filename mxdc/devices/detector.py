@@ -443,7 +443,7 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
     def __init__(self, name, size, detector_type='MX300HE', desc='Rayonix Detector'):
         super().__init__()
         self.file_extension = 'img'
-        self.monitor = frames.FileMonitor(self)
+        self.monitor = images.FileMonitor(self)
 
         self.size = size, size
         self.resolution = 0.073242
@@ -549,7 +549,7 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
     def __init__(self, name, size, detector_type='Q315r', pixel_size=0.073242, desc='ADSC Detector'):
         super().__init__()
         self.file_extension = 'img'
-        self.monitor = frames.FileMonitor(self)
+        self.monitor = images.FileMonitor(self)
 
         self.size = size, size
         self.resolution = pixel_size
@@ -659,7 +659,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         super().__init__()
         self.detector_type = detector_type
         self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING, DetectorFeatures.WEDGING)
-        self.monitor = frames.FileMonitor(self)
+        self.monitor = images.FileMonitor(self)
 
         self.size = size
         self.resolution = 0.172
@@ -799,7 +799,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def __init__(self, name, stream, data_url, size=(3110, 3269), description='Eiger'):
         super().__init__()
         self.add_features(DetectorFeatures.SHUTTERLESS, DetectorFeatures.TRIGGERING)
-        self.monitor = frames.StreamMonitor(self, address=stream, kind=frames.StreamTypes.PUBLISH)
+        self.monitor = images.StreamMonitor(self, address=stream, kind=images.StreamTypes.PUBLISH)
         self.data_url = data_url
         self.monitor.connect('progress', self.on_data_progress)
         self.monitor_type = 'stream'
