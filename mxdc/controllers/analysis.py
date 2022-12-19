@@ -153,18 +153,19 @@ class AnalysisController(Object):
     def import_metafile(self, *args, **kwargs):
         filters = [
             ('MxDC Meta-File', ["*.meta"]),
-            ('AutoProcess Meta-File', ["*.json"]),
+            ('AutoProcess Report', ["*.html"]),
         ]
         directory = os.path.join(misc.get_project_home(), self.beamline.session_key)
-        filename, filter = dialogs.select_opensave_file(
-            'Select Meta-File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
+        file_name, file_filter = dialogs.select_opensave_file(
+            'Select File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
             default_folder=directory
         )
         self.sample_store = Registry.get_utility(ISampleStore)
-        if not filename:
+        if not file_name:
             return
-        if filter.get_name() == filters[0][0]:
-            data = misc.load_metadata(filename)
+
+        if file_filter.get_name() == filters[0][0]:
+            data = misc.load_metadata(file_name)
             if data.get('type') in ['DATA', 'SCREEN', 'XRD']:
                 if data.get('sample_id'):
                     row = self.sample_store.find_by_id(data['sample_id'])
@@ -185,6 +186,10 @@ class AnalysisController(Object):
                 self.reports.add_item(params)
             else:
                 self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
+
+        else:
+            uri = 'file://{}?v={}'.format(file_name, numpy.random.rand())
+            GObject.idle_add(self.browser.load_uri, uri)
 
     def on_sample(self, *args, **kwargs):
         sample = self.reports.sample

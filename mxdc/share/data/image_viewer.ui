@@ -11,18 +11,19 @@
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
+        <property name="baseline-position">bottom</property>
         <child>
-          <object class="GtkAspectFrame" id="image_frame">
-            <property name="width-request">640</property>
-            <property name="height-request">640</property>
+          <object class="GtkEventBox" id="image_frame">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label-xalign">0</property>
-            <property name="shadow-type">none</property>
-            <property name="obey-child">False</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
             <child>
               <placeholder/>
             </child>
+            <style>
+              <class name="shaded-bg"/>
+            </style>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -34,10 +35,9 @@
           <object class="GtkToolbar" id="image_toolbar">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="valign">end</property>
             <property name="toolbar-style">icons</property>
             <property name="show-arrow">False</property>
-            <property name="icon_size">1</property>
+            <property name="icon_size">2</property>
             <child>
               <object class="GtkToolButton" id="open_btn">
                 <property name="visible">True</property>
@@ -142,6 +142,8 @@
               <object class="GtkSeparatorToolItem">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">3</property>
+                <property name="margin-bottom">3</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -212,6 +214,8 @@
               <object class="GtkSeparatorToolItem">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">3</property>
+                <property name="margin-bottom">3</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -274,6 +278,9 @@
                     <property name="angle">0.04</property>
                   </object>
                 </child>
+                <style>
+                  <class name="toolbar-text"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -298,6 +305,9 @@
                     <property name="angle">0.04</property>
                   </object>
                 </child>
+                <style>
+                  <class name="toolbar-text"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -310,7 +320,7 @@
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
+            <property name="fill">True</property>
             <property name="pack-type">end</property>
             <property name="position">1</property>
           </packing>
@@ -321,7 +331,7 @@
             <property name="can-focus">False</property>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
           </packing>

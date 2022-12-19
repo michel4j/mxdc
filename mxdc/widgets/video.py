@@ -36,7 +36,7 @@ def pix(v):
 @implementer(IVideoSink)
 class VideoWidget(Gtk.DrawingArea):
 
-    def __init__(self, camera, pixel_size=1.0, width=680):
+    def __init__(self, camera, pixel_size=1.0, width=700):
         super(VideoWidget, self).__init__()
         self.props.expand = True
         self.props.halign = Gtk.Align.FILL
