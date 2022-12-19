@@ -278,6 +278,9 @@ class ScaleSettings:
         self.scale = self.average + self.multiplier * self.sigma
 
 
+class InvalidFrameData(Exception):
+    ...
+
 
 @dataclass
 class Frame:
@@ -318,6 +321,9 @@ class Frame:
         self.distance = self.header['distance']
         self.wavelength = self.header['wavelength']
         self.saturated_value = self.header['saturated_value']
+
+        if self.data is None:
+            raise InvalidFrameData("Data appears invalid!")
 
         if self.settings is None:
             high_value = numpy.percentile(self.stats_data, 99.)

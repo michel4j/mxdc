@@ -203,7 +203,7 @@
                 <property name="tooltip-text" translatable="yes">Select Frames</property>
                 <property name="valign">center</property>
                 <property name="use-underline">True</property>
-                <property name="icon-name">media-tape</property>
+                <property name="icon-name">media-tape-symbolic</property>
               </object>
               <packing>
                 <property name="expand">False</property>

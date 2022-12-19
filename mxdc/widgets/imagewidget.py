@@ -138,8 +138,8 @@ class DataLoader:
                         self.view_queue.append(frame)
 
                 self.load_next = self.load_prev = False
-            except IOError:
-                logger.exception("Unable to load frame")
+            except (IOError, images.InvalidFrameData):
+                logger.error("Unable to load image frame")
 
 
 class MouseMode(Enum):
