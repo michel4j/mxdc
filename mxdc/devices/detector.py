@@ -738,6 +738,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
 
     def save(self, wait=False):
         logger.debug('({}) Acquisition completed ...'.format(self.name))
+        self.acquire_cmd.put(0)
         self.wait_until(States.IDLE)
 
     def on_new_frame(self, obj, frame_number):
