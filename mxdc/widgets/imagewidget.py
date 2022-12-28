@@ -31,13 +31,11 @@ RESCALE_TIMEOUT = 10  # duration between images to apply auto-rescale
 
 
 class DataLoader:
-    #class Signals:
-    #    new_image = Signal("new-image", arg_types=())
 
     def __init__(self, view_queue: deque):
         super().__init__()
 
-        self.frame: Union[images.Frame, None] = None
+        self.frame: Union[images.DisplayFrame, None] = None
         self.pending_datasets = deque(maxlen=2)
         self.pending_files = deque(maxlen=2)
         self.view_queue = view_queue
@@ -108,7 +106,7 @@ class DataLoader:
                     # Load and set up the next pending file name and add frame to display queue
                     path = self.pending_files.popleft()
                     dataset = read_image(path)
-                    frame = images.Frame(dataset=dataset, color_scheme=self.color_scheme)
+                    frame = images.DisplayFrame(dataset=dataset, color_scheme=self.color_scheme)
                     self.view_queue.append(frame)
                     last_display_time = time.time()
 
@@ -118,7 +116,7 @@ class DataLoader:
                     settings = None
                     if self.frame and time.time() - last_display_time > 10:
                         settings = self.frame.settings
-                    frame = images.Frame(dataset=dataset, color_scheme=self.color_scheme, settings=settings)
+                    frame = images.DisplayFrame(dataset=dataset, color_scheme=self.color_scheme, settings=settings)
                     self.view_queue.append(frame)
                     last_display_time = time.time()
 
@@ -132,14 +130,14 @@ class DataLoader:
                         success = self.frame.load_frame(self.load_number)
                         self.load_number = None
                     if success:
-                        frame = images.Frame(
+                        frame = images.DisplayFrame(
                             dataset=self.frame.dataset, color_scheme=self.color_scheme, settings=self.frame.settings
                         )
                         self.view_queue.append(frame)
 
                 self.load_next = self.load_prev = False
-            except (IOError, images.InvalidFrameData):
-                logger.error("Unable to load image frame")
+            except Exception:
+                logger.exception("Unable to load image frame")
 
 
 class MouseMode(Enum):
@@ -215,7 +213,7 @@ class ImageWidget(Gtk.DrawingArea):
             time.sleep(0.01)
 
     def create_surface(self, full=False):
-        self.settings.width, self.settings.height = self.frame.size
+        self.settings.width, self.settings.height = self.frame.size.x, self.frame.size.y
         width = min(self.settings.width, self.settings.height)
         if not self.view.width or full:
             self.view = images.Box(x=0, y=0, width=width, height=width)
@@ -224,6 +222,7 @@ class ImageWidget(Gtk.DrawingArea):
             y = min(self.view.y, self.settings.height)
             w = h = max(16, min(self.view.width, self.view.height, self.settings.width - x, self.settings.height - y))
             self.view = images.Box(x=x, y=y, width=w, height=h)
+
         self.surface = cairo.ImageSurface.create_for_data(
             self.frame.image, cairo.FORMAT_ARGB32, self.settings.width, self.settings.height
         )
@@ -319,9 +318,9 @@ class ImageWidget(Gtk.DrawingArea):
         # cross
         x, y, w, h = self.view.x, self.view.y, self.view.width, self.view.height
         radius = 32 * self.settings.scale
-        if (0 < (self.frame.beam_x - x) < x + w) and (0 < (self.frame.beam_y - y) < y + h):
-            cx = int((self.frame.beam_x - x) * self.settings.scale)
-            cy = int((self.frame.beam_y - y) * self.settings.scale)
+        if (0 < (self.frame.center.x - x) < x + w) and (0 < (self.frame.center.y - y) < y + h):
+            cx = int((self.frame.center.x - x) * self.settings.scale)
+            cy = int((self.frame.center.y - y) * self.settings.scale)
             cr.move_to(cx - radius, cy)
             cr.line_to(cx + radius, cy)
             cr.stroke()

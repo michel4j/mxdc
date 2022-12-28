@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.14"/>
   <object class="GtkWindow">
@@ -473,7 +473,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="detector_type_lbl">
+              <object class="GtkLabel" id="detector_lbl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
@@ -502,7 +502,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="detector_size_lbl">
+              <object class="GtkLabel" id="size_lbl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
@@ -564,7 +564,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="exposure_time_lbl">
+              <object class="GtkLabel" id="exposure_lbl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
@@ -580,7 +580,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="average_intensity_lbl">
+              <object class="GtkLabel" id="average_lbl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
@@ -596,7 +596,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="max_intensity_lbl">
+              <object class="GtkLabel" id="maximum_lbl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
@@ -746,7 +746,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="beam_center_lbl">
+              <object class="GtkLabel" id="center_lbl">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
