@@ -21,7 +21,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter, MaxNLocator
 
 from mxdc.utils.images import Box
-from mxdc import Signal, Object
+from mxdc import Signal
 from mxdc.utils import cmaps, colors, images
 from mxdc.utils.gui import color_palette
 
@@ -138,7 +138,7 @@ class DataLoader:
                         self.view_queue.append(frame)
 
                 self.load_next = self.load_prev = False
-            except (IOError, images.InvalidFrameData):
+            except (UnicodeDecodeError, IOError, images.InvalidFrameData):
                 logger.error("Unable to load image frame")
 
 
