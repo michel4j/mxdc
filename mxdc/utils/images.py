@@ -115,7 +115,7 @@ class StreamMonitor(DataMonitor):
     A data monitor which monitors a zeromq stream for new data
     """
 
-    def __init__(self, master, address, kind=StreamTypes.PUSH, maxfreq=10):
+    def __init__(self, master, address: str, kind: StreamTypes =StreamTypes.PUSH, max_freq: int = 10):
         super().__init__(master)
         self.context = None
         self.receiver = None
@@ -124,6 +124,7 @@ class StreamMonitor(DataMonitor):
         self.address = address
         self.last_time = time.time()
         self.inbox = deque(maxlen=100)
+        self.max_freq = max_freq
         self.start()
 
     def start(self):
@@ -133,7 +134,7 @@ class StreamMonitor(DataMonitor):
 
     def run_parser(self):
         count = 0
-        show_every = 10
+        show_every = 1
         while not self.is_stopped():
             if len(self.inbox) and not self.is_paused() and self.master:
                 msg = self.inbox.popleft()
@@ -141,22 +142,21 @@ class StreamMonitor(DataMonitor):
                 try:
                     if msg_type['htype'] == 'dheader-1.0':
                         self.dataset = eiger.EigerStream()
-                        self.dataset.read_header(msg)
+                        self.dataset.parse_header(msg)
                         count = 0
-                        show_every = misc.factorize(
-                            self.dataset.header['num_images'],
-                            maximum=math.ceil(0.5 / self.dataset.header['exposure_time'])
-                        )[-1]
+
                     elif msg_type['htype'] == 'dimage-1.0' and self.dataset is not None:
                         count += 1
-                        fraction = count / self.dataset.header['num_images']
-                        if count % show_every == 1 or count == self.dataset.header['num_images']:
-                            self.dataset.read_image(msg)
-                            count = self.dataset.header['frame_number']
+                        if count % show_every == 0 or count == self.dataset.size:
+                            self.dataset.parse_image(msg)
+                            show_every = int(math.ceil(1 / self.dataset.frame.exposure / self.max_freq))
+                            count = self.dataset.index
                             self.master.process_frame(self.dataset)
+
+                        fraction = count / self.dataset.size
                         self.set_state(progress=(fraction, 'frames collected'))
                 except Exception as e:
-                    logger.error(f'Error parsing stream: {e}')
+                    logger.exception(f'Error parsing stream: {e}')
             time.sleep(0.001)
 
     def run(self):
@@ -324,8 +324,9 @@ class DisplayFrame:
             raise InvalidFrameData("Data appears invalid!")
 
         if self.settings is None:
+            maximum = numpy.percentile(frame.data, 95)
             self.settings = ScaleSettings(
-                maximum=frame.maximum, average=frame.average, sigma=frame.sigma
+                maximum=maximum, average=frame.average, sigma=frame.sigma
             )
         self.setup()
         radii = numpy.arange(0, int(1.4142 * self.size.x / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]

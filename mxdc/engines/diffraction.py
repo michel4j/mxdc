@@ -71,11 +71,11 @@ class DataCollector(Engine):
                     if metadata and analysis:
                         self.analyse(metadata, dataset.sample)
                 except Exception as e:
-                    logger.error(f"{details['name']} could not be saved")
-                    logger.error(str(e))
+                    logger.exception(f"{details['name']!r} could not be saved: {e}")
+
             time.sleep(1)
 
-    def configure(self, run_data, take_snapshots=False, analysis=None, anomalous=False):
+    def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
         """
         Configure the data collection engine
 
@@ -319,11 +319,11 @@ class DataCollector(Engine):
             info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
         except OSError as e:
             logger.warning(f'Unable to find files on disk: {reference}')
-            start_time = self.config['start_time']
+
             framesets = ""
         else:
             framesets = info['frames']
-            start_time = min(info['start_time'], self.config['start_time'])
+
 
         metadata = {
             'name': params['name'],
@@ -331,7 +331,7 @@ class DataCollector(Engine):
             'filename': template,
             'group': params['group'],
             'container': params['container'],
-            'start_time': start_time.isoformat(),
+            'start_time': self.config['start_time'].isoformat(),
             'end_time': self.config['end_time'].isoformat(),
             'port': params['port'],
             'type': datatools.StrategyDataType.get(params['strategy']),

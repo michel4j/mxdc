@@ -9,7 +9,7 @@ from datetime import datetime
 
 import numpy
 import pytz
-from mxio import read_header
+from mxio import read_image
 from mxdc.utils import misc
 
 FRAME_NUMBER_DIGITS = 4
@@ -214,13 +214,13 @@ def summarize_list(values):
     :return: string
     """
 
-    sorted_values = numpy.array(sorted(values))
-    summaries = [
-        (f'{chunk[0]}-{chunk[-1]}' if len(chunk) > 1 else f'{chunk[0]}')
-        for chunk in  numpy.split(sorted_values, numpy.where(numpy.diff(sorted_values) > 1)[0] + 1)
+    values = numpy.array(values)
+    values.sort()
+    return ','.join(
+        f'{chunk[0]}-{chunk[-1]}'
+        for chunk in numpy.split(values, numpy.where(numpy.diff(values) > 1)[0] + 1)
         if len(chunk)
-    ]
-    return ','.join(summaries)
+    )
 
 
 def summarize_gaps(values):
@@ -338,12 +338,10 @@ def dataset_from_reference(reference_file):
         'start_time':  start time for the dataset
         'frames':  A frame list string, eg '1-5,8-10' or '1'
     """
-    header = read_header(reference_file)
-    sequence = header['dataset'].get('sequence', [])
+    dset = read_image(reference_file)
     return {
-        'start_time': header['dataset'].get('start_time', datetime.now(tz=pytz.utc)),
-        'frames': summarize_list(sequence),
-        'num_frames': len(sequence)
+        'frames': summarize_list(dset.series),
+        'num_frames': dset.size
     }
 
 

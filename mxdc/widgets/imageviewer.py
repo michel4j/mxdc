@@ -35,6 +35,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
     Formats = {
         'average': '{:0.2f}',
         'maximum': '{:0.0f}',
+        'cutoff_value': '{:0.0f}',
         'overloads': '{:0.0f}',
         'wavelength': '{:0.4g} Å',
         'delta_angle': '{:0.4g}°',

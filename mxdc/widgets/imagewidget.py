@@ -105,7 +105,9 @@ class DataLoader:
                 if len(self.pending_files):
                     # Load and set up the next pending file name and add frame to display queue
                     path = self.pending_files.popleft()
+                    t = time.time()
                     dataset = read_image(path)
+                    logger.critical(f'Elapsed: {time.time() - t:0.6f}')
                     frame = images.DisplayFrame(dataset=dataset, color_scheme=self.color_scheme)
                     self.view_queue.append(frame)
                     last_display_time = time.time()
@@ -136,8 +138,10 @@ class DataLoader:
                         self.view_queue.append(frame)
 
                 self.load_next = self.load_prev = False
-            except Exception:
-                logger.exception("Unable to load image frame")
+            except Exception as e:
+                self.load_next = self.load_prev = False
+                self.load_number = None
+                logger.warning(f'Error loading frame: {e}')
 
 
 class MouseMode(Enum):
