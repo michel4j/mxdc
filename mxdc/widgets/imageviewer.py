@@ -9,7 +9,7 @@ from gi.repository import Gtk
 
 from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs
-from mxdc.widgets.imagewidget import ImageWidget, logger
+from mxdc.widgets.imagewidget import ImageWidget
 from mxdc import Registry
 from zope.interface import Interface
 
@@ -33,20 +33,19 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         'data/image_viewer': ['image_viewer', 'info_dialog', 'frames_pop']
     }
     Formats = {
-        'average_intensity': '{:0.2f}',
-        'max_intensity': '{:0.0f}',
+        'average': '{:0.2f}',
+        'maximum': '{:0.0f}',
         'overloads': '{:0.0f}',
         'wavelength': '{:0.4g} Å',
         'delta_angle': '{:0.4g}°',
         'two_theta': '{:0.2g}°',
         'start_angle': '{:0.3g}°',
-        'exposure_time': '{:0.4g} s',
+        'exposure': '{:0.4g} s',
         'distance': '{:0.1f} mm',
         'pixel_size': '{:0.4g} mm',
-        'detector_size': '{}, {}',
-        'beam_center': '{:0.0f}, {:0.0f}',
-        'filename': '{}',
-        'detector_type': '{}',
+        'size': '{x}, {y}',
+        'center': '{x:0.0f}, {y:0.0f}',
+        'detector': '{}',
     }
 
     def __init__(self, size=700):
@@ -126,9 +125,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         self.play_btn.set_icon_name(self.icons[status])
 
     def open_dataset(self, filename):
-        #self.pause()
         self.canvas.open_path(filename)
-
 
     def show_frame(self, frame):
         if self.updating:
@@ -137,16 +134,15 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
     def reset_dataset(self):
         self.frames_pop.popdown()
         self.dataset = self.frame.dataset
-        sequence = self.frame.header.get('dataset', {}).get('sequence', [])
-        if len(sequence):
+        if len(self.dataset.series):
             self.frames_btn.set_sensitive(True)
-            self.data_adjustment.set_lower(sequence[0])
-            self.data_adjustment.set_upper(sequence[-1])
+            self.data_adjustment.set_lower(self.dataset.series[0])
+            self.data_adjustment.set_upper(self.dataset.series[-1])
         else:
             self.frames_btn.set_sensitive(False)
 
         self.frames_scale.set_value(self.frame.index)
-        values = numpy.unique(numpy.linspace(sequence[0], sequence[-1], 5).astype(int))
+        values = numpy.unique(numpy.linspace(self.dataset.series[0], self.dataset.series[-1], 5).astype(int))
         self.frames_scale.clear_marks()
         for value in values:
             self.frames_scale.add_mark(value, Gtk.PositionType.BOTTOM, f'{value}')
@@ -182,14 +178,15 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
 
     def on_data_loaded(self, obj=None):
         self.frame = self.canvas.get_image_info()
+
         if self.frame.dataset is not self.dataset:
             self.reset_dataset()
 
-        self.frames_scale.set_value(self.frame.index)
+        self.frames_scale.set_value(self.frame.dataset.index)
 
-        directory = self.frame.header.get('dataset', {}).get('directory')
+        directory = self.frame.dataset.directory
         if directory:
-            os.chdir(self.frame.header['dataset']['directory'])
+            os.chdir(directory)
 
         self.save_btn.set_sensitive(True)
         self.back_btn.set_sensitive(True)
@@ -202,15 +199,18 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         self.next_btn.set_sensitive(True)
         self.annotate_btn.set_sensitive(True)
 
-        info = self.frame.header
         for name, fmt in list(self.Formats.items()):
-            field_name = '{}_lbl'.format(name)
+            field_name = f'{name}_lbl'
             field = getattr(self, field_name, None)
-            if field and name in info:
-                if isinstance(info[name], (tuple, list)):
-                    txt = fmt.format(*info[name])
+            value = getattr(self.frame, name, None)
+            if value is None:
+                value = getattr(self.dataset.frame, name, None)
+
+            if field is not None and value is not None:
+                if name in ['size', 'center']:
+                    txt = fmt.format(x=value.x, y=value.y)
                 else:
-                    txt = fmt.format(info[name])
+                    txt = fmt.format(value)
                 field.set_text(txt)
         self.follow_timeout = time.time() + MAX_FOLLOW_DURATION
 
@@ -284,7 +284,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         self.frames_pop.popdown()
 
     def on_frames_updated(self, scale, scroll, value):
-        sequence = self.frame.header.get('dataset', {}).get('sequence', [])
+        sequence = self.frame.dataset.series
         frame_number = int(value)
         if frame_number in sequence:
             self.canvas.load_frame(frame_number)

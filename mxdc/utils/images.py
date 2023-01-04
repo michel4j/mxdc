@@ -1,6 +1,6 @@
 import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Any, Tuple, List, Union
 
 import cv2
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import zmq
 from methodtools import lru_cache
-from mxio import read_image, formats
+from mxio import read_image, formats, DataSet, XYPair
 from mxio.formats import eiger
 
 from mxdc import Engine
@@ -283,23 +283,21 @@ class InvalidFrameData(Exception):
 
 
 @dataclass
-class Frame:
-    dataset: formats.DataSet
+class DisplayFrame:
+    dataset: DataSet
     color_scheme: Union[str, None] = 'binary'
     settings: Union[ScaleSettings, None] = field(repr=False, default=None)
     color_map: Any = field(init=False, repr=False)
     data: numpy.ndarray = field(init=False, repr=False)
     stats_data: numpy.ndarray = field(init=False, repr=False)
-    header: dict = field(init=False, repr=False)
     image: Any = field(init=False, repr=False)
     redraw: bool = False
     dirty: bool = True
 
     name: str = field(init=False)
-    size: Tuple[int, int] = field(init=False)
+    size: XYPair = field(init=False)
     pixel_size: float = field(init=False)
-    beam_x: float = field(init=False)
-    beam_y: float = field(init=False)
+    center: XYPair = field(init=False)
     index: int = field(init=False)
     delta_angle: float = field(init=False)
     distance: float = field(init=False)
@@ -309,39 +307,36 @@ class Frame:
 
     def __post_init__(self):
         self.set_colormap(self.color_scheme)
-        self.header = self.dataset.header
-        self.data = self.dataset.data
-        self.stats_data = self.dataset.stats_data
-        self.size = self.header['detector_size']
-        self.index = self.header['frame_number']
-        self.name = f'{self.header["name"]} [ {self.index} ]'
-        self.beam_x, self.beam_y = self.header['beam_center']
-        self.delta_angle = self.header['delta_angle']
-        self.pixel_size = self.header['pixel_size']
-        self.distance = self.header['distance']
-        self.wavelength = self.header['wavelength']
-        self.saturated_value = self.header['saturated_value']
+        frame = self.dataset.frame
+        self.data = frame.data
+        self.stats_data = frame.data
+        self.size = frame.size
+        self.index = self.dataset.index
+        self.name = f'{self.dataset.name} [ {self.index} ]'
+        self.center = frame.center
+        self.delta_angle = frame.delta_angle
+        self.pixel_size = frame.pixel_size.x
+        self.distance = frame.distance
+        self.wavelength = frame.wavelength
+        self.saturated_value = frame.cutoff_value
 
         if self.data is None:
             raise InvalidFrameData("Data appears invalid!")
 
         if self.settings is None:
-            high_value = numpy.percentile(self.stats_data, 99.)
             self.settings = ScaleSettings(
-                maximum=high_value, average=self.header['average_intensity'],
-                sigma=self.header['std_dev']
+                maximum=frame.maximum, average=frame.average, sigma=frame.sigma
             )
         self.setup()
-        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
+        radii = numpy.arange(0, int(1.4142 * self.size.x / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
         self.resolution_shells = self.radius_to_resolution(radii)
-
 
     def setup(self, settings: Union[ScaleSettings, None] = None):
         if self.dirty:
             if settings is not None:
                 self.settings = settings
-
-            img0 = cv2.convertScaleAbs(self.data, None, 256 / self.settings.scale, 0)
+            data = self.data.astype(numpy.int32) if str(self.data.dtype) == 'uint32' else self.data
+            img0 = cv2.convertScaleAbs(data, None, 256 / self.settings.scale, 0)
             img1 = cv2.applyColorMap(img0, self.color_map)
             self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
 
@@ -351,16 +346,18 @@ class Frame:
     @lru_cache()
     def get_resolution_rings(self, view_x, view_y, view_width, view_height, scale):
         x, y, w, h = view_x, view_y, view_width, view_height
-        cx = int((self.beam_x - x) * scale)
-        cy = int((self.beam_y - y) * scale)
+        cx = int((self.center.x - x) * scale)
+        cy = int((self.center.y - y) * scale)
 
-        vx = (w // 2) * scale
-        vy = (h // 2) * scale
-        label_angle = numpy.arctan2(vy - cy, vx - cx)  # optimal angle for labels
+        # calculate optimal angle for labels
+        corners = numpy.array([(x, y), (x, y+w), (x+w, y), (x+w, y+w)]) - (self.center.x, self.center.y)
+        best = numpy.argmax(numpy.linalg.norm(corners, axis=1))
+        label_angle = numpy.arctan2(corners[best, 1], corners[best, 0])
+
         ux = scale * math.cos(label_angle)
         uy = scale * math.sin(label_angle)
 
-        radii = numpy.arange(0, int(1.4142 * self.size[0] / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
+        radii = numpy.arange(0, int(1.4 * self.size.x / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
         shells = self.radius_to_resolution(radii)
         lx = cx + radii * ux
         ly = cy + radii * uy
@@ -369,7 +366,7 @@ class Frame:
         return numpy.column_stack((radii * scale, shells, lx, ly, label_angle + offset, label_angle - offset)), (cx, cy)
 
     def image_resolution(self, x, y):
-        displacement = numpy.sqrt((x - self.beam_x) ** 2 + (y - self.beam_y) ** 2)
+        displacement = numpy.sqrt((x - self.center.x) ** 2 + (y - self.center.y) ** 2)
         return self.radius_to_resolution(displacement)
 
     def resolution_to_radius(self, d):
