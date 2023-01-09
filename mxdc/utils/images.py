@@ -371,12 +371,12 @@ class DisplayFrame:
         return self.radius_to_resolution(displacement)
 
     def resolution_to_radius(self, d):
-        angle = numpy.arcsin(numpy.float(self.wavelength) / (2 * d))
+        angle = numpy.arcsin(numpy.float32(self.wavelength) / (2 * d))
         return self.distance * numpy.tan(2 * angle) / self.pixel_size
 
     def radius_to_resolution(self, r):
         angle = 0.5 * numpy.arctan2(r * self.pixel_size, self.distance)
-        return numpy.float(self.wavelength) / (2 * numpy.sin(angle))
+        return numpy.float32(self.wavelength) / (2 * numpy.sin(angle))
 
     def radial_distance(self, x0, y0, x1, y1):
         d = numpy.sqrt((x0 - x1) ** 2 + (y0 - y1) ** 2) * self.pixel_size
