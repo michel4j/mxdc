@@ -15,7 +15,7 @@ from pathlib import Path
 
 import zmq
 from methodtools import lru_cache
-from mxio import read_image, formats, DataSet, XYPair
+from mxio import read_image, DataSet, XYPair
 from mxio.formats import eiger
 
 from mxdc import Engine

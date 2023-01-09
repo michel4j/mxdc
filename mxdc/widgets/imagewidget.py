@@ -102,23 +102,22 @@ class DataLoader:
                 continue
 
             try:
+                dataset = None
                 if len(self.pending_files):
                     # Load and set up the next pending file name and add frame to display queue
                     path = self.pending_files.popleft()
                     dataset = read_image(path)
-                    frame = images.DisplayFrame(dataset=dataset, color_scheme=self.color_scheme)
-                    self.view_queue.append(frame)
-                    last_display_time = time.time()
 
                 elif len(self.pending_datasets):
                     # Set up the next pending dataset and add frame to display queue
                     dataset = self.pending_datasets.popleft()
+
+                if dataset is not None:
                     settings = None
-                    if self.frame and time.time() - last_display_time > 10:
+                    if self.frame and self.frame.dataset.identifier == dataset.identifier:
                         settings = self.frame.settings
                     frame = images.DisplayFrame(dataset=dataset, color_scheme=self.color_scheme, settings=settings)
                     self.view_queue.append(frame)
-                    last_display_time = time.time()
 
                 if self.frame:
                     success = False
@@ -139,7 +138,7 @@ class DataLoader:
             except Exception as e:
                 self.load_next = self.load_prev = False
                 self.load_number = None
-                logger.warning(f'Error loading frame: {e}')
+                logger.exception(f'Error loading frame: {e}')
 
 
 class MouseMode(Enum):
@@ -202,14 +201,20 @@ class ImageWidget(Gtk.DrawingArea):
         display_thread.start()
 
     def frame_monitor(self):
+        identifier = ""
         while True:
             if self.frame is not None:
+                identifier = self.frame.dataset.identifier
                 self.frame.setup()
                 if self.frame.redraw:
                     self.create_surface()
                     GLib.idle_add(self.redraw)
+
             if len(self.display_queue):
                 self.frame = self.display_queue.popleft()
+                if self.frame.dataset.identifier != identifier:
+                    identifier = self.frame.dataset.identifier
+                    self.view = Box(0, 0, 0, 0)
                 self.spots.select(self.frame.index)
                 self.data_loader.set_frame(self.frame)
             time.sleep(0.01)
@@ -411,7 +416,9 @@ class ImageWidget(Gtk.DrawingArea):
 
     def reset_filters(self):
         if self.frame is not None:
+            print(self.view, self.frame.size)
             self.frame.adjust()
+            print(self.view, self.frame.size)
 
     def get_position(self, x, y):
         if not self.settings.initialized:
