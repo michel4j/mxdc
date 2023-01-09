@@ -21,7 +21,7 @@ zeroconf
 python-magic
 pytz
 ipython
-mxio
+mxio>=2023.1.4
 humanize
 lorem
 pandas
