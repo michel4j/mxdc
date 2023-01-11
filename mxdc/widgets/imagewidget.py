@@ -416,9 +416,7 @@ class ImageWidget(Gtk.DrawingArea):
 
     def reset_filters(self):
         if self.frame is not None:
-            print(self.view, self.frame.size)
             self.frame.adjust()
-            print(self.view, self.frame.size)
 
     def get_position(self, x, y):
         if not self.settings.initialized:
