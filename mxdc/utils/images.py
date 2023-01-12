@@ -312,7 +312,7 @@ class DisplayFrame:
         self.stats_data = frame.data
         self.size = frame.size
         self.index = self.dataset.index
-        self.name = f'{self.dataset.name} [ {self.index} ]'
+        self.name = f'{self.dataset.name} [ {self.index} ]' if self.index > 0 else f'{self.dataset.name}'
         self.center = frame.center
         self.delta_angle = frame.delta_angle
         self.pixel_size = frame.pixel_size.x

@@ -139,14 +139,14 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             self.frames_btn.set_sensitive(True)
             self.data_adjustment.set_lower(self.dataset.series[0])
             self.data_adjustment.set_upper(self.dataset.series[-1])
+            values = numpy.unique(numpy.linspace(self.dataset.series[0], self.dataset.series[-1], 5).astype(int))
+            self.frames_scale.clear_marks()
+            for value in values:
+                self.frames_scale.add_mark(value, Gtk.PositionType.BOTTOM, f'{value}')
         else:
             self.frames_btn.set_sensitive(False)
 
         self.frames_scale.set_value(self.frame.index)
-        values = numpy.unique(numpy.linspace(self.dataset.series[0], self.dataset.series[-1], 5).astype(int))
-        self.frames_scale.clear_marks()
-        for value in values:
-            self.frames_scale.add_mark(value, Gtk.PositionType.BOTTOM, f'{value}')
 
     def follow_frames(self):
         self.canvas.load_next()
