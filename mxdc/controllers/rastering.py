@@ -2,7 +2,6 @@
 import time
 import os
 import uuid
-import re
 from enum import Enum
 
 from gi.repository import Gtk
@@ -19,7 +18,7 @@ from .microscope import IMicroscope
 from .samplestore import ISampleStore
 from .common import DataStatusController
 
-RASTER_DELTA = .1
+RASTER_DELTA = .25
 
 logger = get_module_logger(__name__)
 
