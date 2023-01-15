@@ -40,7 +40,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         'wavelength': '{:0.4g} Å',
         'delta_angle': '{:0.4g}°',
         'two_theta': '{:0.2g}°',
-        'start_angle': '{:0.3g}°',
+        'start_angle': '{:0.5g}°',
         'exposure': '{:0.4g} s',
         'distance': '{:0.1f} mm',
         'pixel_size': '{:0.4g} mm',
