@@ -212,7 +212,7 @@ class Centering(Engine):
         exposure = max(exposure, det_exp_limit, mtr_exp_limit)
 
         self.beamline.goniometer.omega.move_by(90, wait=True)
-        for step in ['edge', 'face']:
+        for step in ['face', 'edge']:
             logger.info('Performing raster scan on {}'.format(step))
             self.beamline.goniometer.wait(start=False)
             if step == 'face':
@@ -239,9 +239,9 @@ class Centering(Engine):
 
             }
             if step == 'edge':
-                params.update({'hsteps': max(2, int(width//aperture)), 'vsteps': max(5, int(height*1.5//aperture))})
+                params.update({'hsteps': 1, 'vsteps':   int(height*2//aperture)})
             else:
-                params.update({'hsteps': 4, 'vsteps': max(5, int(height*1.5//aperture))})
+                params.update({'hsteps': int(width*1.2//aperture), 'vsteps': int(height*1.2//aperture)})
 
             params = datatools.update_for_sample(
                 params, sample=self.sample_store.get_current(), session=self.beamline.session_key

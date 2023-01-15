@@ -358,10 +358,15 @@ class MD2Gonio(BaseGoniometer):
         }
 
     def grid_settings(self):
+        # return {
+        #     "snake": True,
+        #     "vertical": not self.power_pmac,
+        #     "buggy": self.power_pmac,
+        # }
         return {
             "snake": True,
             "vertical": not self.power_pmac,
-            "buggy": self.power_pmac,
+            "buggy": False,
         }
 
     def save_centering(self):
@@ -427,18 +432,20 @@ class MD2Gonio(BaseGoniometer):
                 kwargs['start'] = f"{start_y:0.5f},{start_z:0.5f},{start_cx:0.5f},{start_cy}:0.5f"
                 kwargs['stop'] = f"{stop_y:0.5f},{stop_z:0.5f},{stop_cx:0.5f}, {stop_cy:0.5f}"
 
+            print(kwargs)
             misc.set_settings(self.helix_settings, **kwargs)
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
-            kwargs['snake'] = 1
+            kwargs['snake'] = int(self.grid_settings()['snake'])
 
             # Scale and convert um to mm
             # MD2 appears to need correction of scan size by -1 in each direction
-            # w_adj = 1e-3
-            w_adj = 1e-3 * (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
 
-            # h_adj = 1e-3
-            h_adj = 1e-3 * (kwargs['vsteps'] - 1)/kwargs['vsteps']
+            w_adj = 1e-3
+            h_adj = 1e-3
+
+            #w_adj = 1e-3 * (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
+            #h_adj = 1e-3 * (kwargs['vsteps'] - 1)/kwargs['vsteps']
 
             kwargs['width'] *= w_adj
             kwargs['height'] *= h_adj
@@ -450,6 +457,9 @@ class MD2Gonio(BaseGoniometer):
             start_z = self.gon_z_fbk.get()
             kwargs['start'] = (start_y, start_z, start_cx, start_cy)
 
+            frames, lines = kwargs.get('hsteps', 1), kwargs.get('vsteps', 1)
+            line_size = kwargs['width']
+
             # frames and lines are inverted for vertical scans on non-powerpmac systems
             if kwargs['width'] < kwargs['height'] and not self.power_pmac:
                 frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
@@ -457,20 +467,40 @@ class MD2Gonio(BaseGoniometer):
                 y_offset = kwargs['height']/2
                 self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
 
+            if self.power_pmac:
+                frames, lines = kwargs.get('hsteps', 1) - 1, kwargs.get('vsteps', 1)
+
+            kwargs['frames'] = max(frames, 1)
+            kwargs['lines'] = max(lines, 2)
+            kwargs['time'] *= kwargs['frames']
+            kwargs['range'] *= kwargs['frames']
+
+            # Vertical line on Power is Helical scan instead
+            if self.power_pmac and kwargs['frames'] == 1:
+                origin_x, origin_y, origin_z = self.stage.get_xyz()
+                y_offset = kwargs['height']/2
+                x_dev, y_dev, z_dev = self.stage.screen_to_xyz(0.0, y_offset, 0.0)
+                end_pos = origin_x + x_dev, origin_y + y_dev, origin_z + z_dev
+                start_pos = origin_x - x_dev, origin_y - y_dev, origin_z - z_dev
+
+                self.scan(
+                    kind='shutterless',
+                    time=kwargs['time']*kwargs['lines'],
+                    range=kwargs['range']*kwargs['lines'],
+                    angle=self.omega.get_position(),
+                    frames=kwargs['lines'],
+                    wait=True,
+                    start_pos=start_pos,
+                    end_pos=end_pos,
+                )
+                return
+
             else:
-                frames, lines = kwargs.get('hsteps', 1), kwargs.get('vsteps', 1)
-                line_size = kwargs['width']
-
-            kwargs['frames'] = max(frames,1)
-            kwargs['lines'] = max(lines,2)
-            kwargs['time'] *= frames
-            kwargs['range'] *= frames
-
-            # Check exposure
-            kwargs['time'] = line_size / min(self.MAX_RASTER_SPEED, line_size/kwargs['time'])
-            misc.set_settings(self.raster_settings, **kwargs)
-            self.wait_stop(timeout=30)
-            self.raster_cmd.put(self.NULL_VALUE)
+                # Check exposure
+                kwargs['time'] = line_size / min(self.MAX_RASTER_SPEED, line_size/kwargs['time'])
+                misc.set_settings(self.raster_settings, **kwargs)
+                self.wait_stop(timeout=30)
+                self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or (10 + 2 * kwargs['time'])
         success = self.wait(start=True, stop=wait, timeout=timeout)
