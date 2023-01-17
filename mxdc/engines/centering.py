@@ -211,12 +211,12 @@ class Centering(Engine):
         mtr_exp_limit = aperture*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
         exposure = max(exposure, det_exp_limit, mtr_exp_limit)
 
-        self.beamline.goniometer.omega.move_by(90, wait=True)
+        #self.beamline.goniometer.omega.move_by(90, wait=True)
         for step in ['face', 'edge']:
             logger.info('Performing raster scan on {}'.format(step))
             self.beamline.goniometer.wait(start=False)
-            if step == 'face':
-                self.beamline.goniometer.omega.move_by(-90, wait=True)
+            if step == 'edge':
+                self.beamline.goniometer.omega.move_by(90, wait=True)
             angle, info = self.get_features()
             width = self.pixel_to_mm(1.75*abs(info['x'] - info['loop-x'])) * 1e3  # in microns
             height = self.pixel_to_mm(info['loop-height']) * 1e3  # in microns
