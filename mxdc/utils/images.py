@@ -17,15 +17,15 @@ import zmq
 from methodtools import lru_cache
 from mxio import read_image, DataSet, XYPair
 from mxio.formats import eiger
-
 from mxdc import Engine
 from mxdc.utils import log, misc
 
 logger = log.get_module_logger('frames')
 
-SCALE_MULTIPLIER = 3.0
-MAX_SCALE = 12.0
-MIN_SCALE = 0.0
+
+MAX_SCALE = 10.0
+SCALE_FACTOR = 1.2
+MIN_MAX_PERCENTILES = (1, 99.85)
 RESOLUTION_STEP_SIZE = 30  # Radial step size between resolution rings in mm
 LABEL_GAP = 0.0075  # Annotation label gap
 COLOR_MAPS = ('binary', 'inferno')
@@ -254,28 +254,22 @@ class Spots:
 
 @dataclass
 class ScaleSettings:
-    maximum: float
     average: float
-    sigma: float
-    multiplier: float = SCALE_MULTIPLIER
-    default: float = field(init=False)
+    maximum: float
+    minimum: float
+    multiplier: float = 1.0
     scale: float = field(init=False)
 
     def __post_init__(self):
-        if self.sigma > 0.0:
-            self.default = SCALE_MULTIPLIER * (self.maximum - self.average) / self.sigma
-            self.multiplier = self.default
-        else:
-            self.default = SCALE_MULTIPLIER
-        self.scale = self.average + self.multiplier * self.sigma
+        self.scale = self.maximum * self.multiplier
 
     def adjust(self, direction: Union[int, None] = None):
         if direction is None:
-            self.multiplier = self.default
+            self.multiplier = 1
         else:
-            step = direction * max(round(self.multiplier / 10, 2), 0.1)
-            self.multiplier = min(MAX_SCALE, max(MIN_SCALE, self.multiplier + step))
-        self.scale = self.average + self.multiplier * self.sigma
+            factor = SCALE_FACTOR if direction > 0 else 1/SCALE_FACTOR
+            self.multiplier = min(MAX_SCALE, max(self.multiplier * factor, 1/MAX_SCALE))
+        self.scale = self.maximum * self.multiplier
 
 
 class InvalidFrameData(Exception):
@@ -309,7 +303,6 @@ class DisplayFrame:
         self.set_colormap(self.color_scheme)
         frame = self.dataset.frame
         self.data = frame.data
-        self.stats_data = frame.data
         self.size = frame.size
         self.index = self.dataset.index
         self.name = f'{self.dataset.name} [ {self.index} ]' if self.index > 0 else f'{self.dataset.name}'
@@ -323,11 +316,15 @@ class DisplayFrame:
         if self.data is None:
             raise InvalidFrameData("Data appears invalid!")
 
+        w, h = frame.data.shape
+        sub_data = frame.data[:h//2, :w//2]
+        selected = (sub_data >= 0) & (sub_data < self.saturated_value)
+        self.stats_data = sub_data if not selected.sum() else sub_data[selected]
+
         if self.settings is None:
-            maximum = numpy.percentile(frame.data, 95)
-            self.settings = ScaleSettings(
-                maximum=maximum, average=frame.average, sigma=frame.sigma
-            )
+            minimum, maximum = numpy.percentile(self.stats_data, MIN_MAX_PERCENTILES)
+            self.settings = ScaleSettings(average=frame.average, maximum=maximum, minimum=minimum)
+
         self.setup()
         radii = numpy.arange(0, int(1.4142 * self.size.x / 2), RESOLUTION_STEP_SIZE / self.pixel_size)[1:]
         self.resolution_shells = self.radius_to_resolution(radii)
@@ -337,10 +334,9 @@ class DisplayFrame:
             if settings is not None:
                 self.settings = settings
             data = self.data.astype(numpy.int32) if str(self.data.dtype) == 'uint32' else self.data
-            img0 = cv2.convertScaleAbs(data, None, 256 / self.settings.scale, 0)
+            img0 = cv2.convertScaleAbs(data - self.settings.minimum, None, 255 / self.settings.scale, 0)
             img1 = cv2.applyColorMap(img0, self.color_map)
             self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
-
             self.dirty = False
             self.redraw = True
 
