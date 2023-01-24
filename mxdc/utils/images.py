@@ -333,8 +333,7 @@ class DisplayFrame:
         if self.dirty:
             if settings is not None:
                 self.settings = settings
-            data = self.data.astype(numpy.int32) if str(self.data.dtype) == 'uint32' else self.data
-            img0 = cv2.convertScaleAbs(data - self.settings.minimum, None, 255 / self.settings.scale, 0)
+            img0 = cv2.convertScaleAbs(self.data - self.settings.minimum, None, 255 / self.settings.scale, 0)
             img1 = cv2.applyColorMap(img0, self.color_map)
             self.image = cv2.cvtColor(img1, cv2.COLOR_BGR2BGRA)
             self.dirty = False

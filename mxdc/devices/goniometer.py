@@ -442,10 +442,10 @@ class MD2Gonio(BaseGoniometer):
             # MD2 appears to need correction of scan size by -1 in each direction
 
             w_adj = 1e-3
-            h_adj = 1e-3
+            #h_adj = 1e-3
 
             #w_adj = 1e-3 * (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
-            #h_adj = 1e-3 * (kwargs['vsteps'] - 1)/kwargs['vsteps']
+            h_adj = 1e-3 * (kwargs['vsteps'] - 1)/kwargs['vsteps']
 
             kwargs['width'] *= w_adj
             kwargs['height'] *= h_adj
