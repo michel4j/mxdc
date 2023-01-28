@@ -29,7 +29,7 @@ class GUIFile(object):
         self.name = name
         self.root = root
         self.wTree = Gtk.Builder()
-        self.ui_path = '/org/mxdc/{}.ui'.format(self.name)
+        self.ui_path = '/org/gtk/mxdc/{}.ui'.format(self.name)
         if self.root is not None:
             self.wTree.add_objects_from_resource(self.ui_path, [self.root])
         else:
@@ -886,4 +886,4 @@ def register_icons():
     Register named icons
     """
     theme = Gtk.IconTheme.get_default()
-    theme.add_resource_path('/org/mxdc/data/icons')
+    theme.add_resource_path('/org/gtk/mxdc/data/icons')

@@ -1,20 +1,21 @@
 import os
+from enum import Enum
 
 import gi
 import numpy
-from enum import Enum
 
 gi.require_version('WebKit2', '4.0')
-from gi.repository import GObject, WebKit2, Gtk, Gdk
+from gi.repository import GObject, WebKit2, Gtk, Gdk, Gio
 from mxdc import Registry, IBeamline, Object, Property
-
-from mxdc.conf import settings
 from mxdc.utils import colors, misc
 from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.data import analysis
+from mxdc.utils import datatools
 from mxdc.engines.analysis import Analyst
 from mxdc.engines import auto
-from mxdc.widgets import dialogs
+from mxdc.widgets import dialogs, reports
+
 from mxdc.controllers.datasets import IDatasets
 from .samplestore import ISampleStore
 from . import common
@@ -22,7 +23,6 @@ from . import common
 logger = get_module_logger(__name__)
 
 
-# DOCS_PATH = os.path.join(os.environ['MXDC_PATH'], 'docs-src', '_build', 'html', 'index.html')
 
 
 class ReportManager(TreeManager):
@@ -116,9 +116,14 @@ class AnalysisController(Object):
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = None
-        self.reports = ReportManager(self.widget.proc_reports_view)
+
+        self.data_store = Gio.ListStore(item_type=analysis.SampleItem)
+        self.widget.proc_sample_view.bind_model(self.data_store, reports.create_sample_row)
+
+        self.reports = ReportManager(self.widget.proc_data_view)
         self.analyst = Analyst(self.reports)
         self.browser = WebKit2.WebView()
+        self.browser.set_zoom_level(0.85)
         self.options = {}
         self.setup()
 
@@ -133,7 +138,7 @@ class AnalysisController(Object):
         self.data_folder = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
         self.widget.proc_strategy_btn.connect('clicked', self.use_strategy)
-        self.widget.proc_reports_view.connect('row-activated', self.on_row_activated)
+        self.widget.proc_data_view.connect('row-activated', self.on_row_activated)
         self.widget.proc_run_btn.connect('clicked', self.on_run_analysis)
         self.widget.proc_clear_btn.connect('clicked', self.clear_reports)
         self.widget.proc_open_btn.connect('clicked', self.import_metafile)
@@ -166,6 +171,7 @@ class AnalysisController(Object):
 
         if file_filter.get_name() == filters[0][0]:
             data = misc.load_metadata(file_name)
+            print(data)
             if data.get('type') in ['DATA', 'SCREEN', 'XRD']:
                 if data.get('sample_id'):
                     row = self.sample_store.find_by_id(data['sample_id'])
@@ -184,6 +190,30 @@ class AnalysisController(Object):
                     'activity': data['type'].replace('_', '-').lower()
                 }
                 self.reports.add_item(params)
+
+                # create and add sample data item
+                new_data = analysis.Data(
+                    name=data.get('name', '...'),
+                    key=data.get('id', 0),
+                    kind=data.get('type', ''),
+                    size=len(datatools.frameset_to_list(data.get('frames', ''))),
+                    file=file_name,
+                )
+
+                sample_id = 0 if not data.get('sample_id', 0) else data['sample_id']
+                for entry in self.data_store:
+                    if entry.key == sample_id:
+                        entry.add_data(new_data)
+                        break
+                else:
+                    new_entry = analysis.SampleItem(
+                        name=sample.get('name', '...'),
+                        group=sample.get('group', '...'),
+                        port=sample.get('port', '...'),
+                        key=sample_id,
+                    )
+                    new_entry.add_data(new_data)
+                    self.data_store.append(new_entry)
             else:
                 self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
 

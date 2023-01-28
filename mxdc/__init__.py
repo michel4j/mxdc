@@ -4,7 +4,8 @@ import reprlib
 import time
 import os
 
-from gi.repository import GObject, GLib
+from gi.repository import GObject, GLib, Gio
+
 from gi.types import GObjectMeta
 from zope.interface import providedBy, Interface, Attribute
 from zope.interface.adapter import AdapterRegistry
@@ -12,7 +13,7 @@ from zope.interface.interface import adapter_hooks
 
 from mxdc.com import ca
 from mxdc.utils.log import get_module_logger, log_call
-from mxdc.utils.misc import check_call
+from mxdc.utils.misc import check_call, load_binary_data
 
 logger = get_module_logger(__name__)
 
@@ -646,3 +647,9 @@ class Engine(Object):
         It should appropriately monitor the stopped and paused variables and act accordingly.
         """
         raise NotImplementedError('Must be implemented by subclasses')
+
+
+# load resources
+_resource_data = GLib.Bytes.new(load_binary_data(os.path.join(SHARE_DIR, 'mxdc.gresource')))
+_resources = Gio.Resource.new_from_data(_resource_data)
+Gio.resources_register(_resources)

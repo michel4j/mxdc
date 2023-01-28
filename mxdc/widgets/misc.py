@@ -82,7 +82,7 @@ class ActiveEntry(Gtk.Box, gui.BuilderMixin):
 
         # initialize housekeeping
         self._animation = GdkPixbuf.PixbufAnimation.new_from_resource(
-            "/org/mxdc/data/active_stop.gif"
+            "/org/gtk/mxdc/data/active_stop.gif"
         )
         self.device = device
         self.name = label or self.device.name

@@ -61,5 +61,8 @@
       <option name="workingDir" value="$ProjectFileDir$/mxdc/share" />
       <envs />
     </TaskOptions>
+    <enabled-global>
+      <option value="SCSS" />
+    </enabled-global>
   </component>
 </project>

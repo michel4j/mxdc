@@ -130,7 +130,7 @@ class Microscope(Object):
             'center_point': (self.on_center_point, GLib.VariantType("s")),
         }
 
-        # menu = Gtk.Builder.new_from_string('/org/mxdc/data/menus.ui')
+        # menu = Gtk.Builder.new_from_string('/org/gtk/mxdc/data/menus.ui')
         # self.builder.app_menu_btn.set_menu_model(menu.get_object('app-menu'))
 
         for name, info in actions.items():

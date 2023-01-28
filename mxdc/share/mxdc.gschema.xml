@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <schemalist>
-    <schema id="org.mxdc" path="/org/mxdc/">
+    <schema id="org.mxdc" path="/org/gtk/mxdc/">
         <key name='directory-template' type='s'>
             <default>"/{group}/{sample}/{activity}/"</default>
             <summary>Template for creating directories</summary>

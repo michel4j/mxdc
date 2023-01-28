@@ -7,6 +7,8 @@ from datetime import datetime, timedelta, timezone
 
 import gi
 
+import mxdc.beamlines.mx
+
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk, Gio, GLib, Gdk
@@ -83,6 +85,11 @@ DOCS_URL = 'https://michel4j.github.io/mxdc/'
 
 
 class Application(Gtk.Application):
+
+    beamline: mxdc.beamlines.mx.MXBeamline
+    builder: AppBuilder
+    hook: excepthook.ExceptHook
+
     def __init__(self, dark=False, **kwargs):
         super(Application, self).__init__(application_id="org.mxdc", **kwargs)
         self.window = None
@@ -92,9 +99,10 @@ class Application(Gtk.Application):
         if self.dark_mode:
             pyplot.style.use(DARK_STYLE)
 
-        self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
-        self.resources = Gio.Resource.new_from_data(self.resource_data)
-        Gio.resources_register(self.resources)
+        # self.resource_data = GLib.Bytes.new(misc.load_binary_data(os.path.join(conf.SHARE_DIR, 'mxdc.gresource')))
+        # self.resources = Gio.Resource.new_from_data(self.resource_data)
+        # Gio.resources_register(self.resources)
+
         gui.register_icons()
         self.connect('shutdown', self.on_shutdown)
 
@@ -103,7 +111,7 @@ class Application(Gtk.Application):
 
         # build GUI
         self.builder = AppBuilder()
-        menu = Gtk.Builder.new_from_resource('/org/mxdc/data/menus.ui')
+        menu = Gtk.Builder.new_from_resource('/org/gtk/mxdc/data/menus.ui')
         self.builder.app_menu_btn.set_menu_model(menu.get_object('app-menu'))
 
         # initialize beamline

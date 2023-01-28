@@ -6677,7 +6677,7 @@
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <child>
-                                      <object class="GtkTreeView" id="proc_reports_view">
+                                      <object class="GtkTreeView" id="proc_data_view">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
                                         <property name="enable-grid-lines">horizontal</property>

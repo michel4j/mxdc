@@ -5,7 +5,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 
-@Gtk.Template.from_resource('/org/mxdc/data/data_status.ui')
+@Gtk.Template.from_resource('/org/gtk/mxdc/data/data_status.ui')
 class DataStatus(Gtk.Box):
     __gtype_name__ = 'DataStatus'
 

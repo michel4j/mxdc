@@ -22,7 +22,7 @@ class CryoController(Object):
         self.limits = {}
         self.formats = {}
         self.setup()
-        self._animation = GdkPixbuf.PixbufAnimation.new_from_resource("/org/mxdc/data/active_stop.gif")
+        self._animation = GdkPixbuf.PixbufAnimation.new_from_resource("/org/gtk/mxdc/data/active_stop.gif")
 
     def setup(self):
         self.labels = {

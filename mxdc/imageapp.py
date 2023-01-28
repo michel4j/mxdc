@@ -22,7 +22,7 @@ class ImageApp(object):
         self.resources = Gio.Resource.new_from_data(self.resource_data)
         Gio.resources_register(self.resources)
         theme = Gtk.IconTheme.get_default()
-        theme.add_resource_path('/org/mxdc/data/icons')
+        theme.add_resource_path('/org/gtk/mxdc/data/icons')
 
         dialogs.MAIN_WINDOW = self.win
         self.win.connect("destroy", lambda x: Gtk.main_quit())

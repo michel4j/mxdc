@@ -341,10 +341,10 @@ class RasterCollector(Engine):
             'beam_x': self.beamline.detector.get_origin()[0],
             'beam_y': self.beamline.detector.get_origin()[1],
             'pixel_size': self.beamline.detector.resolution,
-            'resolution': params['resolution'],
+            'resolution': round(params['resolution'], 3),
             'detector_size': min(self.beamline.detector.size),
-            'start_angle': params['angle'],
-            'delta_angle': params['delta'],
+            'start_angle': round(params['angle'], 3),
+            'delta_angle': round(params['delta'], 3),
             'grid_origin': params['origin'],
             'grid_size': (params['hsteps'], params['vsteps'])
         }

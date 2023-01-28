@@ -582,7 +582,7 @@ class SimGonio(BaseGoniometer):
                 self.settings['range'] / self.settings.get('frames', 1)
             ).tolist()
             if self.supports(GonioFeatures.TRIGGERING):
-                logger.debug('starting triggers for {}'.format(self.trigger_positions))
+                logger.debug('starting {} triggers'.format(len(self.trigger_positions)))
                 GLib.timeout_add(int(self._frame_exposure*1000), self.send_triggers)
             self.omega.move_to(self.settings['angle'] + self.settings['range'] + 0.05, wait=True)
             bl.fast_shutter.close()

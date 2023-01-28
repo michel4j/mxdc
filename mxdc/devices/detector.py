@@ -319,7 +319,7 @@ class SimDetector(BaseDetector):
 
     def stop(self):
         logger.debug('(%s) Stopping CCD ...' % (self.name,))
-        time.sleep(0.1)
+        time.sleep(0.01)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[0] // 2
@@ -346,6 +346,7 @@ class SimDetector(BaseDetector):
                 chosen = (datetime.today().day + name_int) % num_datasets
                 self._selection = list(self._datasets.keys())[chosen]
 
+    @decorators.async_call
     def _copy_frame(self, number):
         logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
         folder, name, count = self._selection
