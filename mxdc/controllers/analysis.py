@@ -1,16 +1,13 @@
 import os
-import random
-from enum import Enum
 from pathlib import Path
 
 import gi
 import numpy
 
 gi.require_version('WebKit2', '4.0')
-from gi.repository import GObject, WebKit2, Gtk, Gdk, Gio
+from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
-from mxdc.utils import colors, misc
-from mxdc.utils.gui import ColumnSpec, TreeManager, ColumnType
+from mxdc.utils import misc
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.data import analysis
 from mxdc.utils import datatools
@@ -25,113 +22,152 @@ from . import common
 logger = get_module_logger(__name__)
 
 
-class ReportManager(TreeManager):
-    class Data(Enum):
-        NAME, GROUP, ACTIVITY, TYPE, SCORE, TITLE, STATE, UUID, SAMPLE, DIRECTORY, DATA, REPORT, ERROR = list(range(13))
+class ReportManager:
 
-    Types = [str, str, str, str, float, str, int, str, object, str, object, object, object]
+    def __init__(self):
+        super().__init__()
+        self.sample_store = None
+        self.data_store = Gio.ListStore(item_type=analysis.SampleItem)
+        self.samples = {}
+        self.datasets = {}
+        self.reports = {}
 
-    class State:
-        PENDING, ACTIVE, SUCCESS, FAILED = list(range(4))
+    def clear(self):
+        self.samples = {}
+        self.datasets = {}
+        self.reports = {}
+        self.data_store.remove_all()
 
-    Columns = ColumnSpec(
-        (Data.NAME, 'Name', ColumnType.TEXT, '{}', True),
-        (Data.TITLE, "Title", ColumnType.TEXT, '{}', True),
-        (Data.ACTIVITY, "Type", ColumnType.TEXT, '{}', False),
-        (Data.SCORE, 'Score', ColumnType.NUMBER, '{:0.2f}', False),
+    def add_data(self, data: dict):
+        """
+        Add a new dataset to the store or update an existing one
+        :param data: Dataset metadata
+        """
+        self.sample_store = Registry.get_utility(ISampleStore)
+        sample = {
+            "id": data['sample_id'],
+            "group": data["group"],
+            "port": "",
+            "container": data["container"]
+        }
+        if sample['id']:
+            row = self.sample_store.find_by_id(sample['id'])
+            if row:
+                sample['name'] = row[self.sample_store.Data.DATA]['name']
+                sample['port'] = row[self.sample_store.Data.DATA]['port']
 
-        (Data.STATE, "", ColumnType.ICON, '{}', False),
-    )
-    Icons = {
-        State.PENDING: ('content-loading-symbolic', colors.Category.CAT20[14]),
-        State.ACTIVE: ('emblem-synchronizing-symbolic', colors.Category.CAT20[2]),
-        State.SUCCESS: ('object-select-symbolic', colors.Category.CAT20[4]),
-        State.FAILED: ('computer-fail-symbolic', colors.Category.CAT20[6]),
-    }
-    #
-    # tooltips = Data.TITLE
-    parent = Data.NAME
-    flat = False
-    select_multiple = True
-    single_click = True
+        data_id = data.get('id')
+        meta_file = data['directory'] + "/" + data["name"] + ".meta"
+        key_src = data_id if data_id else data['directory'] + "/" + data["name"]
+        data_key = analysis.make_key(f'{key_src}')
+        new_data = analysis.Data(
+            key=data_key, name=data["name"], kind=data["type"],
+            file=meta_file, size=len(datatools.frameset_to_list(data["frames"])),
+        )
 
-    directory = Property(type=str, default='')
-    sample = Property(type=object)
-    strategy = Property(type=object)
+        directory = Path(data["directory"])
+        key_src = sample['id'] if sample['id'] else directory.parent
+        sample_key = analysis.make_key(f'{key_src}')
 
-    def update_item(self, item_id, report=None, error=None, title='????'):
-        itr = self.model.get_iter_first()
-        row = None
-        while itr and not row:
-            if self.model[itr][self.Data.UUID.value] == item_id:
-                row = self.model[itr]
-                break
-            elif self.model.iter_has_child(itr):
-                child_itr = self.model.iter_children(itr)
-                while child_itr:
-                    if self.model[child_itr][self.Data.UUID.value] == item_id:
-                        row = self.model[child_itr]
-                        break
-                    child_itr = self.model.iter_next(child_itr)
-            itr = self.model.iter_next(itr)
-        if row:
-            if report:
-                row[self.Data.REPORT.value] = report
-                row[self.Data.SCORE.value] = report.get('score', 0.0)
-                row[self.Data.STATE.value] = self.State.SUCCESS
-            elif error:
-                row[self.Data.ERROR.value] = error
-                row[self.Data.STATE.value] = self.State.FAILED
-            row[self.Data.TITLE.value] = title
-
-    def row_activated(self, view, path, column):
-        model = view.get_model()
-        itr = model.get_iter(path)
-        item = self.row_to_dict(model[itr])
-        report = item['report'] or {}
-        self.props.strategy = report.get('strategy')
-        self.props.directory = item['directory']
-        self.props.sample = item['sample']
-
-    def format_cell(self, column, renderer, model, itr, spec):
-        super(ReportManager, self).format_cell(column, renderer, model, itr, spec)
-        if not model.iter_has_child(itr):
-            row = model[itr]
-            state = row[self.Data.STATE.value]
-            if state == self.State.PENDING:
-                renderer.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.7))
-            elif state == self.State.FAILED:
-                renderer.set_property("foreground-rgba", Gdk.RGBA(red=0.35, green=0.0, blue=0.0, alpha=1.0))
-            elif state == self.State.SUCCESS:
-                renderer.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.35, blue=0.0, alpha=1.0))
-            else:
-                renderer.set_property("foreground-rgba", Gdk.RGBA(red=0.35, green=0.35, blue=0.0, alpha=1.0))
+        if sample_key in self.samples:
+            sample_entry = self.samples[sample_key]
+            sample_entry.add(new_data)
+            self.datasets[new_data.key] = new_data
         else:
-            renderer.set_property("foreground-rgba", None)
+            sample_entry = analysis.SampleItem(
+                name=sample.get('name', '...'), group=sample['group'],
+                port=sample["port"], key=sample_key,
+            )
+            sample_entry.add(new_data)
+            self.data_store.append(sample_entry)
+            self.samples[sample_key] = sample_entry
+            self.datasets[new_data.key] = new_data
+
+    def add_report(self, report: dict, state: analysis.ReportState = analysis.ReportState.ACTIVE):
+        """
+        Add a new report to the store or replace an existing one.
+        :param report: dictionary of report parameters
+        :param state: state of the report
+        """
+        if 'uuid' in report:
+            key = report['uuid']
+        else:
+            key = analysis.make_key(report['directory'])
+
+        new_entry = analysis.Report(
+            key=key,
+            name=report["name"],
+            kind=report['type'],
+            score=report.get('score', 0.0),
+            directory=report['directory'],
+            strategy=report.get('strategy', {}),
+            state=state
+        )
+
+        if key in self.reports:
+            # replace existing entry
+            report_entry = self.reports[new_entry.key]
+            report_entry.update(**new_entry.to_dict())
+        else:
+            # create a new entry under each dataset
+            self.reports[new_entry.key] = new_entry
+            for data_id in report.get("data_id", []):
+                data_key = analysis.make_key(f'{data_id}')
+                if data_key in self.datasets:
+                    data_entry = self.datasets[data_key]
+                    data_entry.add(new_entry)
+
+    def update_report(self, key, report: dict, success: bool = True):
+        """
+        Update the state and score of an existing report
+        :param key:  key of the report
+        :param report: information about the update
+        :param success: State of the report
+        """
+        state = analysis.ReportState.SUCCESS if success else analysis.ReportState.FAILED
+        if key in self.reports:
+            report_entry = self.reports[key]
+            report_entry.update(
+                key=key,
+                state=state,
+                score=report.get('score', 0.0),
+                directory=report['directory'],
+                strategy=report.get('strategy', {}),
+            )
 
 
 class AnalysisController(Object):
 
-    data_folder: common.DataDirectory
+    folder: common.DataDirectory
+    browser:  WebKit2.WebView
+    reports: ReportManager
+    analyst: Analyst
+    sample = Property(type=object)
+    strategy = Property(type=object)
 
     def __init__(self, widget):
         super().__init__()
         self.widget = widget
         self.beamline = Registry.get_utility(IBeamline)
-        self.sample_store = None
-
-        self.data_store = Gio.ListStore(item_type=analysis.SampleItem)
-        self.widget.proc_sample_view.bind_model(self.data_store, reports.SampleView.factory)
-
-        self.reports = ReportManager(self.widget.proc_data_view)
-        self.analyst = Analyst(self.reports)
+        self.reports = ReportManager()
+        self.analyst = Analyst()
+        self.folder = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
         self.browser = WebKit2.WebView()
-        self.browser.set_zoom_level(0.85)
+
         self.options = {}
+        self.widget.proc_sample_view.bind_model(self.reports.data_store, reports.SampleView.factory)
         self.setup()
-        Registry.add_utility(analysis.ReportBrowserInterface, self.browser)
+        Registry.add_utility(analysis.ControllerInterface, self)
 
     def setup(self):
+        self.browser.set_zoom_level(0.90)
+        self.analyst.connect('data', self.on_new_data)
+        self.analyst.connect('report', self.on_new_report)
+        self.analyst.connect('update', self.on_update_report)
+
+        self.connect('notify::sample', self.on_sample)
+        self.connect('notify::strategy', self.on_strategy)
+
         self.widget.proc_browser_box.add(self.browser)
         browser_settings = WebKit2.Settings()
         browser_settings.set_property("allow-universal-access-from-file-urls", True)
@@ -142,11 +178,11 @@ class AnalysisController(Object):
             'is-loading', self.widget.browser_progress, 'visible', GObject.BindingFlags.SYNC_CREATE
         )
         self.browser.connect('notify::estimated-load-progress', self.on_browser_progress)
-        self.widget.proc_single_option.set_active(True)
-        self.data_folder = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
+        self.widget.proc_merge_option.set_active(True)
+        self.directory = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
         self.widget.proc_strategy_btn.connect('clicked', self.use_strategy)
-        self.widget.proc_data_view.connect('row-activated', self.on_row_activated)
+        self.widget.proc_sample_view.connect('row-selected', self.on_row_selected)
         self.widget.proc_run_btn.connect('clicked', self.on_run_analysis)
         self.widget.proc_clear_btn.connect('clicked', self.clear_reports)
         self.widget.proc_open_btn.connect('clicked', self.import_metafile)
@@ -154,14 +190,10 @@ class AnalysisController(Object):
         self.options = {
             'screen': self.widget.proc_screen_option,
             'merge': self.widget.proc_merge_option,
-            'mad': self.widget.proc_mad_option,
             'calibrate': self.widget.proc_calib_option,
             'integrate': self.widget.proc_integrate_option,
             'anomalous': self.widget.proc_anom_btn
         }
-
-    def on_browser_progress(self, *args, **kwargs):
-        self.widget.browser_progress.set_fraction(self.browser.props.estimated_load_progress)
 
     def clear_reports(self, *args, **kwargs):
         response = dialogs.warning(
@@ -171,89 +203,29 @@ class AnalysisController(Object):
             buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Proceed', Gtk.ButtonsType.OK))
         )
         if response == Gtk.ButtonsType.OK:
-            self.data_store.remove_all()
+            self.reports.clear()
 
     def import_data(self, meta_file: str):
         data = misc.load_metadata(meta_file)
         if data.get('type') in ['DATA', 'SCREEN', 'XRD']:
-            sample = {
-                "id": data['sample_id'],
-                "group": data["group"],
-                "port": data["port"],
-                "container": data["container"]
-            }
-
-            if sample['id']:
-                row = self.sample_store.find_by_id(sample['id'])
-                if row:
-                    sample['name'] = row[self.sample_store.Data.DATA]['name']
-
-            data_id = data.get('id')
-            key_src = data_id if data_id else meta_file
-            data_key = analysis.make_key(f'{key_src}')
-            new_data = analysis.Data(
-                key=data_key, name=data["name"], kind=data["type"],
-                file=meta_file, size=len(datatools.frameset_to_list(data["frames"])),
-                children=[
-                    # analysis.Report(
-                    #     key=analysis.make_key(f'analysis-{i}'),
-                    #     name=f'Analysis {i}',
-                    #     kind=random.choice(['NAT', 'SCR', 'XRD']),
-                    #     score=random.random(),
-                    #     file=analysis.get_random_json(),
-                    #     strategy={}
-                    # )
-                    # for i in range(random.randint(0, 7))
-                ]
-            )
-            directory = Path(data["directory"])
-            sample_key = analysis.make_key(str(directory.parent))
-
-            for entry in self.data_store:
-                if entry.key == sample_key:
-                    entry.add(new_data)
-                    break
-            else:
-                new_entry = analysis.SampleItem(
-                    name=sample.get('name', f'Sample-{random.randint(1,100)}'), group=sample.get('group', f'Group-{random.randint(1,100)}'),
-                    port=sample["port"], key=sample_key,
-                )
-                new_entry.add(new_data)
-                self.data_store.append(new_entry)
+            self.reports.add_data(data)
         else:
             self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
 
     def import_report(self, json_file: str):
         report_types = {
-            'MX Native Analysis': 'NAT',
-            'MX Screening Analysis': 'SCR',
+            'MX Native Analysis': 'NATIVE',
+            'MX Screening Analysis': 'SCREEN',
+            'MX Anomalous Analysis': 'ANOMALOUS',
         }
         info = misc.load_json(json_file)
-        if info.get("data_id"):
-            report = analysis.Report(
-                key=analysis.make_key(f'{info["directory"]}'),
-                name=info['title'],
-                kind=report_types.get(info['kind'], 'NAT'),
-                score=info['score'],
-                file=json_file,
-                state=analysis.ReportState.SUCCESS,
-                strategy=info.get('strategy', {})
-            )
-            found = False
-            for data_id in info['data_id']:
-                data_key = analysis.make_key(f'{data_id}')
-                for sample in self.data_store:
-                    data = sample.find(data_key)
-                    if data:
-                        data.add(report)
-                        found = True
-                        break
+        for kind in ['NATIVE', 'SCREEN', 'ANOMALOUS']:
+            if kind in info['kind'].upper():
+                info['type'] = kind
 
-            # not found just load the report
-            if not found:
-                path = Path(json_file).parent / "report.html"
-                uri = 'file://{}?v={}'.format(path, numpy.random.rand())
-                GObject.idle_add(self.browser.load_uri, uri)
+        info['name'] = info.get('title')
+        info['type'] = report_types.get(info['kind'], 'NATIVE')
+        self.reports.add_report(info, state=analysis.ReportState.SUCCESS)
 
     def import_metafile(self, *args, **kwargs):
         filters = {
@@ -269,7 +241,6 @@ class AnalysisController(Object):
             filters=filters.values(),
             multiple=True
         )
-        self.sample_store = Registry.get_utility(ISampleStore)
 
         for file_name in file_names:
             if filters["data"].match(file_name):
@@ -280,68 +251,30 @@ class AnalysisController(Object):
                 uri = 'file://{}?v={}'.format(file_name, numpy.random.rand())
                 GObject.idle_add(self.browser.load_uri, uri)
 
-    def on_sample(self, *args, **kwargs):
-        sample = self.reports.sample
-        self.widget.proc_mount_btn.set_sensitive(bool(sample))
-        if sample:
-            sample_text = '{name}|{port}'.format(
-                name=sample.get('name', '...'),
-                port=sample.get('port', '...')
-            ).replace('|...', '')
-            self.widget.proc_sample_fbk.set_text(sample_text)
-        else:
-            self.widget.proc_sample_fbk.set_text('...')
-        self.widget.proc_revealer.set_reveal_child(bool(self.reports.sample) or bool(self.reports.strategy))
+    def set_folder(self, folder: str):
+        self.folder.set_directory(folder)
 
-    def on_row_activated(self, view, path, column):
-        model = view.get_model()
-        itr = model.get_iter(path)
-        item = self.reports.row_to_dict(model[itr])
-        report = item['report'] or {}
+    def set_strategy(self, strategy: dict):
+        self.props.strategy = strategy
 
-        sample = item.get('sample', {})
-        strategy = report.get('strategy')
+    def set_sample(self, sample: dict):
+        self.props.sample = sample
 
-        self.widget.proc_mount_btn.set_sensitive(
-            bool(sample) and bool(sample.get('port')) and item['state'] == self.reports.State.SUCCESS)
-        self.widget.proc_strategy_btn.set_sensitive(bool(self.reports.strategy))
-        if sample and sample.get('port'):
-            sample_text = '{name}|{port}'.format(
-                name=sample.get('name', '...'),
-                port=sample.get('port', '...')
-            ).replace('|...', '')
-            self.widget.proc_sample_fbk.set_text(sample_text)
-        else:
-            self.widget.proc_sample_fbk.set_text('...')
-        self.widget.proc_revealer.set_reveal_child(bool(sample) or bool(strategy))
-
-        directory = item['directory']
-        home_dir = misc.get_project_home()
-        current_dir = directory.replace(home_dir, '~')
-        self.widget.proc_dir_fbk.set_text(current_dir)
-        self.widget.proc_dir_btn.set_sensitive(bool(directory))
-
-        if report:
-            filename = os.path.join(report['directory'], 'report.html')
-            if os.path.exists(filename):
-                uri = 'file://{}?v={}'.format(filename, numpy.random.rand())
-                GObject.idle_add(self.browser.load_uri, uri)
-
-        self.widget.proc_mx_box.set_sensitive(item['type'] in ['DATA', 'SCREEN'])
-        self.widget.proc_powder_box.set_sensitive(item['type'] in ['XRD'])
-
-    def add_dataset(self, dataset):
-        self.reports.add(dataset)
+    def browse_file(self, path):
+        if os.path.exists(path):
+            uri = 'file://{}?v={}'.format(path, numpy.random.rand())
+            GObject.idle_add(self.browser.load_uri, uri)
 
     def mount_sample(self, *args, **kwargs):
-        if self.reports.props.sample:
-            port = self.reports.props.sample['port']
+        sample = self.props.sample
+        if sample:
+            port = sample['port']
             if port and self.beamline.automounter.is_mountable(port):
                 self.widget.spinner.start()
                 auto.auto_mount(self.beamline, port)
 
     def use_strategy(self, *args, **kwargs):
-        strategy = self.reports.strategy
+        strategy = self.props.strategy
         dataset_controller = Registry.get_utility(IDatasets)
         if strategy:
             default_rate = self.beamline.config['default_delta'] / self.beamline.config['default_exposure']
@@ -365,6 +298,58 @@ class AnalysisController(Object):
 
     def get_options(self):
         return [k for k, w in list(self.options.items()) if w.get_active()]
+
+    def on_sample(self, *args, **kwargs):
+        sample = self.props.sample
+        self.widget.proc_mount_btn.set_sensitive(bool(sample))
+        mountable = False
+        if sample and sample.get('port'):
+            mountable = True
+            sample_text = '{name}|{port}'.format(
+                name=sample.get('name', '...'),
+                port=sample.get('port', '...')
+            ).replace('|...', '')
+            self.widget.proc_sample_fbk.set_text(sample_text)
+        else:
+            self.widget.proc_sample_fbk.set_text('...')
+        self.widget.proc_revealer.set_reveal_child(mountable or bool(self.props.strategy))
+
+    def on_strategy(self, *args, **kwargs):
+        self.widget.proc_revealer.set_reveal_child(bool(self.props.sample) or bool(self.props.strategy))
+
+    def on_browser_progress(self, *args, **kwargs):
+        self.widget.browser_progress.set_fraction(self.browser.props.estimated_load_progress)
+
+    def on_new_data(self, analyst, data):
+        self.reports.add_data(data)
+
+    def on_new_report(self, analyst, report):
+        self.reports.add_report(report)
+        logger.debug('New Analysis Started')
+
+    def on_update_report(self, analyst, key, report, success):
+        self.reports.update_report(key, report, success=success)
+
+    def on_row_selected(self, listbox, row):
+        # fetch the item from the row
+        item = row.get_child().item
+        self.props.sample = item.to_dict()
+        selected_types = [
+            data.kind for data in item.children if data.selected
+        ]
+        print(selected_types)
+        if 'DATA' in selected_types:
+            self.widget.proc_mx_box.set_sensitive(True)
+            self.widget.proc_powder_box.set_sensitive(False)
+            self.widget.proc_run_btn.set_sensitive(True)
+        elif 'XRD' in selected_types:
+            self.widget.proc_mx_box.set_sensitive(False)
+            self.widget.proc_powder_box.set_sensitive(True)
+            self.widget.proc_run_btn.set_sensitive(True)
+        else:
+            self.widget.proc_mx_box.set_sensitive(False)
+            self.widget.proc_powder_box.set_sensitive(False)
+            self.widget.proc_run_btn.set_sensitive(False)
 
     def on_run_analysis(self, *args, **kwargs):
         options = self.get_options()

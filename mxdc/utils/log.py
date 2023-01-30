@@ -126,3 +126,13 @@ def log_call(f):
         return f(*args, **kwargs)
 
     return _decorator
+
+def inspect(*objs, depth=1):
+    """
+    Introspect variables and display them
+    :param objs: objects to display
+    :param depth: how deep to display
+    """
+    import pprint
+    for obj in objs:
+        logger.debug(pprint.pformat(obj, indent=4, depth=depth))

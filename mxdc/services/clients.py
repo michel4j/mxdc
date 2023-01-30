@@ -341,9 +341,6 @@ class MxLIVEClient(BaseService):
             self.close_session(*self.session_active)
 
 
-class Referenceable(pb.Referenceable, object):
-    pass
-
 
 class BaseMessenger(Object):
     class Signals:

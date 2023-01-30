@@ -32,7 +32,10 @@ def make_key(text: str) -> str:
     return "-".join(textwrap.wrap(key, width=4))
 
 
-class ReportBrowserInterface(Interface):
+class ControllerInterface(Interface):
+    """
+    Analysis Controller Interface
+    """
     ...
 
 
@@ -67,7 +70,7 @@ class Item(Object):
         Convert to dictionary
         """
         # only Item subclasses are allowed here
-        get_keys_from = filter(lambda cls: isinstance(cls, Item), self.__class__.__bases__ + (self.__class__,))
+        get_keys_from = self.__class__.__bases__ + (self.__class__,)
 
         return {
             key: self.get_property(key)
@@ -119,11 +122,11 @@ class ContainerItem(Item):
 class Report(Item):
     kind = Property(type=str, default='...')
     score = Property(type=float, default=0.0)
-    file = Property(type=str, default='')
+    directory = Property(type=str, default='')
     state = Property(type=object)
     strategy = Property(type=object)
 
-    dict_keys = ['kind', 'score', 'file', 'state', 'strategy']
+    dict_keys = ['kind', 'score', 'directory', 'state', 'strategy']
 
     def __init__(self, **kwargs):
         if 'state' not in kwargs:
@@ -133,7 +136,7 @@ class Report(Item):
         super().__init__(**kwargs)
 
     def __str__(self):
-        return f'{self.kind[:3]} | {self.score:0.2f}'
+        return f'{self.kind} | {self.score:0.2f} | {self.state}'
 
 
 class Data(ContainerItem):
@@ -174,30 +177,3 @@ class SampleItem(ContainerItem):
         return max(
             data.score() for data in self.children
         )
-
-
-def get_random_json():
-    return random.choice([
-        '/data/Xtal/643/A1_2-native/report.json',
-        '/data/Xtal/643/proc-2/report.json',
-        '/data/Xtal/643/proc-3/report.json',
-        '/data/Xtal/BioMAX/insu6_1-native/report.json',
-        '/data/Xtal/CLS0026-5-native/report.json',
-        '/data/Xtal/Diamond/Mtb_MTR_std_pfGDR_1_1-native/report.json',
-        '/data/Xtal/Diamond/Mtb_MTR_std_pfGDR_4_1-native/report.json',
-        '/data/Xtal/Diamond/Mtb_MTR_std_pfGDR_4_2-native/report.json',
-        '/data/Xtal/IDEiger/lyso1/lysotest1-native/report.json',
-        '/data/Xtal/IDEiger/lyso10/lysotest10-native/report.json',
-        '/data/Xtal/IDEiger/lyso11/lysotest11-native/report.json',
-        '/data/Xtal/IDEiger/lyso15/lysotest15-native/report.json',
-        '/data/Xtal/IDEiger/lyso15/lysotest15-native-orig/report.json',
-        '/data/Xtal/IDEiger/lyso2/lysotest2-native/report.json',
-        '/data/Xtal/IDEiger/lyso3/lysotest3-native/report.json',
-        '/data/Xtal/IDEiger/lyso4/lysotest4-native/report.json',
-        '/data/Xtal/IDEiger/lyso8/lysotest8-native1/report.json',
-        '/data/Xtal/IDEiger/lyso9/lysotest9-native/report.json',
-        '/data/Xtal/IDEiger/proc-3/report.json',
-        '/data/Xtal/SOLEIL/200Hz/3_5_200Hz_1-native/report.json',
-        '/data/Xtal/Tutorial/xtal_1_5-native/report.json',
-        '/home/michel/Work/insul/insu6_1-native/report.json']
-    )

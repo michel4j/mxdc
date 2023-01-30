@@ -8,7 +8,7 @@ toolbar.tool-box {
 }
 .section-box > * > label, .section-box > label {
   font-weight: bold;
-  margin: 6px;
+  margin: 3px 6px;
 }
 
 .device-fbk {
@@ -304,16 +304,16 @@ label.status-fbk {
 
 .sample-report-button {
   min-height: 5px;
-  border-radius: 10px;
-  font-size: 70%;
+  font-size: 80%;
   padding: 2px 8px;
 }
 .report-score {
 }
 
-.data-description {
-  padding-left: 12px;
+.data-sample-row:not(selected) .sample-data-description {
+  background: alpha(@borders, 0.25);
 }
+
 .load-progress trough {
   border-radius: 0px;
   border: none;
@@ -337,7 +337,6 @@ label.status-fbk {
 }
 
 .report-active {
-  /*color: white;*/
   background: #3583e2;
 }
 
@@ -354,13 +353,7 @@ label.status-fbk {
 }
 
 .data-sample-row + .data-sample-row {
-  border-top: 2px solid @borders;
-}
-
-.data-sample-row {
-
-}
-.data-sample-row:hover {
+  border-top: 1px solid alpha(@borders, 0.5);
 }
 
 .data-sample-row:selected .report-pill {

@@ -1,5 +1,5 @@
 import os
-import uuid
+from typing import Sequence
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
@@ -10,126 +10,114 @@ from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc, datatools
 from mxdc.utils.log import get_module_logger
 
+from gi.repository import GLib
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
+
+
+def combine_metadata(items: Sequence[dict]) -> dict:
+    """
+    Combine multiple metadata dictionaries into a single data dictionary for processing.
+    :param items: sequence of metadata items
+    :return: dictionary
+    """
+
+    file_names = []
+    data = {}
+    for meta in items:
+        numbers = datatools.frameset_to_list(meta['frames'])
+        filename = os.path.join(meta['directory'], meta['filename'].format(numbers[0]))
+        file_names.append(filename)
+        data['uuid'] = meta['uuid']
+        data['id'] = [meta.get('id') for meta in items]
+        data['sample_id'] = meta['sample_id']
+        data['type'] = meta['type']
+    all_names = [meta['name'] for meta in items]
+    data['name'] = os.path.commonprefix(all_names)
+    if not data['name']:
+        data['name'] = '-'.join(all_names)
+
+    return {
+        'data': data,
+        'data_id': data['id'],
+        'sample_id': data['sample_id'],
+        'name': data['name'],
+        'file_names': file_names,
+        'activity': 'proc-screen',
+        'type': data['type'],
+    }
 
 
 @implementer(IAnalyst)
 class Analyst(Engine):
     class Signals:
-        report = Signal('new-report', arg_types=(str, object))
-        update = Signal('update-report', arg_types=(str, object))
+        data = Signal('data', arg_types=(object, ))
+        report = Signal('report', arg_types=(object,))
+        update = Signal('update', arg_types=(str, object, bool))
 
     class ResultType(object):
         MX, XRD, RASTER = range(3)
 
-    def __init__(self, manager):
+    def __init__(self):
         super().__init__()
-        self.manager = manager
         self.beamline = Registry.get_utility(IBeamline)
         Registry.add_utility(IAnalyst, self)
 
-    def on_process_done(self, result, data, data_id):
+    def on_process_done(self, result, data, params):
         report = result.results
-        report['data_id'] = data_id
+        report['data_id'] = params['data_id']
         self.save_report(report)
-        title = report['title']
-        self.manager.update_item(result.identity, report=report, title=title)
+        self.set_state(update=(result.identity, report, True))
+        logger.debug('Updating Analysis Report ...')
 
     def on_process_failed(self, result, error):
-        self.manager.update_item(result.identity, error=error, title='Analysis Failed!')
+        self.set_state(update=(result.identity, error, False))
         logger.error(f'Analysis Failed! {error}')
 
-    def process_dataset(self, metadata, flags=(), sample=None):
-        numbers = datatools.frameset_to_list(metadata['frames'])
-        filename = os.path.join(metadata['directory'], metadata['filename'].format(numbers[0]))
+    def add_dataset(self, metadata):
+        self.set_state(data=metadata)
+
+    def process_generic(self, params, sample, session, method='mx'):
+        params = datatools.update_for_sample(params, sample=sample, session=session, overwrite=False)
+
+        if method == 'misc':
+            res = self.beamline.dps.process_misc(**params, user_name=misc.get_project_name())
+        elif method == 'powder':
+            res = self.beamline.dps.process_powder(**params, user_name=misc.get_project_name())
+        else:
+            res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
+
+        params.update({"uuid": res.identity})
+        self.set_state(report=params)
+        res.connect('done', self.on_process_done, params)
+        res.connect('failed', self.on_process_failed)
+
+    def process_dataset(self, *metadata, flags=(), sample=None):
+        params = combine_metadata(metadata)
         suffix = 'anom' if 'anomalous' in flags else 'native'
+        params.update(anomalous="anomalous" in flags, screen=False, activity=f'proc-{suffix}')
+        self.process_generic(params, sample, self.beamline.session_key)
 
-        params = {
-            'title': 'MX analysis in progress ...',
-            'data': metadata,
-            'sample_id': metadata['sample_id'],
-            'name': metadata['name'],
-            'file_names': [filename],
-            'anomalous': 'anomalous' in flags,
-            'activity': 'proc-{}'.format(suffix),
-            'type': metadata['type'],
-        }
-        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
-        res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
-        params.update({
-            "uuid": res.identity,
-            'state': self.manager.State.ACTIVE,
-        })
-        print(params)
-        self.manager.add_item(params)
-        data_id = [_f for _f in [metadata.get('id')] if _f]
-        res.connect('done', self.on_process_done, data_id)
-        res.connect('failed', self.on_process_failed)
 
-    def process_multiple(self, *metadatas, flags=(), sample=None):
-        file_names = []
-        names = []
-        for metadata in metadatas:
-            numbers = datatools.frameset_to_list(metadata['frames'])
-            file_names.append(os.path.join(metadata['directory'], metadata['filename'].format(numbers[0])))
-            names.append(metadata['name'])
-
-        metadata = metadatas[0]
+    def process_multiple(self, *metadata, flags=(), sample=None):
+        params = combine_metadata(metadata)
         suffix = 'mad' if 'mad' in flags else 'merge'
-        params = {
-            'title': 'MX {} analysis in progress ...'.format(suffix.upper()),
-            'data': metadata,
-            'sample_id': metadata['sample_id'],
-            'name': '-'.join(names),
-            'file_names': file_names,
-            'anomalous': 'anomalous' in flags,
-            'merge': 'merge' in flags,
-            'mad': 'mad' in flags,
-            'activity': 'proc-{}'.format(suffix),
-            'type': metadata['type'],
-        }
-        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
-        res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
-        params.update({
-            "uuid": res.identity,
-            'state': self.manager.State.ACTIVE,
-        })
-        self.manager.add_item(params)
-        data_id = [_f for _f in [metadata.get('id') for metadata in metadatas] if _f]
-        res.connect('done', self.on_process_done, data_id)
-        res.connect('failed', self.on_process_failed)
+        params.update(
+            mad="mad" in flags,
+            anomalous="anomalous" in flags,
+            screen=False, activity=f'proc-{suffix}'
+        )
+        self.process_generic(params, sample, self.beamline.session_key)
 
-    def screen_dataset(self, metadata, flags=(), sample=None):
-        numbers = datatools.frameset_to_list(metadata['frames'])
-        filename = os.path.join(metadata['directory'], metadata['filename'].format(numbers[0]))
-
-        params = {
-            'title': 'MX screening in progress ...',
-            'data': metadata,
-            'sample_id': metadata['sample_id'],
-            'name': metadata['name'],
-            'file_names': [filename],
-            'anomalous': 'anomalous' in flags,
-            'screen': True,
-            'activity': 'proc-screen',
-            'type': metadata['type'],
-        }
+    def screen_dataset(self, *metadata, flags=(), sample=None):
+        params = combine_metadata(metadata)
+        params.update(merge=True, screen=True)
 
         method = settings.get_string('screening-method').lower()
-        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
         if method == 'autoprocess':
-            res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
+            self.process_generic(params, sample, self.beamline.session_key, method='mx')
         else:
-            res = self.beamline.dps.process_misc(**params, user_name=misc.get_project_name())
-        params.update({
-            "uuid": res.identity,
-            'state': self.manager.State.ACTIVE,
-        })
-        self.manager.add_item(params)
-        data_id = [_f for _f in [metadata.get('id')] if _f]
-        res.connect('done', self.on_process_done, data_id)
-        res.connect('failed', self.on_process_failed)
+            self.process_generic(params, sample, self.beamline.session_key, method='misc')
 
     def process_powder(self, metadata, flags=(), sample=None):
         file_names = [
@@ -147,15 +135,7 @@ class Analyst(Engine):
             'activity': 'proc-xrd',
             'type': metadata['type'],
         }
-        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
-        res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
-        params.update({
-            "uuid": res.identity,
-            'state': self.manager.State.ACTIVE,
-        })
-        self.manager.add_item(params)
-        res.connect('done', self.on_process_done, metadata)
-        res.connect('failed', self.on_process_failed)
+        self.process_generic(params, sample, self.beamline.session_key, method='powder')
 
     def save_report(self, report):
         if 'filename' in report:

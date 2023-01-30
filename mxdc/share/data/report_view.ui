@@ -6,7 +6,6 @@
     <property name="visible">True</property>
     <property name="can-focus">True</property>
     <property name="receives-default">True</property>
-    <property name="relief">none</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -54,6 +53,8 @@
       </object>
     </child>
     <style>
+      <class name="circular"/>
+      <class name="flat"/>
       <class name="sample-report-button"/>
     </style>
   </template>

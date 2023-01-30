@@ -47,11 +47,11 @@ class ReportView(Gtk.Button):
             context.add_class(f"report-unknown")
 
     def do_clicked(self, *args, **kwargs):
-        browser = Registry.get_utility(analysis.ReportBrowserInterface)
-        path = Path(self.item.file).parent / "report.html"
-        if path.exists():
-            uri = f'file://{path}?v={random.random()}'
-            GLib.idle_add(browser.load_uri, uri)
+        controller = Registry.get_utility(analysis.ControllerInterface)
+        path = Path(self.item.directory) / "report.html"
+        controller.browse_file(str(path))
+        controller.set_strategy(self.item.strategy)
+        controller.set_directory(self.item.directory)
 
     @classmethod
     def factory(cls, item: analysis.Report) -> "ReportView":
@@ -124,9 +124,9 @@ class SampleView(Gtk.Box):
         self.on_update()
 
     def on_update(self, *args, **kwargs):
-        self.name_label.set_text(self.item.name)
-        self.group_label.set_text(self.item.group)
-        self.port_label.set_text(self.item.port)
+        self.name_label.set_markup(f"<tt><b>{self.item.name}</b></tt>")
+        self.group_label.set_markup(f"<tt>{self.item.group}</tt>")
+        self.port_label.set_markup(f"<tt>{self.item.port}</tt>")
 
     @classmethod
     def factory(cls, item: analysis.SampleItem) -> Gtk.ListBoxRow:
@@ -136,7 +136,7 @@ class SampleView(Gtk.Box):
         """
         entry = cls()
         entry.set_item(item)
-        row = Gtk.ListBoxRow(activatable=True, selectable=True)
+        row = Gtk.ListBoxRow(activatable=False, selectable=True)
         row.get_style_context().add_class('data-sample-row')
         row.add(entry)
         return row

@@ -2,7 +2,7 @@ import os
 import time
 from queue import Queue
 from threading import Thread
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from gi.repository import GLib
@@ -60,18 +60,27 @@ class DataCollector(Engine):
     def save_datasets(self):
         while True:
             dataset, analysis, end_time = self.save_queue.get()
+            timeout_time = end_time + timedelta(seconds=self.beamline.config.get('data_overhead', 5))
+
             # Wait for some time after data acquisition stopped before trying to save the dataset
-            while (datetime.now(tz=pytz.utc) - end_time).total_seconds() < self.beamline.config.get('data_overhead', 30):
+            while datetime.now(tz=pytz.utc) < timeout_time:
                 time.sleep(1)
 
-            for details in dataset.get_details():
+            meta_store = {
+                details['name']: details for details in dataset.get_details()
+            }
+            saved_data = []
+            for name in meta_store.keys():
                 try:
-                    metadata = self.save(details)
+                    metadata = self.save(meta_store[name])
+                    self.analyst.add_dataset(metadata)
                     self.results.append(metadata)
-                    if metadata and analysis:
-                        self.analyse(metadata, dataset.sample)
+                    saved_data.append(metadata)
                 except Exception as e:
-                    logger.exception(f"{details['name']!r} could not be saved: {e}")
+                    logger.exception(f"{name!r} could not be saved: {e}")
+
+            if saved_data and analysis:
+                self.analyse(*saved_data, sample=dataset.sample, kind=saved_data[0]['type'])
 
             time.sleep(1)
 
@@ -319,11 +328,9 @@ class DataCollector(Engine):
             info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
         except OSError as e:
             logger.warning(f'Unable to find files on disk: {reference}')
-
             framesets = ""
         else:
             framesets = info['frames']
-
 
         metadata = {
             'name': params['name'],
@@ -360,21 +367,21 @@ class DataCollector(Engine):
         reply = self.beamline.lims.upload_data(self.beamline.name, filename)
         return reply
 
-    def analyse(self, metadata, sample, first=False):
+    def analyse(self, *metadata, sample=None, kind='SCREEN', first=False):
         if self.config['analysis'] is None:
             return
 
         flags = () if not self.config.get('anomalous') else ('anomalous',)
         if (self.config['analysis'] == 'screen') or (
-                self.config['analysis'] == 'default' and metadata['type'] == 'SCREEN'):
-            self.analyst.screen_dataset(metadata, flags=flags, sample=sample)
+                self.config['analysis'] == 'default' and kind == 'SCREEN'):
+            self.analyst.screen_dataset(*metadata, flags=flags, sample=sample)
         elif (self.config['analysis'] == 'process') or (
-                self.config['analysis'] == 'default' and metadata['type'] == 'DATA'):
-            self.analyst.process_dataset(metadata, flags=flags, sample=sample)
+                self.config['analysis'] == 'default' and kind == 'DATA'):
+            self.analyst.process_dataset(*metadata, flags=flags, sample=sample)
         elif (self.config['analysis'] == 'powder') or (
-                self.config['analysis'] == 'default' and metadata['type'] == 'XRD'):
+                self.config['analysis'] == 'default' and kind == 'XRD'):
             flags = ('calibrate',) if first else ()
-            self.analyst.process_powder(metadata, flags=flags, sample=sample)
+            self.analyst.process_powder(*metadata, flags=flags, sample=sample)
 
     def on_progress(self, obj, fraction, message):
         self.config['datasets'][self.current_wedge['uuid']].set_progress(fraction)
