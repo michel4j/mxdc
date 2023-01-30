@@ -18,6 +18,7 @@ logger = get_module_logger(__name__)
 class Analyst(Engine):
     class Signals:
         report = Signal('new-report', arg_types=(str, object))
+        update = Signal('update-report', arg_types=(str, object))
 
     class ResultType(object):
         MX, XRD, RASTER = range(3)
@@ -34,15 +35,6 @@ class Analyst(Engine):
         self.save_report(report)
         title = report['title']
         self.manager.update_item(result.identity, report=report, title=title)
-
-    def on_raster_done(self, result, data, data_id):
-        report = result.results
-        report['data_id'] = data_id
-        self.save_report(report)
-
-    def on_raster_update(self, result, data):
-        report = result.results
-        self.manager.update_item(result.identity, report=report, title=f'Frame {report["frame_number"]}')
 
     def on_process_failed(self, result, error):
         self.manager.update_item(result.identity, error=error, title='Analysis Failed!')
@@ -69,6 +61,7 @@ class Analyst(Engine):
             "uuid": res.identity,
             'state': self.manager.State.ACTIVE,
         })
+        print(params)
         self.manager.add_item(params)
         data_id = [_f for _f in [metadata.get('id')] if _f]
         res.connect('done', self.on_process_done, data_id)
@@ -136,17 +129,6 @@ class Analyst(Engine):
         self.manager.add_item(params)
         data_id = [_f for _f in [metadata.get('id')] if _f]
         res.connect('done', self.on_process_done, data_id)
-        res.connect('failed', self.on_process_failed)
-
-    def process_raster(self, params, flags=(), sample=None):
-        params.update({
-            'activity': 'proc-raster',
-        })
-        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key, overwrite=False)
-        data_id = [_f for _f in [params.get('id')] if _f]
-        res = self.beamline.dps.signal_strength(**params, user_name=misc.get_project_name())
-        res.connect('done', self.on_raster_done, data_id)
-        res.connect('update', self.on_raster_update)
         res.connect('failed', self.on_process_failed)
 
     def process_powder(self, metadata, flags=(), sample=None):

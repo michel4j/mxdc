@@ -298,19 +298,26 @@ label.status-fbk {
   color: #d2413a;
 }
 
-.sample-dataset-label {
+.sample-data-label {
   font-size: 85%;
 }
 
 .sample-report-button {
-  min-height: 10px;
+  min-height: 5px;
   border-radius: 10px;
-  margin: 3px;
-  font-size: 75%;
+  font-size: 70%;
+  padding: 2px 8px;
+}
+.report-score {
 }
 
 .data-description {
   padding-left: 12px;
+}
+.load-progress trough {
+  border-radius: 0px;
+  border: none;
+  background: transparent;
 }
 
 .report-score-0, .report-score-1, .report-score-2 {
@@ -329,6 +336,33 @@ label.status-fbk {
   background: rgba(12, 110, 3, 0.5);
 }
 
-.data-row {
-  border-bottom: 1px solid @borders;
+.report-active {
+  /*color: white;*/
+  background: #3583e2;
+}
+
+.report-unknown {
+    border: 1px solid @borders;
+}
+
+.report-failed {
+    border: 1px solid @borders;
+}
+
+.data-data-row {
+  border-top: 1px solid alpha(@borders, 0.2);
+}
+
+.data-sample-row + .data-sample-row {
+  border-top: 2px solid @borders;
+}
+
+.data-sample-row {
+
+}
+.data-sample-row:hover {
+}
+
+.data-sample-row:selected .report-pill {
+  color: inherit;
 }

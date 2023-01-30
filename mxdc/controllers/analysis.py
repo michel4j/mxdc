@@ -1,5 +1,7 @@
 import os
+import random
 from enum import Enum
+from pathlib import Path
 
 import gi
 import numpy
@@ -21,8 +23,6 @@ from .samplestore import ISampleStore
 from . import common
 
 logger = get_module_logger(__name__)
-
-
 
 
 class ReportManager(TreeManager):
@@ -111,6 +111,9 @@ class ReportManager(TreeManager):
 
 
 class AnalysisController(Object):
+
+    data_folder: common.DataDirectory
+
     def __init__(self, widget):
         super().__init__()
         self.widget = widget
@@ -118,7 +121,7 @@ class AnalysisController(Object):
         self.sample_store = None
 
         self.data_store = Gio.ListStore(item_type=analysis.SampleItem)
-        self.widget.proc_sample_view.bind_model(self.data_store, reports.create_sample_row)
+        self.widget.proc_sample_view.bind_model(self.data_store, reports.SampleView.factory)
 
         self.reports = ReportManager(self.widget.proc_data_view)
         self.analyst = Analyst(self.reports)
@@ -126,6 +129,7 @@ class AnalysisController(Object):
         self.browser.set_zoom_level(0.85)
         self.options = {}
         self.setup()
+        Registry.add_utility(analysis.ReportBrowserInterface, self.browser)
 
     def setup(self):
         self.widget.proc_browser_box.add(self.browser)
@@ -134,6 +138,10 @@ class AnalysisController(Object):
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
+        self.browser.bind_property(
+            'is-loading', self.widget.browser_progress, 'visible', GObject.BindingFlags.SYNC_CREATE
+        )
+        self.browser.connect('notify::estimated-load-progress', self.on_browser_progress)
         self.widget.proc_single_option.set_active(True)
         self.data_folder = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
@@ -152,74 +160,125 @@ class AnalysisController(Object):
             'anomalous': self.widget.proc_anom_btn
         }
 
+    def on_browser_progress(self, *args, **kwargs):
+        self.widget.browser_progress.set_fraction(self.browser.props.estimated_load_progress)
+
     def clear_reports(self, *args, **kwargs):
-        self.reports.clear_selection()
+        response = dialogs.warning(
+            "Clear Progress Information",
+            "All items in the progress list will be removed. \n"
+            "This operation cannot be undone!",
+            buttons=(('Cancel', Gtk.ButtonsType.CANCEL), ('Proceed', Gtk.ButtonsType.OK))
+        )
+        if response == Gtk.ButtonsType.OK:
+            self.data_store.remove_all()
+
+    def import_data(self, meta_file: str):
+        data = misc.load_metadata(meta_file)
+        if data.get('type') in ['DATA', 'SCREEN', 'XRD']:
+            sample = {
+                "id": data['sample_id'],
+                "group": data["group"],
+                "port": data["port"],
+                "container": data["container"]
+            }
+
+            if sample['id']:
+                row = self.sample_store.find_by_id(sample['id'])
+                if row:
+                    sample['name'] = row[self.sample_store.Data.DATA]['name']
+
+            data_id = data.get('id')
+            key_src = data_id if data_id else meta_file
+            data_key = analysis.make_key(f'{key_src}')
+            new_data = analysis.Data(
+                key=data_key, name=data["name"], kind=data["type"],
+                file=meta_file, size=len(datatools.frameset_to_list(data["frames"])),
+                children=[
+                    # analysis.Report(
+                    #     key=analysis.make_key(f'analysis-{i}'),
+                    #     name=f'Analysis {i}',
+                    #     kind=random.choice(['NAT', 'SCR', 'XRD']),
+                    #     score=random.random(),
+                    #     file=analysis.get_random_json(),
+                    #     strategy={}
+                    # )
+                    # for i in range(random.randint(0, 7))
+                ]
+            )
+            directory = Path(data["directory"])
+            sample_key = analysis.make_key(str(directory.parent))
+
+            for entry in self.data_store:
+                if entry.key == sample_key:
+                    entry.add(new_data)
+                    break
+            else:
+                new_entry = analysis.SampleItem(
+                    name=sample.get('name', f'Sample-{random.randint(1,100)}'), group=sample.get('group', f'Group-{random.randint(1,100)}'),
+                    port=sample["port"], key=sample_key,
+                )
+                new_entry.add(new_data)
+                self.data_store.append(new_entry)
+        else:
+            self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
+
+    def import_report(self, json_file: str):
+        report_types = {
+            'MX Native Analysis': 'NAT',
+            'MX Screening Analysis': 'SCR',
+        }
+        info = misc.load_json(json_file)
+        if info.get("data_id"):
+            report = analysis.Report(
+                key=analysis.make_key(f'{info["directory"]}'),
+                name=info['title'],
+                kind=report_types.get(info['kind'], 'NAT'),
+                score=info['score'],
+                file=json_file,
+                state=analysis.ReportState.SUCCESS,
+                strategy=info.get('strategy', {})
+            )
+            found = False
+            for data_id in info['data_id']:
+                data_key = analysis.make_key(f'{data_id}')
+                for sample in self.data_store:
+                    data = sample.find(data_key)
+                    if data:
+                        data.add(report)
+                        found = True
+                        break
+
+            # not found just load the report
+            if not found:
+                path = Path(json_file).parent / "report.html"
+                uri = 'file://{}?v={}'.format(path, numpy.random.rand())
+                GObject.idle_add(self.browser.load_uri, uri)
 
     def import_metafile(self, *args, **kwargs):
-        filters = [
-            ('MxDC Meta-File', ["*.meta"]),
-            ('AutoProcess Report', ["*.html"]),
-        ]
-        directory = os.path.join(misc.get_project_home(), self.beamline.session_key)
-        file_name, file_filter = dialogs.select_opensave_file(
-            'Select File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
-            default_folder=directory
+        filters = {
+            'all': dialogs.SmartFilter(name='All Compatible Files', patterns=["*.meta", "*.json", "*.html"]),
+            'data': dialogs.SmartFilter(name='MxDC Meta-File', patterns=["*.meta"]),
+            'report': dialogs.SmartFilter(name='AutoProcess Report', patterns=["*.json"]),
+            'html': dialogs.SmartFilter(name='HTML Report', patterns=["*.html"]),
+        }
+        file_names, file_filter = dialogs.select_opensave_file(
+            'Select Files',
+            Gtk.FileChooserAction.OPEN,
+            parent=dialogs.MAIN_WINDOW,
+            filters=filters.values(),
+            multiple=True
         )
         self.sample_store = Registry.get_utility(ISampleStore)
-        if not file_name:
-            return
 
-        if file_filter.get_name() == filters[0][0]:
-            data = misc.load_metadata(file_name)
-            print(data)
-            if data.get('type') in ['DATA', 'SCREEN', 'XRD']:
-                if data.get('sample_id'):
-                    row = self.sample_store.find_by_id(data['sample_id'])
-                    sample = {} if not row else row[self.sample_store.Data.DATA]
-                else:
-                    sample = {}
-                params = {
-                    'title': '',
-                    'state': self.reports.State.PENDING,
-                    'data': data,
-                    'sample_id': data['sample_id'],
-                    'sample': sample,
-                    'name': data['name'],
-                    'type': data['type'],
-                    'directory': data['directory'],
-                    'activity': data['type'].replace('_', '-').lower()
-                }
-                self.reports.add_item(params)
-
-                # create and add sample data item
-                new_data = analysis.Data(
-                    name=data.get('name', '...'),
-                    key=data.get('id', 0),
-                    kind=data.get('type', ''),
-                    size=len(datatools.frameset_to_list(data.get('frames', ''))),
-                    file=file_name,
-                )
-
-                sample_id = 0 if not data.get('sample_id', 0) else data['sample_id']
-                for entry in self.data_store:
-                    if entry.key == sample_id:
-                        entry.add_data(new_data)
-                        break
-                else:
-                    new_entry = analysis.SampleItem(
-                        name=sample.get('name', '...'),
-                        group=sample.get('group', '...'),
-                        port=sample.get('port', '...'),
-                        key=sample_id,
-                    )
-                    new_entry.add_data(new_data)
-                    self.data_store.append(new_entry)
-            else:
-                self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
-
-        else:
-            uri = 'file://{}?v={}'.format(file_name, numpy.random.rand())
-            GObject.idle_add(self.browser.load_uri, uri)
+        for file_name in file_names:
+            if filters["data"].match(file_name):
+                self.import_data(file_name)
+            elif filters['report'].match(file_name):
+                self.import_report(file_name)
+            elif filters['html'].match(file_name):
+                uri = 'file://{}?v={}'.format(file_name, numpy.random.rand())
+                GObject.idle_add(self.browser.load_uri, uri)
 
     def on_sample(self, *args, **kwargs):
         sample = self.reports.sample

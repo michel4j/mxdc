@@ -154,7 +154,7 @@ class Application(Gtk.Application):
             app_settings.props.gtk_application_prefer_dark_theme = self.dark_mode
 
             css = Gtk.CssProvider()
-            with open(os.path.join(conf.SHARE_DIR, 'styles.less'), 'rb') as handle:
+            with open(os.path.join(conf.SHARE_DIR, 'styles.css'), 'rb') as handle:
                 css_data = handle.read()
                 css.load_from_data(css_data)
             style = self.window.get_style_context()

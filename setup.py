@@ -38,7 +38,7 @@ setup(
             'share/gschemas.compiled',
             'share/mxdc.*.xml',
             'share/mxdc.gresource',
-            'share/styles.less',
+            'share/styles.css',
             'share/dark.mplstyle',
             'share/imgsync.tac',
         ]

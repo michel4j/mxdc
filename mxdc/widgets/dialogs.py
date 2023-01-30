@@ -1,5 +1,7 @@
 import os
-
+import fnmatch
+from pathlib import Path
+from typing import Sequence
 from gi.repository import Gtk, GLib
 from gi.repository import Pango
 
@@ -14,6 +16,29 @@ BUTTON_TYPES = {
     Gtk.ButtonsType.YES_NO: (Gtk.STOCK_NO, Gtk.ResponseType.NO, Gtk.STOCK_YES, Gtk.ResponseType.YES),
     Gtk.ButtonsType.OK_CANCEL: (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK),
 }
+
+
+class SmartFilter(Gtk.FileFilter):
+    def __init__(self, name: str = 'All', patterns: Sequence[str] = ('*', )):
+        """
+        Create a File filter from a name and sequence of patterns
+        :param name: Filter name
+        :param patterns: file patterns to match
+        """
+        super().__init__()
+
+        self.set_name(name)
+        self.patterns = patterns
+        for pattern in patterns:
+            self.add_pattern(pattern)
+
+    def match(self, file_name: str) -> bool:
+        """
+        Check if a file_name matches this filter
+        :param file_name:
+        :return: True if it matches
+        """
+        return any(fnmatch.fnmatch(file_name, pattern) for pattern in self.patterns)
 
 
 def make_dialog(dialog_type, title, sub_header=None, details=None, buttons=Gtk.ButtonsType.OK, default=-1,
@@ -137,7 +162,7 @@ def check_folder(directory, parent=None, warn=True):
     return True
 
 
-def select_opensave_file(title, action, parent=None, filters=[], formats=[], default_folder=None):
+def select_opensave_file(title, action, parent=None, filters=[], formats=[], default_folder=None, multiple=False):
     if action in [Gtk.FileChooserAction.OPEN, Gtk.FileChooserAction.SELECT_FOLDER, Gtk.FileChooserAction.CREATE_FOLDER]:
         _stock = Gtk.STOCK_OPEN
     else:
@@ -146,19 +171,23 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
         title=title,
         action=action,
         parent=parent,
-        buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, _stock, Gtk.ResponseType.OK))
+        buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, _stock, Gtk.ResponseType.OK),
+        select_multiple=multiple
+    )
+
     if default_folder is None:
         dialog.set_current_folder(os.getcwd())
     else:
         dialog.set_current_folder(default_folder)
+
     dialog.set_do_overwrite_confirmation(True)
     if action == Gtk.FileChooserAction.OPEN:
-        for name, patterns in filters:
-            fil = Gtk.FileFilter()
-            fil.set_name(name)
-            for pat in patterns:
-                fil.add_pattern(pat)
-            dialog.add_filter(fil)
+        for file_filter in filters:
+            if isinstance(file_filter, tuple):
+                dialog.add_filter(SmartFilter(name=file_filter[0], patterns=file_filter[1]))
+            elif isinstance(file_filter, Gtk.FileFilter):
+                dialog.add_filter(file_filter)
+
     elif action == Gtk.FileChooserAction.SAVE:
         format_info = dict(formats)
         hbox = Gtk.HBox(spacing=10)
@@ -179,6 +208,7 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
         cbox.connect('changed', _cb, dialog, format_info)
 
     if dialog.run() == Gtk.ResponseType.OK:
+        filenames = dialog.get_filenames()
         filename = dialog.get_filename()
         if action == Gtk.FileChooserAction.SAVE:
             txt = cbox.get_active_text()
@@ -189,11 +219,17 @@ def select_opensave_file(title, action, parent=None, filters=[], formats=[], def
             filename = "%s.%s" % (os.path.splitext(filename)[0], fltr)
         else:
             fltr = dialog.get_filter()
+
+        directory = Path(filename).parent
+        os.chdir(directory)
     else:
+        filenames = ()
         filename = None
         fltr = None
+
     dialog.destroy()
-    return filename, fltr
+
+    return filenames if multiple else filename, fltr
 
 
 def select_save_file(title, formats=[], default_folder=None):
