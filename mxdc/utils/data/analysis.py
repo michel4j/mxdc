@@ -84,8 +84,8 @@ class ContainerItem(Item):
     child_type: Item
 
     def __init__(self, **kwargs):
-        self.children = Gio.ListStore(item_type=self.child_type)
         super().__init__(**kwargs)
+        self.children = Gio.ListStore(item_type=self.child_type)
 
     def update(self, **kwargs):
         """
@@ -112,6 +112,7 @@ class ContainerItem(Item):
         Add a new report or update existing report with the same key
         :param item: report
         """
+
         existing = self.find(item.key)
         if not existing:
             self.children.append(item)
@@ -150,6 +151,12 @@ class Data(ContainerItem):
 
     def __str__(self):
         return f'{self.kind[:3]} | {self.size} imgs'
+
+    def deselect(self):
+        """
+        Set the selected field to false
+        """
+        self.selected = False
 
     def score(self) -> float:
         """

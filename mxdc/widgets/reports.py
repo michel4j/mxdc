@@ -87,10 +87,11 @@ class DataView(Gtk.Box):
 
     def set_item(self, item: analysis.Data):
         self.props.item = item
-        num_items = item.children.get_n_items()
+        self.report_list.bind_model(self.item.children, ReportView.factory)
+        self.item.children.connect('items-changed', self.on_items_changed)
+
+        num_items = self.item.children.get_n_items()
         self.report_list.props.max_children_per_line = max(1, min(num_items, 5))
-        item.children.connect('items-changed', self.on_items_changed)
-        self.report_list.bind_model(item.children, ReportView.factory)
         self.props.item.connect('notify', self.on_update)
         self.data_selection.connect('toggled', self.on_toggle)
         self.on_update()
@@ -120,7 +121,6 @@ class DataView(Gtk.Box):
         row.add(entry)
         return row
 
-
 @Gtk.Template.from_resource('/org/gtk/mxdc/data/sample_view.ui')
 class SampleView(Gtk.Box):
     __gtype_name__ = 'SampleView'
@@ -133,7 +133,7 @@ class SampleView(Gtk.Box):
 
     def set_item(self, item: analysis.SampleItem):
         self.props.item = item
-        self.data_list.bind_model(item.children, DataView.factory)
+        self.data_list.bind_model(self.item.children, DataView.factory)
         self.item.connect('notify', self.on_update)
         self.on_update()
 

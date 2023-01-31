@@ -7,8 +7,7 @@ import numpy
 gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
-from mxdc.utils import misc
-from mxdc.utils.log import get_module_logger
+from mxdc.utils import misc, log
 from mxdc.utils.data import analysis
 from mxdc.utils import datatools
 from mxdc.engines.analysis import Analyst
@@ -19,7 +18,7 @@ from mxdc.controllers.datasets import IDatasets
 from .samplestore import ISampleStore
 from . import common
 
-logger = get_module_logger(__name__)
+logger = log.get_module_logger(__name__)
 
 
 class ReportManager:
@@ -110,16 +109,14 @@ class ReportManager:
             report_entry.update(**new_entry.to_dict())
         else:
             # create a new entry under each dataset
-            added = False
             data_ids = [] if not report.get('data_id') else report['data_id']
             for data_id in data_ids:
                 data_key = analysis.make_key(f'{data_id}')
                 if data_key in self.datasets:
                     data_entry = self.datasets[data_key]
                     data_entry.add(new_entry)
-                    added = True
-            if added:
-                self.reports[new_entry.key] = new_entry
+                    self.reports[new_entry.key] = new_entry
+
 
     def update_report(self, key, report: dict, success: bool = True):
         """
@@ -217,8 +214,8 @@ class AnalysisController(Object):
 
     def import_report(self, json_file: str):
         info = misc.load_json(json_file)
-        for kind in ['NATIVE', 'SCREEN', 'ANOMALOUS']:
-            if kind in info['kind'].upper():
+        for kind in ['SCREEN', 'ANOMALOUS', 'NATIVE']:
+            if kind in info['kind'].upper() or kind in info['title'].upper():
                 info['type'] = kind
                 break
         else:
@@ -379,6 +376,9 @@ class AnalysisController(Object):
         sample = item.to_dict()
         metas = [misc.load_metadata(data.file) for data in item.children if data.selected]
         types = [data.kind for data in item.children if data.selected]
+
+        # deselect all selected data
+        _ = [data.deselect() for data in item.children if data.selected]
 
         if not metas:
             return
