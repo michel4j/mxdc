@@ -70,8 +70,12 @@ class Analyst(Engine):
         self.set_state(update=(result.identity, report, True))
         logger.debug('Updating Analysis Report ...')
 
-    def on_process_failed(self, result, error):
-        self.set_state(update=(result.identity, error, False))
+    def on_process_failed(self, result, error, params):
+        report = {
+            'error': error,
+            'directory': params['directory'],
+        }
+        self.set_state(update=(result.identity, report, False))
         logger.error(f'Analysis Failed! {error}')
 
     def add_dataset(self, metadata):
@@ -90,7 +94,7 @@ class Analyst(Engine):
         params.update({"uuid": res.identity})
         self.set_state(report=params)
         res.connect('done', self.on_process_done, params)
-        res.connect('failed', self.on_process_failed)
+        res.connect('failed', self.on_process_failed, params)
 
     def process_dataset(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)

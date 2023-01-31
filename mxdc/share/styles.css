@@ -319,17 +319,16 @@ label.status-fbk {
   padding-bottom: 1px;
 }
 
-/*
+
 .data-sample-row list {
   background-color: transparent;
 }
-*/
 
-/*
 .data-sample-row list row {
   background-color: transparent;
+  color: inherit;
 }
-*/
+
 
 .data-sample-row:not(selected) .sample-data-description {
   background: rgba(0, 0, 0, 0.15);
