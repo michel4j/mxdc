@@ -15,26 +15,38 @@ The view is divided into two regions, the Data/Report Table on the left, and the
 
 Data/Report Table
 -----------------
-The Data/Report Table displays a Tree of datasets and corresponding analysis requests made against it. The analysis
-rows display the name and type of dataset, the type of analysis requested, the analysis score if available,
-and also the state of the analysis request, either pending, in-progress, completed or error.
+The Data/Report Table displays a list acquired datasets grouped by sample. Corresponding analysis requests made against
+each dataset are shown as clickable buttons to the right of the dataset row.
+Each dataset row has a checkbox which can
+be used to select datasets for further analysis.
 
-To perform a new analysis, select a row on the table, then configure the analysis type using the controls below the
-Data/Report Table. Finally, click the *Run* button to submit the request. For MAD and Merge data analysis types, it
-is necessary to select multiple rows. This can be acheived by holding down the Ctrl- or Shift- keys while clicking on the desired rows.
+The Analysis report buttons show the state of the analysis as an icon for in-progress
+or failed requests.  Successfully completed requests are colored according to the score, ranging from red to green as the
+score goes from 0.0 (worst) to 1.0 (best).
 
-Requests are submitted to the *Data Analysis Server* asynchronously, and the table is updated when the results are ready.
+Additional analysis types can be performed per Sample by selecting the sample, checking all required datasets, configuring
+the desired options to the left of the *Run* button, and then clicking the *Run* button to submit the request.  Note that
+a single analysis will be performed with all the checked datasets included. This can be useful when merging multiple
+datasets or for scaling separate datasets together durin MAD experiments. Only checked datasets within the selected sample
+will be used in the analysis.
 
-To view the analysis report, click on a row corresponding to a completed analysis request. The report is displayed in
-the Report Viewer.
+At this time, the available options are:
 
-If a sample is associated with the current row of the table, selecting the row activates the *Mount Sample* button to
-be used for mounting the given sample. Similarly, if a calculated data acquisition strategy is available, say as the result
-of a screening analysis, clicking the row activates the *Use Strategy* button. Clicking this button will add an interactive
-data  acquisition run on the Data page.
+* Screen - Performs a screening characterization.
+* Separate - For multiple datasets, process separately, but scale together at the end generating separate output files. For MAD.
+* Anomalous - Process with Friedel's Law False.
+
+Requests are submitted to the *Data Analysis Server* asynchronously, and the display is updated when the results are ready.
+
+To view the analysis report, click on button corresponding to a completed analysis request. The report is displayed in
+the Report Viewer on the right. For failed requests, clicking the report button will attempt to load a log file for inspection.
+
+If a sample is currently associated with a position within the automounter, selecting the sample row activates the
+*Mount Sample* button to be used for mounting the given sample. Similarly, if a calculated data acquisition strategy is
+available within the currently display data analysis report, the *Use Strategy* button will be active. Clicking this button
+will add an interactive data  acquisition run on the Data page.
 
 Report Viewer
 -------------
 The Report Viewer is a simple HTML browser used for displaying HTML reports. Right-click on the Viewer in order to access
 available controls such as forward, back, stop and reload.
-
