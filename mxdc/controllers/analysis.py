@@ -8,7 +8,7 @@ gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils import misc
-from mxdc.utils.log import get_module_logger
+from mxdc.utils.log import get_module_logger, inspect
 from mxdc.utils.data import analysis
 from mxdc.utils import datatools
 from mxdc.engines.analysis import Analyst
@@ -111,7 +111,8 @@ class ReportManager:
         else:
             # create a new entry under each dataset
             self.reports[new_entry.key] = new_entry
-            for data_id in report.get("data_id", []):
+            data_ids = [] if not report.get('data_id') else report['data_id']
+            for data_id in data_ids:
                 data_key = analysis.make_key(f'{data_id}')
                 if data_key in self.datasets:
                     data_entry = self.datasets[data_key]
@@ -179,10 +180,8 @@ class AnalysisController(Object):
         )
         self.browser.connect('notify::estimated-load-progress', self.on_browser_progress)
         self.widget.proc_merge_option.set_active(True)
-        self.directory = common.DataDirectory(self.widget.proc_dir_btn, self.widget.proc_dir_fbk)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
         self.widget.proc_strategy_btn.connect('clicked', self.use_strategy)
-        self.widget.proc_sample_view.connect('row-selected', self.on_row_selected)
         self.widget.proc_run_btn.connect('clicked', self.on_run_analysis)
         self.widget.proc_clear_btn.connect('clicked', self.clear_reports)
         self.widget.proc_open_btn.connect('clicked', self.import_metafile)
@@ -208,6 +207,8 @@ class AnalysisController(Object):
     def import_data(self, meta_file: str):
         data = misc.load_metadata(meta_file)
         if data.get('type') in ['DATA', 'SCREEN', 'XRD']:
+            path = Path(meta_file)
+            data['directory'] = str(path.parent)
             self.reports.add_data(data)
         else:
             self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
@@ -273,6 +274,33 @@ class AnalysisController(Object):
                 self.widget.spinner.start()
                 auto.auto_mount(self.beamline, port)
 
+    def update_selection(self):
+        """
+        Re-check the selected sample for selected data sets
+        :return:
+        """
+        for row in self.widget.proc_sample_view.get_selected_rows():
+
+            # fetch the item from the row
+            item = row.get_child().item
+            self.props.sample = item.to_dict()
+            selected_types = [
+                data.kind for data in item.children if data.selected
+            ]
+
+            if 'DATA' in selected_types or 'SCREEN' in selected_types:
+                self.widget.proc_mx_box.set_sensitive(True)
+                self.widget.proc_powder_box.set_sensitive(False)
+                self.widget.proc_run_btn.set_sensitive(True)
+            elif 'XRD' in selected_types:
+                self.widget.proc_mx_box.set_sensitive(False)
+                self.widget.proc_powder_box.set_sensitive(True)
+                self.widget.proc_run_btn.set_sensitive(True)
+            else:
+                self.widget.proc_mx_box.set_sensitive(False)
+                self.widget.proc_powder_box.set_sensitive(False)
+                self.widget.proc_run_btn.set_sensitive(False)
+
     def use_strategy(self, *args, **kwargs):
         strategy = self.props.strategy
         dataset_controller = Registry.get_utility(IDatasets)
@@ -302,6 +330,7 @@ class AnalysisController(Object):
     def on_sample(self, *args, **kwargs):
         sample = self.props.sample
         self.widget.proc_mount_btn.set_sensitive(bool(sample))
+
         mountable = False
         if sample and sample.get('port'):
             mountable = True
@@ -315,7 +344,8 @@ class AnalysisController(Object):
         self.widget.proc_revealer.set_reveal_child(mountable or bool(self.props.strategy))
 
     def on_strategy(self, *args, **kwargs):
-        self.widget.proc_revealer.set_reveal_child(bool(self.props.sample) or bool(self.props.strategy))
+        mountable = bool(self.props.sample and self.props.sample.get('port'))
+        self.widget.proc_revealer.set_reveal_child(mountable or bool(self.props.strategy))
 
     def on_browser_progress(self, *args, **kwargs):
         self.widget.browser_progress.set_fraction(self.browser.props.estimated_load_progress)
@@ -330,45 +360,29 @@ class AnalysisController(Object):
     def on_update_report(self, analyst, key, report, success):
         self.reports.update_report(key, report, success=success)
 
-    def on_row_selected(self, listbox, row):
-        # fetch the item from the row
-        item = row.get_child().item
-        self.props.sample = item.to_dict()
-        selected_types = [
-            data.kind for data in item.children if data.selected
-        ]
-        print(selected_types)
-        if 'DATA' in selected_types:
-            self.widget.proc_mx_box.set_sensitive(True)
-            self.widget.proc_powder_box.set_sensitive(False)
-            self.widget.proc_run_btn.set_sensitive(True)
-        elif 'XRD' in selected_types:
-            self.widget.proc_mx_box.set_sensitive(False)
-            self.widget.proc_powder_box.set_sensitive(True)
-            self.widget.proc_run_btn.set_sensitive(True)
-        else:
-            self.widget.proc_mx_box.set_sensitive(False)
-            self.widget.proc_powder_box.set_sensitive(False)
-            self.widget.proc_run_btn.set_sensitive(False)
-
     def on_run_analysis(self, *args, **kwargs):
         options = self.get_options()
-        model, selected = self.reports.selection.get_selected_rows()
-        metas = []
-        data_type = None
-        sample = None
-        for path in selected:
-            row = model[path]
-            item = self.reports.row_to_dict(row)
-            metas.append(item['data'])
-            data_type = item['type']
-            sample = item['sample']
+        row = self.widget.proc_sample_view.get_selected_row()
+
+        if not row:
+            return
+
+        # fetch the item from the row
+        item = row.get_child().item
+        sample = item.to_dict()
+        metas = [misc.load_metadata(data.file) for data in item.children if data.selected]
+        types = [data.kind for data in item.children if data.selected]
+
+        if not metas:
+            return
+
+        data_type = types[0]
         if data_type in ['DATA', 'SCREEN']:
             if len(metas) > 1:
                 self.analyst.process_multiple(*metas, flags=options, sample=sample)
             elif 'screen' in options:
-                self.analyst.screen_dataset(metas[0], flags=options, sample=sample)
+                self.analyst.screen_dataset(*metas, flags=options, sample=sample)
             else:
-                self.analyst.process_dataset(metas[0], flags=options, sample=sample)
+                self.analyst.process_dataset(*metas, flags=options, sample=sample)
         elif data_type == 'XRD':
             self.analyst.process_powder(metas[0], flags=options, sample=sample)

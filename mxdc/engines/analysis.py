@@ -98,7 +98,6 @@ class Analyst(Engine):
         params.update(anomalous="anomalous" in flags, screen=False, activity=f'proc-{suffix}')
         self.process_generic(params, sample, self.beamline.session_key)
 
-
     def process_multiple(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
         suffix = 'mad' if 'mad' in flags else 'merge'

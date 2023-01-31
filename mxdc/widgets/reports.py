@@ -51,7 +51,7 @@ class ReportView(Gtk.Button):
         path = Path(self.item.directory) / "report.html"
         controller.browse_file(str(path))
         controller.set_strategy(self.item.strategy)
-        controller.set_directory(self.item.directory)
+        controller.set_folder(self.item.directory)
 
     @classmethod
     def factory(cls, item: analysis.Report) -> "ReportView":
@@ -91,7 +91,9 @@ class DataView(Gtk.Box):
         self.data_label.set_label(f'{self.item.kind[:3]} / {self.item.size} img / {self.item.name}')
 
     def on_toggle(self, btn):
-        print(f'Data {self.item} selected={btn.get_active()}')
+        self.item.selected = btn.get_active()
+        controller = Registry.get_utility(analysis.ControllerInterface)
+        controller.update_selection()
 
     @classmethod
     def factory(cls, item: analysis.Data) -> Gtk.ListBoxRow:

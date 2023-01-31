@@ -6127,25 +6127,14 @@
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="valign">end</property>
                                         <property name="orientation">vertical</property>
                                         <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkSeparator">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
                                         <child>
                                           <object class="GtkBox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
                                             <property name="valign">end</property>
+                                            <property name="margin-top">6</property>
                                             <property name="spacing">12</property>
                                             <child>
                                               <object class="GtkButton" id="proc_mount_btn">
@@ -6178,6 +6167,17 @@
                                             <child>
                                               <placeholder/>
                                             </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSeparator">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -6292,7 +6292,6 @@
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">False</property>
-                                            <property name="vexpand">True</property>
                                             <property name="draw-indicator">True</property>
                                             <property name="group">proc_calib_option</property>
                                           </object>
