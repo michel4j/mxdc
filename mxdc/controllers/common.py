@@ -367,9 +367,8 @@ class DataDirectory:
         return self.directory
 
     def set_directory(self, path):
-        logger.debug(f'Setting working directory to {path}')
         self.directory = Path(str(path))
-        GLib.timeout_add(3000, self.update_view)
+        GLib.timeout_add(500, self.update_view)
 
     def open_terminal(self, btn):
         commands = [

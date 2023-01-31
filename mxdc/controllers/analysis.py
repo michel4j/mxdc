@@ -8,7 +8,7 @@ gi.require_version('WebKit2', '4.0')
 from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils import misc
-from mxdc.utils.log import get_module_logger, inspect
+from mxdc.utils.log import get_module_logger
 from mxdc.utils.data import analysis
 from mxdc.utils import datatools
 from mxdc.engines.analysis import Analyst
@@ -110,13 +110,16 @@ class ReportManager:
             report_entry.update(**new_entry.to_dict())
         else:
             # create a new entry under each dataset
-            self.reports[new_entry.key] = new_entry
+            added = False
             data_ids = [] if not report.get('data_id') else report['data_id']
             for data_id in data_ids:
                 data_key = analysis.make_key(f'{data_id}')
                 if data_key in self.datasets:
                     data_entry = self.datasets[data_key]
                     data_entry.add(new_entry)
+                    added = True
+            if added:
+                self.reports[new_entry.key] = new_entry
 
     def update_report(self, key, report: dict, success: bool = True):
         """
@@ -138,9 +141,8 @@ class ReportManager:
 
 
 class AnalysisController(Object):
-
     folder: common.DataDirectory
-    browser:  WebKit2.WebView
+    browser: WebKit2.WebView
     reports: ReportManager
     analyst: Analyst
     sample = Property(type=object)
@@ -166,8 +168,8 @@ class AnalysisController(Object):
         self.analyst.connect('report', self.on_new_report)
         self.analyst.connect('update', self.on_update_report)
 
-        self.connect('notify::sample', self.on_sample)
-        self.connect('notify::strategy', self.on_strategy)
+        self.connect('notify::sample', self.on_sample_or_strategy)
+        self.connect('notify::strategy', self.on_sample_or_strategy)
 
         self.widget.proc_browser_box.add(self.browser)
         browser_settings = WebKit2.Settings()
@@ -179,7 +181,7 @@ class AnalysisController(Object):
             'is-loading', self.widget.browser_progress, 'visible', GObject.BindingFlags.SYNC_CREATE
         )
         self.browser.connect('notify::estimated-load-progress', self.on_browser_progress)
-        self.widget.proc_merge_option.set_active(True)
+        self.widget.proc_sample_view.connect('row-selected', self.on_row_selected)
         self.widget.proc_mount_btn.connect('clicked', self.mount_sample)
         self.widget.proc_strategy_btn.connect('clicked', self.use_strategy)
         self.widget.proc_run_btn.connect('clicked', self.on_run_analysis)
@@ -188,7 +190,7 @@ class AnalysisController(Object):
 
         self.options = {
             'screen': self.widget.proc_screen_option,
-            'merge': self.widget.proc_merge_option,
+            'separate': self.widget.proc_separate_option,
             'calibrate': self.widget.proc_calib_option,
             'integrate': self.widget.proc_integrate_option,
             'anomalous': self.widget.proc_anom_btn
@@ -211,27 +213,24 @@ class AnalysisController(Object):
             data['directory'] = str(path.parent)
             self.reports.add_data(data)
         else:
-            self.widget.notifier.notify('Only MX or XRD Meta-Files can be imported')
+            self.widget.notifier.notify('Only MX or XRD Data Sets can be imported')
 
     def import_report(self, json_file: str):
-        report_types = {
-            'MX Native Analysis': 'NATIVE',
-            'MX Screening Analysis': 'SCREEN',
-            'MX Anomalous Analysis': 'ANOMALOUS',
-        }
         info = misc.load_json(json_file)
         for kind in ['NATIVE', 'SCREEN', 'ANOMALOUS']:
             if kind in info['kind'].upper():
                 info['type'] = kind
+                break
+        else:
+            info['type'] = 'NATIVE'
 
         info['name'] = info.get('title')
-        info['type'] = report_types.get(info['kind'], 'NATIVE')
         self.reports.add_report(info, state=analysis.ReportState.SUCCESS)
 
     def import_metafile(self, *args, **kwargs):
         filters = {
             'all': dialogs.SmartFilter(name='All Compatible Files', patterns=["*.meta", "*.json", "*.html"]),
-            'data': dialogs.SmartFilter(name='MxDC Meta-File', patterns=["*.meta"]),
+            'data': dialogs.SmartFilter(name='MxDC Data Set', patterns=["*.meta"]),
             'report': dialogs.SmartFilter(name='AutoProcess Report', patterns=["*.json"]),
             'html': dialogs.SmartFilter(name='HTML Report', patterns=["*.html"]),
         }
@@ -265,6 +264,11 @@ class AnalysisController(Object):
         if os.path.exists(path):
             uri = 'file://{}?v={}'.format(path, numpy.random.rand())
             GObject.idle_add(self.browser.load_uri, uri)
+        else:
+            self.widget.notifier.notify(f'File not found: {path} ')
+
+    def browse_html(self, html):
+        GObject.idle_add(self.browser.load_html, html)
 
     def mount_sample(self, *args, **kwargs):
         sample = self.props.sample
@@ -279,8 +283,9 @@ class AnalysisController(Object):
         Re-check the selected sample for selected data sets
         :return:
         """
-        for row in self.widget.proc_sample_view.get_selected_rows():
+        self.props.sample = {}
 
+        for row in self.widget.proc_sample_view.get_selected_rows():
             # fetch the item from the row
             item = row.get_child().item
             self.props.sample = item.to_dict()
@@ -327,25 +332,27 @@ class AnalysisController(Object):
     def get_options(self):
         return [k for k, w in list(self.options.items()) if w.get_active()]
 
-    def on_sample(self, *args, **kwargs):
-        sample = self.props.sample
-        self.widget.proc_mount_btn.set_sensitive(bool(sample))
-
-        mountable = False
-        if sample and sample.get('port'):
-            mountable = True
+    def on_sample_or_strategy(self, *args, **kwargs):
+        """
+        Update the "mount sample" and "use strategy" button states in reaction to
+        changes to the sample or strategy properties
+        """
+        sample_mountable = bool(self.sample and self.sample.get('port'))
+        strategy_good = bool(self.strategy)
+        self.widget.proc_mount_btn.set_sensitive(sample_mountable)
+        self.widget.proc_strategy_btn.set_sensitive(strategy_good)
+        if sample_mountable:
             sample_text = '{name}|{port}'.format(
-                name=sample.get('name', '...'),
-                port=sample.get('port', '...')
+                name=self.sample.get('name', '...'), port=self.sample.get('port', '...')
             ).replace('|...', '')
             self.widget.proc_sample_fbk.set_text(sample_text)
+
         else:
             self.widget.proc_sample_fbk.set_text('...')
-        self.widget.proc_revealer.set_reveal_child(mountable or bool(self.props.strategy))
+        self.widget.proc_revealer.set_reveal_child(sample_mountable or strategy_good)
 
-    def on_strategy(self, *args, **kwargs):
-        mountable = bool(self.props.sample and self.props.sample.get('port'))
-        self.widget.proc_revealer.set_reveal_child(mountable or bool(self.props.strategy))
+    def on_row_selected(self, *args, **kwargs):
+        self.update_selection()
 
     def on_browser_progress(self, *args, **kwargs):
         self.widget.browser_progress.set_fraction(self.browser.props.estimated_load_progress)

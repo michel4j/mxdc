@@ -123,7 +123,7 @@ class StreamMonitor(DataMonitor):
         self.kind = kind
         self.address = address
         self.last_time = time.time()
-        self.inbox = deque(maxlen=100)
+        self.inbox = deque(maxlen=2)
         self.max_freq = max_freq
         self.start()
 

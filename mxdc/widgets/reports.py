@@ -17,7 +17,9 @@ class ReportView(Gtk.Button):
 
     report_type = Gtk.Template.Child()
     report_score = Gtk.Template.Child()
+
     item = Property(type=object)
+    size_group = Gtk.SizeGroup(Gtk.SizeGroupMode.BOTH)
 
     def set_item(self, item: analysis.Report):
         self.props.item = item
@@ -32,24 +34,33 @@ class ReportView(Gtk.Button):
         if self.item.state == analysis.ReportState.SUCCESS:
             self.report_type.set_text(self.item.kind[:3].upper())
             self.report_score.set_text(f"{self.item.score:0.2f}")
+            self.set_tooltip_text('Success!\nClick for HTML Report')
             context.add_class(f"report-score-{round(self.item.score * 10):0.0f}")
         elif self.item.state == analysis.ReportState.FAILED:
             self.report_type.set_text(self.item.kind[:3].upper())
-            self.report_score.set_text(f" ❌ ")
+            self.report_score.set_text("❌")
             context.add_class(f"report-failed")
+            self.set_tooltip_text('Failed!\nClick for Log file.')
         elif self.item.state == analysis.ReportState.ACTIVE:
             self.report_type.set_text(self.item.kind[:3].upper())
-            self.report_score.set_text(f" 🏃 ")
+            self.report_score.set_text("⚙️")
             context.add_class(f"report-active")
+            self.set_tooltip_text('In-progress!')
         else:
             self.report_type.set_text(self.item.kind[:3].upper())
-            self.report_score.set_text(f" ︎❔ ")
+            self.report_score.set_text(f"❔")
             context.add_class(f"report-unknown")
+            self.set_tooltip_text('Unknown State!')
 
     def do_clicked(self, *args, **kwargs):
         controller = Registry.get_utility(analysis.ControllerInterface)
-        path = Path(self.item.directory) / "report.html"
-        controller.browse_file(str(path))
+
+        if self.item.state == analysis.ReportState.SUCCESS:
+            path = Path(self.item.directory) / "report.html"
+            controller.browse_file(str(path))
+        elif self.item.state == analysis.ReportState.FAILED:
+            path = Path(self.item.directory) / "commands.log"
+            controller.browse_file(str(path))
         controller.set_strategy(self.item.strategy)
         controller.set_folder(self.item.directory)
 
@@ -60,6 +71,7 @@ class ReportView(Gtk.Button):
         :param item: Report
         """
         entry = cls()
+        cls.size_group.add_widget(entry)
         entry.get_style_context().add_class('report-pill')
         entry.set_item(item)
         return entry
@@ -68,7 +80,7 @@ class ReportView(Gtk.Button):
 @Gtk.Template.from_resource('/org/gtk/mxdc/data/data_view.ui')
 class DataView(Gtk.Box):
     __gtype_name__ = 'DataView'
-
+    data_selection = Gtk.Template.Child()
     data_label = Gtk.Template.Child()
     report_list = Gtk.Template.Child()
     item = Property(type=object)
@@ -80,7 +92,7 @@ class DataView(Gtk.Box):
         item.children.connect('items-changed', self.on_items_changed)
         self.report_list.bind_model(item.children, ReportView.factory)
         self.props.item.connect('notify', self.on_update)
-        self.data_label.connect('toggled', self.on_toggle)
+        self.data_selection.connect('toggled', self.on_toggle)
         self.on_update()
 
     def on_items_changed(self, store, *args, **kwargs):

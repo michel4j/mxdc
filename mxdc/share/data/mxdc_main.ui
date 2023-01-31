@@ -6234,11 +6234,13 @@
                                           </packing>
                                         </child>
                                         <child>
-                                          <object class="GtkCheckButton" id="proc_merge_option">
-                                            <property name="label" translatable="yes">Merge</property>
+                                          <object class="GtkCheckButton" id="proc_separate_option">
+                                            <property name="label" translatable="yes">Separate</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Separate Datasets
+Scaled Together</property>
                                             <property name="draw-indicator">True</property>
                                           </object>
                                           <packing>
@@ -6472,7 +6474,7 @@
                             <property name="orientation">vertical</property>
                             <child>
                               <object class="GtkScrolledWindow" id="proc_browser_box">
-                                <property name="width-request">550</property>
+                                <property name="width-request">600</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="shadow-type">out</property>
@@ -6491,6 +6493,7 @@
                               <object class="GtkProgressBar" id="browser_progress">
                                 <property name="can-focus">False</property>
                                 <property name="no-show-all">True</property>
+                                <property name="hexpand">True</property>
                                 <style>
                                   <class name="load-progress"/>
                                 </style>

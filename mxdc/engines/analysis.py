@@ -95,22 +95,25 @@ class Analyst(Engine):
     def process_dataset(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
         suffix = 'anom' if 'anomalous' in flags else 'native'
-        params.update(anomalous="anomalous" in flags, screen=False, activity=f'proc-{suffix}')
+        kind = 'ANOMALOUS' if 'anomalous' in flags else "NATIVE"
+        params.update(anomalous="anomalous" in flags, screen=False, activity=f'proc-{suffix}',type=kind)
         self.process_generic(params, sample, self.beamline.session_key)
 
     def process_multiple(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
-        suffix = 'mad' if 'mad' in flags else 'merge'
+        suffix = 'mad' if 'separate' in flags else 'merge'
+        kind = 'ANOMALOUS' if 'anomalous' in flags else "NATIVE"
         params.update(
-            mad="mad" in flags,
+            mad="separate" in flags,
             anomalous="anomalous" in flags,
-            screen=False, activity=f'proc-{suffix}'
+            screen=False, activity=f'proc-{suffix}',
+            type=kind
         )
         self.process_generic(params, sample, self.beamline.session_key)
 
     def screen_dataset(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
-        params.update(merge=True, screen=True)
+        params.update(merge=True, screen=True,type="SCREEN")
 
         method = settings.get_string('screening-method').lower()
         if method == 'autoprocess':
@@ -132,7 +135,7 @@ class Analyst(Engine):
             'file_names': file_names,
             'calib': 'calibrate' in flags,
             'activity': 'proc-xrd',
-            'type': metadata['type'],
+            'type': "XRD",
         }
         self.process_generic(params, sample, self.beamline.session_key, method='powder')
 
