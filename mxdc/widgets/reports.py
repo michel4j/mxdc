@@ -102,6 +102,7 @@ class DataView(Gtk.Box):
 
     def on_update(self, *args, **kwargs):
         self.data_label.set_label(f'{self.item.kind[:3]} / {self.item.size} img / {self.item.name}')
+        self.data_selection.set_active(self.item.selected)
 
     def on_toggle(self, btn):
         self.item.selected = btn.get_active()
