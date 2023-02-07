@@ -1,5 +1,5 @@
 import os
-
+from pathlib import Path
 from mxdc.devices.interfaces import IPTZCameraController
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -23,12 +23,14 @@ class AxisController(object):
 
     # callbacks
     def on_save(self, obj=None, arg=None):
-        img_filename, _ = dialogs.select_save_file(
-            'Save Video Snapshot', formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')]
-        )
+        filters = {
+            'png': dialogs.SmartFilter(name='PNG Image', extension='png'),
+            'jpg': dialogs.SmartFilter(name='JPEG Image', extension='jpg')
+        }
+        img_filename, file_format = dialogs.file_chooser.select_to_save(title='Save Video Snapshot', filters=filters)
         if not img_filename:
             return
-        if os.access(os.path.split(img_filename)[0], os.W_OK):
+        if os.access(Path(img_filename).parent, os.W_OK):
             self.save_image(img_filename)
 
     def on_zoom_in(self, widget):

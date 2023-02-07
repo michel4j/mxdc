@@ -4,6 +4,7 @@ from datetime import datetime
 
 import numpy
 import pytz
+from scipy.stats import gmean
 from queue import Queue
 from collections import defaultdict
 from threading import Thread
@@ -26,6 +27,17 @@ class IRasterCollector(Interface):
 
     def start():
         """Run the acquisition asynchronously"""
+
+
+def logistic(x, x0=0.0, weight=1.0, scale=1.0):
+    return weight / (1 + numpy.exp(-scale * (x - x0)))
+
+def score_signal(results):
+    return results['bragg_spots']
+    # return gmean([
+    #     results['bragg_spots'],
+    #     results['signal_avg'],
+    # ])
 
 
 @implementer(IRasterCollector)
@@ -286,7 +298,7 @@ class RasterCollector(Engine):
 
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
-        score = info.get('bragg_spots', 0) * info.get('signal_avg', 0.0)/1e3
+        score = info['score']
 
         self.result_queue.put((score, info))
 

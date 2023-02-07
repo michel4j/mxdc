@@ -128,14 +128,11 @@ class RasterController(Object):
 
     def on_open(self, btn):
         filters = [
-            ('MxDC Grid-File', ["*.grid"]),
+            dialogs.SmartFilter(name='MxDC Grid-File', patterns=["*.grid"]),
         ]
         directory = self.status_controller.get_directory()
-
-        filename, _ = dialogs.select_opensave_file(
-            'Select Grid File', Gtk.FileChooserAction.OPEN, parent=dialogs.MAIN_WINDOW, filters=filters,
-            default_folder=str(directory)
-        )
+        dialogs.file_chooser.set_folder(directory)
+        filename = dialogs.file_chooser.select_to_open('Select Grid File', filters=filters)
         if not filename:
             return
         else:

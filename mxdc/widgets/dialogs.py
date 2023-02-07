@@ -1,10 +1,10 @@
-import os
 import fnmatch
+import os
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, Union, Tuple, Any
+
 from gi.repository import Gtk, GLib
 from gi.repository import Pango
-
 
 MAIN_WINDOW = None
 
@@ -19,18 +19,22 @@ BUTTON_TYPES = {
 
 
 class SmartFilter(Gtk.FileFilter):
-    def __init__(self, name: str = 'All', patterns: Sequence[str] = ('*', )):
+    def __init__(self, name: str = 'All', patterns: Sequence[str] = ('*',), extension: Union[str, None] = None):
         """
         Create a File filter from a name and sequence of patterns
         :param name: Filter name
         :param patterns: file patterns to match
+        :param extension: optional file extension to be used for file save formatting.
         """
         super().__init__()
 
         self.set_name(name)
         self.patterns = patterns
+        self.extension = extension
         for pattern in patterns:
             self.add_pattern(pattern)
+        if extension:
+            self.add_pattern(f'*.{extension}')
 
     def match(self, file_name: str) -> bool:
         """
@@ -39,6 +43,132 @@ class SmartFilter(Gtk.FileFilter):
         :return: True if it matches
         """
         return any(fnmatch.fnmatch(file_name, pattern) for pattern in self.patterns)
+
+    def update_file_name(self, file_name: str) -> str:
+        """
+        Update the filename replacing the extension to match the current filter. Mainly useful
+        when saving a file.
+
+        :param file_name: File name to update
+        :return: new filename with extension replaced or the same file name if no extension is set
+        """
+        if self.extension:
+            main, ext = os.path.splitext(file_name)
+            file_name = f"{main}.{self.extension}"
+
+        return file_name
+
+
+class FileDialog:
+    directory: Path
+
+    def __init__(self):
+        self.set_folder(os.environ.get('HOME', ""))
+
+    def set_folder(self, directory: os.PathLike):
+        self.directory = Path(directory)
+
+    @staticmethod
+    def on_format_changed(obj: Any, dialog: Gtk.FileChooserDialog, filters: Sequence[SmartFilter]):
+        """
+        Callback called when the format is changed in save mode. Not meant to be called directly
+        :param obj: Object which emitted the signal
+        :param dialog: File Chooser dialog
+        :param filters: Sequence of Smart Filters format
+        """
+        current_file_name = dialog.get_filename()
+        active = obj.get_active()
+        if active >=0 and filters and current_file_name and current_file_name.strip():
+            updated_file_name = filters[active].update_file_name(dialog.get_filename())
+            dialog.set_current_name(os.path.basename(updated_file_name))
+
+        return True
+
+    def select_to_open(
+        self,
+        title: str,
+        filters: Sequence[Gtk.FileFilter] = (),
+        multiple: bool = False
+    ) -> Union[Sequence[str], os.PathLike]:
+        """
+        Select a file for opening
+        :param title: Title of File Chooser
+        :param filters: Optional sequence of file filters
+        :param multiple: Whether to select multiple files
+        :return: A single selected file, or a sequence of file names if multiple is True,
+        None, if the dialog was cancelled.
+        """
+
+        dialog = Gtk.FileChooserDialog(
+            title=title, action=Gtk.FileChooserAction.OPEN, parent=MAIN_WINDOW,
+            buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK),
+            select_multiple=multiple
+        )
+        #dialog.set_current_folder(str(self.directory))
+
+        for file_filter in filters:
+            dialog.add_filter(file_filter)
+
+        if dialog.run() == Gtk.ResponseType.OK:
+            filenames = dialog.get_filenames()
+            filename = dialog.get_filename()
+            self.set_folder(Path(filename).parent)
+        else:
+            filenames = ()
+            filename = None
+
+        dialog.destroy()
+        return filenames if multiple else filename
+
+    def select_to_save(
+        self,
+        title: str,
+        filters: Sequence[Gtk.FileFilter] = (),
+    ) -> Tuple[str, SmartFilter]:
+        """
+        Select a file for opening
+        :param title: Title of File Chooser
+        :param filters: Optional sequence of file filters
+        :return: A Tuple of filename, and active file format filter,
+        """
+
+        dialog = Gtk.FileChooserDialog(
+            title=title, action=Gtk.FileChooserAction.SAVE, parent=MAIN_WINDOW,
+            buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK),
+        )
+        #dialog.set_current_folder(str(self.directory))
+        dialog.set_current_name("untitled")
+        dialog.set_do_overwrite_confirmation(True)
+
+        # Add File format selectors
+        format_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        format_box.pack_start(Gtk.Label("Format:"), False, False, 0)
+        format_combo = Gtk.ComboBoxText()
+        format_box.pack_start(format_combo, True, True, 0)
+        format_box.show_all()
+
+        if filters:
+            for file_filter in filters:
+                format_combo.append_text(file_filter.get_name())
+            format_combo.set_active(0)
+            format_combo.connect('changed', self.on_format_changed, dialog, filters)
+        dialog.set_extra_widget(format_box)
+
+        if dialog.run() == Gtk.ResponseType.OK:
+            active_filter = max(0, format_combo.get_active())
+            file_format = None if not filters else filters(active_filter)
+            filename = dialog.get_filename()
+
+            # fix the name if a file_format is provided
+            if file_format:
+                path = Path(filename)
+                filename = str(path.parent / file_format.update_file_name(path.name))
+        else:
+            filename = None
+            file_format = None
+
+        dialog.destroy()
+        return filename, file_format
 
 
 def make_dialog(dialog_type, title, sub_header=None, details=None, buttons=Gtk.ButtonsType.OK, default=-1,
@@ -71,7 +201,7 @@ def exception_dialog(title, message=None, details=None, buttons=Gtk.ButtonsType.
             else:
                 text, response = button
                 tooltip = None
-            btn =  msg_dialog.add_button(text, response)
+            btn = msg_dialog.add_button(text, response)
             if tooltip:
                 btn.set_tooltip_text(tooltip)
     else:
@@ -98,6 +228,7 @@ class Timer(object):
     """
     An object used for displaying countdown timers and destroying dialogs after a given amount of time.
     """
+
     def __init__(self, countdown, dialog):
         self.countdown = countdown
         self.label = dialog.get_message_area().get_children()[-1]
@@ -162,96 +293,4 @@ def check_folder(directory, parent=None, warn=True):
     return True
 
 
-def select_opensave_file(title, action, parent=None, filters=[], formats=[], default_folder=None, multiple=False):
-    if action in [Gtk.FileChooserAction.OPEN, Gtk.FileChooserAction.SELECT_FOLDER, Gtk.FileChooserAction.CREATE_FOLDER]:
-        _stock = Gtk.STOCK_OPEN
-    else:
-        _stock = Gtk.STOCK_SAVE
-    dialog = Gtk.FileChooserDialog(
-        title=title,
-        action=action,
-        parent=parent,
-        buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, _stock, Gtk.ResponseType.OK),
-        select_multiple=multiple
-    )
-
-    if default_folder is None:
-        dialog.set_current_folder(os.getcwd())
-    else:
-        dialog.set_current_folder(default_folder)
-
-    dialog.set_do_overwrite_confirmation(True)
-    if action == Gtk.FileChooserAction.OPEN:
-        for file_filter in filters:
-            if isinstance(file_filter, tuple):
-                dialog.add_filter(SmartFilter(name=file_filter[0], patterns=file_filter[1]))
-            elif isinstance(file_filter, Gtk.FileFilter):
-                dialog.add_filter(file_filter)
-
-    elif action == Gtk.FileChooserAction.SAVE:
-        format_info = dict(formats)
-        hbox = Gtk.HBox(spacing=10)
-        hbox.pack_start(Gtk.Label("Format:"), False, False, 0)
-        cbox = Gtk.ComboBoxText()
-        hbox.pack_start(cbox, True, True, 0)
-        for fmt in formats:
-            cbox.append_text(fmt[0])
-        cbox.set_active(0)
-        hbox.show_all()
-        dialog.set_extra_widget(hbox)
-
-        def _cb(obj, dlg, info):
-            fname = "%s.%s" % (os.path.splitext(dlg.get_filename())[0],
-                               info.get(obj.get_active_text()))
-            dlg.set_current_name(os.path.basename(fname))
-
-        cbox.connect('changed', _cb, dialog, format_info)
-
-    if dialog.run() == Gtk.ResponseType.OK:
-        filenames = dialog.get_filenames()
-        filename = dialog.get_filename()
-        if action == Gtk.FileChooserAction.SAVE:
-            txt = cbox.get_active_text()
-            fext = os.path.splitext(filename)[1].lstrip('.').lower()
-            if fext == '':
-                fext = list(format_info.values())[0]
-            fltr = format_info.get(txt, fext)
-            filename = "%s.%s" % (os.path.splitext(filename)[0], fltr)
-        else:
-            fltr = dialog.get_filter()
-
-        directory = Path(filename).parent
-        os.chdir(directory)
-    else:
-        filenames = ()
-        filename = None
-        fltr = None
-
-    dialog.destroy()
-
-    return filenames if multiple else filename, fltr
-
-
-def select_save_file(title, formats=[], default_folder=None):
-    return select_opensave_file(title, Gtk.FileChooserAction.SAVE, parent=MAIN_WINDOW, formats=formats,
-                                default_folder=default_folder)
-
-
-def select_open_file(title, parent=None, filters=[], default_folder=None):
-    return select_opensave_file(title, Gtk.FileChooserAction.OPEN, parent=parent, filters=filters,
-                                default_folder=default_folder)
-
-
-def select_open_image(parent=None, default_folder=None):
-    filters = [
-        ('Diffraction Frames', [
-            "*.img", "*.marccd", "*.mccd", "*.pck", "*.nxs",
-            "*.cbf", "*.h5", "*.osc", "*.[0-9][0-9][0-9]", "*.[0-9][0-9][0-9][0-9]"]
-        ),
-        ('XDS Spot files', ["SPOT.XDS*"]),
-        ('XDS ASCII file', ["X*.HKL*"]),
-    ]
-    return select_opensave_file('Select Image', Gtk.FileChooserAction.OPEN, parent=parent, filters=filters,
-                                default_folder=default_folder)
-
-
+file_chooser = FileDialog()

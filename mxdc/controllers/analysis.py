@@ -231,12 +231,8 @@ class AnalysisController(Object):
             'report': dialogs.SmartFilter(name='AutoProcess Report', patterns=["*.json"]),
             'html': dialogs.SmartFilter(name='HTML Report', patterns=["*.html"]),
         }
-        file_names, file_filter = dialogs.select_opensave_file(
-            'Select Files',
-            Gtk.FileChooserAction.OPEN,
-            parent=dialogs.MAIN_WINDOW,
-            filters=filters.values(),
-            multiple=True
+        file_names = dialogs.file_chooser.select_to_open(
+            'Select Files',  filters=filters.values(),  multiple=True
         )
 
         for file_name in file_names:

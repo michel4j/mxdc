@@ -229,21 +229,30 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         self.canvas.load_prev()
 
     def on_file_open(self, widget):
-        filename, flt = dialogs.select_open_image(
-            parent=self.get_toplevel(), default_folder=os.getcwd()
-        )
-        if filename and os.path.isfile(filename):
-            self.following = False
-            os.chdir(os.path.dirname(os.path.abspath(filename)))
-            file_type = flt.get_name()
-            if file_type in ['XDS Spot files', 'XDS ASCII file']:
-                refl = self.open_reflections(filename, hkl=(file_type == 'XDS ASCII file'))
-                self.canvas.set_reflections(refl)
-            else:
-                self.open_dataset(os.path.abspath(filename))
+        filters = {
+            "frames": dialogs.SmartFilter(
+                name='Diffraction Frames',
+                patterns=[
+                    "*.img", "*.marccd", "*.mccd", "*.pck", "*.nxs", "*.cbf", "*.h5", "*.osc", "*.[0-9][0-9][0-9]",
+                    "*.[0-9][0-9][0-9][0-9]"
+                ]
+            ),
+            "spots": dialogs.SmartFilter(name='XDS Spot files', patterns=["SPOT.XDS*"]),
+            "hkl": dialogs.SmartFilter(name='XDS ASCII file', patterns=["X*.HKL*"]),
+        }
+
+        filename = dialogs.file_chooser.select_to_open('Select Image', filters=filters.values())
+
+
+        self.following = False
+        if filters['spots'].match(filename) or filters['hkl'].match(filename):
+            refl = self.open_reflections(filename, hkl=filters['hkl'].match(filename))
+            self.canvas.set_reflections(refl)
+        elif filters['frames'].match(filename):
+            self.open_dataset(os.path.abspath(filename))
 
     def on_file_save(self, widget):
-        filename, flt = dialogs.select_save_file("Save display to file")
+        filename, file_format = dialogs.file_chooser.select_to_save("Save display to file")
         if filename:
             path = os.path.abspath(filename)
             self.canvas.save_surface(path)

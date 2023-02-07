@@ -2,7 +2,7 @@ import math
 import os
 import time
 
-import cairo
+from pathlib import Path
 import numpy
 from gi.repository import Gtk, Gdk, Gio, GLib
 from zope.interface import Interface, Attribute, implementer
@@ -446,12 +446,16 @@ class Microscope(Object):
         self.widget.microscope_toolbar.set_sensitive(True)
 
     def on_save(self, obj=None, arg=None):
-        img_filename, _ = dialogs.select_save_file(
-            'Save Video Snapshot',
-            formats=[('PNG Image', 'png'), ('JPEG Image', 'jpg')])
+        filters = {
+            'png': dialogs.SmartFilter(name='PNG Image', extension='png'),
+            'jpg': dialogs.SmartFilter(name='JPEG Image', extension='jpg')
+        }
+        img_filename, file_format = dialogs.file_chooser.select_to_save(
+            title='Save Video Snapshot', filters=filters.values()
+        )
         if not img_filename:
             return
-        if os.access(os.path.split(img_filename)[0], os.W_OK):
+        if os.access(Path(img_filename).parent, os.W_OK):
             self.save_image(img_filename)
 
     def on_auto_center(self, widget, method='loop'):

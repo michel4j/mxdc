@@ -115,7 +115,7 @@ class ContainerItem(Item):
 
         existing = self.find(item.key)
         if not existing:
-            self.children.append(item)
+            self.children.insert(0, item)
         else:
             existing.update(**item.to_dict())
 

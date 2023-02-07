@@ -7,7 +7,7 @@ import shutil
 import time
 import requests
 
-
+from pathlib import Path
 from datetime import datetime
 from enum import Enum
 
@@ -274,7 +274,6 @@ class SimDetector(BaseDetector):
     def __init__(self, name, size, pixel_size=0.073242, data='/tmp', extension='cbf', trigger=None):
         super().__init__()
         self.monitor = images.FileMonitor(self)
-
         self.size = size
         self.resolution = pixel_size
         self.mm_size = self.resolution * min(self.size)
@@ -285,6 +284,7 @@ class SimDetector(BaseDetector):
         self.sim_images_src = data
         self._datasets = {}
         self._selection = ('', '', 0)
+        self._dataset_selections = {}
         self.parameters = {}
         self._powders = {}
         self._state = 'idle'
@@ -332,30 +332,32 @@ class SimDetector(BaseDetector):
             logger.debug(f'Received trigger for frame: {self.trigger_count}')
 
     def _select_dir(self, name='junk'):
-        import hashlib
-        # always select the same dataset for the same name
-        name_int = int(hashlib.sha1(name.encode('utf8')).hexdigest(), 16) % (10 ** 8)
-        if 'pow' in name:
-            num_datasets = len(self._powders.keys())
-            if num_datasets:
-                chosen = (datetime.today().day + name_int) % num_datasets
-                self._selection = list(self._datasets.keys())[chosen]
+        if name in self._dataset_selections:
+            self._selection = self._dataset_selections[name]
         else:
-            num_datasets = len(self._datasets.keys())
+            if 'pow' in name:
+                realm = 'powders'
+            elif name.startswith(datetime.now().strftime('R%j%H')):
+                realm = 'rasters'
+            else:
+                realm = 'datasets'
+
+            num_datasets = len(self._datasets[realm])
             if num_datasets:
-                chosen = (datetime.today().day + name_int) % num_datasets
-                self._selection = list(self._datasets.keys())[chosen]
+                chosen = int(time.time()) % num_datasets
+                self._selection = realm, list(self._datasets[realm].keys())[chosen]
+                self._dataset_selections[name] = self._selection
 
     @decorators.async_call
     def _copy_frame(self, number):
         logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
-        folder, name, count = self._selection
+        realm, (folder, name, count) = self._selection
         if count > 0:
-            file_parms = copy.deepcopy(self.parameters)
-            frame_number = file_parms['start_frame'] + number
-            src_img = os.path.join(folder, self._datasets[self._selection][frame_number % count])
-            file_name = '{}_{:05d}.{}'.format(file_parms['file_prefix'], frame_number, self.file_extension)
-            file_path = os.path.join(file_parms['directory'], file_name)
+            file_params = copy.deepcopy(self.parameters)
+            frame_number = file_params['start_frame'] + number
+            src_img = os.path.join(folder, self._datasets[realm][(folder, name, count)][(frame_number - 1) % count])
+            file_name = '{}_{:05d}.{}'.format(file_params['file_prefix'], frame_number, self.file_extension)
+            file_path = os.path.join(file_params['directory'], file_name)
             shutil.copyfile(src_img, file_path)
             os.sync()
             logger.info('Frame saved: {}'.format(file_name))
@@ -369,14 +371,15 @@ class SimDetector(BaseDetector):
 
     @decorators.async_call
     def prepare_datasets(self):
-        self._datasets = {}
+        self._datasets = { 'datasets': {},   'powders': {},      'rasters': {}}
         patt = re.compile(rf'^.+_\d\d\d+.{self.file_extension}$')
-        for root, folders, files in os.walk(self.sim_images_src):
-            data_files = sorted(filter(patt.match, files))
-            if len(data_files) >= 60:
-                self._datasets[(root, data_files[0], len(data_files))] = data_files
-            elif len(data_files) >= 2 and data_files[0].startswith('Lab6'):
-                self._powders[(root, data_files[0], len(data_files))] = data_files
+        main = Path(self.sim_images_src)
+
+        for realm in ["datasets", "rasters", "powders"]:
+            for root, folders, files in os.walk(main / realm):
+                data_files = sorted(filter(patt.match, files))
+                if len(data_files) > 2:
+                    self._datasets[realm][(root, data_files[0], len(data_files))] = data_files
             time.sleep(0)
         self._select_dir()
 
