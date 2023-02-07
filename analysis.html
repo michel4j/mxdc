@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Analysis &mdash; MxDC 2022.10.1 documentation</title>
+  <title>Analysis &mdash; MxDC 2023.1.6+dirty documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/styles.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -32,7 +32,7 @@
             <a href="index.html" class="icon icon-home"> MxDC
           </a>
               <div class="version">
-                2022.10.1
+                2023.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -88,8 +88,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Analysis</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Analysis</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -111,19 +111,31 @@ for acquired datasets.</p>
 <p>The view is divided into two regions, the Data/Report Table on the left, and the Report Viewer on the right.</p>
 <section id="data-report-table">
 <h2>Data/Report Table<a class="headerlink" href="#data-report-table" title="Permalink to this heading"></a></h2>
-<p>The Data/Report Table displays a Tree of datasets and corresponding analysis requests made against it. The analysis
-rows display the name and type of dataset, the type of analysis requested, the analysis score if available,
-and also the state of the analysis request, either pending, in-progress, completed or error.</p>
-<p>To perform a new analysis, select a row on the table, then configure the analysis type using the controls below the
-Data/Report Table. Finally, click the <em>Run</em> button to submit the request. For MAD and Merge data analysis types, it
-is necessary to select multiple rows. This can be acheived by holding down the Ctrl- or Shift- keys while clicking on the desired rows.</p>
-<p>Requests are submitted to the <em>Data Analysis Server</em> asynchronously, and the table is updated when the results are ready.</p>
-<p>To view the analysis report, click on a row corresponding to a completed analysis request. The report is displayed in
-the Report Viewer.</p>
-<p>If a sample is associated with the current row of the table, selecting the row activates the <em>Mount Sample</em> button to
-be used for mounting the given sample. Similarly, if a calculated data acquisition strategy is available, say as the result
-of a screening analysis, clicking the row activates the <em>Use Strategy</em> button. Clicking this button will add an interactive
-data  acquisition run on the Data page.</p>
+<p>The Data/Report Table displays a list acquired datasets grouped by sample. Corresponding analysis requests made against
+each dataset are shown as clickable buttons to the right of the dataset row.
+Each dataset row has a checkbox which can
+be used to select datasets for further analysis.</p>
+<p>The Analysis report buttons show the state of the analysis as an icon for in-progress
+or failed requests.  Successfully completed requests are colored according to the score, ranging from red to green as the
+score goes from 0.0 (worst) to 1.0 (best).</p>
+<p>Additional analysis types can be performed per Sample by selecting the sample, checking all required datasets, configuring
+the desired options to the left of the <em>Run</em> button, and then clicking the <em>Run</em> button to submit the request.  Note that
+a single analysis will be performed with all the checked datasets included. This can be useful when merging multiple
+datasets or for scaling separate datasets together durin MAD experiments. Only checked datasets within the selected sample
+will be used in the analysis.</p>
+<p>At this time, the available options are:</p>
+<ul class="simple">
+<li><p>Screen - Performs a screening characterization.</p></li>
+<li><p>Separate - For multiple datasets, process separately, but scale together at the end generating separate output files. For MAD.</p></li>
+<li><p>Anomalous - Process with Friedel’s Law False.</p></li>
+</ul>
+<p>Requests are submitted to the <em>Data Analysis Server</em> asynchronously, and the display is updated when the results are ready.</p>
+<p>To view the analysis report, click on button corresponding to a completed analysis request. The report is displayed in
+the Report Viewer on the right. For failed requests, clicking the report button will attempt to load a log file for inspection.</p>
+<p>If a sample is currently associated with a position within the automounter, selecting the sample row activates the
+<em>Mount Sample</em> button to be used for mounting the given sample. Similarly, if a calculated data acquisition strategy is
+available within the currently display data analysis report, the <em>Use Strategy</em> button will be active. Clicking this button
+will add an interactive data  acquisition run on the Data page.</p>
 </section>
 <section id="report-viewer">
 <h2>Report Viewer<a class="headerlink" href="#report-viewer" title="Permalink to this heading"></a></h2>
@@ -143,7 +155,7 @@ available controls such as forward, back, stop and reload.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2022, Canadian Light Source, Inc.</p>
+    <p>&#169; Copyright 2006-2023, Canadian Light Source, Inc.</p>
   </div>
 
    

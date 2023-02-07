@@ -123,7 +123,6 @@ Motors
     CLSMotor
     APSMotor
     PseudoMotor
-    BraggEnergyMotor
     ResolutionMotor
 
 Multi-Channel Analyzers

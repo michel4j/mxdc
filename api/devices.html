@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Devices &mdash; MxDC 2022.10.1 documentation</title>
+  <title>Devices &mdash; MxDC 2023.1.6+dirty documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/styles.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -32,7 +32,7 @@
             <a href="../index.html" class="icon icon-home"> MxDC
           </a>
               <div class="version">
-                2022.10.1
+                2023.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -132,7 +132,6 @@
 </li>
 </ul>
 </li>
-<<<<<<< HEAD
 <li class="toctree-l2"><a class="reference internal" href="#detectors">Detectors</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mxdc.devices.detector.BaseDetector"><code class="docutils literal notranslate"><span class="pre">BaseDetector</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.detector.BaseDetector.check"><code class="docutils literal notranslate"><span class="pre">BaseDetector.check()</span></code></a></li>
@@ -150,9 +149,6 @@
 </li>
 </ul>
 </li>
-=======
-<li class="toctree-l2"><a class="reference internal" href="#detectors">Detectors</a></li>
->>>>>>> 363af359ab88941d63cf6200aeb66e05f0e20ae2
 <li class="toctree-l2"><a class="reference internal" href="#goniometers">Goniometers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer.configure"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer.configure()</span></code></a></li>
@@ -161,6 +157,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer.scan"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer.scan()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer.stop"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer.stop()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer.wait"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer.wait()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer.wait_start"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer.wait_start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.goniometer.BaseGoniometer.wait_stop"><code class="docutils literal notranslate"><span class="pre">BaseGoniometer.wait_stop()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -313,7 +311,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.cleanup"><code class="docutils literal notranslate"><span class="pre">VideoSrc.cleanup()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.configure"><code class="docutils literal notranslate"><span class="pre">VideoSrc.configure()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.del_sink"><code class="docutils literal notranslate"><span class="pre">VideoSrc.del_sink()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.fetch_frame"><code class="docutils literal notranslate"><span class="pre">VideoSrc.fetch_frame()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.get_frame"><code class="docutils literal notranslate"><span class="pre">VideoSrc.get_frame()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.save_frame"><code class="docutils literal notranslate"><span class="pre">VideoSrc.save_frame()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.start"><code class="docutils literal notranslate"><span class="pre">VideoSrc.start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mxdc.devices.video.VideoSrc.stop"><code class="docutils literal notranslate"><span class="pre">VideoSrc.stop()</span></code></a></li>
 </ul>
@@ -340,8 +340,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Devices</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Devices</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -685,7 +685,6 @@ for the specified duration and will not be called upon during that time to do an
 </dl>
 </dd></dl>
 
-<<<<<<< HEAD
 <dl class="py method">
 <dt class="sig sig-object py" id="mxdc.devices.automounter.AutoMounter.wait_until">
 <span class="sig-name descname"><span class="pre">wait_until</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.wait_until" title="Permalink to this definition"></a></dt>
@@ -1049,12 +1048,6 @@ no parameter at all, for archive formats like hdf5</p>
 <dt class="sig sig-object py" id="mxdc.devices.detector.BaseDetector.wait_until">
 <span class="sig-name descname"><span class="pre">wait_until</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.wait_until" title="Permalink to this definition"></a></dt>
 <dd><p>Wait for a maximum amount of time until the detector state is one of the specified states, or busy
-=======
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.automounter.AutoMounter.wait_until">
-<span class="sig-name descname"><span class="pre">wait_until</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.wait_until" title="Permalink to this definition"></a></dt>
-<dd><p>Wait for a maximum amount of time until the state is one of the specified states, or busy
->>>>>>> 363af359ab88941d63cf6200aeb66e05f0e20ae2
 if no states are specified.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1070,15 +1063,9 @@ if no states are specified.</p>
 </dd></dl>
 
 <dl class="py method">
-<<<<<<< HEAD
 <dt class="sig sig-object py" id="mxdc.devices.detector.BaseDetector.wait_while">
 <span class="sig-name descname"><span class="pre">wait_while</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.detector.BaseDetector.wait_while" title="Permalink to this definition"></a></dt>
 <dd><p>Wait for a maximum amount of time while the detector state is one of the specified states, or not busy
-=======
-<dt class="sig sig-object py" id="mxdc.devices.automounter.AutoMounter.wait_while">
-<span class="sig-name descname"><span class="pre">wait_while</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.automounter.AutoMounter.wait_while" title="Permalink to this definition"></a></dt>
-<dd><p>Wait for a maximum amount of time while the state is one of the specified states, or not busy
->>>>>>> 363af359ab88941d63cf6200aeb66e05f0e20ae2
 if no states are specified.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1102,8 +1089,7 @@ if no states are specified.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<<<<<<< HEAD
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimDetector</span></code>(name, size[, pixel_size, ...])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimDetector</span></code>(name, size[, pixel_size, data, ...])</p></td>
 <td><p>Simulated Detector.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">RayonixDetector</span></code>(name, size[, detector_type, ...])</p></td>
@@ -1117,211 +1103,10 @@ if no states are specified.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">EigerDetector</span></code>(name, stream, data_url[, ...])</p></td>
 <td><p>Eiger Detector devices from DECTRIS controlled through the AreaDetector EPICS driver.</p></td>
-=======
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sam.UncleSAM</span></code>(root)</p></td>
-<td><p>Auto mounter Device based on the UncleSAM EPICS driver without Blu-ICE.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">isara.AuntISARA</span></code>(root)</p></td>
-<td><p>Auto mounter Device for the IRELEC ISARA based on the newer AunISARA python-based EPICS driver.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cats.CATS</span></code>(root)</p></td>
-<td><p>An abstraction fot the IRELEC CATS Auto Mounter</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sim.SimSAM</span></code>()</p></td>
-<td><p>Simulated Auto mounter Device which emulates a SAM automounter.</p></td>
->>>>>>> 363af359ab88941d63cf6200aeb66e05f0e20ae2
 </tr>
 </tbody>
 </table>
 </section>
-<<<<<<< HEAD
-=======
-<section id="beam-tuners">
-<h2>Beam Tuners<a class="headerlink" href="#beam-tuners" title="Permalink to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mxdc.devices.boss.</span></span><span class="sig-name descname"><span class="pre">BaseTuner</span></span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner" title="Permalink to this definition"></a></dt>
-<dd><p>Base device for all Beam Tuners.  A beam tuner links to a beam intensity monitor and reports
-the percentage intensity compared to the expected value for the intensity monitor.  It also allows
-tweak the beam up or down. Optionally it can be an abstraction for a device which performs automated
-optimization of the beam.</p>
-<p class="rubric">Signals</p>
-<ul class="simple">
-<li><p><em>changed</em> (float,): emitted with the current value of the tuner</p></li>
-<li><p><em>percent</em> (float,): percentage of current value compared to expected</p></li>
-</ul>
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.get_value">
-<span class="sig-name descname"><span class="pre">get_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.get_value" title="Permalink to this definition"></a></dt>
-<dd><p>Return current value</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.is_tunable">
-<span class="sig-name descname"><span class="pre">is_tunable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.is_tunable" title="Permalink to this definition"></a></dt>
-<dd><p>Check if Tuner is actually tunable, or just a dummy tuner.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.pause">
-<span class="sig-name descname"><span class="pre">pause</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.pause" title="Permalink to this definition"></a></dt>
-<dd><p>Pause optimization.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.reset">
-<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.reset" title="Permalink to this definition"></a></dt>
-<dd><p>Reset the beam tuner</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.resume">
-<span class="sig-name descname"><span class="pre">resume</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.resume" title="Permalink to this definition"></a></dt>
-<dd><p>Pause optimization.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.start">
-<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.start" title="Permalink to this definition"></a></dt>
-<dd><p>Start optimization.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.stop">
-<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.stop" title="Permalink to this definition"></a></dt>
-<dd><p>Stop optimization.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.tune_down">
-<span class="sig-name descname"><span class="pre">tune_down</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.tune_down" title="Permalink to this definition"></a></dt>
-<dd><p>Tweak the beam down.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.boss.BaseTuner.tune_up">
-<span class="sig-name descname"><span class="pre">tune_up</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.boss.BaseTuner.tune_up" title="Permalink to this definition"></a></dt>
-<dd><p>Tweak the beam up.</p>
-</dd></dl>
-
-</dd></dl>
-
-<p class="rubric">Sub-classes</p>
-<table class="autosummary longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">BOSSTuner</span></code>(name, picoameter, current[, ...])</p></td>
-<td><p>Beam Tuner abstraction for the original ELETTRA Beamline Optimisation and Stabilization System (BOSS).</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MOSTABTuner</span></code>(name, picoameter, current[, ...])</p></td>
-<td><p>Beam Tuner abstraction for the D-MOSTAB beam stabilisation hardware.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimTuner</span></code>(name)</p></td>
-<td><p>A Simulated Beam Tuner</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="counters">
-<h2>Counters<a class="headerlink" href="#counters" title="Permalink to this heading"></a></h2>
-<p>Counters are simple devices that are continuously monitoring hardware feedback, like temperature, current, voltage,
-vacuum pressure, etc. Counters provide mechanisms for averaging or integrating those values over peiods of time.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="mxdc.devices.counter.BaseCounter">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mxdc.devices.counter.</span></span><span class="sig-name descname"><span class="pre">BaseCounter</span></span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter" title="Permalink to this definition"></a></dt>
-<dd><p>Base class for all counter devices</p>
-<p class="rubric">Signals</p>
-<ul class="simple">
-<li><p>changed (object,): value has changed</p></li>
-<li><p>count (float,): result of asynchronous</p></li>
-</ul>
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.counter.BaseCounter.average">
-<span class="sig-name descname"><span class="pre">average</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.average" title="Permalink to this definition"></a></dt>
-<dd><p>Average of the value for the specified amount of time. Blocks while counting</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>duration</strong> – total time duration in seconds to average</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>average value</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.counter.BaseCounter.count">
-<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.count" title="Permalink to this definition"></a></dt>
-<dd><p>Integrate of the value for the specified amount of time. Blocks while counting</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>duration</strong> – total time duration in seconds to count</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>accumulated value</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.counter.BaseCounter.count_async">
-<span class="sig-name descname"><span class="pre">count_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.count_async" title="Permalink to this definition"></a></dt>
-<dd><p>Non-blocking averaging of the value for the specified amount of time. The result of the count
-will be available in the “average_count” attribute</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>t</strong> – total time to count</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.counter.BaseCounter.start">
-<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.start" title="Permalink to this definition"></a></dt>
-<dd><p>Start counting as fast as possible until stopped. Values are be emitted as the “count” signal.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="mxdc.devices.counter.BaseCounter.stop">
-<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.counter.BaseCounter.stop" title="Permalink to this definition"></a></dt>
-<dd><p>Stop fast counting</p>
-</dd></dl>
-
-</dd></dl>
-
-<p class="rubric">Sub-classes</p>
-<table class="autosummary longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimCounter</span></code>(name[, offset, scale])</p></td>
-<td><p>Simulated Counter Device objects.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Counter</span></code>(pv_name[, offset, scale])</p></td>
-<td><p>EPICS based Counter Device objects.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="detectors">
-<h2>Detectors<a class="headerlink" href="#detectors" title="Permalink to this heading"></a></h2>
-<p>In the context of MxDC, detectors are 2D imaging detector/cameras the acquire series of images.</p>
-<p class="rubric">Sub-classes</p>
-<table class="autosummary longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-</tbody>
-</table>
-</section>
->>>>>>> 363af359ab88941d63cf6200aeb66e05f0e20ae2
 <section id="goniometers">
 <h2>Goniometers<a class="headerlink" href="#goniometers" title="Permalink to this heading"></a></h2>
 <p>Goniometers are rotary devices that can be configured to perform scans combined with triggering of detectors for
@@ -1400,6 +1185,22 @@ acquiring data.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="mxdc.devices.goniometer.BaseGoniometer.wait_start">
+<span class="sig-name descname"><span class="pre">wait_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.wait_start" title="Permalink to this definition"></a></dt>
+<dd><p>Wait for device to start
+:param timeout: maximum time in seconds to wait before failing.
+:return: bool, False if timeout</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mxdc.devices.goniometer.BaseGoniometer.wait_stop">
+<span class="sig-name descname"><span class="pre">wait_stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.goniometer.BaseGoniometer.wait_stop" title="Permalink to this definition"></a></dt>
+<dd><p>Wait for device to start
+:param timeout: maximum time in seconds to wait before failing.
+:return: bool, False if timeout</p>
+</dd></dl>
+
 </dd></dl>
 
 <p class="rubric">Sub-classes</p>
@@ -1412,7 +1213,7 @@ acquiring data.</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimGonio</span></code>([kappa_enabled, trigger])</p></td>
 <td><p>Simulated Goniometer.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParkerGonio</span></code>(root, xname, y1name, y2name)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParkerGonio</span></code>(root, xname, y1name, y2name, ...)</p></td>
 <td><p>EPICS based Parker-type BaseGoniometer at the CLS 08ID-1.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MD2Gonio</span></code>(root[, kappa_enabled, scan4d, ...])</p></td>
@@ -1911,9 +1712,8 @@ of the sample environment suitable for a specific type of activity. Examples of 
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="mxdc.devices.manager.BaseManager.ModeType">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ModeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.ModeType" title="Permalink to this definition"></a></dt>
-<dd><p>An enumeration.</p>
-</dd></dl>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ModeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.manager.BaseManager.ModeType" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mxdc.devices.manager.BaseManager.align">
@@ -2515,7 +2315,7 @@ relative amount.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mxdc.devices.stages.BaseSampleStage.wait">
-<span class="sig-name descname"><span class="pre">wait</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.wait" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">wait</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.stages.BaseSampleStage.wait" title="Permalink to this definition"></a></dt>
 <dd><p>Wait for the busy state to change.</p>
 <dl class="simple">
 <dt>Kwargs:</dt><dd><ul class="simple">
@@ -2666,7 +2466,7 @@ relative amount.</p>
 <h2>Video<a class="headerlink" href="#video" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="mxdc.devices.video.VideoSrc">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mxdc.devices.video.</span></span><span class="sig-name descname"><span class="pre">VideoSrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Basic</span> <span class="pre">Camera'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxfps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mxdc.devices.video.</span></span><span class="sig-name descname"><span class="pre">VideoSrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Basic</span> <span class="pre">Camera'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(768,</span> <span class="pre">576)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxfps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc" title="Permalink to this definition"></a></dt>
 <dd><p>Base class for all Video Sources. Maintains a list of listenners (sinks)
 and updates each one when the video frame changes.</p>
 <dl class="field-list simple">
@@ -2712,6 +2512,12 @@ and updates each one when the video frame changes.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="mxdc.devices.video.VideoSrc.fetch_frame">
+<span class="sig-name descname"><span class="pre">fetch_frame</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.fetch_frame" title="Permalink to this definition"></a></dt>
+<dd><p>Update the current frame from the camera</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="mxdc.devices.video.VideoSrc.get_frame">
 <span class="sig-name descname"><span class="pre">get_frame</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.get_frame" title="Permalink to this definition"></a></dt>
 <dd><p>Obtain the most recent video frame.</p>
@@ -2720,6 +2526,13 @@ and updates each one when the video frame changes.</p>
 <dd class="field-odd"><p>A PIL Image object.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mxdc.devices.video.VideoSrc.save_frame">
+<span class="sig-name descname"><span class="pre">save_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mxdc.devices.video.VideoSrc.save_frame" title="Permalink to this definition"></a></dt>
+<dd><p>Save current frame to filename
+:param filename:</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2758,10 +2571,10 @@ and updates each one when the video frame changes.</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">REDISCamera</span></code>(server, mac[, size, name])</p></td>
 <td><p>REDIS Camera</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AxisCamera</span></code>(hostname[, idx, name])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AxisCamera</span></code>(hostname[, idx, size, name])</p></td>
 <td><p>Axis JPG Camera</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AxisPTZCamera</span></code>(hostname[, idx, name])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AxisPTZCamera</span></code>(hostname[, idx, size, name])</p></td>
 <td><p>Axis PTZ Camera</p></td>
 </tr>
 </tbody>
@@ -2780,7 +2593,7 @@ and updates each one when the video frame changes.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2022, Canadian Light Source, Inc.</p>
+    <p>&#169; Copyright 2006-2023, Canadian Light Source, Inc.</p>
   </div>
 
    
