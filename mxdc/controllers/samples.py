@@ -20,7 +20,7 @@ class SamplesController(Object):
         self.sample_store = samplestore.SampleStore(self.widget.samples_list, self.widget)
         if hasattr(self.beamline, 'humidifier'):
             self.humidity_controller = humidity.HumidityController(self.widget)
-        self.raster_tool = rastering.RasterController(self.widget.raster_list, self.widget)
+
         self.beamline.automounter.connect('sample', self.on_sample_mounted)
         self.setup()
 

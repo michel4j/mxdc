@@ -135,6 +135,8 @@ class DataLoader:
                         self.view_queue.append(frame)
 
                 self.load_next = self.load_prev = False
+            except FileNotFoundError as err:
+                logger.error(f'File Not Found: {path}!')
             except Exception as e:
                 self.load_next = self.load_prev = False
                 self.load_number = None

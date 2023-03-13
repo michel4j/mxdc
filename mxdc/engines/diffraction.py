@@ -209,7 +209,8 @@ class DataCollector(Engine):
                     'energy': energy,
                     'distance': round(self.beamline.distance.get_position(), 1),
                     'exposure_time': frame['exposure'],
-                    'num_frames': 1,
+                    'num_triggers': 1,
+                    'num_images': 1,
                     'start_angle': frame['start'],
                     'delta_angle': frame['delta'],
                     'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -257,6 +258,7 @@ class DataCollector(Engine):
             self.prepare_for_wedge(wedge)
             energy = self.beamline.energy.get_position()
             self.emit('started', wedge)
+            gonio_gating = self.beamline.goniometer.supports(GonioFeatures.GATING)
             detector_parameters = {
                 'file_prefix': wedge['name'],
                 'start_frame': wedge['first'],
@@ -266,7 +268,8 @@ class DataCollector(Engine):
                 'distance': round(self.beamline.distance.get_position(), 1),
                 'two_theta': wedge['two_theta'],
                 'exposure_time': wedge['exposure'],
-                'num_frames': wedge['num_frames'],
+                'num_images': 1 if gonio_gating else wedge['num_frames'],
+                'num_triggers': wedge['num_frames'] if gonio_gating else 1,
                 'start_angle': wedge['start'],
                 'delta_angle': wedge['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),

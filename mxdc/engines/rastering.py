@@ -67,6 +67,10 @@ class RasterCollector(Engine):
         name_tag = datetime.now().strftime('%j%H%M')
         self.series[name_tag] += 1
 
+        det_exp_limit = 1 / self.beamline.config.get('max_raster_freq', 100)
+        mtr_exp_limit = params['aperture'] * 1e-3 / self.beamline.config.get('max_raster_speed', 0.5)
+        params['exposure'] = max(params['exposure'], det_exp_limit, mtr_exp_limit)
+
         params['name'] = f'R{name_tag}{self.series[name_tag]:02d}'
         self.config['params'] = params
 
@@ -144,6 +148,9 @@ class RasterCollector(Engine):
         # switch to collect mode
         self.beamline.manager.collect(wait=True)
 
+        if params.get('low_dose'):
+            self.beamline.low_dose.on()
+
     def start_signal_strength(self):
         # prepare for analysis
         template = self.beamline.detector.get_template(self.config['params']['name'])
@@ -169,7 +176,6 @@ class RasterCollector(Engine):
 
     def run(self, centering=False):
         self.complete = False
-        current_attenuation = self.beamline.attenuator.get_position()
         if not self.results_active:
             Thread(target=self.result_processor, daemon=True).start()  # Start result thread
 
@@ -193,8 +199,9 @@ class RasterCollector(Engine):
                 self.beamline.fast_shutter.close()
                 self.beamline.detector.stop()
                 if not centering:
+                    self.beamline.low_dose.off()
                     self.beamline.manager.center(wait=True)
-                    self.beamline.attenuator.move_to(current_attenuation)  # restore attenuation
+
 
         if self.stopped:
             self.emit('stopped', None)
@@ -219,8 +226,8 @@ class RasterCollector(Engine):
                 'energy': frame['energy'],
                 'distance': frame['distance'],
                 'exposure_time': frame['exposure'],
-                'frame_size': 1,
-                'num_frames': 1,
+                'num_images': 1,
+                'num_triggers': 1,
                 'start_angle': frame['start'],
                 'delta_angle': frame['delta'],
                 'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -231,8 +238,7 @@ class RasterCollector(Engine):
             # perform scan
             if self.stopped: break
             self.beamline.detector.configure(**detector_parameters)
-            success = self.beamline.detector.start()
-            if success:
+            if self.beamline.detector.start():
                 self.beamline.goniometer.scan(
                     time=frame['exposure'],
                     range=frame['delta'],
@@ -254,7 +260,7 @@ class RasterCollector(Engine):
         owner = misc.get_project_name()
         group = misc.get_group_name()
         params = self.config['params']
-
+        gonio_gating = self.beamline.goniometer.supports(GonioFeatures.GATING)
         detector_parameters = {
             'file_prefix': params['name'],
             'start_frame': 1,
@@ -263,7 +269,8 @@ class RasterCollector(Engine):
             'energy': params['energy'],
             'distance': params['distance'],
             'exposure_time': params['exposure'],
-            'num_frames': self.total_frames,
+            'num_images': 1 if gonio_gating else params['hsteps'],
+            'num_triggers': self.total_frames if gonio_gating else params['vsteps'],
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
@@ -273,8 +280,7 @@ class RasterCollector(Engine):
 
         self.beamline.detector.configure(**detector_parameters)
         self.start_signal_strength()
-        success = self.beamline.detector.start()
-        if success:
+        if self.beamline.detector.start():
             logger.debug('Performing raster scan ...')
             self.beamline.goniometer.scan(
                 kind='raster',

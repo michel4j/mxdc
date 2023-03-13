@@ -243,10 +243,10 @@ class Spots:
     data: Any = None
     selected: Any = None
 
-    def select(self, frame_number, span=5):
+    def select(self, frame_number, span=1):
         if self.data is not None:
-            sel = (self.data[:, 2] >= frame_number - span // 2)
-            sel &= (self.data[:, 2] <= frame_number + span // 2)
+            spots_z = numpy.round(self.data[:, 2])
+            sel = (spots_z <= frame_number + span) & (spots_z >= frame_number - span)
             self.selected = self.data[sel]
         else:
             self.selected = None
@@ -261,7 +261,8 @@ class ScaleSettings:
     scale: float = field(init=False)
 
     def __post_init__(self):
-        self.scale = self.maximum * self.multiplier
+        scale = self.maximum * self.multiplier
+        self.scale = 1 if scale == 0 else scale
 
     def adjust(self, direction: Union[int, None] = None):
         if direction is None:
@@ -269,7 +270,8 @@ class ScaleSettings:
         else:
             factor = SCALE_FACTOR if direction > 0 else 1/SCALE_FACTOR
             self.multiplier = min(MAX_SCALE, max(self.multiplier * factor, 1/MAX_SCALE))
-        self.scale = self.maximum * self.multiplier
+        scale = self.maximum * self.multiplier
+        self.scale = 1 if scale == 0 else scale
 
 
 class InvalidFrameData(Exception):

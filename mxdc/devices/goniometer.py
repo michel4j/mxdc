@@ -19,7 +19,11 @@ logger = get_module_logger(__name__)
 
 
 class GonioFeatures(Enum):
-    TRIGGERING, SCAN4D, RASTER4D, KAPPA = range(4)
+    TRIGGERING = 0  # Gonio sends one trigger for the full series of frames
+    SCAN4D = 1
+    RASTER4D = 2
+    KAPPA = 3
+    GATING = 4      # Gonio sends individual trigger signals for each frame
 
 
 @implementer(IGoniometer)
@@ -228,24 +232,26 @@ class ParkerGonio(BaseGoniometer):
 
 
 class MD2Gonio(BaseGoniometer):
-    """
-    MD2-type BaseGoniometer. New Arinax Java Interface
 
-    :param root: Server PV name
-    :keyword kappa_enabled: enable Kappa
-    :keyword scan4d: enable 4D scan capability
-    :keyword raster4d: enable 4D rastering capability
-    :keyword triggering: enable detector triggering capability
-    :keyword power: boolean, PowerPMAC architecture, False for TurboPMAC
-    """
     NULL_VALUE = '__EMPTY__'
     BUSY_STATES = [5, 6, 7, 8]
     ERROR_STATES = [11, 12, 13, 14]
     MAX_RASTER_SPEED = 0.8
 
-    def __init__(self, root, kappa_enabled=False, scan4d=True, raster4d=True, triggering=True, power=False):
+    def __init__(self, root, kappa=False, scan4d=True, raster4d=True, triggering=True, power=False, gating=False):
+        """
+        MD2-type BaseGoniometer. New Arinax Java Interface
+
+        :param root: Server PV name
+        :keyword kappa: enable Kappa
+        :keyword scan4d: enable 4D scan capability
+        :keyword raster4d: enable 4D rastering capability
+        :keyword triggering: enable detector triggering capability
+        :keyword power: boolean, PowerPMAC architecture, False for TurboPMAC
+        :keyword gating: boolean, enable Goniometer gating
+        """
         super().__init__('MD2 Diffractometer')
-        if kappa_enabled:
+        if kappa:
             self.add_features(GonioFeatures.KAPPA)
         if scan4d:
             self.add_features(GonioFeatures.SCAN4D)
@@ -253,6 +259,8 @@ class MD2Gonio(BaseGoniometer):
             self.add_features(GonioFeatures.RASTER4D)
         if triggering:
             self.add_features(GonioFeatures.TRIGGERING)
+        if gating:
+            self.add_features(GonioFeatures.GATING)
 
         self.power_pmac = power
 
@@ -292,6 +300,7 @@ class MD2Gonio(BaseGoniometer):
             invert_x=True, invert_omega=True,
         )
         self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z)
+
         # config parameters
         self.settings = {
             'time': self.add_pv(f"{root}:ScanExposureTime"),
@@ -353,16 +362,10 @@ class MD2Gonio(BaseGoniometer):
                 self.add_pv(f'{root}:startRasterScanEx:start_z'),
                 self.add_pv(f'{root}:startRasterScanEx:start_cx'),
                 self.add_pv(f'{root}:startRasterScanEx:start_cy'),
-
             ),
         }
 
     def grid_settings(self):
-        # return {
-        #     "snake": True,
-        #     "vertical": not self.power_pmac,
-        #     "buggy": self.power_pmac,
-        # }
         return {
             "snake": True,
             "vertical": not self.power_pmac,
@@ -394,10 +397,7 @@ class MD2Gonio(BaseGoniometer):
 
         # switch to helical if shutterless and points given
         is_helical = all((
-            kind == 'shutterless',
-            kwargs.get('start_pos'),
-            kwargs.get('end_pos'),
-            self.supports(GonioFeatures.SCAN4D)
+            kind == 'shutterless', kwargs.get('start_pos'), kwargs.get('end_pos'), self.supports(GonioFeatures.SCAN4D)
         ))
         if is_helical:
             kind = 'helical'
@@ -406,19 +406,17 @@ class MD2Gonio(BaseGoniometer):
             self.stage.move_xyz(*kwargs['start_pos'], wait=True)
             logger.warn('Moving sample stage to starting position')
 
-        success = self.wait(stop=True, start=False, timeout=10)
-
-        if not success:
+        if not self.wait(stop=True, start=False, timeout=10):
             logger.error('Goniometer is busy. Aborting ')
             return
 
         # Turn on Front Light
         self.front_light_cmd.put(1)
 
-        self.set_state(message=f'"{kind}" Scanning ...')
-
         # configure device and start scan
+        self.set_state(message=f'"{kind}" Scanning ...')
         if kind in ['simple', 'shutterless']:
+            kwargs['frames'] = 1 if self.supports(GonioFeatures.GATING) else kwargs['frames']
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
         elif kind == 'helical':
@@ -432,7 +430,7 @@ class MD2Gonio(BaseGoniometer):
                 kwargs['start'] = f"{start_y:0.5f},{start_z:0.5f},{start_cx:0.5f},{start_cy}:0.5f"
                 kwargs['stop'] = f"{stop_y:0.5f},{stop_z:0.5f},{stop_cx:0.5f}, {stop_cy:0.5f}"
 
-            print(kwargs)
+            kwargs['frames'] = kwargs['frames'] if self.supports(GonioFeatures.GATING) else 1
             misc.set_settings(self.helix_settings, **kwargs)
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
@@ -451,7 +449,7 @@ class MD2Gonio(BaseGoniometer):
             kwargs['height'] *= h_adj
 
             kwargs['use_table'] = int(self.power_pmac)
-            kwargs['shutterless'] = int(self.power_pmac)
+            kwargs['shutterless'] = 1
 
             start_y, start_cy, start_cx = kwargs.pop('start_pos')
             start_z = self.gon_z_fbk.get()
@@ -463,51 +461,53 @@ class MD2Gonio(BaseGoniometer):
             # frames and lines are inverted for vertical scans on non-powerpmac systems
             if kwargs['width'] < kwargs['height'] and not self.power_pmac:
                 frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
-                line_size = max(kwargs['width'], kwargs['height'])
                 y_offset = kwargs['height']/2
                 self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
 
-            if self.power_pmac:
+
+            if self.power_pmac and self.supports(GonioFeatures.GATING):
                 frames, lines = kwargs.get('hsteps', 1) - 1, kwargs.get('vsteps', 1)
 
-            kwargs['frames'] = max(frames, 1)
-            kwargs['lines'] = max(lines, 2)
-            kwargs['time'] *= kwargs['frames']
-            kwargs['range'] *= kwargs['frames']
+            frames = max(frames, 1)
+            lines = max(lines, 2)
 
             # Vertical line on Power is Helical scan instead
-            if self.power_pmac and kwargs['frames'] == 1:
+            if self.power_pmac and frames == 1:
                 origin_x, origin_y, origin_z = self.stage.get_xyz()
                 y_offset = kwargs['height']/2
                 x_dev, y_dev, z_dev = self.stage.screen_to_xyz(0.0, y_offset, 0.0)
                 end_pos = origin_x + x_dev, origin_y + y_dev, origin_z + z_dev
                 start_pos = origin_x - x_dev, origin_y - y_dev, origin_z - z_dev
 
+                exposure_time = kwargs['time'] * lines
+                scan_range = kwargs['range'] * lines
+                frames = 1 if self.supports(GonioFeatures.GATING) else lines
                 self.scan(
                     kind='shutterless',
-                    time=kwargs['time']*kwargs['lines'],
-                    range=kwargs['range']*kwargs['lines'],
+                    time=exposure_time,
+                    range=scan_range,
                     angle=self.omega.get_position(),
-                    frames=kwargs['lines'],
+                    frames=frames,
                     wait=True,
                     start_pos=start_pos,
                     end_pos=end_pos,
                 )
                 return
-
             else:
-                # Check exposure
-                kwargs['time'] = line_size / min(self.MAX_RASTER_SPEED, line_size/kwargs['time'])
-                misc.set_settings(self.raster_settings, **kwargs)
-                self.wait_stop(timeout=30)
+                kwargs['frames'] = frames if self.supports(GonioFeatures.GATING) else 1
+                kwargs['lines'] = lines
+                kwargs['time'] *= frames
+                kwargs['range'] *= frames
+
+                misc.set_settings(self.raster_settings, debug=True, **kwargs)
+                self.wait_stop(timeout=60)
                 self.raster_cmd.put(self.NULL_VALUE)
 
         timeout = timeout or (10 + 2 * kwargs['time'])
-        success = self.wait(start=True, stop=wait, timeout=timeout)
-        if success:
+        msg = f'"{kind}" scan failed!'
+        if self.wait(start=True, stop=wait, timeout=timeout):
             msg = f'"{kind}" scan complete!'
-        else:
-            msg = f'"{kind}" scan failed!'
+
         logger.info(msg)
         self.set_state(message=msg)
 
@@ -524,9 +524,9 @@ class SimGonio(BaseGoniometer):
     Simulated Goniometer.
     """
 
-    def __init__(self, kappa_enabled=False, trigger=None):
+    def __init__(self, kappa=False, trigger=None):
         super().__init__('SIM Diffractometer')
-        if kappa_enabled:
+        if kappa:
             self.add_features(GonioFeatures.KAPPA)
         if trigger is not None:
             self.add_features(GonioFeatures.TRIGGERING)
@@ -539,7 +539,7 @@ class SimGonio(BaseGoniometer):
         self._lock = Lock()
 
         self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3)
-        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-2, 2), units='mm', speed=0.6)
+        self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-5, 5), units='mm', speed=0.6)
         self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
         self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
         self.support_y = motor.SimMotor('Support Y', 0.0, limits=(-5, 5), units='mm', speed=0.6)

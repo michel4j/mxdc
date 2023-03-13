@@ -269,6 +269,7 @@ class Centering(Engine):
             scores.append(score)
             self.beamline.goniometer.save_centering()
 
+        self.beamline.low_dose.off()
         self.score = numpy.mean(scores)
 
     def center_capillary(self):

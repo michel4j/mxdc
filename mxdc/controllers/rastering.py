@@ -4,19 +4,17 @@ import os
 import uuid
 from enum import Enum
 
-from gi.repository import Gtk
-
-from mxdc import Registry, IBeamline, Object, Property
+from mxdc import Registry, IBeamline, Object, Property, Signal
 from mxdc.engines.rastering import RasterCollector
 from mxdc.utils import datatools, misc
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec, FormManager, FieldSpec, Validator
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets.imageviewer import IImageViewer
+from mxdc.widgets.misc import ActiveMenu
 from mxdc.widgets import status, dialogs
 from .microscope import IMicroscope
 from .samplestore import ISampleStore
-from .common import DataStatusController
 
 RASTER_DELTA = .25
 
@@ -47,9 +45,8 @@ class RasterForm(FormManager):
 
     def on_change(self, field, event, name):
         super().on_change(field, event, name)
-
+        aperture = self.beamline.aperture.get_position()
         if name in ['aperture', 'width', 'height']:
-            aperture = self.get_value('aperture')
             hsteps, vsteps = misc.calc_grid_shape(
                 self.get_value('width'),
                 self.get_value('height'),
@@ -60,7 +57,7 @@ class RasterForm(FormManager):
         if name in ['aperture', 'exposure']:
             exposure = self.get_value('exposure')
             det_exp_limit = 1/self.beamline.config.get('max_raster_freq', 100)
-            mtr_exp_limit = self.get_value('aperture')*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
+            mtr_exp_limit = aperture*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
 
             self.set_value('exposure', max(exposure, det_exp_limit, mtr_exp_limit))
 
@@ -70,20 +67,23 @@ class RasterController(Object):
         READY, ACTIVE, WAITING = range(3)
 
     Fields = (
-        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 0.25)),
+        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 0.005)),
         FieldSpec('resolution', 'entry', '{:0.2g}', Validator.Float(0.5, 50, 2.0)),
         FieldSpec('width', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
         FieldSpec('height', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
         FieldSpec('hsteps', 'entry', '{:d}', Validator.Int(1, 100, 10)),
         FieldSpec('vsteps', 'entry', '{:d}', Validator.Int(1, 100, 10)),
-        FieldSpec('aperture', 'entry', '{:0.0f}', Validator.Float(-1e6, 1e6, 50.)),
+        FieldSpec('low_dose', 'check', '{}', Validator.Bool(True)),
     )
 
     state = Property(type=int, default=StateType.READY)
 
-    def __init__(self, view, widget):
+    class Signals:
+        directory = Signal('directory', arg_types=(str,))
+
+    def __init__(self, widget):
         super().__init__()
-        self.view = view
+        self.view = widget.raster_list
         self.widget = widget
 
         self.beamline = Registry.get_utility(IBeamline)
@@ -92,9 +92,10 @@ class RasterController(Object):
         self.collector = RasterCollector()
         self.manager = RasterResultsManager(self.view, colormap=self.microscope.props.grid_cmap)
 
-        self.status = status.DataStatus()
-        self.status_controller = DataStatusController(self.beamline, self.status)
-        self.widget.rastering_box.pack_end(self.status, False, True, 0)
+        self.control = status.DataControl()
+        self.widget.rastering_box.pack_end(self.control, False, True, 0)
+        self.beam_size = ActiveMenu(self.beamline.aperture, 'Aperture', fmt="%0.0f")
+        self.widget.raster_config_box.attach(self.beam_size, 4, 0, 1, 1)
 
         # housekeeping
         self.start_time = 0
@@ -120,8 +121,8 @@ class RasterController(Object):
 
     def setup(self):
         self.view.props.activate_on_single_click = False
-        self.status.action_btn.connect('clicked', self.on_start_raster)
-        self.status.stop_btn.connect('clicked', self.on_stop_raster)
+        self.control.action_btn.connect('clicked', self.on_start_raster)
+        self.control.stop_btn.connect('clicked', self.on_stop_raster)
         self.view.connect('row-activated', self.on_result_activated)
         self.widget.raster_open_btn.connect('clicked', self.on_open)
         self.widget.raster_clean_btn.connect('clicked', self.on_clean)
@@ -130,8 +131,8 @@ class RasterController(Object):
         filters = [
             dialogs.SmartFilter(name='MxDC Grid-File', patterns=["*.grid"]),
         ]
-        directory = self.status_controller.get_directory()
-        dialogs.file_chooser.set_folder(directory)
+        #directory = os.getcwd()
+        #dialogs.file_chooser.set_folder(directory)
         filename = dialogs.file_chooser.select_to_open('Select Grid File', filters=filters)
         if not filename:
             return
@@ -162,6 +163,7 @@ class RasterController(Object):
         params.update(self.form.get_values())
         params.update({
             'distance': resol_to_dist(params['resolution'], self.beamline.detector.mm_size, self.beamline.energy.get_position()),
+            'aperture': self.beamline.aperture.get_position(),
             'origin': self.beamline.goniometer.stage.get_xyz(),
             'uuid': str(uuid.uuid4()),
             'activity': 'raster',
@@ -174,35 +176,35 @@ class RasterController(Object):
             params, sample=self.sample_store.get_current(), session=self.beamline.session_key
         )
         if not self.collector.is_busy():
-            self.status.progress_fbk.set_text("Starting raster ...")
+            self.control.progress_fbk.set_text("Starting raster ...")
             self.collector.configure(params)
             self.collector.start()
         else:
             logger.warning('A raster scan is still active')
 
     def on_stop_raster(self, btn):
-        self.status.progress_fbk.set_text("Stopping raster ...")
+        self.control.progress_fbk.set_text("Stopping raster ...")
         self.collector.stop()
 
     def on_aperture(self, aperture, value):
-        self.form.set_value('aperture', value, propagate=True)
+        self.form.on_change(None, None, 'aperture')
 
     def on_state_changed(self, obj, param):
         if self.props.state == self.StateType.ACTIVE:
-            self.status.action_btn.set_sensitive(False)
-            self.status.stop_btn.set_sensitive(True)
+            self.control.action_btn.set_sensitive(False)
+            self.control.stop_btn.set_sensitive(True)
             self.widget.raster_config_box.set_sensitive(False)
             self.view.set_sensitive(False)
         elif self.props.state == self.StateType.WAITING:
-            self.status.progress_fbk.set_text("Waiting for results...")
-            self.status.action_btn.set_sensitive(True)
-            self.status.stop_btn.set_sensitive(False)
+            self.control.progress_fbk.set_text("Waiting for results...")
+            self.control.action_btn.set_sensitive(True)
+            self.control.stop_btn.set_sensitive(False)
             self.widget.raster_config_box.set_sensitive(True)
             self.view.set_sensitive(True)
         else:
             self.widget.raster_config_box.set_sensitive(True)
-            self.status.action_btn.set_sensitive(True)
-            self.status.stop_btn.set_sensitive(False)
+            self.control.action_btn.set_sensitive(True)
+            self.control.stop_btn.set_sensitive(False)
             self.view.set_sensitive(True)
 
     def on_started(self, collector, config):
@@ -212,7 +214,7 @@ class RasterController(Object):
         grid_config = collector.get_grid()
         self.microscope.load_grid(grid_config)
         self.results[config['uuid']] = grid_config
-        self.status_controller.set_directory(config['directory'])
+        self.set_state(directory=config['directory'])
 
         # collapse existing data
         self.view.collapse_all()
@@ -223,31 +225,31 @@ class RasterController(Object):
 
     def on_complete(self, collector, data):
         self.props.state = self.StateType.READY
-        self.status.progress_fbk.set_text("Rastering analysis complete.")
+        self.control.progress_fbk.set_text("Rastering analysis complete.")
         params = collector.get_parameters()
         logger.info('Saving overlay ...')
         self.microscope.save_image(os.path.join(params['directory'], '{}.png'.format(params['name'])))
 
     def on_done(self, collector, data):
         self.props.state = self.StateType.READY   # previously WAITING
-        self.status.eta_fbk.set_text('--:--')
-        self.status.progress_bar.set_fraction(1.0)
+        self.control.eta_fbk.set_text('--:--')
+        self.control.progress_bar.set_fraction(1.0)
 
         image_viewer = Registry.get_utility(IImageViewer)
         image_viewer.set_collect_mode(False)
 
     def on_stopped(self, obj, data):
         self.props.state = self.StateType.READY
-        self.status.progress_fbk.set_text("Rastering Stopped.")
-        self.status.eta_fbk.set_text('--:--')
+        self.control.progress_fbk.set_text("Rastering Stopped.")
+        self.control.eta_fbk.set_text('--:--')
 
     def on_progress(self, obj, fraction, message):
         used_time = time.time() - self.start_time
         remaining_time = (1 - fraction) * used_time / fraction
         eta_time = remaining_time
-        self.status.eta_fbk.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
-        self.status.progress_bar.set_fraction(fraction)
-        self.status.progress_fbk.set_text(message)
+        self.control.eta_fbk.set_text('{:0>2.0f}:{:0>2.0f} ETA'.format(*divmod(eta_time, 60)))
+        self.control.progress_bar.set_fraction(fraction)
+        self.control.progress_fbk.set_text(message)
 
     def on_results(self, collector, index, results):
         grid_config = collector.get_grid()
@@ -266,16 +268,15 @@ class RasterController(Object):
     def on_result_activated(self, view, path, column=None):
         itr = self.manager.model.get_iter(path)
         item = self.manager.get_item(itr)
+        config = self.results[item['uuid']]
 
         if self.manager.model.iter_has_child(itr):
             self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
-            config = self.results[item['uuid']]
             self.microscope.load_grid(config)
-            self.status_controller.set_directory(config['info']['directory'])
         else:
             image_viewer = Registry.get_utility(IImageViewer)
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
-            image_viewer.open_dataset(item['filename'])
+            image_viewer.open_dataset(os.path.join(config['grid_params']['directory'], item['filename']))
 
     def on_grid_changed(self, obj, param):
         params = self.microscope.grid_params

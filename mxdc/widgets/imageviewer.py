@@ -37,8 +37,8 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         'maximum': '{:0.0f}',
         'cutoff_value': '{:0.0f}',
         'overloads': '{:0.0f}',
-        'wavelength': '{:0.4g} Å',
-        'delta_angle': '{:0.4g}°',
+        'wavelength': '{:0.4f} Å',
+        'delta_angle': '{:0.5g}°',
         'two_theta': '{:0.2g}°',
         'start_angle': '{:0.5g}°',
         'exposure': '{:0.4g} s',
@@ -204,6 +204,7 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
             field_name = f'{name}_lbl'
             field = getattr(self, field_name, None)
             value = getattr(self.frame, name, None)
+
             if value is None:
                 value = getattr(self.dataset.frame, name, None)
 
@@ -242,14 +243,13 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         }
 
         filename = dialogs.file_chooser.select_to_open('Select Image', filters=filters.values())
-
-
-        self.following = False
-        if filters['spots'].match(filename) or filters['hkl'].match(filename):
-            refl = self.open_reflections(filename, hkl=filters['hkl'].match(filename))
-            self.canvas.set_reflections(refl)
-        elif filters['frames'].match(filename):
-            self.open_dataset(os.path.abspath(filename))
+        if filename:
+            self.following = False
+            if filters['spots'].match(filename) or filters['hkl'].match(filename):
+                refl = self.open_reflections(filename, hkl=filters['hkl'].match(filename))
+                self.canvas.set_reflections(refl)
+            elif filters['frames'].match(filename):
+                self.open_dataset(os.path.abspath(filename))
 
     def on_file_save(self, widget):
         filename, file_format = dialogs.file_chooser.select_to_save("Save display to file")

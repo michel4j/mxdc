@@ -35,7 +35,7 @@ CONFIG = {
 tmp1 = motor.SimMotor('Detector Distance', 150.0, 'mm', speed=50.0)  # use the same motor for distance and z
 tmp2 = motor.SimMotor('Energy', 12.5, 'keV', speed=0.2, precision=4)
 trig1 = detector.Trigger() # internal trigger
-gonio = goniometer.SimGonio(kappa_enabled=True, trigger=trig1)
+gonio = goniometer.SimGonio(kappa=True, trigger=trig1)
 
 DEVICES = {
     # Energy, DCM devices, MOSTAB, Optimizers
@@ -66,9 +66,9 @@ DEVICES = {
     'cryojet': cryojet.SimCryoJet('Simulated Cryojet'),
     'sample_camera': video.SimGIFCamera(gonio=gonio),
     'hutch_video': video.SimPTZCamera(),
-    'sample_backlight': misc.SimLight('Back light', 45.0, '%'),
-    'sample_frontlight': misc.SimLight('Front light', 55.0, '%'),
-    'sample_uvlight': misc.SimLight('UV light', 25.0, '%'),
+    'sample_backlight': misc.SimOnOffPositioner('Back light', 45.0, '%'),
+    'sample_frontlight': misc.SimOnOffPositioner('Front light', 55.0, '%'),
+    'sample_uvlight': misc.SimOnOffPositioner('UV light', 25.0, '%'),
 
     # Facility, storage-ring, shutters, etc
     'synchrotron': synchrotron.SimStorageRing('Simulated Storage Ring'),
@@ -87,6 +87,7 @@ DEVICES = {
     'automounter': sim.SimSAM(),
     'humidifier': humidity.SimHumidifier(),
     'attenuator': misc.SimPositioner('Attenuator', 0.0, '%'),
+    'low_dose': misc.SimOnOffPositioner('Low Dose'),
     'mca': mca.SimMCA('Simulated MCA', energy=tmp2),
     'multi_mca': mca.SimMCA('Simulated MCA', energy=tmp2),
 

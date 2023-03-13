@@ -357,7 +357,7 @@ class OnOffToggle(Device):
 
 
 @implementer(IOnOff)
-class SimLight(SimPositioner):
+class SimOnOffPositioner(SimPositioner):
     """
     Simulated Illumination Device
 
@@ -374,17 +374,26 @@ class SimLight(SimPositioner):
         self.wait_time = 3
 
     def set_on(self, wait=False):
+        logger.debug(f'Setting {self.name} ON!')
         self._on = 1
         if wait:
             time.sleep(self.wait_time)
 
     def set_off(self, wait=False):
+        logger.debug(f'Setting {self.name} OFF!')
         self._on = 0
         if wait:
             time.sleep(self.wait_time)
 
     def is_on(self):
         return self._on == 1
+
+    def on(self, wait=False):
+        self.set_on(wait=wait)
+
+    def off(self, wait=False):
+        self.set_off(wait=wait)
+
 
 
 @implementer(IMotor)
@@ -555,68 +564,63 @@ class Attenuator2(Attenuator):
                 self._open[i].put(1)
 
 
-class Attenuator3(BasePositioner):
-    """
-    Single Filter Attenuator
+@implementer(IOnOff)
+class FilterToggle(Device):
 
-    :param shutter name: root name of attenuator PV
+    class Signals:
+        changed = Signal("changed", arg_types=(bool,))
 
-    """
-    def __init__(self, name, opened=0, closed=1):
-        from .shutter import EPICSShutter
+    def __init__(self, name, off_value=0, on_value=1):
         super().__init__()
-        self.name = 'Attenuator Shutter'
-        self.opened = opened
-        self.closed = closed
+        self.name = 'On/Off Filter'
+        self.off_value = off_value
+        self.on_value = on_value
         self.open_cmd = self.add_pv(f"{name}:opr:open")
         self.close_cmd = self.add_pv(f"{name}:opr:close")
         self.state = self.add_pv(f"{name}:ctl")
-        self.state.connect('changed', self.signal_change)
-        self.position = 0.0
+        self.state.connect('changed', self.on_change)
 
-    def get(self):
-        if self.state.get() == self.opened:
-            return 0.0
-        elif self.position == 0.0:
-            self.position = 80.0
-        return self.position
-
-    def set(self, target, wait=False):
-        if target > 10.0:
-            self.position = min(target, 100)
-            if self.state.get() == self.opened:
-                self.close_cmd.put(1)
-                if wait:
-                    self.wait_for(self.closed)
-        else:
-            self.position = 0.0
-            if self.state.get() == self.closed:
-                self.open_cmd.put(1)
-                if wait:
-                    self.wait_for(self.opened)
-
-    def signal_change(self, obj, value):
-        logger.debug('{} Position Changed'.format(self.name))
-        if value == self.opened:
-            self.set_state(active=True, changed=0.0)
-            self.position = 0.0
-        else:
-            self.set_state(active=True, changed=self.position)
-
-    def wait_for(self, value, timeout=15):
+    def set_on(self, wait=False):
         """
-        Wait for state to reach value
-        :param timeout: Maximum time to wait before failing
+        Turn on the device
         """
+        self.close_cmd.put(1, wait=wait)
 
-        logger.debug('Waiting for {} '.format(self.name))
-        max_time = time.time() + timeout
-        while self.state.get() != value and time.time() < max_time:
-            self.poll()
-        if time.time() >= max_time:
-            logger.warning('"{}" Timed out. Did not reach after {:g} sec.'.format(self.name, timeout))
-            return False
-        return True
+        while wait and not self.is_on():
+            time.sleep(0.01)
+
+    def on(self, wait=False):
+        """
+        Alias for :func:`set_on`
+
+        """
+        self.set_on(wait)
+
+    def set_off(self, wait=False):
+        """
+        Turn off the device
+        """
+        self.open_cmd.put(1, wait=wait)
+
+        while wait and self.is_on():
+            time.sleep(0.01)
+
+
+    def off(self, wait=False):
+        """
+        Alias for :func:`set_off`
+
+        """
+        self.set_off(wait)
+
+    def is_on(self):
+        """
+        Check if the light is on or off
+        """
+        return self.state.get() == self.on_value
+
+    def on_change(self, obj, val):
+        self.set_state(changed=(val == self.on_value))
 
 
 class DiskSpaceMonitor(Device):

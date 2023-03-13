@@ -16,6 +16,7 @@ from mxdc.conf import load_cache, save_cache
 from mxdc.utils.misc import slugify
 from mxdc.conf import SHARE_DIR
 
+from typing import Union, Any, Sequence, TypedDict
 
 class GUIFile(object):
     """
@@ -729,7 +730,7 @@ class FormManager(object):
     and managing persistence between application instances.
     """
 
-    def __init__(self, builder, fields=(), prefix='widget', disabled=(), persist=False):
+    def __init__(self, builder, fields: Sequence[FieldSpec] = (), prefix='widget', disabled: Sequence[str] = (), persist=False):
         """
         :param builder: widget collection
         :param fields: a list of FieldSpec objects

@@ -13,7 +13,6 @@ def my_version():
         return get_local_dirty_tag(version) if version.dirty else ''
 
     def version_scheme(version):
-        print(str(version))
         return str(version.format_with('{tag}.{distance}'))
 
     return {'local_scheme': clean_scheme, 'version_scheme': version_scheme}

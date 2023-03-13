@@ -17,6 +17,7 @@
         <file compressed="true">data/mxdc_new.ui</file>
         <file compressed="true">data/scanplot.ui</file>
         <file compressed="true">data/data_status.ui</file>
+        <file compressed="true">data/data_control.ui</file>
         <file compressed="true">data/settings.ui</file>
         <file compressed="true">data/browser.ui</file>
         <file compressed="true">data/main.ui</file>

@@ -1,5 +1,7 @@
 import fnmatch
 import os
+import itertools
+
 from pathlib import Path
 from typing import Sequence, Union, Tuple, Any
 
@@ -42,7 +44,8 @@ class SmartFilter(Gtk.FileFilter):
         :param file_name:
         :return: True if it matches
         """
-        return any(fnmatch.fnmatch(file_name, pattern) for pattern in self.patterns)
+        name = Path(file_name).name
+        return any(fnmatch.fnmatch(name, pattern) for pattern in self.patterns)
 
     def update_file_name(self, file_name: str) -> str:
         """
@@ -104,8 +107,13 @@ class FileDialog:
             buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK),
             select_multiple=multiple
         )
-        #dialog.set_current_folder(str(self.directory))
+        dialog.set_current_folder(str(self.directory))
 
+        all_filter = SmartFilter(
+            name='All Compatible Files',
+            patterns=itertools.chain.from_iterable(flt.patterns for flt in filters)
+        )
+        dialog.add_filter(all_filter)
         for file_filter in filters:
             dialog.add_filter(file_filter)
 
@@ -136,7 +144,7 @@ class FileDialog:
             title=title, action=Gtk.FileChooserAction.SAVE, parent=MAIN_WINDOW,
             buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK),
         )
-        #dialog.set_current_folder(str(self.directory))
+        dialog.set_current_folder(str(self.directory))
         dialog.set_current_name("untitled")
         dialog.set_do_overwrite_confirmation(True)
 

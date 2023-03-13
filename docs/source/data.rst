@@ -229,5 +229,6 @@ used to adjust the brightness of the image. Left-clicking and dragging on the im
 to zoom into. Right-clicking and dragging will select a line along which to integrate and display a 2-dimensional
 intensity profile. Middle clicking and dragging the image while zoomed-in pans the image.
 
-The diffraction image viewer currently supports CBF, MarCCD Tiff, SMV (ADSC) and HDF5 formatted diffraction image files. In
-addition, XDS Spot files can be loaded and overlaid on any displayed image.
+The diffraction image viewer currently supports the following file formats:  CBF (full and Mini), MarCCD Tiff,
+SMV (ADSC), RAXIS, Mar345, HDF5 and Nexus. In addition, XDS Spot and Reflection files can be loaded and overlaid on any
+displayed image.

@@ -17,7 +17,6 @@ from mxdc.widgets import datawidget, dialogs, arrowframe, status
 from mxdc.widgets.datawidget import RunItem
 
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
-from . import common
 from .microscope import IMicroscope
 from .samplestore import ISampleStore, SampleQueue, SampleStore
 
@@ -77,15 +76,17 @@ class AutomationController(Object):
 
     state = Property(type=int, default=0)
 
+    class Signals:
+        directory = Signal('directory', arg_types=(str,))
+
     def __init__(self, widget):
         super().__init__()
         self.beamline = Registry.get_utility(IBeamline)
         self.image_viewer = Registry.get_utility(IImageViewer)
 
         self.widget = widget
-        self.status = status.DataStatus()
-        self.status_controller = common.DataStatusController(self.beamline, self.status)
-        self.widget.auto_datasets_box.pack_end(self.status, False, True, 0)
+        self.control = status.DataControl()
+        self.widget.auto_datasets_box.pack_end(self.control, False, True, 0)
         self.run_dialog = datawidget.DataDialog()
 
         self.widget.auto_edit_acq_btn.set_popover(self.run_dialog.popover)
@@ -152,13 +153,13 @@ class AutomationController(Object):
         self.import_from_cache()
         self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
         self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
-        self.status.action_btn.set_sensitive(True)
+        self.control.action_btn.set_sensitive(True)
 
         for btn in list(self.tasks.values()):
             btn.connect('toggled', self.on_save_acquisition)
 
-        self.status.action_btn.connect('clicked', self.on_start_automation)
-        self.status.stop_btn.connect('clicked', self.on_stop_automation)
+        self.control.action_btn.connect('clicked', self.on_start_automation)
+        self.control.stop_btn.connect('clicked', self.on_stop_automation)
 
         self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
         self.widget.auto_groups_btn.set_popover(self.widget.auto_groups_pop)
@@ -205,36 +206,36 @@ class AutomationController(Object):
 
     def on_state_changed(self, obj, param):
         if self.props.state == self.StateType.ACTIVE:
-            self.status.action_icon.set_from_icon_name(
+            self.control.action_icon.set_from_icon_name(
                 "media-playback-pause-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.status.stop_btn.set_sensitive(True)
-            self.status.action_btn.set_sensitive(True)
+            self.control.stop_btn.set_sensitive(True)
+            self.control.action_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(False)
             self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.StateType.PAUSED:
-            self.status.progress_fbk.set_text("Automation paused!")
-            self.status.action_icon.set_from_icon_name(
+            self.control.progress_fbk.set_text("Automation paused!")
+            self.control.action_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.status.stop_btn.set_sensitive(True)
-            self.status.action_btn.set_sensitive(True)
+            self.control.stop_btn.set_sensitive(True)
+            self.control.action_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(False)
             self.widget.auto_groups_btn.set_sensitive(False)
         elif self.props.state == self.StateType.PENDING:
-            self.status.action_icon.set_from_icon_name(
+            self.control.action_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
             self.widget.auto_sequence_box.set_sensitive(False)
-            self.status.action_btn.set_sensitive(False)
-            self.status.stop_btn.set_sensitive(False)
+            self.control.action_btn.set_sensitive(False)
+            self.control.stop_btn.set_sensitive(False)
             self.widget.auto_groups_btn.set_sensitive(False)
         else:
-            self.status.action_icon.set_from_icon_name(
+            self.control.action_icon.set_from_icon_name(
                 "media-playback-start-symbolic", Gtk.IconSize.SMALL_TOOLBAR
             )
-            self.status.stop_btn.set_sensitive(False)
-            self.status.action_btn.set_sensitive(True)
+            self.control.stop_btn.set_sensitive(False)
+            self.control.action_btn.set_sensitive(True)
             self.widget.auto_sequence_box.set_sensitive(True)
             self.widget.auto_groups_btn.set_sensitive(True)
 
@@ -258,9 +259,9 @@ class AutomationController(Object):
         used_time = time.time() - self.start_time
         remaining_time = 0 if not fraction else int((1 - fraction) * used_time / fraction)
         eta_time = timedelta(seconds=remaining_time)
-        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.status.progress_bar.set_fraction(fraction)
-        self.status.progress_fbk.set_text(message)
+        self.control.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.control.progress_bar.set_fraction(fraction)
+        self.control.progress_fbk.set_text(message)
 
     def on_sample_done(self, obj, uuid):
         self.automation_queue.mark_progress(uuid, SampleStore.Progress.DONE)
@@ -271,13 +272,13 @@ class AutomationController(Object):
     def on_done(self, obj, data):
         self.props.state = self.StateType.STOPPED
         eta_time = timedelta(seconds=0)
-        self.status.progress_fbk.set_text("Automation Completed.")
-        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.status.progress_bar.set_fraction(1.0)
+        self.control.progress_fbk.set_text("Automation Completed.")
+        self.control.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.control.progress_bar.set_fraction(1.0)
 
     def on_stopped(self, obj, data):
         self.props.state = self.StateType.STOPPED
-        self.status.progress_fbk.set_text("Automation Stopped.")
+        self.control.progress_fbk.set_text("Automation Stopped.")
 
     def on_pause(self, obj, paused, reason):
         if paused:
@@ -320,10 +321,10 @@ class AutomationController(Object):
 
     def on_start_automation(self, obj):
         if self.props.state == self.StateType.ACTIVE:
-            self.status.progress_fbk.set_text("Pausing automation ...")
+            self.control.progress_fbk.set_text("Pausing automation ...")
             self.automator.pause()
         elif self.props.state == self.StateType.PAUSED:
-            self.status.progress_fbk.set_text("Resuming automation ...")
+            self.control.progress_fbk.set_text("Resuming automation ...")
             self.automator.resume()
         elif self.props.state == self.StateType.STOPPED:
             tasks = self.get_task_list()
@@ -333,10 +334,10 @@ class AutomationController(Object):
                 msg2 = 'Please add samples and try again.'
                 dialogs.warning(msg1, msg2)
             else:
-                self.status.progress_fbk.set_text("Starting automation ...")
+                self.control.progress_fbk.set_text("Starting automation ...")
                 self.props.state = self.StateType.PENDING
                 self.automator.configure(samples, tasks)
-                self.status.progress_bar.set_fraction(0)
+                self.control.progress_bar.set_fraction(0)
                 self.automator.start()
                 self.image_viewer.set_collect_mode(True)
 
@@ -346,6 +347,7 @@ class DatasetsController(Object):
         changed = Signal('samples-changed', arg_types=(object,))
         active = Signal('active-sample', arg_types=(object,))
         selected = Signal('sample-selected', arg_types=(object,))
+        directory = Signal('directory', arg_types=(str,))
 
     class StateType(Enum):
         STARTING, ACTIVE, STOPPING, STOPPED = range(4)
@@ -367,9 +369,8 @@ class DatasetsController(Object):
         self.microscope = Registry.get_utility(IMicroscope)
         self.sample_store = Registry.get_utility(ISampleStore)
 
-        self.status = status.DataStatus()
-        self.status_controller = common.DataStatusController(self.beamline, self.status)
-        self.widget.manual_datasets_box.pack_end(self.status, False, True, 0)
+        self.control = status.DataControl()
+        self.widget.manual_datasets_box.pack_end(self.control, False, True, 0)
 
         self.run_editor = datawidget.RunEditor(points_model=self.microscope.points)
         self.editor_frame = arrowframe.ArrowFrame()
@@ -388,7 +389,6 @@ class DatasetsController(Object):
         Registry.add_utility(IDatasets, self)
 
     def setup(self):
-        #self.status.action_btn.set_sensitive(False)
         self.run_store.connect('items-changed', self.on_runs_changed)
         self.collector.connect('done', self.on_done)
         self.collector.connect('paused', self.on_pause)
@@ -416,8 +416,8 @@ class DatasetsController(Object):
         first_row = self.widget.datasets_list.get_row_at_index(pos)
         self.editor_frame.set_row(first_row)
 
-        self.status.action_btn.connect('clicked', self.on_start)
-        self.status.stop_btn.connect('clicked', self.on_stop)
+        self.control.action_btn.connect('clicked', self.on_start)
+        self.control.stop_btn.connect('clicked', self.on_stop)
 
         self.frame_monitor = self.beamline.detector.connect('new-image', self.on_new_image)
         self.props.state = self.StateType.STOPPED
@@ -432,7 +432,7 @@ class DatasetsController(Object):
                     run['info'], state=run['state'], created=run['created'], uid=run['uuid']
                 )
                 self.run_store.insert_sorted(new_item, RunItem.sorter)
-            self.status.action_btn.set_sensitive(True)
+            self.control.action_btn.set_sensitive(True)
         self.names.set_database(names)
 
     def update_positions(self):
@@ -511,7 +511,7 @@ class DatasetsController(Object):
     def on_runs_changed(self, model, position, removed, added):
         self.update_positions()
         if self.run_store.get_n_items() < 2:
-            self.status.action_btn.set_sensitive(False)
+            self.control.action_btn.set_sensitive(False)
 
     def generate_run_list(self):
         runs = []
@@ -598,7 +598,7 @@ class DatasetsController(Object):
                 item.props.position = i
 
         self.update_cache()
-        self.status.action_btn.set_sensitive(count > 0)
+        self.control.action_btn.set_sensitive(count > 0)
 
     def update_cache(self):
         count = 0
@@ -647,8 +647,8 @@ class DatasetsController(Object):
 
     def on_state_changed(self, obj, param):
         action_state, stop_state = self.state_values.get(self.props.state, (False, False))
-        self.status.stop_btn.set_sensitive(stop_state)
-        self.status.action_btn.set_sensitive(action_state)
+        self.control.stop_btn.set_sensitive(stop_state)
+        self.control.action_btn.set_sensitive(action_state)
         if self.props.state == self.StateType.STOPPED:
             self.widget.datasets_clean_btn.set_sensitive(True)
             self.widget.datasets_overlay.set_sensitive(True)
@@ -657,17 +657,12 @@ class DatasetsController(Object):
             self.widget.datasets_overlay.set_sensitive(False)
 
         if self.props.state == self.StateType.STARTING:
-            self.status.progress_fbk.set_text("Starting acquisition ...")
+            self.control.progress_fbk.set_text("Starting acquisition ...")
         elif self.props.state == self.StateType.STOPPING:
-            self.status.progress_fbk.set_text("Stopping acquisition ...")
+            self.control.progress_fbk.set_text("Stopping acquisition ...")
 
     def on_sample_updated(self, obj):
         sample = self.sample_store.get_current()
-        sample_text = '{name}|{port}'.format(
-            name=sample.get('name', '...'),
-            port=sample.get('port', '...')
-        ).replace('|...', '')
-        self.status.sample_fbk.set_text(sample_text)
         self.remove_runs()
 
         config = self.run_editor.get_default(datawidget.StrategyType.SCREEN_2)
@@ -777,15 +772,15 @@ class DatasetsController(Object):
             eta_time = timedelta(seconds=remaining_time)
         else:
             eta_time = timedelta(seconds=0)
-        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.status.progress_bar.set_fraction(fraction)
+        self.control.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.control.progress_bar.set_fraction(fraction)
 
     def on_done(self, obj, completion):
         self.complete_run(completion)
         eta_time = timedelta(seconds=0)
-        self.status.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
-        self.status.progress_bar.set_fraction(1.0)
-        self.status.progress_fbk.set_text('Acquisition complete!')
+        self.control.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
+        self.control.progress_bar.set_fraction(1.0)
+        self.control.progress_fbk.set_text('Acquisition complete!')
 
     def on_stopped(self, obj, completion):
         self.complete_run(completion)
@@ -823,12 +818,12 @@ class DatasetsController(Object):
             logger.info("Acquisition started ...")
         else:
             logger.info("Starting wedge {} ...".format(wedge['name']))
-            self.status_controller.set_directory(wedge['directory'])
+            self.set_state(directory=wedge['directory'])
 
             progress_text = "Acquiring from {:g}-{:g}° for '{}' ...".format(
                 wedge['start'], wedge['start'] + wedge['num_frames'] * wedge['delta'], wedge['name']
             )
-            self.status.progress_fbk.set_text(progress_text)
+            self.control.progress_fbk.set_text(progress_text)
 
             # mark progress
             count = 0
@@ -863,7 +858,7 @@ class DatasetsController(Object):
 
         if success and self.props.state != self.StateType.STARTING:
             self.props.state = self.StateType.STARTING
-            self.status.progress_bar.set_fraction(0)
+            self.control.progress_bar.set_fraction(0)
             self.collector.configure(checked_runs, analysis='default')
             self.collector.start()
             self.image_viewer.set_collect_mode(True)

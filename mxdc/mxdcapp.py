@@ -21,9 +21,10 @@ from mxdc.conf import settings
 from mxdc.services import server
 from mxdc.utils import mdns, gui
 from mxdc.utils.log import get_module_logger
-from mxdc.controllers import common, analysis, samples, setup, status, datasets, scans, chat
+from mxdc.controllers import common, analysis, samples, setup, status, datasets, rastering, scans, chat
 
 from mxdc.widgets import dialogs
+from mxdc.widgets.status import DataStatus
 from mxdc.controllers.settings import SettingsDialog
 from mxdc.controllers.browser import Browser
 from mxdc.utils import excepthook, misc
@@ -165,14 +166,37 @@ class Application(Gtk.Application):
             self.analysis = analysis.AnalysisController(self.builder)
             self.samples = samples.SamplesController(self.builder)
             self.hutch_manager = setup.SetupController(self.builder)
-            self.status_panel = status.StatusPanel(self.builder)
             self.datasets = datasets.DatasetsController(self.builder)
             self.automation = datasets.AutomationController(self.builder)
+            self.raster_tool = rastering.RasterController(self.builder)
             self.scans = scans.ScanManager(self.builder)
             self.chat = chat.ChatController(self.builder)
+            self.status_panel = status.StatusPanel(self.builder)
+
+            self.data_status = DataStatus()
+            self.builder.datasets_control_box.pack_end(self.data_status, False, False, 0)
+            self.data_status_controller = common.DataStatusController(self.beamline, self.data_status)
+
+            self.datasets.connect('directory', self.on_data_directory_changed)
+            self.automation.connect('directory', self.on_data_directory_changed)
+            self.raster_tool.connect('directory', self.on_data_directory_changed)
+
+            self.samples.sample_store.connect('updated', self.on_sample_changed)
             self.window.show_all()
 
         self.window.present()
+
+    def on_data_directory_changed(self, obj, directory):
+        self.data_status_controller.set_directory(directory)
+        dialogs.file_chooser.set_folder(directory)
+
+    def on_sample_changed(self, store):
+        sample = store.get_current()
+        sample_text = '{name}|{port}'.format(
+            name=sample.get('name', '...'),
+            port=sample.get('port', '...')
+        ).replace('|...', '')
+        self.data_status.sample_fbk.set_text(sample_text)
 
     def on_about(self, action, param):
         authors = [
