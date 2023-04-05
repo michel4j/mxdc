@@ -334,7 +334,7 @@ def dataset_from_reference(reference_file):
     Given a reference file and directory, read the header and dataset information for the dataset on disk
 
     :param reference_file: representative file from the dataset
-    :return:  dataset dictionary. Expected fields are
+    :return: dictionary. Expected fields are
         'start_time':  start time for the dataset
         'frames':  A frame list string, eg '1-5,8-10' or '1'
     """
@@ -428,7 +428,7 @@ def wedge_points(start, end, steps):
     if not start:
         points = numpy.array([None] * (steps + 1))
     elif not end:
-        points = numpy.array([start] + [None] * (steps))
+        points = numpy.array([start] + [None] * steps)
     else:
         points = numpy.linspace(start, end, steps + 1)
     return numpy.take(points, [[i, i + 1] for i in range(points.shape[0] - 1)], axis=0)
@@ -453,12 +453,12 @@ def make_wedges(run: dict):
     else:
         vector_slice = total
 
-    slice = min(vector_slice, run.get('wedge', 180), total)
+    slice_ = min(vector_slice, run.get('wedge', 180), total)
 
     # determine start point,  end point and list of frames for each wedge
-    num_wedges = int(total / slice)
+    num_wedges = int(total / slice_)
     positions = wedge_points(run.get('p0'), run.get('p1'), num_wedges)
-    wedge_frames = int(slice / delta)
+    wedge_frames = int(slice_ / delta)
     wedge_numbers = numpy.arange(wedge_frames)
 
     frames_points = [
@@ -485,6 +485,7 @@ def make_wedges(run: dict):
         {
             'uuid': run.get('uuid'),
             'name': run['name'],
+            "original_name": run['name'],
             'directory': run['directory'],
             'start': run['start'] + (frames[0] - run['first']) * run['delta'],
             'first': frames[0],
@@ -506,7 +507,7 @@ def make_wedges(run: dict):
 
 class WedgeDispenser(object):
     """
-    Given a data run, generate sequences of wedges to be interleaved. Typically the sequences
+    Given a data run, generate sequences of wedges to be interleaved. Typically, the sequences
     will contain a single wedge but when inverse beam is used, pairs are generated each time
 
     :param run: run parameters
@@ -517,14 +518,14 @@ class WedgeDispenser(object):
     def __init__(self, run: dict, distinct: bool = False):
         self.details = run
         self.sample = run.get('sample', {})
-        self.dispensed = []
+        self.dispensed = defaultdict(list)
 
         # generate main wedges
         self.wedges = make_wedges(self.details)
         self.num_wedges = len(self.wedges)
         self.pos = 0    # position in wedge list
 
-        self.distinct = distinct and (self.num_wedges > 1 or self.details.get('inverse'))
+        self.distinct = distinct and self.num_wedges > 1 and not self.details.get('inverse')
 
         # total weights for progress
         self.weight = sum(wedge['weight'] for wedge in self.wedges)
@@ -557,9 +558,11 @@ class WedgeDispenser(object):
         # """
         # Yield a dictionary of details for each uniquely named wedge.
         # """
-        for wedge in self.dispensed:
+
+        for original_name, wedges in self.dispensed.items():
             details = copy.deepcopy(self.details)
-            details.update(wedge)
+            sub_wedges = [w['name'] for w in wedges]
+            details.update(combine=sub_wedges)
             yield details
 
     def fetch(self):
@@ -571,9 +574,10 @@ class WedgeDispenser(object):
 
         wedge = self.wedges[self.pos]
         self.pending = wedge['weight']
+
         if self.distinct:
             name_suffix = chr(ord('A') + self.pos)
-            wedge['name'] += f"-{name_suffix}"
+            wedge['name'] = f"{wedge['original_name']}-{name_suffix}"
             wedge['first'] = 1  # distinct wedges all start from frame 1 because they will be treated as
                                 # unique datasets rather than frames from the same set.
         self.pos += 1
@@ -581,20 +585,20 @@ class WedgeDispenser(object):
         # prepare inverse beam
         if wedge['inverse']:
             inv_wedge = copy.deepcopy(wedge)
-            if not self.distinct:
-                inv_wedge['first'] += int(180. / wedge['delta'])  # only update first frame for non-distinct
+            inv_wedge['first'] = 1
             inv_wedge['start'] += 180.
             self.factor = 2
 
-            # additional numeric suffix for inverse beam
-            if self.distinct:
-                wedge['name'] += "1"
-                inv_wedge['name'] += "2"
-            self.dispensed.extend([wedge, inv_wedge])
+            # for inverse beam treat as separate datasets with different original names
+            wedge['original_name'] = wedge['name'] = f"{wedge['original_name']}_1"
+            inv_wedge['original_name'] = inv_wedge['name'] = f"{wedge['original_name']}_2"
+
+            self.dispensed[wedge['original_name']].append(wedge)
+            self.dispensed[inv_wedge['original_name']].append(inv_wedge)
             return wedge, inv_wedge,
         else:
             self.factor = 1
-            self.dispensed.append(wedge)
+            self.dispensed[wedge['original_name']].append(wedge)
             return wedge,
 
 

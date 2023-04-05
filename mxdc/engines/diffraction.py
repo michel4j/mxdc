@@ -4,9 +4,11 @@ from queue import Queue
 from threading import Thread
 from datetime import datetime, timedelta
 
+import mxio
 import pytz
 from gi.repository import GLib
 from zope.interface import implementer
+from mxio.formats import cbf
 
 from mxdc import Registry, Signal, Engine
 from mxdc.devices.detector import DetectorFeatures
@@ -322,22 +324,47 @@ class DataCollector(Engine):
             self.beamline.sample_camera.save_frame(snapshot_file)
             logger.debug('Snapshot saved...')
 
-    def save(self, params):
-        template = self.beamline.detector.get_template(params['name'])
-        reference = template.format(params['first'])
+    def prepare_for_saving(self, params):
+        if params['name'] not in params['combine']:
+            first = params['first']
+            name = params['name']
+            start = params['start']
+            delta = params['delta']
+            template = f'{name}_{{:05d}}.cbf'
 
-        try:
-            self.beamline.detector.wait_for_files(params['directory'], params['name'])
-            info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
-        except OSError as e:
-            logger.warning(f'Unable to find files on disk: {reference}')
-            framesets = ""
+            # Converting multiple sub-datasets to single CBF formatted dataset
+            frame_numbers = []
+            for part_name in params['combine']:
+                self.beamline.detector.wait_for_files(params['directory'], part_name)
+                reference = self.beamline.detector.get_template(part_name).format(1)
+                dset = mxio.DataSet.new_from_file(os.path.join(params['directory'], reference))
+                for frame in dset.frames():
+                    index = int(round(first + (frame.start_angle - start)/delta))
+                    frame_numbers.append(index)
+                    cbf_file = template.format(index)
+                    cbf.CBFDataSet.save_frame(os.path.join(params['directory'], cbf_file), frame)
+            frame_set = datatools.summarize_list(frame_numbers)
         else:
-            framesets = info['frames']
+            self.beamline.detector.wait_for_files(params['directory'], params['name'])
+            template = self.beamline.detector.get_template(params['name'])
+            reference = template.format(params['first'])
+
+            try:
+                info = datatools.dataset_from_reference(os.path.join(params['directory'], reference))
+                frame_set = info['frames']
+            except OSError:
+                logger.warning(f'Unable to find files on disk: {reference}')
+                frame_set = ""
+        return template, frame_set
+
+    def save(self, params):
+
+
+        template, frame_set = self.prepare_for_saving(params)
 
         metadata = {
             'name': params['name'],
-            'frames': framesets,
+            'frames': frame_set,
             'filename': template,
             'group': params['group'],
             'container': params['container'],

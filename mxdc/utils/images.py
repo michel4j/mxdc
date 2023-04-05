@@ -16,7 +16,7 @@ from pathlib import Path
 import zmq
 from methodtools import lru_cache
 from mxio import read_image, DataSet, XYPair
-from mxio.formats import eiger
+from mxio.formats import eiger, cbf
 from mxdc import Engine
 from mxdc.utils import log, misc
 
@@ -245,7 +245,7 @@ class Spots:
 
     def select(self, frame_number, span=1):
         if self.data is not None:
-            spots_z = numpy.round(self.data[:, 2])
+            spots_z = self.data[:, 2]
             sel = (spots_z <= frame_number + span) & (spots_z >= frame_number - span)
             self.selected = self.data[sel]
         else:
