@@ -265,7 +265,7 @@ class AutoMounter(Device):
         """
         Check if the automounter is ready for an operation
         """
-        return self.get_state('status') in [State.IDLE] and self.is_active() and not self.is_busy()
+        return self.get_state('status') in [State.IDLE] and not self.is_busy()
 
     def is_preparing(self):
         """

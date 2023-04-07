@@ -11,7 +11,7 @@ from mxdc.utils import misc, log
 from mxdc.utils.data import analysis
 from mxdc.utils import datatools
 from mxdc.engines.analysis import Analyst
-from mxdc.engines import auto
+from mxdc.engines import transfer
 from mxdc.widgets import dialogs, reports
 
 from mxdc.controllers.datasets import IDatasets

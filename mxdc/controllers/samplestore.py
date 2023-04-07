@@ -3,13 +3,14 @@ import uuid
 from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
+from enum import IntFlag, auto
 
 from gi.repository import Gio, Gtk, Gdk, Pango
 from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Object, IBeamline, Property
 from mxdc.conf import load_cache, save_cache
-from mxdc.engines import auto
+from mxdc.engines import transfer
 from mxdc.utils import misc
 from mxdc.utils.automounter import Port, PortColors
 from mxdc.utils.decorators import async_call
@@ -91,6 +92,13 @@ def human_name_sort(model, a, b, column_id):
         return 1
 
 
+class MountFlags(IntFlag):
+    ENABLED = 0
+    SAMPLE = auto()
+    ROBOT = auto()
+    ADMIN = auto()
+
+
 @implementer(ISampleStore)
 class SampleStore(Object):
     class Data(object):
@@ -120,6 +128,8 @@ class SampleStore(Object):
         updated = Signal("updated", arg_types=())
 
     # properties
+    mount_flags: MountFlags
+    dismount_flags: MountFlags
     cache = Property(type=object)
     current_sample = Property(type=object)
     next_sample = Property(type=object)
@@ -128,6 +138,9 @@ class SampleStore(Object):
 
     def __init__(self, view, widget):
         super().__init__()
+        self.mount_flags = MountFlags.ENABLED
+        self.dismount_flags = MountFlags.ENABLED
+
         self.model = Gtk.ListStore(*self.Data.TYPES)
         self.search_model = self.model.filter_new()
         self.search_model.set_visible_func(self.search_data)
@@ -136,6 +149,7 @@ class SampleStore(Object):
         self.group_registry = {}
         self.prefetch_pending = False
         self.initializing = True
+
 
         # initialize properties
         self.props.next_sample = {}
@@ -163,6 +177,7 @@ class SampleStore(Object):
         self.beamline.automounter.connect('sample', self.on_sample_mounted)
         self.beamline.automounter.connect('next-port', self.on_prefetched)
         self.beamline.automounter.connect('ports', self.update_states)
+        self.beamline.automounter.connect('status', self.on_automounter_status)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
@@ -170,6 +185,7 @@ class SampleStore(Object):
         self.connect('notify::cache', self.on_cache)
         self.connect('notify::current-sample', self.on_cur_changed)
         self.connect('notify::next-sample', self.on_next_changed)
+
 
         Registry.add_utility(ISampleStore, self)
 
@@ -224,6 +240,9 @@ class SampleStore(Object):
 
         self.sample_dewar = DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
+
+        self.on_cur_changed()
+        self.on_next_changed()
 
     def load_data(self, data):
         self.clear()
@@ -289,6 +308,10 @@ class SampleStore(Object):
             self.beamline.automounter.prefetch(port, wait=True)
             self.prefetch_pending = False
 
+    def update_button_states(self):
+        self.widget.samples_mount_btn.set_sensitive(self.mount_flags == MountFlags.ENABLED)
+        self.widget.samples_dismount_btn.set_sensitive(self.dismount_flags == MountFlags.ENABLED)
+
     def on_group_btn_toggled(self, btn, item):
         if item.props.selected != btn.get_active():
             item.props.selected = btn.get_active()
@@ -312,14 +335,43 @@ class SampleStore(Object):
         save_cache(list(self.props.cache), 'samples')
 
     def on_next_changed(self, *args, **kwargs):
-        self.widget.samples_next_sample.set_text(self.next_sample.get('name', '...'))
-        port = self.next_sample.get('port', '...') or '<manual>'
+        port = self.next_sample.get('port', '—') or '<manual>'
+        name = self.next_sample.get('name', '—')
+        self.widget.samples_next_sample.set_text(name)
         self.widget.samples_next_port.set_text(port)
-        self.widget.samples_mount_btn.set_sensitive(bool(self.next_sample))
+
+        if self.next_sample:
+            self.mount_flags &= ~MountFlags.SAMPLE
+        else:
+            self.mount_flags |= MountFlags.SAMPLE
+        self.update_button_states()
 
         # Only prefetch if there is a sample currently mounted
-        if port not in ['...', '<manual>', None] and self.beamline.automounter.is_mounted():
+        if port not in ['—', '...', '<manual>', None] and self.beamline.automounter.is_mounted():
             self.schedule_prefetch()
+
+    def on_cur_changed(self, *args, **kwargs):
+        name = self.current_sample.get('name', '')
+        port = self.current_sample.get('port', '—') or '<manual>'
+        self.widget.samples_cur_sample.set_text(name)
+        self.widget.samples_cur_port.set_text(port)
+
+        if port not in ['—', '...', '<manual>', None]:
+            self.dismount_flags &= ~MountFlags.SAMPLE
+        else:
+            self.dismount_flags |= MountFlags.SAMPLE
+        self.update_button_states()
+        self.emit('updated')
+
+    def on_automounter_status(self, bot, status):
+        if self.beamline.automounter.is_ready():
+            self.dismount_flags &= ~MountFlags.ROBOT
+            self.mount_flags &= ~MountFlags.ROBOT
+        else:
+            self.dismount_flags |= MountFlags.ROBOT
+            self.mount_flags |= MountFlags.ROBOT
+        self.update_button_states()
+
 
     def on_prefetched(self, obj, port):
         name_style = self.widget.samples_next_sample.get_style_context()
@@ -335,13 +387,6 @@ class SampleStore(Object):
         else:
             name_style.remove_class('prefetched')
             port_style.remove_class('prefetched')
-
-    def on_cur_changed(self, *args, **kwargs):
-        self.widget.samples_cur_sample.set_text(self.current_sample.get('name', '...'))
-        port = self.current_sample.get('port', '...') or '<manual>'
-        self.widget.samples_cur_port.set_text(port)
-        self.widget.samples_dismount_btn.set_sensitive(bool(self.current_sample))
-        self.emit('updated')
 
     def search_data(self, model, itr, dat):
         """Test if the row is visible"""
@@ -562,7 +607,7 @@ class SampleStore(Object):
                                             'current sample is has been dismounted manually!')
             else:
                 self.widget.spinner.start()
-                auto.auto_mount(self.beamline, self.next_sample['port'])
+                transfer.auto_mount(self.beamline, self.next_sample['port'])
 
     def dismount_action(self):
         if not self.current_sample.get('port'):
@@ -573,7 +618,7 @@ class SampleStore(Object):
             self.roll_next_sample()
         elif self.current_sample and self.beamline.automounter.is_mounted(self.current_sample['port']):
             self.widget.spinner.start()
-            auto.auto_dismount(self.beamline)
+            transfer.auto_dismount(self.beamline)
 
 
 class SampleQueue(Object):

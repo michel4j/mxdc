@@ -5,7 +5,7 @@ from mxdc.controllers import microscope, samplestore, humidity, rastering, autom
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc, imageviewer
 from . import cryo
-
+from mxdc.controllers.samplestore import MountFlags
 logger = get_module_logger(__name__)
 
 
@@ -42,9 +42,17 @@ class SamplesController(Object):
 class HutchSamplesController(Object):
     ports = Property(type=object)
     containers = Property(type=object)
+    mount_flags: MountFlags
+    dismount_flags: MountFlags
+    image_viewer: imageviewer.ImageViewer
+    next_sample: dict
+    current_sample: dict
 
     def __init__(self, widget):
         super().__init__()
+        self.mount_flags = MountFlags.ENABLED
+        self.dismount_flags = MountFlags.ENABLED
+
         self.widget = widget
         self.props.ports = {}
         self.props.containers = {}
@@ -68,6 +76,19 @@ class HutchSamplesController(Object):
     def on_new_image(self, obj, dataset):
         self.image_viewer.show_frame(dataset)
 
+    def update_button_states(self):
+        self.widget.samples_mount_btn.set_sensitive(self.mount_flags == MountFlags.ENABLED)
+        self.widget.samples_dismount_btn.set_sensitive(self.dismount_flags == MountFlags.ENABLED)
+
+    def on_automounter_status(self, bot, status):
+        if self.beamline.automounter.is_ready():
+            self.dismount_flags &= ~MountFlags.ROBOT
+            self.mount_flags &= ~MountFlags.ROBOT
+        else:
+            self.dismount_flags |= MountFlags.ROBOT
+            self.mount_flags |= MountFlags.ROBOT
+        self.update_button_states()
+
     def on_dewar_selected(self, obj, port):
         logger.info('Sample Selected: {}'.format(port))
         row = self.find_by_port(port)
@@ -78,15 +99,18 @@ class HutchSamplesController(Object):
                 'port': port
             }
         else:
-            self.next_sample = None
+            self.next_sample = {}
+
+        name = self.next_sample.get('name', '')
+        port = self.next_sample.get('port', '...')
+        self.widget.samples_next_sample.set_text(name)
+        self.widget.samples_next_port.set_text(port)
 
         if self.next_sample:
-            self.widget.samples_mount_btn.set_sensitive(True)
-            self.widget.samples_next_port.set_text(port)
+            self.mount_flags &= ~MountFlags.SAMPLE
         else:
-            self.widget.samples_mount_btn.set_sensitive(False)
-            self.widget.samples_next_port.set_text("...")
-        self.widget.samples_next_sample.set_text('...')
+            self.mount_flags |= MountFlags.SAMPLE
+        self.update_button_states()
 
     def get_name(self, port):
         return '...'
@@ -99,9 +123,17 @@ class HutchSamplesController(Object):
 
     def on_sample_mounted(self, obj, sample):
         self.microscope.remove_objects()
-        if sample and self.beamline.is_admin():
-            self.widget.samples_cur_sample.set_text('...')
-            port = sample.get('port')
-            if port:
-                self.widget.samples_cur_port.set_text(port)
-                self.widget.samples_dismount_btn.set_sensitive(True)
+        if self.beamline.is_admin():
+            self.dismount_flags &= ~MountFlags.ADMIN
+            self.dismount_flags &= ~MountFlags.ADMIN
+        else:
+            self.dismount_flags |= MountFlags.ADMIN
+            self.dismount_flags |= MountFlags.ADMIN
+
+        self.widget.samples_cur_sample.set_text('-')
+        port = sample.get('port')
+        if port and port not in ['—', '...', '<manual>']:
+            self.dismount_flags &= ~MountFlags.SAMPLE
+        else:
+            self.dismount_flags |= MountFlags.SAMPLE
+        self.update_button_states()

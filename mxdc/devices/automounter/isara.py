@@ -133,7 +133,7 @@ class AuntISARA(AutoMounter):
 
         status_pvs = [
             self.status_fbk, self.enabled_fbk, self.connected_fbk, self.autofill_fbk, self.cryo_fbk,
-            self.mode_fbk, self.path_fbk
+            self.mode_fbk, self.path_fbk, self.position_fbk
         ]
         for pv in status_pvs:
             pv.connect('changed', self.on_state_changed)
@@ -356,6 +356,9 @@ class AuntISARA(AutoMounter):
         if not cryo_good:
             health |= 4
             diagnosis += ['Cryo Level Problem! Staff Needed.']
+
+        if drying:
+            self.set_state(message='Robot is drying the gripper ...')
 
         if self.get_state('status') != status:
             self.set_state(status=status)

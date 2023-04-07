@@ -2,7 +2,7 @@ import time
 import uuid
 
 from mxdc import Registry, Signal, Engine
-from mxdc.engines import centering, auto
+from mxdc.engines import centering, transfer
 from mxdc.engines.interfaces import IDataCollector
 from mxdc.utils import datatools
 from mxdc.utils.log import get_module_logger
