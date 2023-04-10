@@ -263,7 +263,7 @@ class AuntISARA(AutoMounter):
         port = sample.get('port')
         ports = self.get_state('ports')
         if self.is_valid(mounted_port):
-            GLib.timeout_add(2000, self.check_blank)
+            GLib.timeout_add(2000, self.check_no_put)
             ports[mounted_port] = Port.MOUNTED
             sample = {
                 'port': mounted_port,
@@ -277,13 +277,12 @@ class AuntISARA(AutoMounter):
         self.set_state(sample=sample)
         self.set_state(ports=ports)
 
-    def check_blank(self):
+    def check_no_put(self):
         sample = self.get_state('sample')
         status = self.get_state('status')
         failure_state = all([
             self.sample_detected.get() == 0,
             bool(sample.get('port')),
-            status in [State.BUSY],
             status != State.FAILURE
         ])
 
@@ -306,20 +305,17 @@ class AuntISARA(AutoMounter):
             self.sample_detected.get() == 1,
             bool(self.mounted_fbk.get()) == False,
             bool(self.tooled_fbk.get()),
-            self.position_fbk.get() == 'UNKNOWN',
-            status in [State.BUSY],
             status != State.FAILURE
         ])
 
         if failure_state:
             message = (
                 "Automounter failed to get sample from Gonio.\n"
-                "Make sure samples is still on gonio then then proceed to recover."
+                "Make sure sample is still on gonio then then proceed to recover."
             )
             self.set_state(status=State.FAILURE, failure=('get-failed', message))
 
     def on_state_changed(self, *args):
-
         health = 0
         diagnosis = []
         connected = (self.connected_fbk.get() == 1)
@@ -330,6 +326,7 @@ class AuntISARA(AutoMounter):
         path = self.path_fbk.get()
         cryo_good = True
         cur_status = self.get_state('status')
+        message = ''
 
         if not connected:
             health |= 4
@@ -341,28 +338,32 @@ class AuntISARA(AutoMounter):
             diagnosis += ['Disabled by staff']
         elif not auto_mode:
             status = State.WARNING
-            self.set_state(message='Wrong Mode/Tool! Staff Needed.')
+            message = 'Wrong Mode/Tool! Staff Needed.'
         elif drying or status_value in [3, ]:
             status = State.STANDBY
+            message = 'Drying the gripper ...'
         elif path != "None" or status_value in [1, 2]:
             status = State.BUSY
         elif status_value in [4, ]:
             status = State.ERROR
         elif cur_status == State.PREPARING:
             status = State.PREPARING
+            message = 'Preparing ...'
         else:
             status = State.IDLE
+            message = 'Ready!'
 
         if not cryo_good:
             health |= 4
             diagnosis += ['Cryo Level Problem! Staff Needed.']
 
-        if drying:
+        if health != 0:
+            message = ', '.join(diagnosis)
             self.set_state(message='Robot is drying the gripper ...')
 
         if self.get_state('status') != status:
-            self.set_state(status=status)
-        self.set_state(health=(health, 'notices', 'Staff Needed'), message=', '.join(diagnosis))
+            self.set_state(status=status, message=message)
+        self.set_state(health=(health, 'notices', 'Staff Needed'))
 
     def on_message(self, obj, value, transform):
         message = transform(value)

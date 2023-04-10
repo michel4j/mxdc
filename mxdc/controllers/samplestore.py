@@ -159,9 +159,7 @@ class SampleStore(Object):
 
         cache = load_cache('samples')
         self.props.cache = set() if not cache else set(cache)
-
         self.filter_text = ''
-
         self.view = view
         self.widget = widget
         self.view.set_model(self.sort_model)
@@ -185,7 +183,6 @@ class SampleStore(Object):
         self.connect('notify::cache', self.on_cache)
         self.connect('notify::current-sample', self.on_cur_changed)
         self.connect('notify::next-sample', self.on_next_changed)
-
 
         Registry.add_utility(ISampleStore, self)
 
@@ -235,9 +232,7 @@ class SampleStore(Object):
         self.sort_model.set_sort_column_id(self.Data.PRIORITY, Gtk.SortType.ASCENDING)
         self.sort_model.connect('sort-column-changed', lambda x: self.roll_next_sample())
         self.roll_next_sample()
-
         self.widget.auto_groups_box.bind_model(self.group_model, self.create_group_selector)
-
         self.sample_dewar = DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
 
@@ -312,11 +307,13 @@ class SampleStore(Object):
         self.widget.samples_mount_btn.set_sensitive(self.mount_flags == MountFlags.ENABLED)
         self.widget.samples_dismount_btn.set_sensitive(self.dismount_flags == MountFlags.ENABLED)
 
-    def on_group_btn_toggled(self, btn, item):
+    @staticmethod
+    def on_group_btn_toggled(btn, item):
         if item.props.selected != btn.get_active():
             item.props.selected = btn.get_active()
 
-    def on_group_item_toggled(self, item, param, btn):
+    @staticmethod
+    def on_group_item_toggled(item, param, btn):
         if item.props.selected != btn.get_active():
             btn.set_active(item.props.selected)
 
@@ -555,21 +552,9 @@ class SampleStore(Object):
             if row:
                 self.props.current_sample = row[self.Data.DATA]
                 row[self.Data.SELECTED] = False
-                self.widget.samples_dismount_btn.set_sensitive(True)
-                if self.props.current_sample['barcode'] != sample.get('barcode'):
-                    row[self.Data.MISMATCHED] = True
-                else:
-                    row[self.Data.MISMATCHED] = False
-            elif self.beamline.is_admin():
-                self.props.current_sample = {
-                    'port': port,
-                }
-                self.widget.samples_dismount_btn.set_sensitive(True)
+                row[self.Data.MISMATCHED] = self.props.current_sample['barcode'] != sample.get('barcode')
             else:
-                self.props.current_sample = {
-                    'port': port,
-                }
-                self.widget.samples_dismount_btn.set_sensitive(False)
+                self.props.current_sample = {'port': port}
         else:
             self.props.current_sample = {}
 
@@ -578,6 +563,10 @@ class SampleStore(Object):
         if not self.initializing:
             self.roll_next_sample()
         self.initializing = False
+
+        self.on_next_changed()
+        self.on_cur_changed()
+        self.update_button_states()
 
     def on_key_press(self, obj, event):
         return self.widget.samples_search_entry.handle_event(event)
@@ -684,7 +673,8 @@ class SampleQueue(Object):
             if item[SampleStore.Data.PROGRESS] != SampleStore.Progress.NONE:
                 item[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
 
-    def format_state(self, column, cell, model, itr, data):
+    @staticmethod
+    def format_state(column, cell, model, itr, data):
         processed = model[itr][SampleStore.Data.PROGRESS]
         if processed == SampleStore.Progress.ACTIVE:
             cell.set_property("icon-name", 'emblem-synchronizing-symbolic')
@@ -693,7 +683,8 @@ class SampleQueue(Object):
         else:
             cell.set_property("icon-name", "content-loading-symbolic")
 
-    def format_processed(self, column, cell, model, itr, data):
+    @staticmethod
+    def format_processed(column, cell, model, itr, data):
         value = model[itr][SampleStore.Data.PROGRESS]
         if value == SampleStore.Progress.DONE:
             cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
