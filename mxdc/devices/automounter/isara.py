@@ -168,12 +168,13 @@ class AuntISARA(AutoMounter):
             self.set_state(message="Port cannot be mounted!")
             return False
         else:
-            self.next_smpl.put(port)
-            self.mount_cmd.put(1)
+            self.next_smpl.put(port, wait=True)
+            self.mount_cmd.put(1, wait=True)
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             if wait:
-                success = self.wait(states={State.BUSY}, timeout=10)
+
+                success = self.wait(states={State.BUSY}, timeout=20)
                 if success:
                     success = self.wait(states={State.STANDBY, State.IDLE}, timeout=120)
                 if not success:

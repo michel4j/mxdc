@@ -168,24 +168,28 @@ class AutoMounter(Device):
         states_text = "|".join((str(s) for s in states))
 
         logger.debug('"{}" Waiting for {}'.format(self.name, states_text))
-        elapsed = 0
-        status = self.get_state('status')
-        while elapsed <= timeout and status not in states:
-            elapsed += 0.05
-            time.sleep(0.05)
+        elapse = time.time() + timeout
+        success = False
+        failed = False
+        while time.time() <= elapse:
+            time.sleep(0.1)
             status = self.get_state('status')
             if status == State.FAILURE:
+                failed = True
                 break
-
-        if elapsed <= timeout:
-            logger.debug('"{}": {} attained after {:0.2f}s'.format(self.name, status, elapsed))
-            return True
-        elif status == State.FAILURE:
-            logger.warning('{} operation failed.'.format(self.name))
-            return False
+            if status in states:
+                success = True
+                break
         else:
-            logger.warning('"{}" timed-out waiting for "{}"'.format(self.name, states_text))
-            return False
+            logger.warning(f'"{self.name}" timed-out waiting for "{states_text}"')
+            return success
+
+        if failed:
+            logger.warning('{} operation failed.'.format(self.name))
+        else:
+            logger.debug(f'"{self.name}": {status} attained ')
+        return success
+
 
     def wait_while(self, *states, timeout=20.0):
         """
