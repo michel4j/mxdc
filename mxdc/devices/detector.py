@@ -784,6 +784,13 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         self.saved_frame.put(0, wait=True)
         self.mode_cmd.put(1, wait=True)  # External Enable
 
+        import pprint
+        pprint.pprint(params)
+
+        if params['num_images'] == 1:
+            self.mode_cmd.put(1)  # Externally Enabled Series
+        else:
+            self.mode_cmd.put(2)
 
         self.file_timeout.put(120, wait=True)
         super().configure(**params)
@@ -997,11 +1004,11 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         # Adjust batch size
         params['batch_size'] = 100
-
         if params['num_images'] == 1:
             self.mode_cmd.put(3)  # Externally Enabled Series
         else:
             self.mode_cmd.put(2)
+
         self.stream_enable.put(1, wait=True)  # Enable Stream interface
         super().configure(**params)
 
