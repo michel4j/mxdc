@@ -210,7 +210,6 @@ class SampleStage(BaseSampleStage):
         return self.x.get_position(), self.y1.get_position(), self.y2.get_position()
 
     def move_xyz(self, xl, yl, zl, wait=False):
-        self.wait(start=False)
         self.y1.move_to(yl, wait=self.linked)
         self.y2.move_to(zl, wait=self.linked)
         self.x.move_to(xl, wait=self.linked)
@@ -218,7 +217,6 @@ class SampleStage(BaseSampleStage):
             self.wait()
 
     def move_xyz_by(self, xd, yd, zd, wait=False):
-        self.wait(start=False)
         self.y1.move_by(yd, wait=self.linked)
         self.y2.move_by(zd, wait=self.linked)
         self.x.move_by(xd, wait=self.linked)
@@ -226,7 +224,6 @@ class SampleStage(BaseSampleStage):
             self.wait()
 
     def move_screen(self, xw, yw, zw, wait=False):
-        self.wait(start=False)
         xl, yl, zl = self.screen_to_xyz(xw, yw, zw)
         self.x.move_to(xl, wait=self.linked)
         self.y1.move_to(yl, wait=self.linked)
@@ -235,7 +232,6 @@ class SampleStage(BaseSampleStage):
             self.wait()
 
     def move_screen_by(self, xwd, ywd, zwd, wait=False):
-        self.wait(start=False)
         xld, yld, zld = self.screen_to_xyz(xwd, ywd, zwd)
         self.y1.move_by(yld, wait=self.linked)
         self.y2.move_by(zld, wait=self.linked)
@@ -404,7 +400,6 @@ class XYZStage(Device):
         self.z.stop()
 
     def move_xyz(self, x, y, z, wait=False):
-        self.wait(start=False)
         self.x.move_to(x,  wait=wait)
         self.y.move_to(y, wait=wait)
         self.z.move_to(z, wait=wait)

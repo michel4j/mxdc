@@ -439,15 +439,15 @@ class MD2Gonio(BaseGoniometer):
             # Scale and convert um to mm
             # MD2 appears to need correction of scan size by -1 in each direction
 
-            w_adj = 1e-3
-            #h_adj = 1e-3
+            w_adj = 1
+            #h_adj = 1
 
-            #w_adj = 1e-3 * (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
-            h_adj = 1e-3 * (kwargs['vsteps'] - 1)/kwargs['vsteps']
+            #w_adj = (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
+            h_adj = (kwargs['vsteps'] - 1)/kwargs['vsteps']
 
-            kwargs['width'] *= w_adj
-            kwargs['height'] *= h_adj
-
+            kwargs['width'] *= w_adj * 1e-3
+            kwargs['height'] *= h_adj * 1e-3
+            kwargs['time'] *= h_adj
             kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = 1
 

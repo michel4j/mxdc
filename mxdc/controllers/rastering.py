@@ -279,8 +279,9 @@ class RasterController(Object):
             self.load_grid(item['angle'], config)
         else:
             image_viewer = Registry.get_utility(IImageViewer)
-            self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'], wait=False)
             image_viewer.open_dataset(os.path.join(config['grid_params']['directory'], item['filename']))
+            self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'], wait=False)
+
 
     def on_grid_changed(self, obj, param):
         params = self.microscope.grid_params
