@@ -6,7 +6,7 @@ from enum import Enum
 
 from mxdc import Registry, IBeamline, Object, Property, Signal
 from mxdc.engines.rastering import RasterCollector
-from mxdc.utils import datatools, misc
+from mxdc.utils import datatools, misc, decorators
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec, FormManager, FieldSpec, Validator
 from mxdc.utils.log import get_module_logger
@@ -138,7 +138,7 @@ class RasterController(Object):
             return
         else:
             params, grid_config = misc.load_pickle(filename)
-            self.beamline.goniometer.omega.move_to(params['angle'])
+            self.beamline.goniometer.omega.move_to(params['angle'], wait=False)
             self.microscope.load_grid(grid_config)
             template = params['template']
             self.results[params['uuid']] = grid_config
@@ -265,17 +265,21 @@ class RasterController(Object):
 
         self.microscope.update_overlay_coords()
 
+    @decorators.async_call
+    def load_grid(self, angle, config):
+        self.beamline.goniometer.omega.move_to(angle, wait=True)
+        self.microscope.load_grid(config)
+
     def on_result_activated(self, view, path, column=None):
         itr = self.manager.model.get_iter(path)
         item = self.manager.get_item(itr)
         config = self.results[item['uuid']]
 
         if self.manager.model.iter_has_child(itr):
-            self.beamline.goniometer.omega.move_to(item['angle'], wait=True)
-            self.microscope.load_grid(config)
+            self.load_grid(item['angle'], config)
         else:
             image_viewer = Registry.get_utility(IImageViewer)
-            self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'])
+            self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'], wait=False)
             image_viewer.open_dataset(os.path.join(config['grid_params']['directory'], item['filename']))
 
     def on_grid_changed(self, obj, param):
