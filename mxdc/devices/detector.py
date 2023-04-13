@@ -764,8 +764,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
             self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def configure(self, **kwargs):
-        params = {}
-        params.update(kwargs)
+        params = {**kwargs}
 
         if 'energy' in params and abs(params['energy'] - self.energy.get()) < 0.1:
             del params['energy']  # do not set energy if within 100 eV of current value
@@ -782,15 +781,12 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['num_images'] = images_per_trigger * num_triggers
 
         self.saved_frame.put(0, wait=True)
-        self.mode_cmd.put(1, wait=True)  # External Enable
+        #self.mode_cmd.put(1, wait=True)  # External Enable
 
-        import pprint
-        pprint.pprint(params)
-
-        if params['num_images'] == 1:
-            self.mode_cmd.put(1)  # Externally Enabled Series
+        if images_per_trigger > 1:
+            self.mode_cmd.put(2)    # External Trigger
         else:
-            self.mode_cmd.put(2)
+            self.mode_cmd.put(1)    # External Enable
 
         self.file_timeout.put(120, wait=True)
         super().configure(**params)

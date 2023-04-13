@@ -269,7 +269,7 @@ class AnalysisController(Object):
             port = sample['port']
             if port and self.beamline.automounter.is_mountable(port):
                 self.widget.spinner.start()
-                auto.auto_mount(self.beamline, port)
+                transfer.auto_mount(self.beamline, port)
 
     def update_selection(self):
         """

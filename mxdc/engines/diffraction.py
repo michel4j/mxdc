@@ -304,7 +304,7 @@ class DataCollector(Engine):
                 time=wedge['exposure']*wedge['num_frames'],
                 range=wedge['delta']*wedge['num_frames'],
                 angle=wedge['start'],
-                frames=wedge['num_frames'],
+                frames=wedge['num_frames'] if gonio_gating else 1,
                 wait=True,
                 start_pos=wedge.get('p0'),
                 end_pos=wedge.get('p1'),

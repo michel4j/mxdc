@@ -75,7 +75,7 @@ class Automator(Engine):
                         self.stop()
 
                 elif task['type'] == self.Task.MOUNT:
-                    success = auto.auto_mount_manual(self.beamline, sample['port'])
+                    success = transfer.auto_mount_manual(self.beamline, sample['port'])
                     if success and self.beamline.automounter.is_mounted(sample['port']):
                         mounted = self.beamline.automounter.get_state("sample")
                         barcode = mounted.get('barcode')
@@ -114,7 +114,7 @@ class Automator(Engine):
             logger.info('Automation stopped')
 
         if not self.stopped:
-            auto.auto_dismount_manual(self.beamline)
+            transfer.auto_dismount_manual(self.beamline)
             self.set_state(done=None, busy=False)
             logger.info('Automation complete')
 

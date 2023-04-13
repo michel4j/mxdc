@@ -416,7 +416,7 @@ class MD2Gonio(BaseGoniometer):
         # configure device and start scan
         self.set_state(message=f'"{kind}" Scanning ...')
         if kind in ['simple', 'shutterless']:
-            kwargs['frames'] = 1 if self.supports(GonioFeatures.GATING) else kwargs['frames']
+            kwargs['frames'] = kwargs['frames'] if self.supports(GonioFeatures.GATING) else 1
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
         elif kind == 'helical':
@@ -447,7 +447,8 @@ class MD2Gonio(BaseGoniometer):
 
             kwargs['width'] *= w_adj * 1e-3
             kwargs['height'] *= h_adj * 1e-3
-            kwargs['time'] *= h_adj
+            if self.power_pmac:
+                kwargs['time'] *= h_adj
             kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = 1
 
