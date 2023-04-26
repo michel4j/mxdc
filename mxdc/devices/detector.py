@@ -366,7 +366,7 @@ class SimDetector(BaseDetector):
             logger.error('No simulated image found')
 
         # progress
-        num_frames = self.parameters['num_frames']
+        num_frames = self.parameters.get('num_frames', 1)
         self.set_state(progress=((1 + number)/num_frames, 'frames acquired'))
 
     @decorators.async_call

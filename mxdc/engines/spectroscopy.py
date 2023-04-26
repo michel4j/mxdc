@@ -88,7 +88,7 @@ class XRFScan(BasicScan):
 
         # set FWHM of detector
         scitools.PEAK_FWHM = 0.1
-        elements, bblocks, coeffs = scitools.interprete_xrf(x, y, energy)
+        elements, bblocks, coeffs = scitools.interpret_xrf(x, y, energy)
         assigned = {}
         for i, el_info in enumerate(elements):
             symbol = el_info[0]

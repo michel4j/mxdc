@@ -14,7 +14,7 @@ from mxdc import Registry, Signal, Engine
 from mxdc.devices.detector import DetectorFeatures
 from mxdc.devices.goniometer import GonioFeatures
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
-from mxdc.utils import datatools, misc, decorators
+from mxdc.utils import datatools, misc, decorators, scitools
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
 
@@ -358,9 +358,13 @@ class DataCollector(Engine):
         return template, frame_set
 
     def save(self, params):
-
-
         template, frame_set = self.prepare_for_saving(params)
+        fwhm_x, fwhm_y = self.beamline.config.get('beam_shape', (100., 100.))
+
+        # Estimate flux from current beamline/dataset settings
+        transmission = 1 - params['attenuation']/100.0
+        beam_flux = self.beamline.beam_tuner.get_state("flux") * transmission
+        beam_flux *= scitools.gaussian_fraction(self.beamline.aperture.get_position(), fwhm_x, fwhm_y)
 
         metadata = {
             'name': params['name'],
@@ -386,6 +390,7 @@ class DataCollector(Engine):
             'beam_y': self.beamline.detector.get_origin()[1],
             'pixel_size': self.beamline.detector.resolution,
             'beam_size': self.beamline.aperture.get_position(),
+            'flux': round(beam_flux),
             'resolution': dist_to_resol(params['distance'], self.beamline.detector.mm_size, params['energy']),
             'detector_size': min(self.beamline.detector.size),
             'start_angle': params['start'],
@@ -402,14 +407,11 @@ class DataCollector(Engine):
             return
 
         flags = () if not self.config.get('anomalous') else ('anomalous',)
-        if (self.config['analysis'] == 'screen') or (
-                self.config['analysis'] == 'default' and kind == 'SCREEN'):
+        if (self.config['analysis'] == 'screen') or (self.config['analysis'] == 'default' and kind == 'SCREEN'):
             self.analyst.screen_dataset(*metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'process') or (
-                self.config['analysis'] == 'default' and kind == 'DATA'):
+        elif (self.config['analysis'] == 'process') or (self.config['analysis'] == 'default' and kind == 'DATA'):
             self.analyst.process_dataset(*metadata, flags=flags, sample=sample)
-        elif (self.config['analysis'] == 'powder') or (
-                self.config['analysis'] == 'default' and kind == 'XRD'):
+        elif (self.config['analysis'] == 'powder') or (self.config['analysis'] == 'default' and kind == 'XRD'):
             flags = ('calibrate',) if first else ()
             self.analyst.process_powder(*metadata, flags=flags, sample=sample)
 

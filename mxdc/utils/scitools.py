@@ -5,6 +5,7 @@ import json
 import numpy
 from mxdc.utils import converter
 from scipy import interpolate, optimize, signal
+from scipy.integrate import nquad
 from mxdc.utils import fitting
 
 from mxdc.conf import SHARE_DIR
@@ -318,7 +319,7 @@ def generate_spectrum(info, energy, xa):
     return fitting.multi_peak(xa, coeffs, target='voigt', fraction=0.2)
 
 
-def interprete_xrf(xo, yo, energy, speedup=4):
+def interpret_xrf(xo, yo, energy, speedup=4):
     def calc_template(xa, elements, template=None):
         if template is None:
             template = numpy.empty((len(xa), len(elements)))  # elements + zero
@@ -373,4 +374,32 @@ def interprete_xrf(xo, yo, energy, speedup=4):
     final_template = calc_template(xo, elements) * new_coeffs[:-1]
     return elements, final_template, new_coeffs
 
+
+def gaussian_fraction(radius: float, fwhm_x: float, fwhm_y: float) -> float:
+    """
+    Calculate the fraction of the volume under a "simple" bi-variate gaussian surface enclosed by a centered
+    cylinder of given  radius. Simple in this context means there are no off-diagonal co-variances.
+    :param radius: Radius of enclosing cylinder
+    :param fwhm_x: horizontal FWHM of gaussian distribution
+    :param fwhm_y: vertical FWHM of gaussian distribution
+    :return: Fraction of the area bounded by the surface and the cylinder.
+    """
+
+    def integrand(r, theta, sigma_x, sigma_y):
+        return r * numpy.exp(
+            -0.5 * r ** 2 * (numpy.cos(theta) ** 2 / sigma_x ** 2 + numpy.sin(theta) ** 2 / sigma_y ** 2)
+        )
+
+    def volume(r, fwhm_x, fwhm_y):
+        opts = {'epsabs': 5e-1, 'epsrel': 5e-1}     # we don't need very high accuracy here
+        sig_x = fwhm_x / 2.355
+        sig_y = fwhm_y / 2.355
+        results = nquad(integrand, [(0, r), (0, numpy.pi/2)], args=(sig_x, sig_y), opts=opts)
+        return results[0] * 4
+
+    max_r = 2 * max(fwhm_x, fwhm_y)
+    full = volume(max_r, fwhm_x, fwhm_y)
+    part = volume(radius, fwhm_x, fwhm_y)
+
+    return min(1.0, part / full)
 

@@ -25,6 +25,7 @@ class MXBeamline(Beamline):
         'admins': [],
         'energy_range': (6.0, 18.0),
         'zoom_levels': (1, 4, 6),
+        'beam_shape': (100., 100.),
         'distance_limits': (100.0, 1000.0),
         'default_attenuation': 90.0,
         'default_exposure': 0.5,

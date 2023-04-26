@@ -3,7 +3,7 @@ import threading
 import reprlib
 import time
 import os
-
+from typing import Any, Tuple
 from gi.repository import GObject, GLib, Gio
 
 from gi.types import GObjectMeta
@@ -153,8 +153,12 @@ def _get_signal_properties(itype):
     }
 
 
-Signal = GObject.Signal
+#Signal = GObject.Signal
 Property = GObject.Property
+
+class Signal(GObject.Signal):
+    def __init__(self, name: str, arg_types=Tuple[Any]):
+        super().__init__(name, arg_types=arg_types)
 
 
 class ObjectType(GObjectMeta):

@@ -71,7 +71,7 @@ class SetupController(object):
         self.widget.tuner_box.pack_start(self.tuner.chart, True, True, 0)
         self.tuner.add_plot(self.beamline.beam_tuner, 'Beam Intensity (%)', signal='percent')
         self.tuner_monitors = [
-            common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl, format=sci_fmt),
+            common.DeviceMonitor(self.beamline.beam_tuner, self.widget.tuner_left_lbl, format=sci_fmt, signal='flux'),
             common.DeviceMonitor(
                 self.beamline.beam_tuner, self.widget.tuner_right_lbl, format='{:6.1f} %',
                 signal='percent', warning=80.0, error=60.0

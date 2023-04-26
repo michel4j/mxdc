@@ -58,6 +58,7 @@ class BaseTuner(Device):
     """
     class Signals:
         changed = Signal("changed", arg_types=(float,))
+        flux = Signal("flux", arg_types=(float,))
         percent = Signal("percent", arg_types=(float,))
 
     def __init__(self):
@@ -127,13 +128,17 @@ class BOSSTuner(BaseTuner):
     :param off_value: If the picoameter goes below this value, pause optimization
     :param pause_value: Set the threshold to this value when pausing.
     """
-    def __init__(self, name, picoameter, current, reference=None, control=None, off_value=5e3, pause_value=1e13):
+    def __init__(self, name, picoameter, current, flux=None, reference=None, control=None, off_value=5e3, pause_value=1e13):
 
         super().__init__()
         self.name = name
         self.enable_cmd = self.add_pv('{}:EnableDacOUT'.format(name))
         self.enabled_fbk = self.add_pv('{}:EnableDacIN'.format(name))
         self.beam_threshold = self.add_pv('{}:OffIntOUT'.format(name))
+        if flux:
+            self.max_flux = self.add_pv(flux)
+        else:
+            self.max_flux = None
         self.value_fbk = self.add_pv('{}'.format(picoameter))
         self.current_fbk = self.add_pv(current)
         self.enabled_fbk.connect('changed', self.on_state_changed)
@@ -194,11 +199,13 @@ class BOSSTuner(BaseTuner):
         self.set_state(enabled=(val == 1))
 
     def on_value_changed(self, obj, val):
+        # FIXME: Normalize to not rely on site-specific information.
         ref = self.reference_fbk.get()
         cur = self.current_fbk.get()
         tgt = 0.0 if not cur else val / cur
-        perc = 0.0 if not ref else 100.0 * tgt / ref
-        self.set_state(changed=val, percent=perc)
+        frac = 0.0 if ref == 0.0 else tgt / ref
+        flux = 0.0 if self.max_flux else self.max_flux.get() * val/ref
+        self.set_state(changed=val, percent=frac * 100, flux=flux)
 
 
 class BESTTuner(BaseTuner):
@@ -206,12 +213,12 @@ class BESTTuner(BaseTuner):
     Beam Tuner abstraction for the original CAENELS Beamline Enhanced Stabilization System (BEST).
 
     :param name: Device name, i.e. root name for all process variables
-    :param picoameter: Picoameter Process variable name
     :param current: Ring current process variable name
-    :param reference: Optional reference process variable
+    :param reference: reference process variable
+    :param flux: Process variable name for maximum flux
     :param tune_step: Step size for tuning
     """
-    def __init__(self, name, current, reference=None, tune_step=0.05):
+    def __init__(self, name, current, reference=None, flux=None, tune_step=0.05):
 
         super().__init__()
         self.tunable = True
@@ -229,6 +236,11 @@ class BESTTuner(BaseTuner):
             self.reference_fbk = self.add_pv(reference)
         else:
             self.reference_fbk = self.value_fbk
+
+        if flux:
+            self.max_flux = self.add_pv(flux)
+        else:
+            self.max_flux = None
 
     def is_paused(self):
         return self.status_fbk.get() in [0, 1, 2]
@@ -267,85 +279,17 @@ class BESTTuner(BaseTuner):
 
     def on_value_changed(self, obj, val):
         ref = self.reference_fbk.get()
-        cur = self.current_fbk.get()
+        cur = max(0.0, self.current_fbk.get())
+        max_flux = 0.0 if not self.max_flux else self.max_flux.get()
         try:
             tgt = 0.0 if cur <= 1 else val * 220 / cur
-            perc = 0.0 if ref == 0 else 100.0 * tgt / ref
+            frac = 0.0 if ref == 0.0 else tgt / ref
+            flux = 0.0 if ref == 0.0 else max_flux * frac * cur / 220
         except (TypeError, ValueError, ZeroDivisionError):
             perc = 0.0
-        self.set_state(changed=val, percent=perc)
+            flux = 0.0
+        self.set_state(changed=val, percent=frac*100, flux=flux)
 
-
-class MOSTABTuner(BaseTuner):
-    """
-    Beam Tuner abstraction for the D-MOSTAB beam stabilisation hardware.
-
-    :param name: Device name, i.e. root name for all process variables
-    :param picoameter: Picoameter Process variable name
-    :param current: Ring current process variable name
-    :param reference: Optional reference process variable
-    :param tune_step: step size to use for tune_up() and tune_down() methods.
-    """
-
-    def __init__(self, name, picoameter, current, reference=None, tune_step=50):
-        super().__init__()
-        self.name = name
-        self.tunable = True
-        self.tune_cmd = self.add_pv('{}:outPut'.format(name))
-        self.reset_cmd = self.add_pv('{}:Reset.PROC'.format(picoameter))
-        self.acquire_cmd = self.add_pv('{}:Acquire'.format(picoameter))
-        self.value_fbk = self.add_pv('{}:SumAll:MeanValue_RBV'.format(picoameter))
-        self.current_fbk = self.add_pv(current)
-        self.value_fbk.connect('changed', self.on_value_changed)
-        if reference:
-            self.reference_fbk = self.add_pv(reference)
-        else:
-            self.reference_fbk = self.value_fbk
-        self.tune_step = tune_step
-
-    def tune_up(self):
-        pos = self.tune_cmd.get()
-        self.tune_cmd.put(pos + self.tune_step)
-
-    def tune_down(self):
-        pos = self.tune_cmd.get()
-        self.tune_cmd.put(pos - self.tune_step)
-
-    def reset(self):
-        self.reset_cmd.put(1)
-        self.acquire_cmd.put(1)
-
-    def get_value(self):
-        return self.value_fbk.get()
-
-    def pause(self):
-        self.acquire_cmd.put(0)
-
-    def resume(self):
-        self.acquire_cmd.put(1)
-
-    def start(self):
-        if self.is_active():
-            self.reset()
-
-    def stop(self):
-        if self.is_active():
-            self.acquire_cmd.put(0)
-
-    def on_state_changed(self, obj, val):
-        self.set_state(enabled=(val == 1))
-
-    def on_value_changed(self, obj, val):
-        ref = self.reference_fbk.get()
-        cur = self.current_fbk.get()
-        tgt = 0.0 if cur == 0 else val / cur
-        perc = 0.0 if ref == 0 else 100.0 * tgt / ref
-        if cur > 10.0:
-            # dynamic tune step
-            self.tune_step = min(100, 5 * 2 ** round((90.0 - max(0, min(90, perc))) / 10, 0))
-        else:
-            self.tune_step = 0  # disable tuning if no beam
-        self.set_state(changed=val, percent=perc)
 
 
 class SimTuner(BaseTuner):
@@ -356,6 +300,7 @@ class SimTuner(BaseTuner):
     """
     def __init__(self, name):
         super().__init__()
+        self.tunable = True
         self.set_state(active=True)
         self.name = name
         self.pos = -1.0
@@ -381,8 +326,9 @@ class SimTuner(BaseTuner):
         noise = 10 * (random.random() - 0.5)
         value = noise + self.value
         perc = 100.0 * value / self.reference
-        self.set_state(changed=value, percent=perc)
+        flux = 2e11 * value / self.reference
+        self.set_state(changed=value, percent=perc, flux=flux)
         return True
 
 
-__all__ = ['BOSSTuner', 'MOSTABTuner', 'SimTuner']
+__all__ = ['SimTuner', 'BESTTuner']
