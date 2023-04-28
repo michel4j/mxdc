@@ -359,12 +359,12 @@ class DataCollector(Engine):
 
     def save(self, params):
         template, frame_set = self.prepare_for_saving(params)
-        fwhm_x, fwhm_y = self.beamline.config.get('beam_shape', (100., 100.))
+        beam_fwhm = self.beamline.config.get('beam_shape', (100., 100.))
 
         # Estimate flux from current beamline/dataset settings
         transmission = 1 - params['attenuation']/100.0
         beam_flux = self.beamline.beam_tuner.get_state("flux") * transmission
-        beam_flux *= scitools.gaussian_fraction(self.beamline.aperture.get_position(), fwhm_x, fwhm_y)
+        beam_flux *= scitools.gaussian_fraction(self.beamline.aperture.get_position()/2, *beam_fwhm)
 
         metadata = {
             'name': params['name'],
@@ -390,7 +390,8 @@ class DataCollector(Engine):
             'beam_y': self.beamline.detector.get_origin()[1],
             'pixel_size': self.beamline.detector.resolution,
             'beam_size': self.beamline.aperture.get_position(),
-            'flux': round(beam_flux),
+            'beam_flux': round(beam_flux),
+            'beam_fwhm': beam_fwhm,
             'resolution': dist_to_resol(params['distance'], self.beamline.detector.mm_size, params['energy']),
             'detector_size': min(self.beamline.detector.size),
             'start_angle': params['start'],

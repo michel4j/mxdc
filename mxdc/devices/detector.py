@@ -376,7 +376,7 @@ class SimDetector(BaseDetector):
         main = Path(self.sim_images_src)
 
         for realm in ["datasets", "rasters", "powders"]:
-            for root, folders, files in os.walk(main / realm):
+            for root, folders, files in os.walk(main / realm, followlinks=True):
                 data_files = sorted(filter(patt.match, files))
                 if len(data_files) > 2:
                     self._datasets[realm][(root, data_files[0], len(data_files))] = data_files

@@ -482,7 +482,7 @@ class MD2Gonio(BaseGoniometer):
 
                 exposure_time = kwargs['time'] * lines
                 scan_range = kwargs['range'] * lines
-                frames = 1 if self.supports(GonioFeatures.GATING) else lines
+                frames = lines if self.supports(GonioFeatures.GATING) else 1
                 self.scan(
                     kind='shutterless',
                     time=exposure_time,
@@ -530,7 +530,7 @@ class SimGonio(BaseGoniometer):
         if kappa:
             self.add_features(GonioFeatures.KAPPA)
         if trigger is not None:
-            self.add_features(GonioFeatures.TRIGGERING)
+            self.add_features(GonioFeatures.TRIGGERING, GonioFeatures.GATING)
 
         self.trigger = trigger
         self.trigger_positions = []

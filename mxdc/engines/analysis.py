@@ -32,7 +32,12 @@ def combine_metadata(items: Sequence[dict]) -> dict:
         data['id'] = [meta.get('id') for meta in items]
         data['sample_id'] = meta['sample_id']
         data['type'] = meta['type']
-        data['flux'] = meta['flux']
+        data['flux'] = meta['beam_flux']
+        data.update({
+            'beam_flux': meta['beam_flux'],
+            'beam_fwhm': meta['beam_flux'],
+            'beam_size': meta['beam_size'],
+        })
     all_names = [meta['name'] for meta in items]
     data['name'] = os.path.commonprefix(all_names)
     if not data['name']:
@@ -40,13 +45,17 @@ def combine_metadata(items: Sequence[dict]) -> dict:
 
     return {
         'data': data,
-        'flux': data['flux'],
         'data_id': data['id'],
         'sample_id': data['sample_id'],
         'name': data['name'],
         'file_names': file_names,
         'activity': 'proc-screen',
         'type': data['type'],
+
+        # beam parameters
+        'beam_flux': data['beam_flux'],
+        'beam_size': data['beam_size'],
+        'beam_fwhm': data['beam_fwhm'],
     }
 
 
