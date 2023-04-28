@@ -260,7 +260,15 @@ class RasterCollector(Engine):
         owner = misc.get_project_name()
         group = misc.get_group_name()
         params = self.config['params']
-        gonio_gating = self.beamline.goniometer.supports(GonioFeatures.GATING)
+        gonio_gating = False #self.beamline.goniometer.supports(GonioFeatures.GATING)
+        if gonio_gating:
+            extras = {'num_images': 1, 'num_triggers': params['hsteps']*params['vsteps']}
+        else:
+            if params['hsteps'] == 1 and params['vsteps'] > 1:
+                extras = {'num_images': params['vsteps'],'num_triggers': params['hsteps']}
+            else:
+                extras = {'num_images': params['hsteps'],'num_triggers': params['vsteps']}
+
         detector_parameters = {
             'file_prefix': params['name'],
             'start_frame': 1,
@@ -269,13 +277,12 @@ class RasterCollector(Engine):
             'energy': params['energy'],
             'distance': params['distance'],
             'exposure_time': params['exposure'],
-            'num_images': 1 if gonio_gating else params['hsteps'],
-            'num_triggers': self.total_frames if gonio_gating else params['vsteps'],
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
             'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
             'user': owner,
             'group': group,
+            **extras
         }
 
         self.beamline.detector.configure(**detector_parameters)
@@ -294,6 +301,7 @@ class RasterCollector(Engine):
                 start_pos=params['grid'][0],
                 wait=True,
                 timeout=max(60, params['exposure'] * self.total_frames * 3),
+                gating=gonio_gating
             )
             self.beamline.detector.save()
         else:

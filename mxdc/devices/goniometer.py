@@ -390,7 +390,7 @@ class MD2Gonio(BaseGoniometer):
         self.prev_state = state
 
     @log_call
-    def scan(self, **kwargs):
+    def scan(self, gating=True, **kwargs):
         wait = kwargs.pop('wait', True)
         timeout = kwargs.pop('timeout', None)
         kind = kwargs.get('kind', 'simple')
@@ -416,7 +416,7 @@ class MD2Gonio(BaseGoniometer):
         # configure device and start scan
         self.set_state(message=f'"{kind}" Scanning ...')
         if kind in ['simple', 'shutterless']:
-            kwargs['frames'] = kwargs['frames'] if self.supports(GonioFeatures.GATING) else 1
+            kwargs['frames'] = kwargs['frames'] if gating else 1
             misc.set_settings(self.settings, **kwargs)
             self.scan_cmd.put(self.NULL_VALUE)
         elif kind == 'helical':
@@ -430,7 +430,7 @@ class MD2Gonio(BaseGoniometer):
                 kwargs['start'] = f"{start_y:0.5f},{start_z:0.5f},{start_cx:0.5f},{start_cy}:0.5f"
                 kwargs['stop'] = f"{stop_y:0.5f},{stop_z:0.5f},{stop_cx:0.5f}, {stop_cy:0.5f}"
 
-            kwargs['frames'] = kwargs['frames'] if self.supports(GonioFeatures.GATING) else 1
+            kwargs['frames'] = kwargs['frames'] if gating else 1
             misc.set_settings(self.helix_settings, **kwargs)
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
@@ -465,24 +465,24 @@ class MD2Gonio(BaseGoniometer):
                 y_offset = kwargs['height']/2
                 self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
 
-
-            if self.power_pmac and self.supports(GonioFeatures.GATING):
-                frames, lines = kwargs.get('hsteps', 1) - 1, kwargs.get('vsteps', 1)
+            #if self.power_pmac and gating:
+            #    frames, lines = kwargs.get('hsteps', 1) - 1, kwargs.get('vsteps', 1)
 
             frames = max(frames, 1)
             lines = max(lines, 2)
 
             # Vertical line on Power is Helical scan instead
             if self.power_pmac and frames == 1:
+                frames, lines = lines, frames   # Swap lines and frames
                 origin_x, origin_y, origin_z = self.stage.get_xyz()
                 y_offset = kwargs['height']/2
                 x_dev, y_dev, z_dev = self.stage.screen_to_xyz(0.0, y_offset, 0.0)
                 end_pos = origin_x + x_dev, origin_y + y_dev, origin_z + z_dev
                 start_pos = origin_x - x_dev, origin_y - y_dev, origin_z - z_dev
 
-                exposure_time = kwargs['time'] * lines
-                scan_range = kwargs['range'] * lines
-                frames = lines if self.supports(GonioFeatures.GATING) else 1
+                exposure_time = kwargs['time'] * frames
+                scan_range = kwargs['range'] * frames
+                frames = frames if gating else 1
                 self.scan(
                     kind='shutterless',
                     time=exposure_time,
@@ -495,7 +495,7 @@ class MD2Gonio(BaseGoniometer):
                 )
                 return
             else:
-                kwargs['frames'] = frames if self.supports(GonioFeatures.GATING) else 1
+                kwargs['frames'] = frames if gating else 1
                 kwargs['lines'] = lines
                 kwargs['time'] *= frames
                 kwargs['range'] *= frames
