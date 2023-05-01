@@ -640,6 +640,8 @@ class DatasetsController(Object):
                 'energy': energy,
                 'name': run['name'],
             })
+            if 'exposure' in run and 'delta' in run:
+                info.update(exposure=run['exposure'], delta=run['delta'])
             new_item = RunItem({}, state=RunItem.StateType.DRAFT)
             new_item.props.info = info
             self.run_store.insert_sorted(new_item, RunItem.sorter)

@@ -35,7 +35,7 @@ def combine_metadata(items: Sequence[dict]) -> dict:
         data['flux'] = meta['beam_flux']
         data.update({
             'beam_flux': meta['beam_flux'],
-            'beam_fwhm': meta['beam_flux'],
+            'beam_fwhm': meta['beam_fwhm'],
             'beam_size': meta['beam_size'],
         })
     all_names = [meta['name'] for meta in items]
@@ -96,11 +96,11 @@ class Analyst(Engine):
         params = datatools.update_for_sample(params, sample=sample, session=session, overwrite=False)
 
         if method == 'misc':
-            res = self.beamline.dps.process_misc(**params, user_name=misc.get_project_name())
+            res = self.beamline.dps.process_misc(**params, user=misc.get_project_id())
         elif method == 'powder':
-            res = self.beamline.dps.process_powder(**params, user_name=misc.get_project_name())
+            res = self.beamline.dps.process_powder(**params, user=misc.get_project_id())
         else:
-            res = self.beamline.dps.process_mx(**params, user_name=misc.get_project_name())
+            res = self.beamline.dps.process_mx(**params, user=misc.get_project_id())
 
         params.update({"uuid": res.identity})
         self.set_state(report=params)
@@ -116,10 +116,10 @@ class Analyst(Engine):
 
     def process_multiple(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
-        suffix = 'mad' if 'separate' in flags else 'merge'
+        suffix = 'multi' if 'separate' in flags else 'merge'
         kind = 'ANOMALOUS' if 'anomalous' in flags else "NATIVE"
         params.update(
-            mad="separate" in flags,
+            multi="separate" in flags,
             anomalous="anomalous" in flags,
             screen=False, activity=f'proc-{suffix}',
             type=kind

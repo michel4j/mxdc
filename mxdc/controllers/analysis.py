@@ -9,7 +9,7 @@ from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils import misc, log
 from mxdc.utils.data import analysis
-from mxdc.utils import datatools
+from mxdc.utils import datatools, scitools
 from mxdc.engines.analysis import Analyst
 from mxdc.engines import transfer
 from mxdc.widgets import dialogs, reports
@@ -172,7 +172,7 @@ class AnalysisController(Object):
         browser_settings = WebKit2.Settings()
         browser_settings.set_property("allow-universal-access-from-file-urls", True)
         browser_settings.set_property("enable-plugins", False)
-        browser_settings.set_property("default-font-size", 11)
+        #browser_settings.set_property("default-font-size", 11)
         self.browser.set_settings(browser_settings)
         self.browser.bind_property(
             'is-loading', self.widget.browser_progress, 'visible', GObject.BindingFlags.SYNC_CREATE
@@ -301,19 +301,20 @@ class AnalysisController(Object):
 
     def use_strategy(self, *args, **kwargs):
         strategy = self.props.strategy
+
         dataset_controller = Registry.get_utility(IDatasets)
         if strategy:
             default_rate = self.beamline.config['default_delta'] / self.beamline.config['default_exposure']
-            exposure_rate = strategy.get('exposure_rate', default_rate)
-            max_delta = strategy.get('max_delta', self.beamline.config['default_delta'])
+            exposure_rate = strategy.get('exposure_rate_worst', default_rate)
+            delta = min(strategy.get('max_delta'), self.beamline.config['default_delta'])
 
             run = {
                 'attenuation': strategy.get('attenuation', 0.0),
                 'start': strategy.get('start_angle', 0.0),
                 'range': strategy.get('total_angle', 180),
                 'resolution': strategy.get('resolution', 2.0),
-                'exposure': max_delta / exposure_rate,
-                'delta': max_delta,
+                'exposure': max(0.005, scitools.nearest(delta / exposure_rate, 0.005)),
+                'delta': delta,
                 'name': 'data',
             }
 

@@ -326,7 +326,7 @@ class SimTuner(BaseTuner):
         noise = 10 * (random.random() - 0.5)
         value = noise + self.value
         perc = 100.0 * value / self.reference
-        flux = 2e11 * value / self.reference
+        flux = 5e12 * value / self.reference
         self.set_state(changed=value, percent=perc, flux=flux)
         return True
 
