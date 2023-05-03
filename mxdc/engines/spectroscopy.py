@@ -55,9 +55,13 @@ class XRFScan(BasicScan):
             try:
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
-                #self.beamline.attenuator.move_to(self.config['attenuation'])
-                self.beamline.manager.collect(wait=True)
-                self.beamline.manager.scan(wait=True)  # scan mode is a modification of collect so must be in collect
+
+                if self.config.get("low_dose"):
+                    self.beamline.low_dose.on()
+                    attenuation = 100.0 - self.beamline.beam_tuner.get_state('percent')
+                    self.config.update(attenuation=attenuation)
+
+                self.beamline.manager.scan(wait=True)
 
                 self.beamline.energy.wait()
                 self.beamline.attenuator.wait()
@@ -70,7 +74,7 @@ class XRFScan(BasicScan):
                 self.emit("progress", 1, "Interpreting spectrum ...")
             finally:
                 self.beamline.fast_shutter.close()
-                #self.beamline.attenuator.move_to(saved_attenuation)
+                self.beamline.low_dose.off()
                 self.beamline.manager.collect()
 
     def finalize(self):
@@ -138,7 +142,7 @@ class XRFScan(BasicScan):
             'uuid': params['uuid'],
             'directory': params['directory'],
             'energy': params['energy'],
-            'attenuation': params['attenuation'],
+            'attenuation': params.get('attenuation', 0.0),
             'exposure': params['exposure'],
             'beam_size': self.beamline.aperture.get_position(),
         }
@@ -196,11 +200,13 @@ class MADScan(BasicScan):
                 # prepare
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config.edge_energy)
-                self.beamline.manager.collect(wait=True)
+                self.beamline.manager.scan(wait=True)
                 self.beamline.mca.configure(
                     cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, nozzle=True, dark=True
                 )
-                self.beamline.attenuator.move_to(self.config.attenuation)
+                if self.config.get("low_dose"):
+                    self.beamline.low_dose.on()
+
                 self.beamline.energy.wait()
                 self.beamline.bragg_energy.wait()
                 self.beamline.goniometer.wait(start=False)
@@ -214,7 +220,8 @@ class MADScan(BasicScan):
                     if self.paused:
                         while self.paused and not self.stopped:
                             time.sleep(0.1)
-                        self.beamline.manager.collect(wait=True)
+                        #self.beamline.manager.collect(wait=True)
+                        self.beamline.manager.scan(wait=True)
                         self.beamline.mca.configure(cooling=True, nozzle=True)
                         time.sleep(1)  # wait for nozzle to move out.
                     if self.stopped:
@@ -237,9 +244,9 @@ class MADScan(BasicScan):
                 self.emit("error", "Scan Error!")
                 logger.error(e)
             finally:
+                self.beamline.low_dose.off()
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.fast_shutter.close()
-                self.beamline.attenuator.move_to(saved_attenuation)
                 self.beamline.mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
@@ -339,7 +346,7 @@ class XASScan(BasicScan):
     def prepare_for_scan(self):
         self.emit("progress", 0.001, "Preparing devices ...")
         self.beamline.energy.move_to(self.config['edge_energy'])
-        self.beamline.manager.collect(wait=True)
+        self.beamline.manager.scan(wait=True)
         self.beamline.multi_mca.configure(
             cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'], nozzle=True
         )
@@ -386,7 +393,7 @@ class XASScan(BasicScan):
                             while self.paused and not self.stopped:
                                 time.sleep(0.05)
 
-                            self.beamline.manager.collect(wait=True)
+                            self.beamline.manager.scan(wait=True)
                             self.beamline.multi_mca.configure(nozzle=True, cooling=True)
                             self.emit('paused', False, '')
                             logger.info("Scan resumed.")

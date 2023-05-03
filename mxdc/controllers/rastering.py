@@ -131,8 +131,7 @@ class RasterController(Object):
         filters = [
             dialogs.SmartFilter(name='MxDC Grid-File', patterns=["*.grid"]),
         ]
-        #directory = os.getcwd()
-        #dialogs.file_chooser.set_folder(directory)
+
         filename = dialogs.file_chooser.select_to_open('Select Grid File', filters=filters)
         if not filename:
             return

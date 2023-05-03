@@ -40,7 +40,7 @@ with open(os.path.join(SHARE_DIR, 'data', 'periodictable.json'), 'r') as handle:
 
 
 def nearest(x, precision):
-    return int(numpy.round(x / precision, 0))
+    return int(numpy.round(x / precision, 0)) * precision
 
 
 def xanes_targets(energy):

@@ -329,7 +329,7 @@ class MADScanController(ScanController):
     Fields = (
         FieldSpec('edge','entry', '{}', Validator.Slug(10, 'Se-K')),
         FieldSpec('exposure','entry', '{:0.3g}', Validator.Float(.1, 20, 0.5)),
-        FieldSpec('attenuation','entry', '{:0.3g}', Validator.Float(0, 100, 50.0)),
+        FieldSpec('low_dose', 'check', '{}', Validator.Bool(True)),
     )
     desc = 'MAD Scan'
     prefix = 'mad'
@@ -418,7 +418,7 @@ class XRFScanController(ScanController):
         FieldSpec('edge','entry', '{}', Validator.Slug(10, 'Se-K')),
         FieldSpec('energy','entry', '{:0.3f}', Validator.Float(4, 25., 12.658)),
         FieldSpec('exposure','entry', '{:0.3g}', Validator.Float(.1, 20, 0.5)),
-        FieldSpec('attenuation','entry', '{:0.3g}', Validator.Float(0, 100, 50.0)),
+        FieldSpec('low_dose', 'check', '{}', Validator.Bool(True)),
     )
     desc = 'XRF Scan'
     prefix = 'xrf'
@@ -524,7 +524,7 @@ class XASScanController(ScanController):
         FieldSpec('edge','entry', '{}', Validator.Slug(10, 'Se-K')),
         FieldSpec('kmax','spin', '{}', Validator.Int(1, 16, 4)),
         FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(.1, 20, 0.5)),
-        FieldSpec('attenuation', 'entry', '{:0.3g}', Validator.Float(0, 100, 50.0)),
+        FieldSpec('low_dose', 'check', '{}', Validator.Bool(True)),
         FieldSpec('scans', 'spin', '{}', Validator.Int(1, 100, 10))
     )
 

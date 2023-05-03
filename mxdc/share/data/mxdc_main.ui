@@ -4096,6 +4096,526 @@ scan</property>
                                           <object class="GtkLabel">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
+                                            <property name="label" translatable="yes">X-ray Fluorescence Spectroscopy </property>
+                                          </object>
+                                        </child>
+                                        <style>
+                                          <class name="section-box"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <!-- n-columns=3 n-rows=3 -->
+                                      <object class="GtkGrid" id="xrf_config_box">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <property name="row-homogeneous">True</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Exposure Time</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkEntry" id="xrf_exposure_entry">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="width-chars">10</property>
+                                                <property name="text" translatable="yes">0.5</property>
+                                                <property name="xalign">1</property>
+                                                <property name="secondary-icon-name">units-sec-symbolic</property>
+                                                <property name="secondary-icon-activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Excitation</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkEntry" id="xrf_energy_entry">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="width-chars">10</property>
+                                                <property name="text" translatable="yes">12.658</property>
+                                                <property name="xalign">1</property>
+                                                <property name="secondary-icon-name">units-kev-symbolic</property>
+                                                <property name="secondary-icon-activatable">False</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Edge</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkBox">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <child>
+                                                  <object class="GtkEntry" id="xrf_edge_entry">
+                                                    <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="editable">False</property>
+                                                    <property name="width-chars">10</property>
+                                                    <property name="text" translatable="yes">Se-K</property>
+                                                    <property name="xalign">0.5</property>
+                                                    <property name="secondary-icon-activatable">False</property>
+                                                    <style>
+                                                      <class name="value-sp"/>
+                                                    </style>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">True</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">0</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkMenuButton" id="xrf_edge_btn">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">True</property>
+                                                    <child>
+                                                      <object class="GtkImage">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="icon-name">ptable-symbolic</property>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <style>
+                                                  <class name="linked"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Absorption</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkEntry" id="xrf_absorption_entry">
+                                                <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="width-chars">10</property>
+                                                <property name="text" translatable="yes">12.6567</property>
+                                                <property name="xalign">1</property>
+                                                <property name="secondary-icon-name">units-kev-symbolic</property>
+                                                <property name="secondary-icon-activatable">False</property>
+                                                <property name="secondary-icon-sensitive">False</property>
+                                                <property name="input-purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Emission</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkEntry" id="xrf_emission_entry">
+                                                <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="width-chars">10</property>
+                                                <property name="text" translatable="yes">11.2225</property>
+                                                <property name="xalign">1</property>
+                                                <property name="secondary-icon-name">units-kev-symbolic</property>
+                                                <property name="secondary-icon-activatable">False</property>
+                                                <property name="secondary-icon-sensitive">False</property>
+                                                <property name="input-purpose">number</property>
+                                                <style>
+                                                  <class name="value-sp"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Dose Mode</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkCheckButton" id="xrf_low_dose_check">
+                                                <property name="label" translatable="yes">Low Dose</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">False</property>
+                                                <property name="active">True</property>
+                                                <property name="draw-indicator">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                        <child>
+                                          <placeholder/>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkScrolledWindow">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="vscrollbar-policy">always</property>
+                                        <property name="shadow-type">in</property>
+                                        <child>
+                                          <object class="GtkTreeView" id="xrf_results_view">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <child internal-child="selection">
+                                              <object class="GtkTreeSelection"/>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">True</property>
+                                        <property name="fill">True</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="valign">center</property>
+                                        <property name="spacing">6</property>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <child>
+                                              <object class="GtkButton" id="xrf_start_btn">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">True</property>
+                                                <child>
+                                                  <object class="GtkImage" id="xrf_start_icon">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="icon-name">media-playback-start-symbolic</property>
+                                                  </object>
+                                                </child>
+                                                <style>
+                                                  <class name="suggested-action"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkButton" id="xrf_stop_btn">
+                                                <property name="visible">True</property>
+                                                <property name="sensitive">False</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">True</property>
+                                                <child>
+                                                  <object class="GtkImage" id="auto_stop_icon2">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="icon-name">media-playback-stop-symbolic</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                            <style>
+                                              <class name="linked"/>
+                                            </style>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="xrf_eta">
+                                            <property name="width-request">50</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="label" translatable="yes">--:--</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="pack-type">end</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="margin-top">6</property>
+                                            <property name="margin-bottom">6</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel" id="xrf_progress_lbl">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkProgressBar" id="xrf_pbar">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="ellipsize">end</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">True</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">3</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="name">xrf</property>
+                                    <property name="title" translatable="yes">XRF</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="orientation">vertical</property>
+                                    <property name="spacing">12</property>
+                                    <child>
+                                      <object class="GtkEventBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
                                             <property name="label" translatable="yes">Multi-Wavelength Anomalous Dispersion Scan</property>
                                           </object>
                                         </child>
@@ -4270,7 +4790,7 @@ scan</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Attenuation</property>
+                                                <property name="label" translatable="yes">Dose Mode</property>
                                                 <property name="use-markup">True</property>
                                                 <style>
                                                   <class name="device-label"/>
@@ -4283,25 +4803,18 @@ scan</property>
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkEntry" id="mad_attenuation_entry">
+                                              <object class="GtkCheckButton" id="mad_low_dose_check">
+                                                <property name="label" translatable="yes">Low Dose</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">50</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-pct-symbolic</property>
-                                                <property name="primary-icon-activatable">False</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <property name="primary-icon-sensitive">False</property>
-                                                <property name="input-purpose">number</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
+                                                <property name="receives-default">False</property>
+                                                <property name="active">True</property>
+                                                <property name="draw-indicator">True</property>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
                                                 <property name="fill">True</property>
-                                                <property name="position">2</property>
+                                                <property name="position">1</property>
                                               </packing>
                                             </child>
                                           </object>
@@ -4610,530 +5123,6 @@ scan</property>
                                   <packing>
                                     <property name="name">mad</property>
                                     <property name="title" translatable="yes">MAD</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkBox">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="orientation">vertical</property>
-                                    <property name="spacing">12</property>
-                                    <child>
-                                      <object class="GtkEventBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <child>
-                                          <object class="GtkLabel">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">X-ray Fluorescence Spectroscopy</property>
-                                          </object>
-                                        </child>
-                                        <style>
-                                          <class name="section-box"/>
-                                        </style>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <!-- n-columns=3 n-rows=3 -->
-                                      <object class="GtkGrid" id="xrf_config_box">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="row-spacing">6</property>
-                                        <property name="column-spacing">6</property>
-                                        <property name="row-homogeneous">True</property>
-                                        <property name="column-homogeneous">True</property>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Exposure Time</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xrf_exposure_entry">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">0.5</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-sec-symbolic</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">1</property>
-                                            <property name="top-attach">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Attenuation</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xrf_attenuation_entry">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">50</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-pct-symbolic</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">2</property>
-                                            <property name="top-attach">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Excitation</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xrf_energy_entry">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">12.658</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-kev-symbolic</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">0</property>
-                                            <property name="top-attach">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Edge</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkBox">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <child>
-                                                  <object class="GtkEntry" id="xrf_edge_entry">
-                                                    <property name="visible">True</property>
-                                                    <property name="sensitive">False</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="editable">False</property>
-                                                    <property name="width-chars">10</property>
-                                                    <property name="text" translatable="yes">Se-K</property>
-                                                    <property name="xalign">0.5</property>
-                                                    <property name="secondary-icon-activatable">False</property>
-                                                    <style>
-                                                      <class name="value-sp"/>
-                                                    </style>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">True</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">0</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkMenuButton" id="xrf_edge_btn">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">True</property>
-                                                    <child>
-                                                      <object class="GtkImage">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="icon-name">ptable-symbolic</property>
-                                                      </object>
-                                                    </child>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <style>
-                                                  <class name="linked"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">0</property>
-                                            <property name="top-attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Absorption</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xrf_absorption_entry">
-                                                <property name="visible">True</property>
-                                                <property name="sensitive">False</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">12.6567</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-kev-symbolic</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <property name="secondary-icon-sensitive">False</property>
-                                                <property name="input-purpose">number</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">1</property>
-                                            <property name="top-attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Emission</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xrf_emission_entry">
-                                                <property name="visible">True</property>
-                                                <property name="sensitive">False</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">11.2225</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-kev-symbolic</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <property name="secondary-icon-sensitive">False</property>
-                                                <property name="input-purpose">number</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">2</property>
-                                            <property name="top-attach">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                        <child>
-                                          <placeholder/>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkScrolledWindow">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="vscrollbar-policy">always</property>
-                                        <property name="shadow-type">in</property>
-                                        <child>
-                                          <object class="GtkTreeView" id="xrf_results_view">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">True</property>
-                                            <child internal-child="selection">
-                                              <object class="GtkTreeSelection"/>
-                                            </child>
-                                          </object>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">True</property>
-                                        <property name="fill">True</property>
-                                        <property name="pack-type">end</property>
-                                        <property name="position">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkBox">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="valign">center</property>
-                                        <property name="spacing">6</property>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <child>
-                                              <object class="GtkButton" id="xrf_start_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">True</property>
-                                                <child>
-                                                  <object class="GtkImage" id="xrf_start_icon">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="icon-name">media-playback-start-symbolic</property>
-                                                  </object>
-                                                </child>
-                                                <style>
-                                                  <class name="suggested-action"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkButton" id="xrf_stop_btn">
-                                                <property name="visible">True</property>
-                                                <property name="sensitive">False</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">True</property>
-                                                <child>
-                                                  <object class="GtkImage" id="auto_stop_icon2">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="icon-name">media-playback-stop-symbolic</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
-                                              </packing>
-                                            </child>
-                                            <style>
-                                              <class name="linked"/>
-                                            </style>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">0</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkLabel" id="xrf_eta">
-                                            <property name="width-request">50</property>
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="label" translatable="yes">--:--</property>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">False</property>
-                                            <property name="fill">True</property>
-                                            <property name="pack-type">end</property>
-                                            <property name="position">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="margin-top">6</property>
-                                            <property name="margin-bottom">6</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel" id="xrf_progress_lbl">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkProgressBar" id="xrf_pbar">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="ellipsize">end</property>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">1</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="expand">True</property>
-                                            <property name="fill">True</property>
-                                            <property name="position">2</property>
-                                          </packing>
-                                        </child>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">3</property>
-                                      </packing>
-                                    </child>
-                                  </object>
-                                  <packing>
-                                    <property name="name">xrf</property>
-                                    <property name="title" translatable="yes">XRF</property>
                                     <property name="position">1</property>
                                   </packing>
                                 </child>
@@ -5450,53 +5439,6 @@ scan</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Attenuation</property>
-                                                <property name="use-markup">True</property>
-                                                <style>
-                                                  <class name="device-label"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">0</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkEntry" id="xas_attenuation_entry">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">50</property>
-                                                <property name="xalign">1</property>
-                                                <property name="secondary-icon-name">units-pct-symbolic</property>
-                                                <property name="secondary-icon-activatable">False</property>
-                                                <style>
-                                                  <class name="value-sp"/>
-                                                </style>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">True</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
-                                              </packing>
-                                            </child>
-                                          </object>
-                                          <packing>
-                                            <property name="left-attach">2</property>
-                                            <property name="top-attach">1</property>
-                                          </packing>
-                                        </child>
-                                        <child>
-                                          <object class="GtkBox">
-                                            <property name="visible">True</property>
-                                            <property name="can-focus">False</property>
-                                            <property name="orientation">vertical</property>
-                                            <child>
-                                              <object class="GtkLabel">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="halign">start</property>
                                                 <property name="label" translatable="yes">Exposure Time</property>
                                                 <property name="use-markup">True</property>
                                                 <style>
@@ -5569,6 +5511,49 @@ scan</property>
                                           </object>
                                           <packing>
                                             <property name="left-attach">1</property>
+                                            <property name="top-attach">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkBox">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="orientation">vertical</property>
+                                            <child>
+                                              <object class="GtkLabel">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">start</property>
+                                                <property name="label" translatable="yes">Dose Mode</property>
+                                                <property name="use-markup">True</property>
+                                                <style>
+                                                  <class name="device-label"/>
+                                                </style>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">0</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkCheckButton" id="xas_low_dose_check">
+                                                <property name="label" translatable="yes">Low Dose</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">False</property>
+                                                <property name="active">True</property>
+                                                <property name="draw-indicator">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">2</property>
                                             <property name="top-attach">1</property>
                                           </packing>
                                         </child>
