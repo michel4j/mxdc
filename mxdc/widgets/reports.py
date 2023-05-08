@@ -61,6 +61,9 @@ class ReportView(Gtk.Button):
         elif self.item.state == analysis.ReportState.FAILED:
             path = Path(self.item.directory) / "commands.log"
             controller.browse_file(str(path))
+        elif self.item.state == analysis.ReportState.ACTIVE:
+            path = Path(self.item.directory) / "auto.log"
+            controller.browse_file(str(path))
         controller.set_strategy(self.item.strategy)
         controller.set_folder(self.item.directory)
 
