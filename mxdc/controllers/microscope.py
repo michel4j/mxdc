@@ -87,7 +87,7 @@ class Microscope(Object):
         self.max_fps = 20
         self.fps_update = 0
         self.video_ready = False
-
+        self.viewer = None
         self.last_coord_update = time.time()
         self.actions = Gio.SimpleActionGroup()
 
@@ -410,8 +410,14 @@ class Microscope(Object):
         self.save_to_cache()
 
     def on_duplicate(self, *args, **kwargs):
-        viewer = VideoView(self.beamline, title="MxDC Sample Viewer")
-        viewer.present()
+        if self.viewer is None:
+            self.viewer = VideoView(self.beamline, title="MxDC Sample Viewer")
+            self.viewer.connect('destroy', self.on_viewer_destroyed)
+        self.viewer.present()
+
+    def on_viewer_destroyed(self, widget):
+        if self.viewer is not None and self.viewer == widget:
+            self.viewer = None
 
     def on_center_point(self, action, param):
         name = param.get_string()
