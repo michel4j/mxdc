@@ -14,6 +14,7 @@ from zope.interface import implementer
 from mxdc import Signal, Device
 from mxdc import APP_DIR
 from mxdc.utils.log import get_module_logger
+from mxdc.utils import decorators
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController
 
 # setup module logger with a default do-nothing handler
@@ -117,6 +118,7 @@ class VideoSrc(Device):
         """
         pass
 
+    @decorators.async_call
     def save_frame(self, filename):
         """
         Save current frame to filename
