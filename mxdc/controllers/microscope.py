@@ -15,7 +15,7 @@ from mxdc.utils import colors, misc
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
-from mxdc.widgets.video import VideoWidget
+from mxdc.widgets.video import VideoWidget, VideoView
 from . import common
 
 
@@ -169,6 +169,7 @@ class Microscope(Object):
         self.video = VideoWidget(self.camera)
         self.beamline.camera_scale.connect('changed', self.on_camera_scale)
         self.widget.microscope_video_frame.add(self.video)
+        self.widget.microscope_duplicate_btn.connect('clicked', self.on_duplicate)
 
         # status, save, etc
         self.widget.microscope_save_btn.connect('clicked', self.on_save)
@@ -407,6 +408,10 @@ class Microscope(Object):
     def on_save_point(self, *args, **kwargs):
         self.add_point(self.beamline.goniometer.stage.get_xyz())
         self.save_to_cache()
+
+    def on_duplicate(self, *args, **kwargs):
+        viewer = VideoView(self.beamline, title="MxDC Sample Viewer")
+        viewer.present()
 
     def on_center_point(self, action, param):
         name = param.get_string()

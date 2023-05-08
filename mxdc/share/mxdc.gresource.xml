@@ -23,6 +23,7 @@
         <file compressed="true">data/main.ui</file>
         <file compressed="true">data/data_view.ui</file>
         <file compressed="true">data/sample_view.ui</file>
+        <file compressed="true">data/video_view.ui</file>
         <file compressed="true">data/report_view.ui</file>
         <file>data/colormaps.data</file>
         <file>data/diagram.png</file>

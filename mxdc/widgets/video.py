@@ -132,10 +132,34 @@ class VideoWidget(Gtk.DrawingArea):
         video_width, video_height = self.camera.size
         height = int(video_height/video_width * width)
         self.set_size_request(width, height)
+        #self.update_size(width, height)
+
+    def update_size(self, width, height):
+        video_width, video_height = self.camera.size
         self.size[:] = width, height
         self.scale = width / video_width
         self.mm_scale = self.pixel_size / self.scale
         self.ready = True
+
+    def do_configure_event(self, event):
+        video_width, video_height = self.camera.size
+        aspect_ratio = video_width/video_height
+        width_for_height = int(event.height * aspect_ratio)
+        height_for_width = int(event.width / aspect_ratio)
+
+        if height_for_width > event.height:
+            height = event.height
+            width = width_for_height
+        else:
+            width = event.width
+            height = height_for_width
+
+        self.size[:] = width, height
+        self.scale = width / video_width
+        self.mm_scale = self.pixel_size / self.scale
+        self.ready = True
+
+        #print(event.width, event.height, self.size)
 
     def on_destroy(self, obj):
         self.camera.del_sink(self)
@@ -162,7 +186,7 @@ class VideoWidget(Gtk.DrawingArea):
                 img.putpalette(self.palette)
 
             img = img.convert('RGB')
-        except OSError:
+        except (OSError, ValueError):
             pass    # silently ignore bad images
         else:
             self.next_surface = image_to_surface(img)
@@ -422,4 +446,37 @@ class VideoWidget(Gtk.DrawingArea):
             cr.set_operator(cairo.OPERATOR_DIFFERENCE)
             cr.show_text(label)
             cr.set_operator(cairo.OPERATOR_OVER)
+
+
+
+@Gtk.Template.from_resource('/org/gtk/mxdc/data/video_view.ui')
+class VideoView(Gtk.Window):
+    __gtype_name__ = 'VideoView'
+
+    video_frame = Gtk.Template.Child()
+
+    def __init__(self, beamline, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.beamline = beamline
+        self.canvas = VideoWidget(camera=self.beamline.sample_camera, pixel_size=self.beamline.camera_scale.get())
+
+        self.canvas.props.valign =  Gtk.Align.FILL
+        self.canvas.props.halign = Gtk.Align.FILL
+
+        self.video_frame.add(self.canvas)
+        self.canvas.set_src(self.beamline.sample_camera)
+        self.canvas.set_overlay_beam(self.beamline.aperture.get_position()/1000.)
+        self.beamline.camera_scale.connect('changed', self.on_camera_scale)
+        self.video_frame.show_all()
+
+
+    def on_camera_scale(self, obj, value):
+        self.canvas.set_pixel_size(value)
+
+    def do_configure_event(self, event):
+        self.canvas.queue_resize()
+
+
+
+
 

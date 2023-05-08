@@ -35,7 +35,6 @@ class VideoSrc(Device):
         resized = Signal("resized", arg_types=(int,int))
 
     def __init__(self, name="Basic Camera", size=(768, 576), maxfps=5.0):
-
         super().__init__()
         self.frame = None
         self.name = name
