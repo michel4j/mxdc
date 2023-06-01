@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from enum import Enum
+from enum import IntFlag, auto
 from threading import Lock
 
 import numpy
@@ -18,12 +18,12 @@ from .interfaces import IGoniometer
 logger = get_module_logger(__name__)
 
 
-class GonioFeatures(Enum):
-    TRIGGERING = 0  # Gonio sends one trigger for the full series of frames
-    SCAN4D = 1
-    RASTER4D = 2
-    KAPPA = 3
-    GATING = 4      # Gonio sends individual trigger signals for each frame
+class GonioFeatures(IntFlag):
+    TRIGGERING = auto()  # Gonio sends one trigger for the full series of frames
+    SCAN4D = auto()
+    RASTER4D = auto()
+    KAPPA = auto()
+    GATING = auto()      # Gonio sends individual trigger signals for each frame
 
 
 @implementer(IGoniometer)

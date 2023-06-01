@@ -588,7 +588,7 @@ class ScanManager(Object):
             'aperture': (self.beamline.aperture, self.widget.scans_aperture_fbk, {'format': '{:0.0f} µm'}),
             'deadtime': (
                 self.beamline.mca, self.widget.scans_deadtime_fbk,
-                {'format': '{:0.0f} %', 'signal': 'deadtime', 'warning': 20.0, 'error': 40.0}
+                {'format': '{:0.0f} %', 'signal': 'dead-time', 'warning': 20.0, 'error': 40.0}
             ),
         }
         self.monitors = {

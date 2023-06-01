@@ -392,18 +392,19 @@ class Device(Object):
         if self.__pending:
             inactive = [dev.name for dev in self.__pending]
             self.set_state(health=(16, 'inactive', '{} Inactive'.format(len(inactive))))
-            logger.error("'{}':  {} inactive components:".format(self.name, len(inactive)))
+            logger.error(f"'{self.name}':  {len(inactive)} inactive components:")
+            logger.debug(f'{inactive!r}')
 
     def set_state(self, *args, **kwargs):
         # health needs special pre-processing
         if 'health' in kwargs:
             value = kwargs.pop('health')
-
             sev, ctx, msg = value
             if sev != 0:
                 self.health_manager.add(*value)
             else:
                 self.health_manager.remove(ctx)
+
             health = self.health_manager.get_health()
             if health != self.get_state('health'):
                 self.emit('health', *health)
@@ -466,10 +467,10 @@ class Device(Object):
         elif not state and component not in self.__pending:
             self.__pending.append(component)
         if len(self.__pending) == 0:
-            self.set_state(active=True, health=(0, 'active', ''))
+            self.set_state(active=True, health=(0, 'inactive', ''))
         elif self.get_state('active'):
             # only emit if current active
-            self.set_state(active=False, health=(4, 'active', 'inactive components.'))
+            self.set_state(active=False, health=(4, 'inactive', 'inactive components.'))
 
     def cleanup(self):
         """

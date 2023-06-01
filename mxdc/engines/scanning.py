@@ -141,7 +141,7 @@ class BasicScan(Engine):
     def run(self):
         """
         Run the scan in the current execution loop. Normally executed in a thread when the start
-        method is called. Sub-classes are discouraged from re-implementing this method. Instead override
+        method is called. Subclasses are discouraged from re-implementing this method. Instead override
         the :func:`scan` method.
         """
 

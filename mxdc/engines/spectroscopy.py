@@ -5,7 +5,8 @@ import os
 import numpy
 import json
 from datetime import datetime
-
+import gi
+from gi.repository import GLib
 import pytz
 
 from mxdc.engines.chooch import AutoChooch
@@ -55,32 +56,37 @@ class XRFScan(BasicScan):
             try:
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
-
+                self.beamline.mca.configure(cooling=True)
                 if self.config.get("low_dose"):
                     self.beamline.low_dose.on()
                     attenuation = 100.0 - self.beamline.beam_tuner.get_state('percent')
                     self.config.update(attenuation=attenuation)
 
                 self.beamline.manager.scan(wait=True)
-
                 self.beamline.energy.wait()
                 self.beamline.attenuator.wait()
 
                 self.emit("progress", .1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
+                src_id = self.beamline.mca.connect('progress', self.on_mca_progress)
                 self.raw_data = self.beamline.mca.acquire(self.config.exposure)
+                self.beamline.mca.disconnect(src_id)
                 self.beamline.fast_shutter.close()
                 self.config['end_time'] = datetime.now(tz=pytz.utc)
-                self.emit("progress", 1, "Interpreting spectrum ...")
+                self.emit("progress", .9, "Interpreting spectrum ...")
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.low_dose.off()
                 self.beamline.manager.collect()
 
+    def on_mca_progress(self, obj, value):
+        self.emit("progress", 0.1 + value * 0.8, "Acquiring Spectrum ...")
+
     def finalize(self):
         self.data = numpy.core.records.fromarrays(self.raw_data.transpose(), dtype=self.data_type)
         self.save(self.config['filename'])
         self.analyse()
+        self.emit("progress", 1, "Done ...")
         self.save_metadata()
 
     def analyse(self):
@@ -118,7 +124,7 @@ class XRFScan(BasicScan):
             json.dump(self.results, handle)
             logger.info("XRF Analysis Saved: {}".format(self.config['name']))
 
-    def prepare_xdi(self):
+    def prepare_xdi(self, **kwargs):
         xdi_data = super().prepare_xdi()
         xdi_data['Element.symbol'], xdi_data['Element.edge'] = self.config['edge'].split('-')
         xdi_data['Scan.edge_energy'] = self.config.energy, 'keV'
@@ -202,7 +208,7 @@ class MADScan(BasicScan):
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.manager.scan(wait=True)
                 self.beamline.mca.configure(
-                    cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, nozzle=True, dark=True
+                    cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, dark=True
                 )
                 if self.config.get("low_dose"):
                     self.beamline.low_dose.on()
@@ -220,10 +226,9 @@ class MADScan(BasicScan):
                     if self.paused:
                         while self.paused and not self.stopped:
                             time.sleep(0.1)
-                        #self.beamline.manager.collect(wait=True)
+
                         self.beamline.manager.scan(wait=True)
-                        self.beamline.mca.configure(cooling=True, nozzle=True)
-                        time.sleep(1)  # wait for nozzle to move out.
+                        self.beamline.mca.configure(cooling=True)
                     if self.stopped:
                         break
 
@@ -247,7 +252,6 @@ class MADScan(BasicScan):
                 self.beamline.low_dose.off()
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.fast_shutter.close()
-                self.beamline.mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
 
@@ -307,7 +311,7 @@ class MADScan(BasicScan):
             'directory': params['directory'],
 
             'energy': params['edge_energy'],
-            'attenuation': params['attenuation'],
+            'attenuation': self.beamline.attenuator.get_position(),
             'exposure': params['exposure'],
             'edge': params['edge'],
             'roi': self.beamline.mca.get_roi(params['roi_energy']),
@@ -348,7 +352,7 @@ class XASScan(BasicScan):
         self.beamline.energy.move_to(self.config['edge_energy'])
         self.beamline.manager.scan(wait=True)
         self.beamline.multi_mca.configure(
-            cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'], nozzle=True
+            cooling=True, energy=self.config['roi_energy'], edge=self.config['edge_energy'],
         )
         self.beamline.attenuator.move_to(self.config['attenuation'])
         self.beamline.energy.wait()
@@ -394,7 +398,7 @@ class XASScan(BasicScan):
                                 time.sleep(0.05)
 
                             self.beamline.manager.scan(wait=True)
-                            self.beamline.multi_mca.configure(nozzle=True, cooling=True)
+                            self.beamline.multi_mca.configure(cooling=True)
                             self.emit('paused', False, '')
                             logger.info("Scan resumed.")
                         if self.stopped:
@@ -445,7 +449,6 @@ class XASScan(BasicScan):
                 self.beamline.energy.move_to(self.config['edge_energy'])
                 self.beamline.fast_shutter.close()
                 self.beamline.attenuator.move_to(saved_attenuation)
-                self.beamline.multi_mca.configure(cooling=False, nozzle=False)
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
         return self.results

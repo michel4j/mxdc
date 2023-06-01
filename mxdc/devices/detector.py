@@ -9,7 +9,7 @@ import requests
 
 from pathlib import Path
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntFlag, auto
 
 
 from mxio import read_header, read_image
@@ -38,8 +38,10 @@ class States(Enum):
     ERROR = 5  # Detector error
 
 
-class DetectorFeatures(Enum):
-    SHUTTERLESS, TRIGGERING, WEDGING = range(3)
+class DetectorFeatures(IntFlag):
+    SHUTTERLESS = auto()
+    TRIGGERING = auto()
+    WEDGING = auto()
 
 
 class Trigger(Object):
