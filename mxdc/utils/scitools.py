@@ -182,60 +182,13 @@ def find_peaks_orig(x, y, width=9, sensitivity=0.01, smooth=True):
     return peaks
 
 
-def find_peaks(x, y, width=9, sensitivity=0.01, smooth=True):
-    hw = max(width // 3, 2)
-    width += (width%2) + 1
-    ys = smooth_data(y, times=4, window=width) if smooth else y
-    yfunc = interpolate.interp1d(x, ys, bounds_error=False, fill_value=0.0)
-    yp = signal.savgol_filter(ys, width, 1, deriv=1)
-    peak_str = numpy.array([True]*hw + [False]*hw).tostring()
-    data_str = (yp > 0.0).tostring()
-    offset = hw - 1
+def find_peaks(x, y, width=9, sensitivity=5e-3, smooth=True):
+    if smooth:
+        for i in range(3):
+            y = signal.savgol_filter(y, width, 2)
+    peaks, info = signal.find_peaks(y/y.max(), prominence=1e-3, height=sensitivity)
 
-    def get_peak(pos):
-        return x[pos], yfunc(pos)
-
-    peak_positions = [get_peak(m.start() + offset) for m in re.finditer(peak_str, data_str)]
-    ymax = max(ys)
-    peaks = [v for v in peak_positions if (v[1] >= sensitivity * ymax)]
-    return peaks
-
-
-def find_valleys(x, y, width=9, sensitivity=0.01, smooth=True):
-    hw = max(width // 3, 2)
-    width += (width%2) + 1
-    ys = smooth_data(y, times=4, window=width) if smooth else y
-    yfunc = interpolate.interp1d(x, ys, bounds_error=False, fill_value=0.0)
-    yp = signal.savgol_filter(ys, width, 1, deriv=1)
-    peak_str = numpy.array([False]*hw + [True]*hw).tostring()
-    data_str = (yp > 0.0).tostring()
-    offset = hw - 1
-
-    def get_peak(pos):
-        return x[pos], yfunc(pos)
-
-    peak_positions = [get_peak(m.start() + offset) for m in re.finditer(peak_str, data_str)]
-    peaks = [v for v in peak_positions]
-    return peaks
-
-
-def find_peaks_y(y, width=11, sensitivity=0.01, smooth=True):
-    ys = smooth_data(y, times=4, window=width) if smooth else y
-    yfunc = interpolate.interp1d(numpy.arange(len(ys)), ys)
-    width += (width%2) + 1
-    yp = signal.savgol_filter(ys, width, 1, deriv=1)
-
-    peak_str = numpy.array([True, True, False, False]).tostring()
-    data_str = (yp > 0.0).tostring()
-
-    def get_peak(pos):
-        return pos, yfunc(pos)
-
-    peak_positions = [get_peak(m.start() + 1.5) for m in re.finditer(peak_str, data_str)]
-    ymax = max(y)
-    return [
-        v for v in peak_positions if (v[1] >= sensitivity * ymax and v[2])
-    ]
+    return list(zip(x[peaks], y[peaks]))
 
 
 def get_peak_elements(energy, peaks=[], prec=0.05):
@@ -248,10 +201,10 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
     peak_energies = set([nearest(v[0], prec) for v in peaks])
     elements = []
     lonly = []
-    for symbol, edges in list(EMISSIONS_DATA.items()):
+    for symbol, edges in EMISSIONS_DATA.items():
         entry = [symbol, ]
         entry_peaks = []
-        for edge, data in list(edges.items()):
+        for edge, data in edges.items():
             if data[0] >= energy: continue
             _fl = [(v[0], v[1], edge) for v in list(data[1].values())]
             entry_peaks.extend(_fl)
@@ -346,7 +299,8 @@ def interpret_xrf(xo, yo, energy, speedup=4):
         err[sel] = err[sel] * 5
         return err
 
-    peaks = find_peaks_orig(xo, yo, width=21, sensitivity=0.005)
+    peaks = find_peaks(xo, yo, width=21, sensitivity=0.005, smooth=True)
+
     yo = smooth_data(yo, times=3, window=11)
     elements, lonly = get_peak_elements(energy, peaks, prec=0.1)
 

@@ -9,6 +9,7 @@ import gi
 
 import mxdc.beamlines.mx
 
+from pathlib import Path
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk, Gio, GLib, Gdk
@@ -27,7 +28,7 @@ from mxdc.widgets import dialogs
 from mxdc.widgets.status import DataStatus
 from mxdc.controllers.settings import SettingsDialog
 from mxdc.controllers.browser import Browser
-from mxdc.utils import excepthook, misc
+from mxdc.utils import excepthook, misc, log
 from mxdc.beamlines import build_beamline
 from mxdc.services import clients
 
@@ -117,6 +118,8 @@ class Application(Gtk.Application):
 
         # initialize beamline
         self.beamline = build_beamline()
+        log_file = Path(misc.get_project_home()) / f"mxdc-{self.beamline.session_key}.log"
+        log.log_to_file(log_file)
         logger.info('Starting MxDC ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
             name='MxDC',

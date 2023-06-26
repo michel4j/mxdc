@@ -549,10 +549,10 @@ class SimMCA(BaseMCA):
         self.set_state(dead_time=random.random() * 51.0)
 
         for i in range(self.elements):
-            self.data[:, i] = (1-0.25*random.random())*self._raw_data[:, 1]
+            self.data[:, i] = (1-0.01*random.random())*self._raw_data[:, 1]
 
         corrected = (self.data - self.dark)
-        self.spectra[:, 0] = self.channel_to_energy(numpy.arange(0, self.channels, 1))
+        self.spectra[:, 0] = self._raw_data[:,0] #self.channel_to_energy(numpy.arange(0, self.channels, 1))
         self.spectra[:, 1] = corrected.sum(1)
         self.spectra[:, 2:] = self.data
 
