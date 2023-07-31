@@ -313,7 +313,6 @@ class RasterCollector(Engine):
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
         score = info['score']
-        score = numpy.random.rand() * 100
         self.result_queue.put((score, info))
 
         self.count += 1
