@@ -163,10 +163,10 @@ class DataForm(gui.FormManager):
         # update converters based on beamline configuration
         self.beamline = Registry.get_utility(IBeamline)
         self.fields['energy'].set_converter(
-            Validator.Float(*self.beamline.config['energy_range'], self.beamline.config['default_energy'])
+            Validator.Float(*self.beamline.config.energy_range, self.beamline.config.dataset.energy)
         )
         self.fields['distance'].set_converter(
-            Validator.Float(*self.beamline.config['distance_limits'], self.beamline.config['default_distance'])
+            Validator.Float(*self.beamline.config.distance_limits, self.beamline.config.dataset.distance)
         )
 
         self.exposure_rate = 1.
@@ -176,10 +176,10 @@ class DataForm(gui.FormManager):
 
         if name == 'delta':
             delta = self.get_value('delta')
-            exposure = max(self.beamline.config.get('minimum_exposure', .1), delta / self.exposure_rate)
+            exposure = max(self.beamline.config.minimum_exposure, delta / self.exposure_rate)
             self.set_value('exposure', exposure)
         elif name == 'exposure':
-            exposure = max(self.beamline.config.get('minimum_exposure', .1), self.get_value('exposure'))
+            exposure = max(self.beamline.config.minimum_exposure, self.get_value('exposure'))
             delta = self.get_value('delta')
             self.exposure_rate = delta / exposure
             self.set_value('exposure', exposure)
@@ -187,10 +187,10 @@ class DataForm(gui.FormManager):
             # calculate resolution limits based on energy
             energy = self.get_value('energy')
             min_res = converter.dist_to_resol(
-                self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, energy
+                self.beamline.config.distance_limits[0], self.beamline.detector.mm_size, energy
             )
             max_res = converter.dist_to_resol(
-                self.beamline.config['distance_limits'][1], self.beamline.detector.mm_size, energy
+                self.beamline.config.distance_limits[1], self.beamline.detector.mm_size, energy
             )
             self.fields['resolution'].set_converter(
                 Validator.Float(min_res, max_res, default=2.0)
@@ -207,11 +207,11 @@ class DataForm(gui.FormManager):
         if name == 'strategy':
             strategy = self.get_value('strategy')
             defaults = Strategy.get(strategy)
-            default_rate = self.beamline.config['default_delta'] / float(self.beamline.config['default_exposure'])
+            default_rate = self.beamline.config.dataset.delta / float(self.beamline.config.dataset.exposure)
             if 'delta' in defaults and 'exposure' not in defaults:
                 defaults['exposure'] = max(
                     defaults['delta'] / default_rate,
-                    self.beamline.config.get('minimum_exposure', .1)
+                    self.beamline.config.minimum_exposure
                 )
             elif 'exposure' in defaults and 'delta' not in defaults:
                 defaults['delta'] = default_rate / defaults['exposure']
@@ -301,10 +301,10 @@ class DataEditor(gui.BuilderMixin):
         info['distance'] = converter.resol_to_dist(info['resolution'], self.beamline.detector.mm_size, info['energy'])
 
         min_res = converter.dist_to_resol(
-            self.beamline.config['distance_limits'][0], self.beamline.detector.mm_size, info['energy']
+            self.beamline.config.distance_limits[0], self.beamline.detector.mm_size, info['energy']
         )
         max_res = converter.dist_to_resol(
-            self.beamline.config['distance_limits'][1], self.beamline.detector.mm_size, info['energy']
+            self.beamline.config.distance_limits[1], self.beamline.detector.mm_size, info['energy']
         )
         self.form.fields['resolution'].set_converter(
             Validator.Float(min_res, max_res, default=2.0)
@@ -334,7 +334,7 @@ class DataEditor(gui.BuilderMixin):
     def get_default(self, strategy_type=StrategyType.SINGLE):
         default = self.form.get_defaults()
         info = Strategy[strategy_type]
-        delta, exposure = self.beamline.config['default_delta'], self.beamline.config['default_exposure']
+        delta, exposure = self.beamline.config.dataset.delta, self.beamline.config.dataset.exposure
         rate = delta / float(exposure)
         if 'delta' not in info:
             info['delta'] = delta

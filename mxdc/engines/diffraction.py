@@ -62,7 +62,7 @@ class DataCollector(Engine):
     def save_datasets(self):
         while True:
             dataset, analysis, end_time = self.save_queue.get()
-            timeout_time = end_time + timedelta(seconds=self.beamline.config.get('data_overhead', 5))
+            timeout_time = end_time + timedelta(seconds=self.beamline.config.dataset.overhead)
 
             # Wait for some time after data acquisition stopped before trying to save the dataset
             while datetime.now(tz=pytz.utc) < timeout_time:
@@ -366,7 +366,7 @@ class DataCollector(Engine):
 
     def save(self, params):
         template, frame_set = self.prepare_for_saving(params)
-        beam_fwhm = self.beamline.config.get('beam_shape', (100., 100.))
+        beam_fwhm = self.beamline.config.beam_shape
 
         # Estimate flux from current beamline/dataset settings
         beam_flux = self.beamline.beam_tuner.get_state("flux")

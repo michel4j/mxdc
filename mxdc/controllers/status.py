@@ -48,7 +48,7 @@ class StatusPanel(object):
             for btn in list(self.button_scripts.keys())
         }
 
-        self.widget.status_beamline_fbk.set_text(self.beamline.config['name'])
+        self.widget.status_beamline_fbk.set_text(self.beamline.config.name)
         self.widget.beam_switch.connect('notify::activate', self.on_restore_beam)
 
         # disable mode change buttons while automounter is busy

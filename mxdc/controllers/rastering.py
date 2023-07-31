@@ -56,8 +56,8 @@ class RasterForm(FormManager):
 
         if name in ['aperture', 'exposure']:
             exposure = self.get_value('exposure')
-            det_exp_limit = 1/self.beamline.config.get('max_raster_freq', 100)
-            mtr_exp_limit = aperture*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
+            det_exp_limit = 1/self.beamline.config.raster.max_freq
+            mtr_exp_limit = aperture*1e-3/self.beamline.config.raster.max_speed
 
             self.set_value('exposure', max(exposure, det_exp_limit, mtr_exp_limit))
 

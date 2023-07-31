@@ -123,7 +123,7 @@ class Application(Gtk.Application):
         logger.info('Starting MxDC ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
             name='MxDC',
-            emails=self.beamline.config['bug_report'], exit_function=self.quit
+            emails=self.beamline.config.bug_report, exit_function=self.quit
         )
 
         #self.hook.install()
@@ -304,7 +304,7 @@ class Application(Gtk.Application):
             msg = 'On <i>{}</i>, by user <i>{}</i> since <i>{}</i>. Only one instance permitted!'.format(
                 data['host'], data['data']['user'], data['data']['started']
             )
-            if misc.get_project_name() in self.beamline.config['admins']:
+            if misc.get_project_name() in self.beamline.config.admins:
                 msg += '\n\nDo you want to shut it down?'
                 response = dialogs.yesno('MXDC Already Running', msg)
                 if response == Gtk.ResponseType.YES:

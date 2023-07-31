@@ -163,7 +163,6 @@ class VideoWidget(Gtk.DrawingArea):
 
     def on_destroy(self, obj):
         self.camera.del_sink(self)
-        self.camera.stop()
 
     def get_size(self):
         return self.size

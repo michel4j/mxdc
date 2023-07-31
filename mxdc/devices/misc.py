@@ -107,9 +107,11 @@ class SimPositioner(BasePositioner):
 
     def set(self, pos, wait=False):
         self._pos = pos
-        if not self._delay:
-            self._fbk = pos
-            self.set_state(changed=self._pos)
+        GLib.timeout_add(0 if not self._delay else 1000, self._update_fbk, pos)
+
+    def _update_fbk(self, pos):
+        self._fbk = pos
+        self.set_state(changed=self._fbk)
 
     def get(self):
         return self._fbk

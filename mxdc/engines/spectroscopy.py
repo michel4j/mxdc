@@ -57,10 +57,12 @@ class XRFScan(BasicScan):
                 self.emit("progress", 0.01, "Preparing devices ...")
                 self.beamline.energy.move_to(self.config['energy'])
                 self.beamline.mca.configure(cooling=True)
-                if self.config.get("low_dose"):
-                    self.beamline.low_dose.on()
-                    attenuation = 100.0 - self.beamline.beam_tuner.get_state('percent')
-                    self.config.update(attenuation=attenuation)
+                if self.config.low_dose:
+                    #self.beamline.low_dose.on()
+                    #attenuation = 100.0 - self.beamline.beam_tuner.get_state('percent')
+                    attenuation = self.beamline.config.xrf.attenuation
+                    self.beamline.attenuator.move_to(attenuation, wait=True)
+                    self.config.attenuation = attenuation
 
                 self.beamline.manager.scan(wait=True)
                 self.beamline.energy.wait()
@@ -78,6 +80,7 @@ class XRFScan(BasicScan):
                 self.beamline.fast_shutter.close()
                 self.beamline.low_dose.off()
                 self.beamline.manager.collect()
+                self.beamline.attenuator.move_to(saved_attenuation)
 
     def on_mca_progress(self, obj, value):
         self.emit("progress", 0.1 + value * 0.8, "Acquiring Spectrum ...")
@@ -129,7 +132,7 @@ class XRFScan(BasicScan):
         xdi_data['Element.symbol'], xdi_data['Element.edge'] = self.config['edge'].split('-')
         xdi_data['Scan.edge_energy'] = self.config.energy, 'keV'
         xdi_data['Mono.d_spacing'] = converter.energy_to_d(
-            self.config['energy'], self.beamline.config['mono_unit_cell']
+            self.config['energy'], self.beamline.config.mono.cell
         )
         return xdi_data
 
@@ -210,7 +213,7 @@ class MADScan(BasicScan):
                 self.beamline.mca.configure(
                     cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, dark=True
                 )
-                if self.config.get("low_dose"):
+                if self.config.low_dose:
                     self.beamline.low_dose.on()
 
                 self.beamline.energy.wait()
@@ -291,7 +294,7 @@ class MADScan(BasicScan):
         xdi_data['Element.edge'] = edge
         xdi_data['Scan.edge_energy'] = self.config.edge_energy, 'keV'
         xdi_data['Mono.d_spacing'] = converter.energy_to_d(
-            self.config.edge_energy, self.beamline.config['mono_unit_cell']
+            self.config.edge_energy, self.beamline.config.mono.cell
         )
         return xdi_data
 
@@ -492,7 +495,7 @@ class XASScan(BasicScan):
         xdi_data['Element.edge'] = edge
         xdi_data['Scan.edge_energy'] = self.config['edge_energy'], 'keV'
         xdi_data['Mono.d_spacing'] = converter.energy_to_d(
-            self.config['edge_energy'],  self.beamline.config['mono_unit_cell']
+            self.config['edge_energy'],  self.beamline.config.mono.cell
         )
         xdi_data['Scan.series'] = '{} of {}'.format(self.scan_index, self.config['scans'])
         return xdi_data

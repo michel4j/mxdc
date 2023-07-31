@@ -131,6 +131,8 @@ class ScanController(Object):
             params = datatools.update_for_sample(
                 params, sample=self.sample_store.get_current(), session=self.beamline.session_key
             )
+            params['energy'] = max(self.beamline.energy.get_position(), params['energy'])
+            self.form.set_value('energy', params['energy'])
             self.props.config = params
             self.scanner.configure(**self.props.config)
             self.scanner.start()
@@ -563,7 +565,7 @@ class ScanManager(Object):
         self.beamline = Registry.get_utility(IBeamline)
         self.sample_store = Registry.get_utility(ISampleStore)
         self.plotter = plotter.Plotter(xformat='%g')
-        min_energy, max_energy = self.beamline.config['energy_range']
+        min_energy, max_energy = self.beamline.config.energy_range
         self.edge_selector = periodictable.EdgeSelector(
             min_energy=min_energy, max_energy=max_energy, xrf_offset=ENERGY_OFFSET
         )

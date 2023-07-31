@@ -79,14 +79,14 @@ class Application(Gtk.Application):
 
         # initialize beamline
         self.beamline = build_beamline()
-        if misc.get_project_name() not in self.beamline.config['admins']:
+        if misc.get_project_name() not in self.beamline.config.admins:
             logger.error('HutchViewer is a Staff-Only Application!!!')
             self.quit()
 
         logger.info('Starting HutchViewer ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
             name='HutchViewer',
-            emails=self.beamline.config['bug_report'], exit_function=self.quit
+            emails=self.beamline.config.bug_report, exit_function=self.quit
         )
         # self.hook.install()
         self.find_service()

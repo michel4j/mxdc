@@ -4,7 +4,6 @@ import json
 import math
 import os
 import pwd
-import grp
 import gzip
 import pickle
 import re
@@ -12,7 +11,6 @@ import reprlib
 import socket
 import string
 import struct
-import subprocess
 import threading
 import time
 import unicodedata
@@ -20,15 +18,14 @@ import uuid
 from abc import ABC
 from html.parser import HTMLParser
 from importlib import import_module
+from typing import Any
 
 import numpy
 import msgpack
-import msgpack_numpy
 from gi.repository import GLib
 from scipy import interpolate
 
 from mxdc.com import ca
-from . import decorators
 from . import log
 
 logger = log.get_module_logger(__name__)
@@ -338,11 +335,11 @@ class ContextMessenger(object):
         return False
 
 
-class DotDict(dict):
-    """dot.notation access to dictionary attributes"""
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
+# class DotDict(dict):
+#     """dot.notation access to dictionary attributes"""
+#     __getattr__ = dict.get
+#     __setattr__ = dict.__setitem__
+#     __delattr__ = dict.__delitem__
 
 
 class Call(object):
@@ -750,3 +747,112 @@ def load_spots(filename):
     return spots
 
 
+def get_dict_field(d: dict, key: str, default=None) -> Any:
+    """
+    Obtain and return a field from a dictionary using dot notation, return the default if not found.
+    :param d: target dictionary
+    :param key: field specification using dot separator notation
+    :param default: default value if field is not found
+    """
+
+    if key in d:
+        return d[key]
+    elif "." in key:
+        first, rest = key.split(".", 1)
+        if first in d and isinstance(d[first], dict):
+            return get_dict_field(d[first], rest, default)
+    return default
+
+
+def set_dict_field(d: dict, key: str, value: Any):
+    """
+    Set a nested dictionary value using dot notation, return modified dictionary
+
+    :param d: target dictionary
+    :param key: field specification using dot separator notation
+    :param value: Value to set
+    """
+
+    if not "." in key:
+        d[key] = value
+    else:
+        first, rest = key.split(".", 1)
+        if first in d and isinstance(d[first], dict):
+            set_dict_field(d[first], rest, value)
+        else:
+            d[first] = {}
+            set_dict_field(d[first], rest, value)
+
+
+class DotDict:
+    """dot.notation access to dictionary attributes"""
+
+    def __init__(self, details):
+        self.details = details
+
+    def __repr__(self):
+        return self.details.__repr__()
+
+    def __str__(self):
+        return self.details.__str__()
+
+    def __getitem__(self, item):
+        return self.details.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        self.details.__setitem__(key, value)
+
+    def update(self, *args, **kwargs):
+        for arg in args + (kwargs,):
+            if isinstance(arg, dict):
+                for key, value in arg.items():
+                    self.set(key, value)
+
+    def keys(self):
+        return self.details.keys()
+
+    def values(self):
+        return self.details.values()
+
+    def items(self):
+        return self.details.items()
+
+    def __iter__(self):
+        return self.details.__iter__()
+
+    def __getattr__(self, item):
+        if hasattr(self, 'details'):
+            if item in self.details:
+                value = self.details[item]
+                if isinstance(value, DotDict):
+                    return value
+                elif isinstance(value, dict):
+                    return DotDict(value)
+                else:
+                    return value
+            else:
+                raise KeyError(f'Invalid Attribute "{item}"')
+
+    def __setattr__(self, key, value):
+        if not 'details' in self.__dict__:
+            return super().__setattr__(key, value)
+        elif key in self.__dict__:
+            super().__setattr__(key, value)
+        else:
+            self.details.__setitem__(key, value)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Obtain and return a field from the details dictionary using dot notation, return the default if not found.
+        :param key: field specification using dot separator notation
+        :param default: default value if field is not found
+        """
+        return get_dict_field(self.details, key, default)
+
+    def set(self, key: str, value: Any):
+        """
+        Set a key value
+        :param key: key obeying dot-notation
+        :param value: value to set
+        """
+        set_dict_field(self.details, key, value)

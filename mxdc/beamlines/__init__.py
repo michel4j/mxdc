@@ -2,11 +2,10 @@ import threading
 import importlib.util
 import importlib.machinery
 import os
-
 from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
-from mxdc.utils.misc import get_project_name, DotDict, import_string
+from mxdc.utils.misc import get_project_name, import_string, DotDict
 from mxdc.utils.log import get_module_logger
 
 
@@ -50,7 +49,9 @@ class Beamline(Object):
         self.config_files = settings.get_configs()
         self.session_key = settings.get_session()
         self.registry = {}
-        self.config = DotDict()
+        self.config = DotDict({})
+        self.config.update(self.DEFAULTS)
+
         self.lock = threading.RLock()
         self.logger = get_module_logger(self.__class__.__name__)
         self.load_config()
@@ -90,12 +91,12 @@ class Beamline(Object):
                 local_settings = None
 
         # Prepare Beamline Configuration
-        config = self.DEFAULTS.copy()
+        config = {}
         config.update(getattr(global_settings, 'CONFIG', {}))
         config.update(getattr(local_settings, 'CONFIG', {}))
 
-        self.name = config.get('name', 'BL001')
         self.config.update(config)
+        self.name = self.config.name
 
         # Register simple devices
         for settings in [global_settings, local_settings]:
@@ -148,7 +149,7 @@ class Beamline(Object):
         """
         Check if the current user is an administrator
         """
-        return get_project_name() in self.config.get('admins', [])
+        return get_project_name() in self.config.admins
 
     def is_ready(self):
         """
@@ -170,3 +171,6 @@ def build_beamline(console=False):
 
 
 __all__ = ['Beamline', 'IBeamline', 'build_beamline']
+
+
+

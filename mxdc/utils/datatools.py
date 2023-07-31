@@ -27,7 +27,7 @@ Strategy = {
         'activity': 'test',
     },
     StrategyType.FULL: {
-        'range': 180,
+        'range': 360,
         'desc': 'Full Dataset',
         'activity': 'data',
     },

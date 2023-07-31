@@ -6,12 +6,12 @@ class SetMountMode(Script):
 
     def run(self):
         with self.beamline.lock:
-            safe_distance = self.beamline.config['safe_distance']
+            safe_distance = self.beamline.config.safe.distance
             if self.beamline.detector_z.get_position() < safe_distance:
                 self.beamline.detector_z.move_to(safe_distance)
 
             self.beamline.manager.mount(wait=True)
-            self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=False)
+            self.beamline.beamstop_z.move_to(self.beamline.config.safe.beamstop, wait=False)
 
 
 class SetCenterMode(Script):
@@ -19,7 +19,7 @@ class SetCenterMode(Script):
 
     def run(self):
         with self.beamline.lock:
-            default_beamstop = self.beamline.config['default_beamstop']
+            default_beamstop = self.beamline.config.dataset.beamstop
 
             # needed by 08ID
             if self.beamline.beamstop_z.get_position() < default_beamstop:
@@ -53,12 +53,12 @@ class SetFreezeMode(Script):
 
     def run(self):
         with self.beamline.lock:
-            safe_distance = self.beamline.config['safe_distance']
+            safe_distance = self.beamline.config.safe.distance
             if self.beamline.detector_z.get_position() < safe_distance:
                 self.beamline.detector_z.move_to(safe_distance)
 
             self.beamline.manager.mount(wait=True)
-            self.beamline.beamstop_z.move_to(self.beamline.config['safe_beamstop'], wait=True)
+            self.beamline.beamstop_z.move_to(self.beamline.config.safe.beamstop, wait=True)
             if 'kappa' in self.beamline.registry:
                 self.beamline.goniometer.omega.move_to(32.5, wait=True)
                 self.beamline.chi.move_to(45)

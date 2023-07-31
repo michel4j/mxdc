@@ -67,8 +67,8 @@ class RasterCollector(Engine):
         name_tag = datetime.now().strftime('%j%H%M')
         self.series[name_tag] += 1
 
-        det_exp_limit = 1 / self.beamline.config.get('max_raster_freq', 100)
-        mtr_exp_limit = params['aperture'] * 1e-3 / self.beamline.config.get('max_raster_speed', 0.5)
+        det_exp_limit = 1 / self.beamline.config.raster.max_freq
+        mtr_exp_limit = params['aperture'] * 1e-3 / self.beamline.config.raster.max_speed
         params['exposure'] = max(params['exposure'], det_exp_limit, mtr_exp_limit)
 
         params['name'] = f'R{name_tag}{self.series[name_tag]:02d}'
@@ -192,8 +192,8 @@ class RasterCollector(Engine):
                     self.acquire_step()
 
                 time.sleep(1)
-                self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
-                self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
+                #self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
+                #self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
 
             finally:
                 self.beamline.fast_shutter.close()
@@ -313,7 +313,7 @@ class RasterCollector(Engine):
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
         score = info['score']
-
+        score = numpy.random.rand() * 100
         self.result_queue.put((score, info))
 
         self.count += 1

@@ -86,6 +86,7 @@ class VideoSrc(Device):
         """
         Stop producing video frames.
         """
+        logger.debug(f'{self.name} Stopping video feed ')
         self._stopped = True
 
     def streamer(self):

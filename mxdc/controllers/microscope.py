@@ -145,7 +145,7 @@ class Microscope(Object):
         self.points_menu.append_section(None, self.points_menu_points)
 
         # zoom
-        low, med, high = self.beamline.config['zoom_levels']
+        low, med, high = self.beamline.config.zoom.levels
         self.widget.microscope_zoomout_btn.connect('clicked', self.on_zoom, -1)
         self.widget.microscope_zoom100_btn.connect('clicked', self.on_reset_zoom, med)
         self.widget.microscope_zoomin_btn.connect('clicked', self.on_zoom, 1)
@@ -478,7 +478,7 @@ class Microscope(Object):
         self.camera.zoom(position)
 
     def on_zoom(self, widget, change):
-        low, med, high = self.beamline.config['zoom_levels']
+        low, med, high = self.beamline.config.zoom.levels
         position = min(max(low, self.beamline.sample_zoom.get_position() + change), high)
         self.camera.zoom(position)
 

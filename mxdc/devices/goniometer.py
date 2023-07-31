@@ -395,6 +395,9 @@ class MD2Gonio(BaseGoniometer):
         timeout = kwargs.pop('timeout', None)
         kind = kwargs.get('kind', 'simple')
 
+        # Save Centering position at start of Scan
+        self.save_centering()
+
         # switch to helical if shutterless and points given
         is_helical = all((
             kind == 'shutterless', kwargs.get('start_pos'), kwargs.get('end_pos'), self.supports(GonioFeatures.SCAN4D)

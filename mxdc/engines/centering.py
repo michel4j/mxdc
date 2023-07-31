@@ -91,7 +91,7 @@ class Centering(Engine):
     def get_features(self):
         angle = self.beamline.goniometer.omega.get_position()
         frame = self.get_video_frame()
-        info = imgproc.get_loop_features(frame, orientation=self.beamline.config['orientation'])
+        info = imgproc.get_loop_features(frame, orientation=self.beamline.config.orientation)
         return angle, info
 
     def run(self):
@@ -147,7 +147,7 @@ class Centering(Engine):
 
     def center_loop(self, trials=5, face=True):
         self.beamline.sample_frontlight.set_off()
-        zoom = self.beamline.config['centering_zoom']
+        zoom = self.beamline.config.zoom.centering
 
         # Find tip of loop at low and high zoom
         failed = False
@@ -206,9 +206,9 @@ class Centering(Engine):
 
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
-        exposure =  self.beamline.config.get('default_exposure')
-        det_exp_limit = 1/self.beamline.config.get('max_raster_freq', 100)
-        mtr_exp_limit = aperture*1e-3/self.beamline.config.get('max_raster_speed', 0.5)
+        exposure =  self.beamline.config.raster.exposure
+        det_exp_limit = 1/self.beamline.config.raster.max_freq
+        mtr_exp_limit = aperture*1e-3/self.beamline.config.raster.max_speed
         exposure = max(exposure, det_exp_limit, mtr_exp_limit)
 
         #self.beamline.goniometer.omega.move_by(90, wait=True)
@@ -273,7 +273,7 @@ class Centering(Engine):
         self.score = numpy.mean(scores)
 
     def center_capillary(self):
-        zoom = self.beamline.config['centering_zoom']
+        zoom = self.beamline.config.zoom.centering
         self.beamline.sample_frontlight.set_off()
         self.beamline.sample_video.zoom(zoom, wait=True)
 

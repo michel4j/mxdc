@@ -174,10 +174,10 @@ class BasicScan(Engine):
         data = self.data if data is None else data
         comments = inspect.getdoc(self)
         xdi_data = xdi.XDIData(data=data, comments=comments, version='MxDC')
-        xdi_data['Facility.name'] = self.beamline.config['facility']
-        xdi_data['Facility.xray_source'] = self.beamline.config['source']
+        xdi_data['Facility.name'] = self.beamline.config.facility
+        xdi_data['Facility.xray_source'] = self.beamline.config.source
         xdi_data['Beamline.name'] = self.beamline.name
-        xdi_data['Mono.name'] = self.beamline.config.get('mono', 'Si 111')
+        xdi_data['Mono.name'] = self.beamline.config.mono.type
         xdi_data['Scan.start_time'] = self.config.get('start_time', datetime.now(tz=pytz.utc))
         xdi_data['Scan.end_time'] = self.config.get('end_time', datetime.now(tz=pytz.utc))
         xdi_data['MxDC.scan_type'] = self.get_specs()['scan_type']

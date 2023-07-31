@@ -22,23 +22,39 @@ class MXBeamline(Beamline):
     ]
     DEFAULTS = {
         'name': 'SIM-1',
+        'mono.type': 'Si 111',
+        'mono.cell': 5.4297575,
         'admins': [],
         'energy_range': (6.0, 18.0),
-        'zoom_levels': (1, 4, 6),
         'beam_shape': (100., 100.),
         'distance_limits': (100.0, 1000.0),
-        'default_attenuation': 90.0,
-        'default_exposure': 0.5,
-        'default_delta': 0.5,
-        'default_energy': 12.658,
-        'default_distance': 200,
-        'default_beamstop': 25.0,
-        'safe_beamstop': 25.0,
-        'safe_distance': 700.0,
-        'xrf_beamstop': 50.0,
+
+        'safe.beamstop': 25.0,
+        'safe.distance': 700.0,
+
+        'xrf.beamstop': 50.0,
+        'xrf.attenuation': 90,
+        'xrf.exposure': 0.5,
+
+        'raster.max_freq': 100,
+        'raster.max_speed': 0.5,
+        'raster.exposure': 0.5,
+
+        'dataset.overhead': 5,
+        'dataset.exposure': 0.5,
+        'dataset.distance': 200,
+        'dataset.energy': 12.658,
+        'dataset.beamstop': 30,
+        'dataset.delta': 0.5,
+        'dataset.attenuation': 0.0,
+
+        'minimum_exposure': 0.1,
+
+        'zoom.levels': (1, 4, 6),
+        'zoom.centering': 2,
+
         'shutter_sequence': [],
         'orientation': 1,
-        'centering_zoom': 2,
     }
 
     def setup(self):

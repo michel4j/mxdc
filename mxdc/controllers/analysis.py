@@ -304,9 +304,9 @@ class AnalysisController(Object):
 
         dataset_controller = Registry.get_utility(IDatasets)
         if strategy:
-            default_rate = self.beamline.config['default_delta'] / self.beamline.config['default_exposure']
+            default_rate = self.beamline.config.dataset.delta / self.beamline.dataset.exposure
             exposure_rate = strategy.get('exposure_rate_worst', default_rate)
-            delta = min(strategy.get('max_delta'), self.beamline.config['default_delta'])
+            delta = min(strategy.get('max_delta'), self.beamline.config.dataset.delta)
 
             run = {
                 'attenuation': strategy.get('attenuation', 0.0),
