@@ -172,7 +172,7 @@ class AnalysisController(Object):
         browser_settings = WebKit2.Settings()
         browser_settings.set_property("allow-universal-access-from-file-urls", True)
         browser_settings.set_property("enable-plugins", False)
-        #browser_settings.set_property("default-font-size", 11)
+        browser_settings.set_property("enable-page-cache", False)
         self.browser.set_settings(browser_settings)
         self.browser.bind_property(
             'is-loading', self.widget.browser_progress, 'visible', GObject.BindingFlags.SYNC_CREATE
