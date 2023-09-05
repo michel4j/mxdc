@@ -60,11 +60,13 @@ class XRFScan(BasicScan):
                 if self.config.low_dose:
                     #self.beamline.low_dose.on()
                     #attenuation = 100.0 - self.beamline.beam_tuner.get_state('percent')
+                    self.emit("progress", 0.02, "Setting attenuataion ...")
                     attenuation = self.beamline.config.xrf.attenuation
                     self.beamline.attenuator.move_to(attenuation, wait=True)
                     self.config.attenuation = attenuation
 
                 self.beamline.manager.scan(wait=True)
+                self.emit("progress", 0.06, f"Setting energy to {self.config['energy']} ...")
                 self.beamline.energy.wait()
                 self.beamline.attenuator.wait()
 
