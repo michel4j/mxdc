@@ -126,7 +126,7 @@ def update_for_sample(info, sample=None, session="", overwrite=True):
 
     if not overwrite and os.path.exists(params['directory']):
         for i in range(99):
-            new_directory = '{}-{}'.format(params['directory'], i + 1)
+            new_directory = '{}.{}'.format(params['directory'], i + 1)
             if not os.path.exists(new_directory):
                 params['directory'] = new_directory
                 break
