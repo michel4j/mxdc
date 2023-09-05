@@ -32,7 +32,6 @@ def combine_metadata(items: Sequence[dict]) -> dict:
         data['id'] = [meta.get('id') for meta in items]
         data['sample_id'] = meta['sample_id']
         data['type'] = meta['type']
-        data['flux'] = meta['beam_flux']
         data.update({
             'beam_flux': meta['beam_flux'],
             'beam_fwhm': meta['beam_fwhm'],
@@ -49,7 +48,7 @@ def combine_metadata(items: Sequence[dict]) -> dict:
         'sample_id': data['sample_id'],
         'name': data['name'],
         'file_names': file_names,
-        'activity': 'proc-screen',
+        'activity': f'process/scr-{data["name"]}',
         'type': data['type'],
 
         # beam parameters
@@ -93,12 +92,11 @@ class Analyst(Engine):
         self.set_state(data=metadata)
 
     def process_generic(self, params, sample, session, method='mx'):
-        params = datatools.update_for_sample(params, sample=sample, session=session, overwrite=False)
-
+        params = datatools.update_for_sample(params, sample=sample, session=session, overwrite=True)
         if method == 'misc':
             res = self.beamline.dps.process_misc(**params, user=misc.get_project_id())
         elif method == 'powder':
-            res = self.beamline.dps.process_powder(**params, user=misc.get_project_id())
+            res = self.beamline.dps.process_xrd(**params, user=misc.get_project_id())
         else:
             res = self.beamline.dps.process_mx(**params, user=misc.get_project_id())
 
@@ -109,19 +107,18 @@ class Analyst(Engine):
 
     def process_dataset(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
-        suffix = 'anom' if 'anomalous' in flags else 'native'
-        kind = 'ANOMALOUS' if 'anomalous' in flags else "NATIVE"
-        params.update(anomalous="anomalous" in flags, screen=False, activity=f'proc-{suffix}',type=kind)
+        prefix, kind = (f'ano', 'ANOMALOUS') if 'anomalous' in flags else ('nat', "NATIVE")
+        params.update(anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind)
         self.process_generic(params, sample, self.beamline.session_key)
 
     def process_multiple(self, *metadata, flags=(), sample=None):
         params = combine_metadata(metadata)
-        suffix = 'multi' if 'separate' in flags else 'merge'
-        kind = 'ANOMALOUS' if 'anomalous' in flags else "NATIVE"
+        suffix = 'sep' if 'separate' in flags else 'mrg'
+        prefix, kind = (f'ano{suffix}', 'ANOMALOUS') if 'anomalous' in flags else (suffix, "NATIVE")
         params.update(
             multi="separate" in flags,
             anomalous="anomalous" in flags,
-            screen=False, activity=f'proc-{suffix}',
+            screen=False, activity=f'process/{prefix}-{params["name"]}',
             type=kind
         )
         self.process_generic(params, sample, self.beamline.session_key)
@@ -149,7 +146,7 @@ class Analyst(Engine):
             'name': metadata['name'],
             'file_names': file_names,
             'calib': 'calibrate' in flags,
-            'activity': 'proc-xrd',
+            'activity': f'process/xrd-{metadata["name"]}',
             'type': "XRD",
         }
         self.process_generic(params, sample, self.beamline.session_key, method='powder')

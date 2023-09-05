@@ -1,5 +1,6 @@
 import threading
 import time
+
 from functools import wraps
 from mxdc.utils.log import get_module_logger
 
@@ -23,7 +24,6 @@ def memoize(f):
 
     return Memodict(f)
 
-
 def async_call(f):
     """
     Run the specified function asynchronously in a thread. Return values will not be available
@@ -37,9 +37,7 @@ def async_call(f):
 
     @wraps(f)
     def _f(*args, **kwargs):
-        worker = threading.Thread(target=new_f, args=args, kwargs=kwargs)
-        worker.setDaemon(True)
-        worker.setName('Async Call: {}'.format(f.__name__))
+        worker = threading.Thread(target=new_f, args=args, kwargs=kwargs, daemon=True, name=f'Async Call: {f.__name__}')
         worker.start()
 
     return _f

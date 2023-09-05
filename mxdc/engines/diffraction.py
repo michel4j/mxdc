@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
 import time
-from queue import Queue
-from threading import Thread
+from concurrent.futures import ThreadPoolExecutor, Future
 from datetime import datetime, timedelta
 
 import mxio
@@ -9,6 +10,7 @@ import pytz
 from gi.repository import GLib
 from zope.interface import implementer
 from mxio.formats import cbf
+
 
 from mxdc import Registry, Signal, Engine
 from mxdc.devices.detector import DetectorFeatures
@@ -48,7 +50,6 @@ class DataCollector(Engine):
         self.config = {}
         self.total = 1
         self.current_wedge = None
-        self.save_queue = Queue()
 
         self.analyst = Registry.get_utility(IAnalyst)
         self.progress_link = self.beamline.detector.connect('progress', self.on_progress)
@@ -56,35 +57,36 @@ class DataCollector(Engine):
 
         # self.beamline.synchrotron.connect('ready', self.on_beam_change)
         Registry.add_utility(IDataCollector, self)
-        self.save_worker = Thread(target=self.save_datasets, daemon=True, name='Diffraction Engine Saver')
-        self.save_worker.start()
+        self.data_saver = ThreadPoolExecutor(max_workers=5)
 
-    def save_datasets(self):
-        while True:
-            dataset, analysis, end_time = self.save_queue.get()
-            timeout_time = end_time + timedelta(seconds=self.beamline.config.dataset.overhead)
+    def save_dataset(self, dataset, analyse=True) -> tuple:
+        timeout_time = datetime.utcnow() + timedelta(seconds=self.beamline.config.dataset.overhead)
+        names = ",".join(details['name'] for details in dataset.get_details())
 
-            # Wait for some time after data acquisition stopped before trying to save the dataset
-            while datetime.now(tz=pytz.utc) < timeout_time:
-                time.sleep(1)
+        logger.debug(f'Waiting for files to be transferred for datasets {names}...')
+        #FIXME - check that all files have been transferred instead of waiting
+        while datetime.utcnow() < timeout_time:
+            time.sleep(0.001)
 
-            meta_store = {
-                details['name']: details for details in dataset.get_details()
-            }
-            saved_data = []
-            for name in meta_store.keys():
-                try:
-                    metadata = self.save(meta_store[name])
-                    self.analyst.add_dataset(metadata)
-                    self.results.append(metadata)
-                    saved_data.append(metadata)
-                except Exception as e:
-                    logger.exception(f"{name!r} could not be saved: {e}")
+        logger.debug(f'Saving datasets {names}...')
+        meta_data = [
+            self.save(details) for details in dataset.get_details()
+        ]
+        logger.debug(f'Datasets {names} saved.')
+        return analyse, meta_data, dataset.sample
 
-            if saved_data and analysis:
-                self.analyse(*saved_data, sample=dataset.sample, kind=saved_data[0]['type'])
+    def analyse_dataset(self, future: Future):
+        from mxio.formats import cbf
+        analyse, meta_data, sample = future.result(timeout=5)
 
-            time.sleep(1)
+        for entry in meta_data:
+            self.analyst.add_dataset(entry)
+            self.results.append(entry)
+
+        if analyse and meta_data:
+            logger.debug(f'Running Analysis for saved dataset')
+            data_type = meta_data[0]['type']
+            self.analyse(*meta_data, sample=sample, kind=data_type)
 
     def configure(self, run_data, take_snapshots=True, analysis=None, anomalous=False):
         """
@@ -178,7 +180,8 @@ class DataCollector(Engine):
 
         # Wait for Last image to be transferred
         for uid, dataset in self.config['datasets'].items():
-            self.save_queue.put((dataset, self.config['analysis'], self.config['end_time']))
+            future = self.data_saver.submit(self.save_dataset, dataset, analyse=self.config['analysis'])
+            future.add_done_callback(self.analyse_dataset)
 
         self.unwatch_frames()
         self.set_state(busy=False)
@@ -226,6 +229,10 @@ class DataCollector(Engine):
                 # perform scan
                 self.beamline.detector.configure(**detector_parameters)
                 success = self.beamline.detector.start(first=is_first_frame)
+                if not success:
+                    # Try one more time if it failed the first
+                    success = self.beamline.detector.start()
+
                 if not success:
                     logger.error('Detector did not start!')
                     self.emit('error', 'Detector failed to start. Acquisition aborted.')

@@ -10,7 +10,7 @@ import requests
 from pathlib import Path
 from datetime import datetime
 from enum import Enum, IntFlag, auto
-
+from concurrent.futures import ProcessPoolExecutor
 
 from mxio import read_header, read_image
 from zope.interface import implementer
@@ -295,6 +295,7 @@ class SimDetector(BaseDetector):
         self.trigger = trigger
         self.trigger_count = 0
         self.prepare_datasets()
+        self.copier = ProcessPoolExecutor(max_workers=10)
         if trigger is not None:
             self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS, DetectorFeatures.WEDGING)
             self.trigger.connect('high', self.on_trigger )
@@ -350,7 +351,6 @@ class SimDetector(BaseDetector):
                 self._selection = realm, list(self._datasets[realm].keys())[chosen]
                 self._dataset_selections[name] = self._selection
 
-    @decorators.async_call
     def _copy_frame(self, number):
         logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
         realm, (folder, name, count) = self._selection
@@ -360,8 +360,7 @@ class SimDetector(BaseDetector):
             src_img = os.path.join(folder, self._datasets[realm][(folder, name, count)][(frame_number - 1) % count])
             file_name = '{}_{:05d}.{}'.format(file_params['file_prefix'], frame_number, self.file_extension)
             file_path = os.path.join(file_params['directory'], file_name)
-            shutil.copyfile(src_img, file_path)
-            os.sync()
+            future = self.copier.submit(shutil.copyfile, src_img, file_path)
             logger.info('Frame saved: {}'.format(file_name))
             self.monitor.add(file_path)
         else:
@@ -729,7 +728,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     def start(self, first=False):
         logger.debug('{} Starting Acquisition ...'.format(self.name))
         self.acquire_cmd.put(1)
-        return self.wait_until(States.ARMED)
+        return self.wait_until(States.ARMED, timeout=5)
 
     def stop(self):
         logger.debug('{} Stopping Detector ...'.format(self.name))

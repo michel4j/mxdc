@@ -28,6 +28,7 @@ pandas
 backports-datetime-fromisoformat
 szrpc
 wget
+pytest
 setuptools_scm
 importlib-metadata; python_version<"3.10"
 methodtools
