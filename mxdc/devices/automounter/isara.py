@@ -1,4 +1,5 @@
 import time
+from enum import IntFlag, auto, IntEnum
 
 from gi.repository import GLib
 from mxdc.devices.automounter import AutoMounter, State, logger
@@ -43,32 +44,49 @@ ISARA_DEWAR = {
 }
 
 
+class Error(IntFlag):
+    BRAKE_TOGGLED = auto()
+    EMERGENCY_STOP = auto()
+    COLLISION = auto()
+    COMMUNICATION_ERROR = auto()
+    WRONG_MENU = auto()
+    WRONG_MODE = auto()
+    AWAITING_GONIO = auto()
+    AWAITING_SAMPLE = auto()
+    AWAITING_PUCK = auto()
+    AWAITING_FILL = auto()
+    AWAITING_LID = auto()
+    SAMPLE_MISMATCH = auto()
+
+
+class StatusType(IntEnum):
+    IDLE, WAITING, BUSY, STANDBY, FAULT = range(5)
+
+class HealthType(IntEnum):
+    OK = 0
+    TIMEOUT = auto()
+    SAMPLE = auto()
+    COLLISION = auto()
+    ERROR = auto()
+
 class ISARAMessages(object):
     @staticmethod
     def trajectory(message):
         return {
-            'getput': 'Switching sample ...',
-            'get': 'Dismounting sample ...',
-            'put': 'Mounting sample ...',
-            'dry': 'Drying gripper ...',
-            'soak': 'Soaking ...',
-            'home': 'Going home ...'
-        }.get(message.lower().strip(), 'Busy ...')
+            'GETPUT': 'Switching sample ...',
+            'GET': 'Dismounting sample ...',
+            'PUT': 'Mounting sample ...',
+            'DRY': 'Drying gripper ...',
+            'SOAK': 'Soaking ...',
+            'HOME': 'Going home ...',
+        }.get(message.upper().strip(), '')
 
     @staticmethod
-    def errors(message):
-        if not isinstance(message, str):
-            message = ''.join(message)
-
-        replacements = {
-            'high level alarm Dew1': 'Dewar LN2 topped up',
-            'WAIT for RdTrsf condition / 9 not TRUE': 'Waiting for endstation-ready ...',
-            'WAIT for SplOn condition / not TRUE / 1': 'Checking sample on gonio ...'
-        }
-        for old, new in list(replacements.items()):
-            message = message.replace(old, new)
-        if message:
-            return message
+    def errors(flag):
+        if flag:
+            return Error(flag).name.replace('_', ' ').title()
+        else:
+            return ''
 
 
 class AuntISARA(AutoMounter):
@@ -93,47 +111,46 @@ class AuntISARA(AutoMounter):
         self.set_state(layout=ISARA_DEWAR)
 
         # parameters and commands
-        self.next_smpl = self.add_pv('{}:PAR:nextPort'.format(root))
-        self.power_cmd = self.add_pv('{}:CMD:power'.format(root))
-        self.mount_cmd = self.add_pv('{}:CMD:mount'.format(root))
-        self.dismount_cmd = self.add_pv('{}:CMD:dismount'.format(root))
-        self.abort_cmd = self.add_pv('{}:CMD:abort'.format(root))
-        self.reset_cmd = self.add_pv('{}:CMD:reset'.format(root))
-        self.clear_cmd = self.add_pv('{}:CMD:clear'.format(root))
-        self.back_cmd = self.add_pv('{}:CMD:back'.format(root))
-        self.safe_cmd = self.add_pv('{}:CMD:safe'.format(root))
-        self.set_smpl_cmd = self.add_pv('{}:CMD:setDiffSmpl'.format(root))
+        self.next_smpl = self.add_pv(f'{root}:PAR:nextPort')
+        self.power_cmd = self.add_pv(f'{root}:CMD:power')
+        self.mount_cmd = self.add_pv(f'{root}:CMD:mount')
+        self.dismount_cmd = self.add_pv(f'{root}:CMD:dismount')
+        self.abort_cmd = self.add_pv(f'{root}:CMD:abort')
+        self.reset_cmd = self.add_pv(f'{root}:CMD:reset')
+        self.clear_cmd = self.add_pv(f'{root}:CMD:clear')
+        self.back_cmd = self.add_pv(f'{root}:CMD:back')
+        self.safe_cmd = self.add_pv(f'{root}:CMD:safe')
+        self.set_smpl_cmd = self.add_pv(f'{root}:CMD:setDiffSmpl')
 
         # feedback
-        self.status_fbk = self.add_pv('{}:STATUS'.format(root))
-        self.power_fbk = self.add_pv('{}:STATE:power'.format(root))
-        self.mode_fbk = self.add_pv('{}:STATE:mode'.format(root))
-        self.cryo_fbk = self.add_pv('{}:INP:cryoLevel'.format(root))
-        self.autofill_fbk = self.add_pv('{}:STATE:autofill'.format(root))
-        self.position_fbk = self.add_pv('{}:STATE:pos'.format(root))
+        self.status_fbk = self.add_pv(f'{root}:STATUS')
+        self.power_fbk = self.add_pv(f'{root}:STATE:power')
+        self.mode_fbk = self.add_pv(f'{root}:STATE:mode')
+        self.cryo_fbk = self.add_pv(f'{root}:INP:cryoLevel')
+        self.autofill_fbk = self.add_pv(f'{root}:STATE:autofill')
+        self.position_fbk = self.add_pv(f'{root}:STATE:pos')
 
-        self.enabled_fbk = self.add_pv('{}:ENABLED'.format(root))
-        self.connected_fbk = self.add_pv('{}:CONNECTED'.format(root))
-        self.message_fbk = self.add_pv('{}:LOG'.format(root))
-        self.error_fbk = self.add_pv('{}:WARNING'.format(root))
-        self.path_fbk = self.add_pv('{}:STATE:path'.format(root))
-        self.mounted_fbk = self.add_pv('{}:STATE:onDiff'.format(root))
-        self.barcode_fbk = self.add_pv('{}:STATE:barcode'.format(root))
-        self.tooled_fbk = self.add_pv('{}:STATE:onTool'.format(root))
-        self.pucks_fbk = self.add_pv('{}:STATE:pucks'.format(root))
-        self.path_fbk = self.add_pv('{}:STATE:path'.format(root))
-        self.sample_detected = self.add_pv('{}:INP:smplOnGonio'.format(root))
+        self.enabled_fbk = self.add_pv(f'{root}:ENABLED')
+        self.connected_fbk = self.add_pv(f'{root}:CONNECTED')
+        self.message_fbk = self.add_pv(f'{root}:LOG')
+        self.health_fbk = self.add_pv(f'{root}:HEALTH')
+        self.error_fbk = self.add_pv(f'{root}:STATE:error')
+        self.path_fbk = self.add_pv(f'{root}:STATE:path')
+        self.mounted_fbk = self.add_pv(f'{root}:STATE:onDiff')
+        self.barcode_fbk = self.add_pv(f'{root}:STATE:barcode')
+        self.tooled_fbk = self.add_pv(f'{root}:STATE:onTool')
+        self.pucks_fbk = self.add_pv(f'{root}:STATE:pucks')
+        self.path_fbk = self.add_pv(f'{root}:STATE:path')
+        self.sample_detected = self.add_pv(f'{root}:INP:smplOnGonio')
 
         # handle signals
         self.path_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
-        self.error_fbk.connect('changed', self.on_message, ISARAMessages.errors)
         self.pucks_fbk.connect('changed', self.on_pucks_changed)
         self.mounted_fbk.connect('changed', self.on_sample_changed)
-        self.reset_cmd.connect('changed', self.on_reset)
 
         status_pvs = [
             self.status_fbk, self.enabled_fbk, self.connected_fbk, self.autofill_fbk, self.cryo_fbk,
-            self.mode_fbk, self.path_fbk, self.position_fbk
+            self.mode_fbk, self.path_fbk, self.position_fbk, self.health_fbk
         ]
         for pv in status_pvs:
             pv.connect('changed', self.on_state_changed)
@@ -173,12 +190,25 @@ class AuntISARA(AutoMounter):
 
             logger.info('{}: Mounting Sample: {}'.format(self.name, port))
             if wait:
-
                 success = self.wait(states={State.BUSY}, timeout=20)
+                sample_on_gonio = True
+                sample_matches = True
                 if success:
                     success = self.wait(states={State.STANDBY, State.IDLE}, timeout=120)
+
+                    sample_on_gonio = bool(self.sample_detected.get())
+                    sample_matches = self.mounted_fbk.get() == port
+                    success &= sample_on_gonio and sample_matches
+
                 if not success:
-                    self.set_state(message="Mounting failed!")
+                    message = "Mounting failed!"
+                    if sample_on_gonio and not sample_matches:
+                        message += " Unknown sample is present on the gonio."
+                    elif not sample_on_gonio:
+                        message += " No sample present on gonio. Did you mount a blank?"
+                    self.set_state(message=message)
+                else:
+                    self.set_state(message=f'Mounting succeeded: {port}')
                 return success
             else:
                 return True
@@ -203,46 +233,19 @@ class AuntISARA(AutoMounter):
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
                     success = self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+                    success &= not bool(self.sample_detected.get())
                 if not success:
-                    self.set_state(message="Dismounting failed!")
+                    message = "Dismounting failed!"
+                    if self.sample_detected.get():
+                        message += " A sample is still on gonio!"
+                    self.set_state(message=message)
                 return success
             else:
+                self.set_state(message=f'Dismount succeeded!')
                 return True
 
     def abort(self):
         self.abort_cmd.put(1)
-
-    @async_call
-    def recover(self, context):
-        failure_type, message = context
-        if failure_type == 'blank-mounted':
-            self.set_state(message='Recovering from: {}, please wait!'.format(failure_type))
-            self.wait_for_position('SOAK', timeout=200)
-            self.abort_cmd.put(1)
-            time.sleep(2)
-            self.reset_cmd.put(1)
-            time.sleep(2)
-            self.clear_cmd.put(1)
-            logger.warning('Recovery complete.')
-        elif failure_type == 'get-failed':
-            self.set_state(message='Recovering from: {}, please wait!'.format(failure_type))
-            port = self.tooled_fbk.get()
-            self.clear_cmd.put(1)
-            time.sleep(2)
-            self.next_smpl.put(port)
-            self.set_smpl_cmd.put(1)
-            time.sleep(2)
-            self.abort_cmd.put(1)
-            time.sleep(2)
-            self.safe_cmd.put(1)
-            self.wait_for_position('HOME')
-            time.sleep(2)
-            self.dry_cmd.put(1)
-            self.wait_for_position('SOAK', timeout=200)
-            time.sleep(5)
-            logger.warning('Recovery complete.')
-        else:
-            logger.warning('Recovering from: {} not available.'.format(failure_type))
 
     def on_pucks_changed(self, obj, states):
         if len(states) == 29:
@@ -264,7 +267,6 @@ class AuntISARA(AutoMounter):
         port = sample.get('port')
         ports = self.get_state('ports')
         if self.is_valid(mounted_port):
-            GLib.timeout_add(2000, self.check_no_put)
             ports[mounted_port] = Port.MOUNTED
             sample = {
                 'port': mounted_port,
@@ -278,102 +280,62 @@ class AuntISARA(AutoMounter):
         self.set_state(sample=sample)
         self.set_state(ports=ports)
 
-    def check_no_put(self):
-        sample = self.get_state('sample')
-        status = self.get_state('status')
-        failure_state = all([
-            self.sample_detected.get() == 0,
-            bool(sample.get('port')),
-            status != State.FAILURE
-        ])
-
-        if failure_state:
-            port =  sample['port']
-            ports = self.get_state('ports')
-            ports[port] = Port.BAD
-            message = (
-                "Automounter either failed to pick the sample at {0}, \n"
-                "or there was no sample at {0}. Make sure there \n"
-                "really is no sample mounted, then proceed to recover."
-            ).format(sample['port'])
-            self.set_state(status=State.FAILURE, failure=('blank-mounted', message), ports=ports)
-        else:
-            self.set_state(message='Sample mounted')
-
-    def check_no_get(self):
-        status = self.get_state('status')
-        failure_state = all([
-            self.sample_detected.get() == 1,
-            bool(self.mounted_fbk.get()) == False,
-            bool(self.tooled_fbk.get()),
-            status != State.FAILURE
-        ])
-
-        if failure_state:
-            message = (
-                "Automounter failed to get sample from Gonio.\n"
-                "Make sure sample is still on gonio then then proceed to recover."
-            )
-            self.set_state(status=State.FAILURE, failure=('get-failed', message))
-
     def on_state_changed(self, *args):
-        health = 0
-        diagnosis = []
-        connected = (self.connected_fbk.get() == 1)
-        enabled = (self.enabled_fbk.get() == 1)
-        auto_mode = (self.mode_fbk.get() == 1)
-        status_value = self.status_fbk.get()
-        drying = self.position_fbk.get().startswith('DRYER')
-        path = self.path_fbk.get()
-        cryo_good = True
+        raw_status = StatusType(self.status_fbk.get())
+        raw_errors = Error(self.error_fbk.get())
+        raw_health = HealthType(self.health_fbk.get())
         cur_status = self.get_state('status')
+
+        status = {
+            raw_status.IDLE: State.IDLE,
+            raw_status.STANDBY: State.STANDBY,
+            raw_status.FAULT: State.ERROR,
+            raw_status.WAITING: State.BUSY,
+            raw_status.BUSY: State.BUSY,
+        }.get(raw_status, State.WARNING)
+
+        diagnosis = []
         message = ''
+        health = 0
 
-        if not connected:
-            health |= 4
+        if not self.connected_fbk.get() or Error.COMMUNICATION_ERROR in raw_errors:
+            status = State.ERROR
             diagnosis += ['Controller Disconnected! Staff Needed.']
-            status = State.ERROR
-        elif not enabled:
-            status = State.WARNING
-            health |= 16
-            diagnosis += ['Disabled by staff']
-        elif not auto_mode:
-            status = State.WARNING
-            message = 'Wrong Mode/Tool! Staff Needed.'
-        elif drying or status_value in [3, ]:
-            status = State.STANDBY
-            message = 'Drying the gripper ...'
-        elif path != "None" or status_value in [1, 2]:
-            status = State.BUSY
-        elif status_value in [4, ]:
-            status = State.ERROR
-        elif cur_status == State.PREPARING:
-            status = State.PREPARING
-            message = 'Preparing ...'
-        else:
-            status = State.IDLE
-            message = 'Ready!'
-
-        if not cryo_good:
             health |= 4
-            diagnosis += ['Cryo Level Problem! Staff Needed.']
+        elif not self.enabled_fbk.get() or Error.WRONG_MODE in raw_errors or self.mode_fbk.get() == 0:
+            status = State.WARNING
+            diagnosis += ['Disabled by staff/Manual Mode']
+            health |= 16
+        elif status == State.IDLE and cur_status == State.PREPARING:
+            status = State.PREPARING
 
-        if health != 0:
-            message = ', '.join(diagnosis)
-            self.set_state(message='Robot is drying the gripper ...')
+        if raw_health == HealthType.TIMEOUT:
+            message = 'Robot timeout. Recovering, please try again!'
+        elif raw_health == HealthType.COLLISION:
+            health |= 32
+            diagnosis += ['Robot collision. Staff needed!']
+            status = State.ERROR
+        elif raw_health == HealthType.ERROR:
+            health |= 32
+            diagnosis += ['Robot collision. Staff needed!']
+            message = 'Robot Error. Staff needed!'
+            status = State.ERROR
+        elif raw_health == HealthType.SAMPLE:
+            message = 'Sample mismatch. Recovering, please try again!'
+        elif raw_health == HealthType.OK:
+            message = ''
+            health = 0
 
         if self.get_state('status') != status:
-            self.set_state(status=status, message=message)
+            self.set_state(status=status)
+        if message.strip():
+            self.set_state(message=message)
         self.set_state(health=(health, 'notices', 'Staff Needed'))
 
     def on_message(self, obj, value, transform):
         message = transform(value)
         if message:
             self.set_state(message=message)
-
-    def on_reset(self, obj, value):
-        if value == 1:
-            self.set_state(failure=None)
 
     def on_error_changed(self, *args):
         messages = ', '.join([

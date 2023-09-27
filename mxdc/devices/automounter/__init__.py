@@ -1,6 +1,6 @@
 import time
 
-from enum import Enum
+from enum import IntEnum
 from zope.interface import implementer
 from gi.repository import GLib
 
@@ -11,8 +11,8 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
-class State(Enum):
-    IDLE, PREPARING, BUSY, STANDBY, DISABLED, WARNING, FAILURE, ERROR = list(range(8))
+class State(IntEnum):
+    IDLE, PREPARING, BUSY, STANDBY, DISABLED, WARNING, FAILURE, ERROR = range(8)
 
 
 def set_object_properties(obj, kwargs):

@@ -196,7 +196,7 @@ class ChartManager(GObject.GObject):
         self.sources = {}
         self.values = {}
         self.interval = interval / 1000.  # convert from milliseconds to seconds
-        self.animation = FuncAnimation(self.chart.fig, self.chart.animate, None, interval=interval, blit=False)
+        self.animation = FuncAnimation(self.chart.fig, self.chart.animate, interval=interval, blit=False, cache_frame_data=False)
         self.start()
         atexit.register(self.stop)
 
