@@ -215,9 +215,9 @@ class BaseDetector(Device):
         params = {}
         params.update(kwargs)
         params['num_frames'] = params.get('num_images', 1) * params.get('num_triggers', 1)
-        for k, v in list(params.items()):
+        for k, v in params.items():
             if k in self.settings:
-                self.settings[k].put(v, wait=True)
+                self.settings[k].put(v)
 
     def delete(self, directory, prefix, frames=()):
         """
@@ -728,7 +728,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     def start(self, first=False):
         logger.debug('{} Starting Acquisition ...'.format(self.name))
         self.acquire_cmd.put(1)
-        return self.wait_until(States.ARMED, timeout=5)
+        return self.wait_until(States.ARMED, timeout=30)
 
     def stop(self):
         logger.debug('{} Stopping Detector ...'.format(self.name))
@@ -758,6 +758,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
                 self.settings['file_prefix'].get(),
                 frame_number
             )
+            logger.debug(f'Adding frame: {file_path}')
             self.monitor.add(file_path)
 
             # progress

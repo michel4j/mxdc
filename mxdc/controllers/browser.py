@@ -1,5 +1,8 @@
 import gi
 
+import os
+os.environ['__NV_PRIME_RENDER_OFFLOAD'] = "1"
+
 gi.require_version('WebKit2', '4.0')
 from gi.repository import WebKit2
 from mxdc.utils import gui
@@ -35,6 +38,7 @@ class Browser(gui.Builder):
         browser_settings.set_property("allow-universal-access-from-file-urls", True)
         browser_settings.set_property("enable-plugins", False)
         browser_settings.set_property("default-font-size", 11)
+        #browser_settings.set_property("enable-webgl", True)
         self.view.set_settings(browser_settings)
 
         self.back_btn.connect('clicked', self.go_back)

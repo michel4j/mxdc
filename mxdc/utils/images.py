@@ -75,7 +75,7 @@ class FileMonitor(DataMonitor):
         attempts = 0
         success = False
         path = Path(path)
-
+        logger.debug(f'Looking for file: {path}')
         while not success and attempts < 10:
             # ping disk location
             if path.exists():
@@ -88,6 +88,10 @@ class FileMonitor(DataMonitor):
                     success = False
             attempts += 1
             time.sleep(1 / MAX_FILE_FREQUENCY)
+        if success:
+            logger.debug(f'Frame found: {path} after {attempts} attempts.')
+        else:
+            logger.debug(f'Frame not found: {path} after {attempts} attempts.')
         self.set_state(busy=False)
         return success
 

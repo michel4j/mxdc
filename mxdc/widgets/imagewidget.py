@@ -54,6 +54,7 @@ class DataLoader:
 
         :param path: full path to data frame
         """
+        print(path)
         self.pending_files.append(path)
 
     def pause(self):
@@ -94,24 +95,27 @@ class DataLoader:
     def stop(self):
         self.stopped = True
 
+    def get_dataset(self):
+        dataset = None
+        if len(self.pending_files):
+            # Load and set up the next pending file name and add frame to display queue
+            path = self.pending_files.popleft()
+            dataset = read_image(path)
+
+        elif len(self.pending_datasets):
+            # Set up the next pending dataset and add frame to display queue
+            dataset = self.pending_datasets.popleft()
+
+        return dataset
+
     def run(self):
         last_display_time = 0
         while not self.stopped:
             time.sleep(0.01)
             if self.paused:
                 continue
-
             try:
-                dataset = None
-                if len(self.pending_files):
-                    # Load and set up the next pending file name and add frame to display queue
-                    path = self.pending_files.popleft()
-                    dataset = read_image(path)
-
-                elif len(self.pending_datasets):
-                    # Set up the next pending dataset and add frame to display queue
-                    dataset = self.pending_datasets.popleft()
-
+                dataset = self.get_dataset()
                 if dataset is not None:
                     settings = None
                     if self.frame and self.frame.dataset.identifier == dataset.identifier:
@@ -136,7 +140,7 @@ class DataLoader:
 
                 self.load_next = self.load_prev = False
             except FileNotFoundError as err:
-                logger.error(f'File Not Found: {path}!')
+                logger.error(f'File Not Found: {err}!')
             except Exception as e:
                 self.load_next = self.load_prev = False
                 self.load_number = None

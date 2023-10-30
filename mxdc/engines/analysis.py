@@ -106,13 +106,19 @@ class Analyst(Engine):
         res.connect('failed', self.on_process_failed, params)
 
     def process_dataset(self, *metadata, flags=(), sample=None):
-        params = combine_metadata(metadata)
+        try:
+            params = combine_metadata(metadata)
+        except IndexError:
+            return
         prefix, kind = (f'ano', 'ANOMALOUS') if 'anomalous' in flags else ('nat', "NATIVE")
         params.update(anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind)
         self.process_generic(params, sample, self.beamline.session_key)
 
     def process_multiple(self, *metadata, flags=(), sample=None):
-        params = combine_metadata(metadata)
+        try:
+            params = combine_metadata(metadata)
+        except IndexError:
+            return
         suffix = 'sep' if 'separate' in flags else 'mrg'
         prefix, kind = (f'ano{suffix}', 'ANOMALOUS') if 'anomalous' in flags else (suffix, "NATIVE")
         params.update(
@@ -124,7 +130,10 @@ class Analyst(Engine):
         self.process_generic(params, sample, self.beamline.session_key)
 
     def screen_dataset(self, *metadata, flags=(), sample=None):
-        params = combine_metadata(metadata)
+        try:
+            params = combine_metadata(metadata)
+        except IndexError:
+            return
         params.update(merge=True, screen=True,type="SCREEN")
 
         method = settings.get_string('screening-method').lower()

@@ -303,6 +303,10 @@ class DataCollector(Engine):
             success = self.beamline.detector.start(first=is_first_frame)
 
             if not success:
+                # Try one more time if it failed the first
+                success = self.beamline.detector.start()
+
+            if not success:
                 logger.error('Detector did not start')
                 self.emit('error', 'Detector failed to start. Acquisition aborted.')
                 self.stopped = True
