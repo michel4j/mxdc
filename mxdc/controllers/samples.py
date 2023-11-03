@@ -6,7 +6,7 @@ from mxdc.utils.log import get_module_logger
 from mxdc.widgets import misc, imageviewer
 from mxdc.engines import transfer
 from . import cryo
-from mxdc.controllers.samplestore import MountFlags
+from mxdc.controllers.samplestore import MountFlag
 logger = get_module_logger(__name__)
 
 
@@ -23,6 +23,7 @@ class SamplesController(Object):
             self.humidity_controller = humidity.HumidityController(self.widget)
 
         self.beamline.automounter.connect('sample', self.on_sample_mounted)
+
         self.setup()
 
     def on_sample_mounted(self, obj, sample):
@@ -43,16 +44,16 @@ class SamplesController(Object):
 class HutchSamplesController(Object):
     ports = Property(type=object)
     containers = Property(type=object)
-    mount_flags: MountFlags
-    dismount_flags: MountFlags
+    mount_flags: MountFlag
+    dismount_flags: MountFlag
     image_viewer: imageviewer.ImageViewer
     next_sample: dict
     current_sample: dict
 
     def __init__(self, widget):
         super().__init__()
-        self.mount_flags = MountFlags.SAMPLE
-        self.dismount_flags = MountFlags.SAMPLE
+        self.mount_flags = MountFlag.DISABLED
+        self.dismount_flags = MountFlag.DISABLED
 
         self.widget = widget
         self.props.ports = {}
@@ -64,6 +65,7 @@ class HutchSamplesController(Object):
         self.sample_dewar = automounter.DewarController(self.widget, self)
         self.sample_dewar.connect('selected', self.on_dewar_selected)
         self.beamline.automounter.connect('sample', self.on_sample_mounted)
+        self.beamline.automounter.connect('status', self.on_automounter_status)
 
         self.setup()
 
@@ -80,23 +82,27 @@ class HutchSamplesController(Object):
         self.image_viewer.show_frame(dataset)
 
     def update_button_states(self):
-        if self.beamline.is_admin():
-            self.dismount_flags &= ~MountFlags.ADMIN
-            self.dismount_flags &= ~MountFlags.ADMIN
-        else:
-            self.dismount_flags |= MountFlags.ADMIN
-            self.dismount_flags |= MountFlags.ADMIN
-
-        self.widget.samples_mount_btn.set_sensitive(self.mount_flags == MountFlags.ENABLED)
-        self.widget.samples_dismount_btn.set_sensitive(self.dismount_flags == MountFlags.ENABLED)
+        mountable = (
+            bool(self.mount_flags & MountFlag.SAMPLE) and
+            bool(self.mount_flags & MountFlag.ROBOT) and
+            self.beamline.is_admin()
+        )
+        dismountable = (
+            bool(self.dismount_flags & MountFlag.SAMPLE) and
+            bool(self.dismount_flags & MountFlag.ROBOT) and
+            self.beamline.is_admin()
+        )
+        logger.critical(f'Mount: [{self.mount_flags!r}]{mountable}, Dismount: [{self.dismount_flags!r}]{dismountable}')
+        self.widget.samples_mount_btn.set_sensitive(mountable)
+        self.widget.samples_dismount_btn.set_sensitive(dismountable)
 
     def on_automounter_status(self, bot, status):
         if self.beamline.automounter.is_ready():
-            self.dismount_flags &= ~MountFlags.ROBOT
-            self.mount_flags &= ~MountFlags.ROBOT
+            self.dismount_flags |= MountFlag.ROBOT
+            self.mount_flags |= MountFlag.ROBOT
         else:
-            self.dismount_flags |= MountFlags.ROBOT
-            self.mount_flags |= MountFlags.ROBOT
+            self.dismount_flags &= ~MountFlag.ROBOT
+            self.mount_flags &= ~MountFlag.ROBOT
         self.update_button_states()
 
     def on_dewar_selected(self, obj, port):
@@ -104,11 +110,11 @@ class HutchSamplesController(Object):
         if port:
             logger.info('Sample Selected: {}'.format(port))
             self.next_sample = {'port': port}
-            self.mount_flags &= ~MountFlags.SAMPLE
+            self.mount_flags |= MountFlag.SAMPLE
             self.widget.samples_next_port.set_text(port)
         else:
             self.next_sample = {}
-            self.mount_flags |= MountFlags.SAMPLE
+            self.mount_flags &= ~MountFlag.SAMPLE
             self.widget.samples_next_port.set_text('—')
         self.update_button_states()
 
@@ -119,9 +125,9 @@ class HutchSamplesController(Object):
         self.widget.samples_cur_sample.set_text('—')
         self.widget.samples_cur_port.set_text(port)
         if port and port not in ['—', '...', '<manual>']:
-            self.dismount_flags &= ~MountFlags.SAMPLE
+            self.dismount_flags |= MountFlag.SAMPLE
         else:
-            self.dismount_flags |= MountFlags.SAMPLE
+            self.dismount_flags &= ~MountFlag.SAMPLE
         self.update_button_states()
 
     def get_name(self, port):

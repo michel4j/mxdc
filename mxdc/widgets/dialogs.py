@@ -164,7 +164,7 @@ class FileDialog:
 
         if dialog.run() == Gtk.ResponseType.OK:
             active_filter = max(0, format_combo.get_active())
-            file_format = None if not filters else filters(active_filter)
+            file_format = None if not filters else filters[active_filter]
             filename = dialog.get_filename()
 
             # fix the name if a file_format is provided

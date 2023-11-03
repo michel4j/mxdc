@@ -146,9 +146,7 @@ class DewarController(Object):
     def on_state_changed(self, obj, *args):
         status = self.beamline.automounter.get_state('status')
 
-        if status.name in ['IDLE', ]:
-            self.widget.automounter_command_box.set_sensitive(True)
-
+        self.widget.automounter_command_box.set_sensitive(True)
         self.widget.automounter_status_fbk.set_text(status.name)
 
         failure = self.beamline.automounter.get_state('failure')

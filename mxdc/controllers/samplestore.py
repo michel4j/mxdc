@@ -92,11 +92,12 @@ def human_name_sort(model, a, b, column_id):
         return 1
 
 
-class MountFlags(IntFlag):
-    ENABLED = 0
+class MountFlag(IntFlag):
+    DISABLED = 0
     SAMPLE = auto()
     ROBOT = auto()
     ADMIN = auto()
+
 
 
 @implementer(ISampleStore)
@@ -128,8 +129,8 @@ class SampleStore(Object):
         updated = Signal("updated", arg_types=())
 
     # properties
-    mount_flags: MountFlags
-    dismount_flags: MountFlags
+    mount_flags: MountFlag
+    dismount_flags: MountFlag
     cache = Property(type=object)
     current_sample = Property(type=object)
     next_sample = Property(type=object)
@@ -138,8 +139,8 @@ class SampleStore(Object):
 
     def __init__(self, view, widget):
         super().__init__()
-        self.mount_flags = MountFlags.ENABLED
-        self.dismount_flags = MountFlags.ENABLED
+        self.mount_flags = MountFlag.DISABLED
+        self.dismount_flags = MountFlag.DISABLED
 
         self.model = Gtk.ListStore(*self.Data.TYPES)
         self.search_model = self.model.filter_new()
@@ -304,8 +305,16 @@ class SampleStore(Object):
             self.prefetch_pending = False
 
     def update_button_states(self):
-        self.widget.samples_mount_btn.set_sensitive(self.mount_flags == MountFlags.ENABLED)
-        self.widget.samples_dismount_btn.set_sensitive(self.dismount_flags == MountFlags.ENABLED)
+        mountable = (
+            bool(self.mount_flags & MountFlag.SAMPLE) and
+            bool(self.mount_flags & MountFlag.ROBOT)
+        )
+        dismountable = (
+            bool(self.dismount_flags & MountFlag.SAMPLE) and
+            bool(self.dismount_flags & MountFlag.ROBOT)
+        )
+        self.widget.samples_mount_btn.set_sensitive(mountable)
+        self.widget.samples_dismount_btn.set_sensitive(dismountable)
 
     @staticmethod
     def on_group_btn_toggled(btn, item):
@@ -337,10 +346,11 @@ class SampleStore(Object):
         self.widget.samples_next_sample.set_text(name)
         self.widget.samples_next_port.set_text(port)
 
-        if self.next_sample:
-            self.mount_flags &= ~MountFlags.SAMPLE
+        if port not in ['—', '...', '', '<manual>', None]:
+            self.mount_flags |= MountFlag.SAMPLE
         else:
-            self.mount_flags |= MountFlags.SAMPLE
+            self.mount_flags &= ~MountFlag.SAMPLE
+
         self.update_button_states()
 
         # Only prefetch if there is a sample currently mounted
@@ -353,20 +363,20 @@ class SampleStore(Object):
         self.widget.samples_cur_sample.set_text(name)
         self.widget.samples_cur_port.set_text(port)
 
-        if port not in ['—', '...', '<manual>', None]:
-            self.dismount_flags &= ~MountFlags.SAMPLE
+        if port not in ['—', '...', '', '<manual>', None]:
+            self.dismount_flags |= MountFlag.SAMPLE
         else:
-            self.dismount_flags |= MountFlags.SAMPLE
+            self.dismount_flags &= ~MountFlag.SAMPLE
         self.update_button_states()
         self.emit('updated')
 
     def on_automounter_status(self, bot, status):
         if self.beamline.automounter.is_ready():
-            self.dismount_flags &= ~MountFlags.ROBOT
-            self.mount_flags &= ~MountFlags.ROBOT
+            self.dismount_flags |= MountFlag.ROBOT
+            self.mount_flags |= MountFlag.ROBOT
         else:
-            self.dismount_flags |= MountFlags.ROBOT
-            self.mount_flags |= MountFlags.ROBOT
+            self.dismount_flags &= ~MountFlag.ROBOT
+            self.mount_flags &= ~MountFlag.ROBOT
         self.update_button_states()
 
 

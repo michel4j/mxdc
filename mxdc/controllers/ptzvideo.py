@@ -27,7 +27,9 @@ class AxisController(object):
             'png': dialogs.SmartFilter(name='PNG Image', extension='png'),
             'jpg': dialogs.SmartFilter(name='JPEG Image', extension='jpg')
         }
-        img_filename, file_format = dialogs.file_chooser.select_to_save(title='Save Video Snapshot', filters=filters)
+        img_filename, file_format = dialogs.file_chooser.select_to_save(
+            title='Save Video Snapshot', filters=list(filters.values())
+        )
         if not img_filename:
             return
         if os.access(Path(img_filename).parent, os.W_OK):
