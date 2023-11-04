@@ -230,8 +230,9 @@ class AuntISARA(AutoMounter):
             if wait:
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
-                    success = self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
-                    success &= not bool(self.sample_detected.get())
+                    mount_completed = self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+                    sample_removed = not bool(self.sample_detected.get())
+                    success = mount_completed and sample_removed
                 if not success:
                     message = "Dismounting failed!"
                     if self.sample_detected.get():
