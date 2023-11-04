@@ -194,11 +194,10 @@ class AuntISARA(AutoMounter):
                 sample_on_gonio = True
                 sample_matches = True
                 if success:
-                    success = self.wait(states={State.STANDBY, State.IDLE}, timeout=120)
-
+                    mount_completed = self.wait(states={State.STANDBY, State.IDLE}, timeout=120)
                     sample_on_gonio = bool(self.sample_detected.get())
                     sample_matches = self.mounted_fbk.get() == port
-                    success &= sample_on_gonio and sample_matches
+                    success = sample_on_gonio and sample_matches and mount_completed
 
                 if not success:
                     message = "Mounting failed!"
@@ -210,8 +209,7 @@ class AuntISARA(AutoMounter):
                 else:
                     self.set_state(message=f'Mounting succeeded: {port}')
                 return success
-            else:
-                return True
+            return True
 
     def dismount(self, wait=False):
         self.power_on()

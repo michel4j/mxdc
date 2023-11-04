@@ -169,26 +169,18 @@ class AutoMounter(Device):
 
         logger.debug('"{}" Waiting for {}'.format(self.name, states_text))
         elapse = time.time() + timeout
-        success = False
-        failed = False
+
         while time.time() <= elapse:
             time.sleep(0.1)
             status = self.get_state('status')
-            if status == State.FAILURE:
-                failed = True
-                break
             if status in states:
-                success = True
                 break
         else:
             logger.warning(f'"{self.name}" timed-out waiting for "{states_text}"')
-            return success
+            return False
 
-        if failed:
-            logger.warning('{} operation failed.'.format(self.name))
-        else:
-            logger.debug(f'"{self.name}": {status} attained ')
-        return success
+        logger.debug(f'"{self.name}": {status} attained ')
+        return True
 
 
     def wait_while(self, *states, timeout=20.0):
@@ -205,24 +197,18 @@ class AutoMounter(Device):
         states_text = "|".join([str(state) for state in states])
 
         logger.debug('"{}" Waiting while {}'.format(self.name, states_text))
-        elapsed = 0
-        status = self.get_state('status')
-        while elapsed <= timeout and status in states:
-            elapsed += 0.05
+        elapse = time.time() + timeout
+        while time.time() <= elapse:
             time.sleep(0.05)
             status = self.get_state('status')
-            if status == State.FAILURE:
+            if status not in states:
                 break
-
-        if elapsed <= timeout:
-            logger.debug('"{}": not {} after {:0.2f}s'.format(self.name, status, elapsed))
-            return True
-        elif status == State.FAILURE:
-            logger.warning('{} operation failed.'.format(self.name))
-            return False
         else:
-            logger.warning('"{}" timed-out waiting in "{}"'.format(self.name, states_text))
+            logger.warning(f'"{self.name}" timed-out waiting in "{states_text}"')
             return False
+
+        logger.debug(f'"{self.name}": not {states} ')
+        return True
 
     def wait(self, states=(State.IDLE,), timeout=60):
         """
