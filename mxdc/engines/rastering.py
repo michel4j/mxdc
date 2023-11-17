@@ -260,7 +260,7 @@ class RasterCollector(Engine):
         owner = misc.get_project_name()
         group = misc.get_group_name()
         params = self.config['params']
-        gonio_gating = False #self.beamline.goniometer.supports(GonioFeatures.GATING)
+        gonio_gating = self.beamline.goniometer.supports(GonioFeatures.GATING)
         if gonio_gating:
             extras = {'num_images': 1, 'num_triggers': params['hsteps']*params['vsteps']}
         else:
