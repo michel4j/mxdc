@@ -157,9 +157,9 @@ class DataCollector(Engine):
             )
             try:
                 if use_shutterless:
-                    self.run_shutterless()
+                    success = self.run_shutterless()
                 else:
-                    self.run_simple()
+                    success = self.run_simple()
             finally:
                 self.beamline.fast_shutter.close()
             self.config['end_time'] = datetime.now(tz=pytz.utc)
@@ -178,10 +178,13 @@ class DataCollector(Engine):
 
             self.beamline.attenuator.move_to(current_attenuation, wait=True)  # restore attenuation
 
-        # Wait for Last image to be transferred
-        for uid, dataset in self.config['datasets'].items():
-            future = self.data_saver.submit(self.save_dataset, dataset, analyse=self.config['analysis'])
-            future.add_done_callback(self.analyse_dataset)
+        if success:
+            # Wait for Last image to be transferred
+            for uid, dataset in self.config['datasets'].items():
+                future = self.data_saver.submit(self.save_dataset, dataset, analyse=self.config['analysis'])
+                future.add_done_callback(self.analyse_dataset)
+        else:
+            self.emit('error', 'Data collection failed. Acquisition aborted.')
 
         self.unwatch_frames()
         self.set_state(busy=False)
@@ -230,14 +233,10 @@ class DataCollector(Engine):
                 self.beamline.detector.configure(**detector_parameters)
                 success = self.beamline.detector.start(first=is_first_frame)
                 if not success:
-                    # Try one more time if it failed the first
-                    success = self.beamline.detector.start()
-
-                if not success:
                     logger.error('Detector did not start!')
                     self.emit('error', 'Detector failed to start. Acquisition aborted.')
                     self.stopped = True
-                    continue
+                    return False
 
                 self.beamline.goniometer.scan(
                     kind='simple',
@@ -254,6 +253,7 @@ class DataCollector(Engine):
                 self.on_progress(None, wedge_progress, '')
                 is_first_frame = False
                 time.sleep(0)
+        return True
 
     def run_shutterless(self):
         is_first_frame = True
@@ -269,7 +269,6 @@ class DataCollector(Engine):
             self.emit('started', wedge)
 
             gonio_gating = self.beamline.goniometer.supports(GonioFeatures.GATING)
-            #gonio_gating = True  # self.beamline.goniometer.supports(GonioFeatures.GATING)
 
             if gonio_gating:
                 extras = {'num_images': 1, 'num_triggers': wedge['num_frames']}
@@ -301,16 +300,11 @@ class DataCollector(Engine):
             logger.debug('Configuring detector for acquisition ...')
             self.beamline.detector.configure(**detector_parameters)
             success = self.beamline.detector.start(first=is_first_frame)
-
-            if not success:
-                # Try one more time if it failed the first
-                success = self.beamline.detector.start()
-
             if not success:
                 logger.error('Detector did not start')
                 self.emit('error', 'Detector failed to start. Acquisition aborted.')
                 self.stopped = True
-                continue
+                return False
 
             # notify automounter that we will be busy for a while
             free_time = wedge['exposure'] * wedge['num_frames']
@@ -330,6 +324,7 @@ class DataCollector(Engine):
             self.beamline.detector.save()
             is_first_frame = False
             time.sleep(0)
+        return True
 
     def take_snapshot(self, params):
         # setup folder

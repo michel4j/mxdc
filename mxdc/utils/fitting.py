@@ -100,6 +100,7 @@ TARGET_FUNC = {
     'step': step_func,
     'decay': decay_func,
     'multi_peak_simple': multi_peak_simple,
+    'multi_peak_gaussian': multi_peak
 }
 
 

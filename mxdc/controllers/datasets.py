@@ -379,7 +379,7 @@ class DatasetsController(Object):
         self.run_store = Gio.ListStore(item_type=RunItem)
         self.run_sg = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)
 
-        self.state_values =         {
+        self.state_values = {
             self.StateType.STARTING: (False, False),
             self.StateType.ACTIVE: (False, True),
             self.StateType.STOPPING: (False, False),

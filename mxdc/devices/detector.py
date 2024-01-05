@@ -217,7 +217,7 @@ class BaseDetector(Device):
         params['num_frames'] = params.get('num_images', 1) * params.get('num_triggers', 1)
         for k, v in params.items():
             if k in self.settings:
-                self.settings[k].put(v)
+                self.settings[k].put(v, wait=True)
 
     def delete(self, directory, prefix, frames=()):
         """
@@ -676,6 +676,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
         self.armed_status = self.add_pv("{}:Armed".format(name))
+
         self.acquire_status = self.add_pv("{}:Acquire".format(name))
         self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name))
         self.energy = self.add_pv(f'{name}:Energy_RBV')
@@ -727,8 +728,13 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
 
     def start(self, first=False):
         logger.debug('{} Starting Acquisition ...'.format(self.name))
-        self.acquire_cmd.put(1)
-        return self.wait_until(States.ARMED, timeout=30)
+        success = False
+        for i in range(3):
+            self.acquire_cmd.put(1)
+            success = self.wait_until(States.ARMED, timeout=10)
+            if success:
+                break
+        return success
 
     def stop(self):
         logger.debug('{} Stopping Detector ...'.format(self.name))
@@ -758,11 +764,13 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
                 self.settings['file_prefix'].get(),
                 frame_number
             )
-            logger.debug(f'Adding frame: {file_path}')
+            logger.debug(f'Adding frame: {frame_number}')
             self.monitor.add(file_path)
 
             # progress
-            num_frames = self.settings['num_images'].get()# * self.settings['num_triggers'].get()
+            num_frames = self.settings['num_images'].get()
+            start_frame = self.settings['start_frame'].get()
+            frame_number = frame_number - start_frame + 1
             self.set_state(progress=(frame_number / num_frames, 'frames acquired'))
 
     def configure(self, **kwargs):
@@ -783,8 +791,6 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         params['num_images'] = images_per_trigger * num_triggers
 
         self.saved_frame.put(0, wait=True)
-        #self.mode_cmd.put(1, wait=True)  # External Enable
-
         if images_per_trigger > 1:
             self.mode_cmd.put(2)    # External Trigger
         else:
