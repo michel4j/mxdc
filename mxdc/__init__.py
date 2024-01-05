@@ -192,18 +192,21 @@ class Object(GObject.GObject, metaclass=ObjectType):
 
     """
 
+    type_name = 'Object'
+
     def __init__(self):
         super().__init__()
         self.name = self.__class__.__name__
         self.__signal_types__ = _get_signal_properties(self)
         self.__state__ = {name: None for name in self.__signal_types__.keys()}
-        self.__identifier__ = ''
+        self.__label__ = ''
 
     def __str__(self):
-        obj_id = hex(id(self))
-        return (
-            f"<{self.__class__.__name__} | {self.name} | {obj_id}/>"
-        )
+        label = self.__label__ if self.__label__ else self.name
+        return f"{self.__class__.__name__} ~ {label}"
+
+    def set_label(self, label):
+        self.__label__ = label
 
     def __repr__(self):
         state_info = '\n'.join(
@@ -213,7 +216,7 @@ class Object(GObject.GObject, metaclass=ObjectType):
         )
         obj_id = hex(id(self))
         return (
-            f"<{self.__class__.__name__} | {self.name} | {obj_id}\n"
+            f"<{self.__class__.__name__}:{self.__label__}:{obj_id}\n"
             f"{state_info}"
             f"\n/>"
         )
@@ -313,6 +316,7 @@ class Device(Object):
             - 16: DISABLED
 
     """
+    type_name = 'Device'
 
     class Signals:
         active = Signal("active", arg_types=(bool,))
@@ -330,12 +334,13 @@ class Device(Object):
         GLib.timeout_add(10000, self.check_inactive)
 
     def do_active(self, state):
-        desc = {True: 'active', False: 'inactive'}
-        logger.info("'{}' is now {}.".format(self.name, desc[state]))
-        if not state and len(self.__pending) > 0:
-            inactive_devs = [dev.name for dev in self.__pending]
-            msg = '[{:d}] inactive variables.'.format(len(inactive_devs))
-            logger.debug("'{}' {}".format(self.name, msg))
+        # Display message for labelled devices
+        if self.__label__:
+            desc = {True: 'active', False: 'inactive'}
+            logger.info(f"{self.type_name} now {desc[state]}: {self}")
+            if not state and len(self.__pending) > 0:
+                inactive_devs = [dev.name for dev in self.__pending]
+                logger.debug(f'Pending components: {self} = [{len(inactive_devs):d}]')
 
     def configure(self, **kwargs):
         """
@@ -392,7 +397,7 @@ class Device(Object):
         if self.__pending:
             inactive = [dev.name for dev in self.__pending]
             self.set_state(health=(16, 'inactive', '{} Inactive'.format(len(inactive))))
-            logger.error(f"'{self.name}':  {len(inactive)} inactive components:")
+            logger.error(f"{self} has {len(inactive)} inactive components:")
             logger.debug(f'{inactive!r}')
 
     def set_state(self, *args, **kwargs):

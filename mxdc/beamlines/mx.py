@@ -59,8 +59,9 @@ class MXBeamline(Beamline):
 
     def setup(self):
         # create sample_video Zoomable camera
-        if not "camera_scale" in self.registry:
+        if "camera_scale" not in self.registry:
             self.registry['camera_scale'] = misc.CamScaleFromZoom(self.sample_zoom, width=self.sample_camera.size[0])
+            self.registry['camera_scale'].set_label('camera_scale')
 
         self.registry['sample_video'] = video.ZoomableCamera(self.sample_camera, self.sample_zoom)
 
@@ -68,14 +69,18 @@ class MXBeamline(Beamline):
         _shutter_list = []
         for nm in self.config['shutter_sequence']:
             _shutter_list.append(self.registry[nm])
+
         self.registry['all_shutters'] = mxdc.devices.shutter.ShutterGroup(*tuple(_shutter_list), close_last=True)
+        self.registry['all_shutters'].set_label('all_shutters')
 
         # default detector cover
-        if not 'detector_cover' in self.registry:
+        if 'detector_cover' not in self.registry:
             self.registry['detector_cover'] = mxdc.devices.shutter.SimShutter('Dummy Detector Cover')
+            self.registry['detector_cover'].set_label('detector_cover')
 
         # detector max resolution
         self.registry['maxres'] = motor.ResolutionMotor(self.energy, self.distance, self.detector.mm_size)
+        self.registry['maxres'].set_label('maxres')
 
         # Setup diagnostics on some devices
         device_list = [

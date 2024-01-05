@@ -31,6 +31,8 @@ logger = get_module_logger(__name__)
 
 
 class BaseService(Device):
+    type_name = 'Service'
+
     def __init__(self):
         super(BaseService, self).__init__()
         self.name = self.__class__.__name__ + ' Service'

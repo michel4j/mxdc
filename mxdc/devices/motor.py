@@ -42,10 +42,10 @@ class BaseMotor(Device):
         target = Signal("target", arg_types=(object, float))
         done = Signal("done", arg_types=())
 
-    def __init__(self, name, *args, precision=2, units=''):
+    def __init__(self, name, *args, precision=2, units='', label=''):
         super().__init__()
         self.name = name
-        self.description = name
+        self.set_label(label)
         self.target_position = 0
         self.previous_position = None
         self.target_master = False  # tracks whether motion was requested from this client
@@ -95,6 +95,9 @@ class BaseMotor(Device):
         """
         return {'speed': None, 'accel': None}
 
+    def get_position(self):
+        return 0.0
+
     def move_to(self, pos, wait=False, force=False):
         """
         Move to an absolute position.
@@ -106,7 +109,7 @@ class BaseMotor(Device):
 
         severity, context, message = self.get_state("health")
         if severity:
-            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self.name, message))
+            logger.warning("'{}' Move Cancelled! Reason: '{}'.".format(self, message))
             return
 
         # Do not move if requested position is within precision error
@@ -120,7 +123,7 @@ class BaseMotor(Device):
         cur_pos = self.get_position()
         self.move_operation(self.target_position)
 
-        logger.debug("'{}' moving from {:g} to {:g}".format(self.name, cur_pos, self.target_position))
+        logger.debug("'{}' moving from {:g} to {:g}".format(self, cur_pos, self.target_position))
 
         if wait:
             self.wait()
@@ -191,7 +194,7 @@ class BaseMotor(Device):
         self.set_state(busy=moving)
 
         if not moving:
-            logger.debug("'{}' stopped at {:g}".format(self.name, self.get_position()))
+            logger.debug(f"{str(self):40} {self.get_position():12.4g} {self.units}")
 
     def on_calibration(self, obj, state):
         """
@@ -237,15 +240,15 @@ class BaseMotor(Device):
         :return: (boolean), True if motor started successfully
         """
         if self.is_starting() and not self.is_busy():
-            logger.debug('Waiting for {} to start '.format(self.name))
+            logger.debug(f'Waiting to start: {self}')
             max_time = time.time() + timeout
             while self.is_starting() and not self.is_busy() and time.time() < max_time:
                 self.poll()
                 if self.has_reached(self.target_position):
-                    logger.debug('{} already at {:g}'.format(self.name, self.target_position))
+                    logger.debug(f"'{self}': {self.get_position():12.4g} {self.units}")
                     break
             if time.time() >= max_time:
-                logger.warning('"{}" Timed out. Did not move after {:g} sec.'.format(self.name, timeout))
+                logger.warning(f'Timed-out after {timeout:4g} sec: {self}')
                 return False
         return True
 
@@ -261,22 +264,21 @@ class BaseMotor(Device):
         elapsed = 0
         max_time = time.time() + timeout
         if target is not None:
-            logger.debug('Waiting for {} to reach {:g}.'.format(self.name, target))
+            logger.debug(f'{self} Waiting to reach target: {target:12.4g} {self.units}')
             while (self.is_busy() or not self.has_reached(target)) and time.time() < max_time:
                 self.poll()
             if time.time() >= max_time:
                 logger.warning(
-                    '"{}" Timed-out. Did not reach {:g} after {:g} sec.'.format(
-                        self.name, self.target_position, timeout)
+                    f'"{self}" Timed-out. Did not reach {self.target_position:g} after {timeout:g} sec.'
                 )
                 return False
         else:
-            logger.debug('Waiting for {} to stop '.format(self.name))
+            logger.debug(f'Waiting to stop: {self}')
             while self.is_busy() and time.time() < max_time:
                 self.poll()
             if time.time() >= max_time:
                 logger.warning(
-                    '"{}" Timed-out. Did not stop moving after {:g} sec.'.format(self.name, timeout)
+                    f'"{self}" Timed-out. Did not stop moving after {timeout:g} sec.'
                 )
                 return False
         return True
@@ -311,7 +313,7 @@ class SimMotor(BaseMotor):
     :param health: initial health tuple
     """
     def __init__(self, name, pos=0, units='mm', speed=5.0, limits=None, active=True, precision=3, health=(0, '', '')):
-        super().__init__(name, precision=precision, units=units)
+        super().__init__(name, precision=precision, units=units, label=name)
 
         self.step_time = .01  # 100 steps per second
         self.speed = speed
@@ -524,7 +526,6 @@ class APSMotor(VMEMotor):
         self.egu_val.connect('changed', self.on_egu)
 
 
-
 class CLSMotor(VMEMotor):
     """
     Ancient CLS type motor records.
@@ -593,7 +594,6 @@ class PseudoMotor(VMEMotor):
 
     def connect_monitors(self):
         super().connect_monitors()
-        self.log_fbk.connect('changed', self.on_log)
 
 
 class ResolutionMotor(BaseMotor):
@@ -604,8 +604,8 @@ class ResolutionMotor(BaseMotor):
     :param distance: distance device
     :param detector_size: detector size in mm
     """
-    def __init__(self, energy, distance, detector_size):
-        super().__init__('Resolution')
+    def __init__(self, energy, distance, detector_size, **kwargs):
+        super().__init__('Resolution', **kwargs)
         self.description = 'Max Detector Resolution'
         self.energy = energy
         self.detector_size = detector_size

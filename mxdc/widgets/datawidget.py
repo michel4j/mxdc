@@ -332,9 +332,13 @@ class DataEditor(gui.BuilderMixin):
         return info
 
     def get_default(self, strategy_type=StrategyType.SINGLE):
-        default = self.form.get_defaults()
         info = Strategy[strategy_type]
         delta, exposure = self.beamline.config.dataset.delta, self.beamline.config.dataset.exposure
+
+        default = self.form.get_defaults()
+        default['delta'] = delta
+        default['exposure'] = exposure
+
         rate = delta / float(exposure)
         if 'delta' not in info:
             info['delta'] = delta

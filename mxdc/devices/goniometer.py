@@ -281,25 +281,25 @@ class MD2Gonio(BaseGoniometer):
         self.state_fbk.connect('changed', self.on_state_changed)
 
         # create additional components
-        self.omega = motor.PseudoMotor(f'{root}:PMTR:omega:deg')
-        self.sample_x = motor.PseudoMotor(f'{root}:PMTR:gonX:mm')
-        self.sample_y1 = motor.PseudoMotor(f'{root}:PMTR:smplY:mm')
-        self.sample_y2 = motor.PseudoMotor(f'{root}:PMTR:smplZ:mm')
-        self.support_y = motor.PseudoMotor(f'{root}:PMTR:gonY:mm')
-        self.support_z = motor.PseudoMotor(f'{root}:PMTR:gonZ:mm')
+        self.omega = motor.PseudoMotor(f'{root}:PMTR:omega:deg', label='gonio.omega')
+        self.sample_x = motor.PseudoMotor(f'{root}:PMTR:gonX:mm', label='gonio.sample_x')
+        self.sample_y1 = motor.PseudoMotor(f'{root}:PMTR:smplY:mm', label='gonio.sample_y1')
+        self.sample_y2 = motor.PseudoMotor(f'{root}:PMTR:smplZ:mm', label='gonio.sample_y2')
+        self.support_y = motor.PseudoMotor(f'{root}:PMTR:gonY:mm', label='gonio.support_y')
+        self.support_z = motor.PseudoMotor(f'{root}:PMTR:gonZ:mm', label='gonio.support_z')
 
         self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2, self.support_y, self.support_z)
 
         if self.supports(GonioFeatures.KAPPA):
-            self.phi = motor.PseudoMotor(f'{root}:PMTR:phi:deg')
-            self.chi = motor.PseudoMotor(f'{root}:PMTR:chi:deg')
-            self.kappa = motor.PseudoMotor(f'{root}:PMTR:kappa:deg')
+            self.phi = motor.PseudoMotor(f'{root}:PMTR:phi:deg', label='gonio.phi')
+            self.chi = motor.PseudoMotor(f'{root}:PMTR:chi:deg', label='gonio.chi')
+            self.kappa = motor.PseudoMotor(f'{root}:PMTR:kappa:deg', label='gonio.kappa')
             self.add_components(self.phi, self.chi, self.kappa)
         self.stage = stages.SampleStage(
-            self.sample_x, self.sample_y1, self.sample_y2, self.omega,
+            self.sample_x, self.sample_y1, self.sample_y2, self.omega, label='gonio.stage',
             invert_x=True, invert_omega=True,
         )
-        self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z)
+        self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z, label='gonio.support')
 
         # config parameters
         self.settings = {

@@ -68,16 +68,6 @@ StrategyDataType = {
     StrategyType.POWDER: 'XRD'
 }
 
-StrategyProcType = {
-    StrategyType.SINGLE: '',
-    StrategyType.FULL: 'proc-native',
-    StrategyType.SCREEN_4: 'proc-screen',
-    StrategyType.SCREEN_3: 'proc-screen',
-    StrategyType.SCREEN_2: 'proc-screen',
-    StrategyType.SCREEN_1: 'proc-screen',
-    StrategyType.POWDER: 'proc-powder'
-}
-
 ScreeningRange = {
     StrategyType.SCREEN_4: 315,
     StrategyType.SCREEN_3: 135,

@@ -218,6 +218,7 @@ class BaseDetector(Device):
         for k, v in params.items():
             if k in self.settings:
                 self.settings[k].put(v, wait=True)
+        time.sleep(2)
 
     def delete(self, directory, prefix, frames=()):
         """
@@ -429,7 +430,6 @@ class ADDectrisMixin(object):
             9: States.ERROR,
             10: States.IDLE,
         }.get(detector_state, States.IDLE)
-
         if armed == 1:
             state = States.ARMED
         self.set_state(state=state)
@@ -658,7 +658,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     :param description: String escription of detector
     """
 
-    READOUT_TIME = 2.05e-3  # minimum readout time
+    READOUT_TIME = 2.5e-3  # minimum readout time
 
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
@@ -729,11 +729,12 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     def start(self, first=False):
         logger.debug('{} Starting Acquisition ...'.format(self.name))
         success = False
-        for i in range(3):
+        tries = 0
+        while not success and tries < 5:
+            tries += 1
             self.acquire_cmd.put(1)
-            success = self.wait_until(States.ARMED, timeout=10)
-            if success:
-                break
+            time.sleep(2)
+            success = self.wait_until(States.ARMED, timeout=2)
         return success
 
     def stop(self):

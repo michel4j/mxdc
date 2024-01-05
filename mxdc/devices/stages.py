@@ -163,21 +163,24 @@ class BaseSampleStage(Device):
 class SampleStage(BaseSampleStage):
     """
     Sample stage based based on x, y1, y2 and omega motors. Y1 and Y2 motors are at 90 degrees.
-
-    :param x: x axis motor
-    :param y1: y1 axis motor
-    :param y2:  y2 axis motor (at 90 degrees from y1)
-    :param omega: omega rotation motor
-    :param name:  name of stage
-    :param offset: offset angle, default 0.0
-    :param linked: bool, if True, motors can't move simultaneously
-    :param invert_x:  bool, invert direction of x translation relative to screen
-    :param clockwise: bool, if True, positive displacement of y2 stage at 90% will move sample down on screen.
     """
 
-    def __init__(self, x, y1, y2, omega, name='Sample Stage', offset=0.0, linked=False, invert_x=False, invert_omega=False):
+    def __init__(self, x, y1, y2, omega, name='Sample Stage', label='stage', offset=0.0, linked=False, invert_x=False, invert_omega=False):
+        """
+        :param x: x axis motor
+        :param y1: y1 axis motor
+        :param y2:  y2 axis motor (at 90 degrees from y1)
+        :param omega: omega rotation motor
+        :param name:  name of stage
+        :param label: description of stage
+        :param offset: offset angle, default 0.0
+        :param linked: bool, if True, motors can't move simultaneously
+        :param invert_x:  bool, invert direction of x translation relative to screen
+        :param invert_omega: Invert directon of omega rotation
+        """
         super().__init__()
         self.name = name
+        self.set_label(label)
         self.x = x
         self.y1 = y1
         self.y2 = y2
@@ -259,9 +262,10 @@ class XYStage(Device):
     class Signals:
         changed = Signal("changed", arg_types=(object,))
 
-    def __init__(self, x, y, name="XY Stage"):
+    def __init__(self, x, y, name="XY Stage", label="stage"):
         super().__init__()
         self.name = name
+        self.set_label(label)
         self.x = x
         self.y = y
         self.moving = False
@@ -338,9 +342,10 @@ class XYZStage(Device):
     class Signals:
         changed = Signal("changed", arg_types=(object,))
 
-    def __init__(self, x, y, z, name="XYZ Stage"):
+    def __init__(self, x, y, z, name="XYZ Stage", label="stage"):
         super().__init__()
         self.name = name
+        self.set_label(label)
         self.x = x
         self.y = y
         self.z = z

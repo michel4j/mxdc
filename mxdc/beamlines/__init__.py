@@ -103,19 +103,22 @@ class Beamline(Object):
             devices = getattr(settings, 'DEVICES', {})
             # Setup devices
             for dev_name, dev in list(devices.items()):
+                dev.set_label(dev_name)
                 self.registry[dev_name] = dev
-                self.logger.debug('Setting up devices: %s' % (dev_name))
+                self.logger.debug(f'Setting up devices: {dev_name}')
 
             # Setup Console-only Devices
             if self.console:
                 devices = getattr(settings, 'CONSOLE', {})
                 for dev_name, dev in list(devices.items()):
+                    dev.set_label(dev_name)
                     self.registry[dev_name] = dev
-                    self.logger.debug('Setting up devices: %s' % (dev_name))
+                    self.logger.debug(f'Setting up devices: {dev_name}')
 
             # Setup services
             services = getattr(settings, 'SERVICES', {})
             for srv_name, srv in list(services.items()):
+                srv.set_label(srv_name)
                 self.registry[srv_name] = srv
                 self.logger.debug('Setting up services: {}'.format(srv_name))
 
