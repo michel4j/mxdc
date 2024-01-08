@@ -698,7 +698,6 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         self.settings = {
             'start_frame': self.add_pv(f"{name}:FileNumber"),
             'num_images': self.add_pv(f'{name}:NumImages'),
-            #'num_triggers': self.add_pv(f'{name}:NumExposures'),
             'file_prefix': self.add_pv(f"{name}:FileName"),
             'directory': self.add_pv(f"{name}:FilePath"),
 
