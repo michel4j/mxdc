@@ -22,6 +22,7 @@ logger = get_module_logger(__name__)
 
 ENERGY_OFFSET = 2.0
 
+
 class XRFScan(BasicScan):
     """
     X-Ray Fluorescence Spectroscopy (XRF) Scan. Sample is exposed at a fixed energy and the
@@ -213,10 +214,16 @@ class MADScan(BasicScan):
                 self.beamline.energy.move_to(self.config.edge_energy)
                 self.beamline.manager.scan(wait=True)
                 self.beamline.mca.configure(
-                    cooling=True, energy=self.config.roi_energy, edge=self.config.edge_energy, dark=True
+                    cooling=True,
+                    energy=self.config.roi_energy,
+                    edge=self.config.edge_energy,
+                    dark=True
                 )
                 if self.config.low_dose:
-                    self.beamline.low_dose.on()
+                    self.emit("progress", 0.02, "Setting attenuataion ...")
+                    attenuation = self.beamline.config.xrf.attenuation
+                    self.beamline.attenuator.move_to(attenuation, wait=True)
+                    self.config.attenuation = attenuation
 
                 self.beamline.energy.wait()
                 self.beamline.bragg_energy.wait()
@@ -259,6 +266,7 @@ class MADScan(BasicScan):
                 self.beamline.fast_shutter.close()
                 logger.info('Edge scan done.')
                 self.beamline.manager.collect()
+                self.beamline.attenuator.move_to(saved_attenuation)
 
     def finalize(self):
         self.data = numpy.array(self.raw_data, dtype=self.data_type)
