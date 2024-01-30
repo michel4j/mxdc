@@ -38,21 +38,21 @@ class BaseCenter(Device):
         """
         return self.get_state('found')
 
-    def wait(self, timeout=5):
+    def wait(self, timeout=2):
         """
         Wait for up to a given amount time for the crystal position to be updated
 
         :param timeout: time to wait
         :return: True if crystal found in the given time
         """
-        self.found_since = 0  # invalidate xtal coords first
 
-        remaining = timeout
-        while time.time() - self.found_since > timeout and remaining > 0:
-            remaining -= 0.01
-            time.sleep(0.01)
-
-        return remaining > 0.0
+        expired = time.time() + timeout
+        self.found_since = 0  # invalidate coords first
+        while time.time() < expired:
+            if self.found_since > 0:
+                return self.get_state('found')
+            time.sleep(0.001)
+        return None
 
 
 class ExtCenter(BaseCenter):
@@ -71,10 +71,12 @@ class ExtCenter(BaseCenter):
         self.h = self.add_pv(f'{root}:h')
         self.label = self.add_pv(f'{root}:label')
         self.status = self.add_pv(f'{root}:status')
-        self.score.connect('changed', self.on_score)
+        self.score.connect('changed', self.on_pos_changed)
 
         Registry.add_utility(ICenter, self)
 
-    def on_score(self, obj, value):
-        if value > self.threshold:
-            self.update_found(self.x.get(), self.y.get(), self.score.get(), self.label.get())
+    def on_pos_changed(self, *args, **kwargs):
+        if self.score.get() > self.threshold:
+            cx = self.x.get() + self.w.get() / 2
+            cy = self.y.get() + self.h.get() / 2
+            self.update_found(cx, cy, self.score.get(), self.label.get())

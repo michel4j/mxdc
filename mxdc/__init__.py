@@ -153,8 +153,8 @@ def _get_signal_properties(itype):
     }
 
 
-#Signal = GObject.Signal
 Property = GObject.Property
+
 
 class Signal(GObject.Signal):
     def __init__(self, name: str, arg_types=Tuple[Any]):
@@ -226,10 +226,6 @@ class Object(GObject.GObject, metaclass=ObjectType):
             super().emit(signal, *args)
         except TypeError as e:
             logger.error("'{}': Invalid parameters for signal '{}': {}".format(self, signal, args))
-
-    # # # FOR diagnosis
-    # def connect(self, signal:str, func, *args, **kwargs):
-    #     return super().connect(signal, check_call(func), *args, **kwargs)
 
     def emit(self, signal: str, *args, force=False):
         """

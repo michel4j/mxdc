@@ -774,6 +774,29 @@
                                           </packing>
                                         </child>
                                         <child>
+                                          <object class="GtkButton" id="microscope_external_btn">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">AI centering</property>
+                                            <property name="relief">none</property>
+                                            <property name="use-underline">True</property>
+                                            <child>
+                                              <object class="GtkImage">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="halign">center</property>
+                                                <property name="icon-name">application-x-appliance-symbolic</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                        <child>
                                           <object class="GtkButton" id="microscope_capillary_btn">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>

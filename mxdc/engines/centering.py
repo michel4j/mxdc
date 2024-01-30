@@ -44,7 +44,6 @@ class Centering(Engine):
         }
 
     def configure(self, method='loop'):
-
         from mxdc.controllers.samplestore import ISampleStore
         from mxdc.engines.rastering import IRasterCollector
 
@@ -59,7 +58,13 @@ class Centering(Engine):
         else:
             self.method = self.center_loop
 
-    def screen_to_mm(self, x, y):
+    def position_to_mm(self, x: int, y: int) -> tuple:
+        """
+        Convert position in pixel coordinates to mm offset from the center
+        :param x: x pixel coordinate
+        :param y: y pixel coordinate
+        :return: Tuple of x, y in mm
+        """
         mm_scale = self.beamline.camera_scale.get()
         cx, cy = numpy.array(self.beamline.sample_video.size) * 0.5
         xmm = (cx - x) * mm_scale
@@ -67,9 +72,17 @@ class Centering(Engine):
         return xmm, ymm
 
     def pixel_to_mm(self, pixels):
+        """
+        Convert pixels to mm
+        :param pixels: single value or array of pixel values
+        :return: Float or array of floats
+        """
         return self.beamline.camera_scale.get() * pixels
 
     def loop_face(self):
+        """
+        Rotate the sample to the widest face of the loop
+        """
         heights = []
         angle, info = self.get_features()
         heights.append((angle, info.get('loop-height', 0.0)))
@@ -112,30 +125,27 @@ class Centering(Engine):
             )
         )
 
-    def center_external(self, low_trials=2, med_trials=2):
+    def center_external(self, label='loop', trials=3):
         """
         External centering device
-        :param low_trials: Number of trials at low resolution
-        :param med_trials: Number of trials at high resolution
+        :param trials: Number of trials to perform
+        :param label: 'loop' or 'crystal'
         """
-        if not self.device:
-            logger.warning('External centering device not present')
+        if not (self.device and self.device.is_active()):
+            logger.warning('External centering device not present/active')
             self.score = 0.0
             return
 
-        trials = 5
         scores = []
         for i in range(trials):
             found = self.device.wait(2)
-            if found:
-                x, y, reliability, label = self.device.fetch()
-                logger.debug(f'... {label} found at {x}, {y}, Confidence={reliability}')
-                scores.append(reliability)
-                if reliability > 0.5:
-                    xmm, ymm = self.screen_to_mm(x, y)
-                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
-                    time.sleep(1.5)
-                    logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+            if found is not None:
+                cx, cy, reliability, label = found
+                logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability}')
+
+                xmm, ymm = self.position_to_mm(cx, cy)
+                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+                logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
             else:
                 reliability = 0.0
             scores.append(reliability)
@@ -162,7 +172,7 @@ class Centering(Engine):
                 logger.warning('Loop not found in field-of-view')
                 logger.warning('Attempting to translate into view')
                 x, y = info['x'], info['y']
-                xmm, ymm = self.screen_to_mm(x, y)
+                xmm, ymm = self.position_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
             else:
                 if i > 2:
@@ -170,7 +180,7 @@ class Centering(Engine):
                 else:
                     x, y = info['x'], info['y']
                 logger.debug('... tip found at {}, {}'.format(x, y))
-                xmm, ymm = self.screen_to_mm(x, y)
+                xmm, ymm = self.position_to_mm(x, y)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
@@ -180,7 +190,7 @@ class Centering(Engine):
             self.loop_face()
             angle, info = self.get_features()
             if info['found'] == 2:
-                xmm, ymm = self.screen_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
+                xmm, ymm = self.position_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
             self.score = info['score']
@@ -286,7 +296,7 @@ class Centering(Engine):
             if 'x' in info and 'y' in info:
                 x = info['x'] - half_width
                 ypix = info['capillary-y'] if 'capillary-y' in info else info['y']
-                xmm, ymm = self.screen_to_mm(x, ypix)
+                xmm, ymm = self.position_to_mm(x, ypix)
                 if j > 4:
                     xmm = 0.0
 

@@ -140,6 +140,7 @@ class AutomationController(Object):
         self.options = {
             'capillary': self.widget.center_cap_option,
             'loop': self.widget.center_loop_option,
+            'external': self.widget.center_ai_option,
             'diffraction': self.widget.center_diff_option,
             'screen': self.widget.analyse_screen_option,
             'process': self.widget.analyse_process_option,
@@ -180,7 +181,7 @@ class AutomationController(Object):
 
     def get_options(self, task_type):
         if task_type == Automator.Task.CENTER:
-            for name in ['loop', 'crystal', 'diffraction', 'capillary']:
+            for name in ['loop', 'crystal', 'diffraction', 'capillary', 'external']:
                 if name in self.options and self.options[name].get_active():
                     return {'method': name}
         elif task_type == Automator.Task.ACQUIRE:

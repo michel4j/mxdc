@@ -87,6 +87,7 @@ class Microscope(Object):
         self.max_fps = 20
         self.fps_update = 0
         self.video_ready = False
+        self.show_annotations = False
         self.viewer = None
         self.last_coord_update = time.time()
         self.actions = Gio.SimpleActionGroup()
@@ -159,11 +160,13 @@ class Microscope(Object):
         self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'loop')
         self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
+        self.widget.microscope_external_btn.connect('clicked', self.on_auto_center, 'external')
 
         self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.goniometer.stage.connect('changed', self.update_overlay_coords)
         self.beamline.sample_zoom.connect('changed', self.update_overlay_coords)
         self.beamline.aperture.connect('changed', self.on_aperture)
+        self.beamline.sample_xcenter.connect('found', self.on_sample_found)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -180,7 +183,7 @@ class Microscope(Object):
 
         # disable centering buttons on click
         self.centering.connect('started', self.on_scripts_started)
-        self.centering.connect('done', self.on_scripts_done)
+        self.centering.connect('done', self.on_centering_done)
 
         # lighting monitors
         self.monitors = []
@@ -231,7 +234,7 @@ class Microscope(Object):
         self.update_overlay_coords()
 
     def save_to_cache(self, *args, **kwargs):
-        config = {k: v for k, v in self.grid_params.items() if k != 'grid'}
+        # config = {k: v for k, v in self.grid_params.items() if k != 'grid'}
         cache = {
             'points': [row[1] for row in self.points],
         }
@@ -405,6 +408,13 @@ class Microscope(Object):
         if response == Gtk.ButtonsType.OK:
             self.remove_objects()
 
+    def on_sample_found(self, obj, cx, cy, score, label):
+        w = self.beamline.sample_xcenter.w.get() / 2.0
+        h = self.beamline.sample_xcenter.h.get() / 2.0
+        coords = numpy.array([[cx - w, cy - h], [cx + w, cy + h]]) * self.video.scale
+        if self.show_annotations:
+            self.video.set_annotations({label: coords})
+
     def on_save_point(self, *args, **kwargs):
         self.add_point(self.beamline.goniometer.stage.get_xyz())
         self.save_to_cache()
@@ -456,6 +466,11 @@ class Microscope(Object):
     def on_scripts_done(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(True)
 
+    def on_centering_done(self, obj, event=None):
+        self.widget.microscope_toolbar.set_sensitive(True)
+        self.show_annotations = False
+        self.video.set_annotations(None)
+
     def on_save(self, obj=None, arg=None):
         filters = {
             'png': dialogs.SmartFilter(name='PNG Image', extension='png'),
@@ -470,6 +485,8 @@ class Microscope(Object):
             self.save_image(img_filename)
 
     def on_auto_center(self, widget, method='loop'):
+        if method == 'external':
+            self.show_annotations = True
         self.centering.configure(method=method)
         self.centering.start()
         return True

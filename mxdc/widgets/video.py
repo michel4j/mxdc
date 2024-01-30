@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import time
+from enum import Enum
 
 import gi
 import numpy
-from enum import Enum
 from PIL import Image
 
 gi.require_version('Gtk', '3.0')
@@ -48,12 +50,11 @@ class VideoWidget(Gtk.DrawingArea):
         self.pixel_size = pixel_size
         self.mm_scale = 1.0
 
-        self.overlays = {}  # keys 'beam', 'ruler', 'box', 'grid', 'points'
+        self.overlays = {}  # keys 'beam', 'ruler', 'box', 'grid', 'points', 'annotations'
         self.image = None
 
         self.this_surface = None
         self.next_surface = None
-
 
         self.save_file = None
         self.stopped = False
@@ -108,7 +109,7 @@ class VideoWidget(Gtk.DrawingArea):
         :return: tuple containing x and y image pixel coordinates
         """
 
-        return x/self.scale, y/self.scale
+        return x / self.scale, y / self.scale
 
     def pix_to_mm(self, x: float, y: float) -> tuple:
         """
@@ -130,9 +131,9 @@ class VideoWidget(Gtk.DrawingArea):
         :param width: display width
         """
         video_width, video_height = self.camera.size
-        height = int(video_height/video_width * width)
+        height = int(video_height / video_width * width)
         self.set_size_request(width, height)
-        #self.update_size(width, height)
+        # self.update_size(width, height)
 
     def update_size(self, width, height):
         video_width, video_height = self.camera.size
@@ -143,7 +144,7 @@ class VideoWidget(Gtk.DrawingArea):
 
     def do_configure_event(self, event):
         video_width, video_height = self.camera.size
-        aspect_ratio = video_width/video_height
+        aspect_ratio = video_width / video_height
         width_for_height = int(event.height * aspect_ratio)
         height_for_width = int(event.width / aspect_ratio)
 
@@ -159,7 +160,7 @@ class VideoWidget(Gtk.DrawingArea):
         self.mm_scale = self.pixel_size / self.scale
         self.ready = True
 
-        #print(event.width, event.height, self.size)
+        # print(event.width, event.height, self.size)
 
     def on_destroy(self, obj):
         self.camera.del_sink(self)
@@ -186,7 +187,7 @@ class VideoWidget(Gtk.DrawingArea):
 
             img = img.convert('RGB')
         except (OSError, ValueError):
-            pass    # silently ignore bad images
+            pass  # silently ignore bad images
         else:
             self.next_surface = image_to_surface(img)
             GLib.idle_add(self.queue_draw)
@@ -226,7 +227,7 @@ class VideoWidget(Gtk.DrawingArea):
             self.overlays.pop('beam', None)
         self.queue_draw()
 
-    def set_overlay_points(self, points = None):
+    def set_overlay_points(self, points=None):
         """
         Set the overlay points parameters
         :param points: numpy xyz array
@@ -263,6 +264,17 @@ class VideoWidget(Gtk.DrawingArea):
             self.overlays.pop('box', None)
         self.queue_draw()
 
+    def set_annotations(self, annotations: dict | None = None):
+        """
+        Set the ruler coordinates
+        :param annotations: maps labels to coordinate tuples
+        """
+        if annotations is not None:
+            self.overlays['annotations'] = annotations
+        else:
+            self.overlays.pop('annotations', None)
+        self.queue_draw()
+
     def set_overlay_ruler(self, coords: tuple = None):
         """
         Set the ruler coordinates
@@ -288,6 +300,7 @@ class VideoWidget(Gtk.DrawingArea):
             self.draw_beam(ctx)
             self.draw_ruler(ctx)
             self.draw_box(ctx)
+            self.draw_annotation(ctx)
             self.draw_points(ctx)
             self.draw_grid(ctx)
 
@@ -310,7 +323,7 @@ class VideoWidget(Gtk.DrawingArea):
         radius = self.overlays['beam'] * 0.5 / self.get_mm_scale()
         tick_start = radius * 0.7
         tick_size = radius * 0.6
-        cx, cy = self.size/2
+        cx, cy = self.size / 2
 
         cr.set_source_rgba(1.0, 0.25, 0.0, 1.0)
         cr.set_line_width(1.5)
@@ -342,7 +355,7 @@ class VideoWidget(Gtk.DrawingArea):
 
         label = '{:0.0f} µm'.format(dist)
         xb, yb, w, h = cr.text_extents(label)[:4]
-        cr.move_to(x1 - w*(int(x2>x1) + xb/w), y1 - h*(int(y2>y1) + yb/h))
+        cr.move_to(x1 - w * (int(x2 > x1) + xb / w), y1 - h * (int(y2 > y1) + yb / h))
         cr.show_text(label)
 
     def draw_box(self, cr):
@@ -359,22 +372,48 @@ class VideoWidget(Gtk.DrawingArea):
         cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
 
         cr.set_operator(cairo.OPERATOR_DIFFERENCE)
-        cr.rectangle(x1, y1, x2-x1, y2-y1)
+        cr.rectangle(x1, y1, x2 - x1, y2 - y1)
         cr.stroke()
-
 
         # width
         width = 1e3 * self.get_mm_scale() * abs(x2 - x1)
         w_label = '{:0.0f} µm'.format(width)
         xb, yb, w, h = cr.text_extents(w_label)[:4]
-        cr.move_to(cx - w/2, y1 - h/2)
+        cr.move_to(cx - w / 2, y1 - h / 2)
         cr.show_text(w_label)
 
         # height
         height = 1e3 * self.get_mm_scale() * abs(y2 - y1)
         h_label = '{:0.0f} µm'.format(height)
-        cr.move_to(x2 + h/2, cy)
+        cr.move_to(x2 + h / 2, cy)
         cr.show_text(h_label)
+        cr.set_operator(cairo.OPERATOR_OVER)
+
+    def draw_annotation(self, cr):
+        if self.overlays.get('annotations') is None:
+            return
+
+        cr.set_font_size(9)
+        cr.set_line_width(1.0)
+
+        cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+
+        # rectangle
+        cr.set_operator(cairo.OPERATOR_DIFFERENCE)
+        for label, coords in self.overlays['annotations'].items():
+            (x1, y1), (x2, y2) = coords
+            cr.rectangle(x1, y1, x2 - x1, y2 - y1)
+            cr.stroke()
+
+            # label
+            label = label.upper()
+            xb, yb, w, h = cr.text_extents(label)[:4]
+            cr.rectangle(x1 + 0.5, y1 + 0.5, w + 4, h + 4)
+            cr.fill()
+
+            cr.move_to(x1 + xb + 2, y1 - yb + 2)
+            cr.show_text(label)
+
         cr.set_operator(cairo.OPERATOR_OVER)
 
     def draw_grid(self, cr):
@@ -384,7 +423,7 @@ class VideoWidget(Gtk.DrawingArea):
         grid = self.overlays['grid']
         radius = self.overlays['beam'] * 0.5 / self.mm_scale
         width = 2 * radius
-        font_size = min(width/3.15, 10)
+        font_size = min(width / 3.15, 10)
 
         coords = grid.get('coords')
         scores = grid.get('scores')
@@ -403,14 +442,14 @@ class VideoWidget(Gtk.DrawingArea):
             except IndexError:
                 continue
 
-            ox, oy = x-radius, y-radius
+            ox, oy = x - radius, y - radius
             if scores is not None and scores[ij] >= 0:
                 cr.set_source_rgba(*self.colormap.rgba_values(scores[ij], alpha=0.65))
                 cr.rectangle(ox, oy, width, width)
                 cr.fill()
             else:
                 cr.set_source_rgba(0.5, 0.5, 0.5, 0.35)
-                cr.rectangle(ox, oy, width-0.5, width-0.5)
+                cr.rectangle(ox, oy, width - 0.5, width - 0.5)
                 cr.fill()
 
             if font_size > 6:
@@ -438,14 +477,13 @@ class VideoWidget(Gtk.DrawingArea):
             cr.arc(x, y, max(radii[i], 4), 0, 2.0 * 3.14)
             cr.fill()
             cr.move_to(x + 6, y)
-            label = f'P{i+1}'
+            label = f'P{i + 1}'
             xb, yb, w, h = cr.text_extents(label)[:4]
             cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
             cr.set_source_rgba(1, 0.25, 0.25, 1)
             cr.set_operator(cairo.OPERATOR_DIFFERENCE)
             cr.show_text(label)
             cr.set_operator(cairo.OPERATOR_OVER)
-
 
 
 @Gtk.Template.from_resource('/org/gtk/mxdc/data/video_view.ui')
@@ -459,23 +497,17 @@ class VideoView(Gtk.Window):
         self.beamline = beamline
         self.canvas = VideoWidget(camera=self.beamline.sample_camera, pixel_size=self.beamline.camera_scale.get())
 
-        self.canvas.props.valign =  Gtk.Align.FILL
+        self.canvas.props.valign = Gtk.Align.FILL
         self.canvas.props.halign = Gtk.Align.FILL
 
         self.video_frame.add(self.canvas)
         self.canvas.set_src(self.beamline.sample_camera)
-        self.canvas.set_overlay_beam(self.beamline.aperture.get_position()/1000.)
+        self.canvas.set_overlay_beam(self.beamline.aperture.get_position() / 1000.)
         self.beamline.camera_scale.connect('changed', self.on_camera_scale)
         self.video_frame.show_all()
-
 
     def on_camera_scale(self, obj, value):
         self.canvas.set_pixel_size(value)
 
     def do_configure_event(self, event):
         self.canvas.queue_resize()
-
-
-
-
-
