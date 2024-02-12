@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import time
 import traceback
 import uuid
 from datetime import datetime
+from typing import Any
 
 import cv2
 import numpy
 import scipy.stats
-from scipy.ndimage import gaussian_filter
 
-from mxdc import Registry, Engine
+from mxdc import Registry, Engine, Device
 from mxdc.devices.interfaces import ICenter
 from mxdc.utils import imgproc, datatools, converter
 from mxdc.utils.log import get_module_logger
@@ -28,6 +30,11 @@ MAX_TRIES = 5
 
 
 class Centering(Engine):
+    sample_store: Any
+    collector: Engine | None
+    device: Device | None
+    method: callable
+    score: float
 
     def __init__(self):
         super().__init__()
@@ -54,7 +61,7 @@ class Centering(Engine):
         if method in self.methods:
             self.method = self.methods[method]
         elif self.device:
-            self.method = self.center_external()
+            self.method = self.center_external
         else:
             self.method = self.center_loop
 
@@ -83,17 +90,17 @@ class Centering(Engine):
         """
         Rotate the sample to the widest face of the loop
         """
-        heights = []
-        angle, info = self.get_features()
-        heights.append((angle, info.get('loop-height', 0.0)))
-        for i in range(5):
-            self.beamline.goniometer.omega.move_by(20, wait=True)
-            angle, info = self.get_features()
-            heights.append((angle, info.get('loop-height', 0.0)))
 
-        values = numpy.array(heights)
-        best = values[numpy.argmax(values[:, 1]), 0]
-        self.beamline.goniometer.omega.move_to(best, wait=True)
+        start_angle = self.beamline.goniometer.omega.get_position()
+        recorder = imgproc.LoopRecorder(self.beamline)
+        recorder.start()
+        self.beamline.goniometer.omega.move_by(180, wait=True)
+        recorder.stop()
+
+        heights = recorder.get_heights()
+        angles = numpy.linspace(start_angle, start_angle + 180, len(heights))
+        face_angle = angles[numpy.argmin(heights)] - 90
+        self.beamline.goniometer.omega.move_to(face_angle, wait=True)
 
     def get_video_frame(self):
         self.beamline.goniometer.wait(start=False, stop=True)
@@ -153,7 +160,7 @@ class Centering(Engine):
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
-        self.score = 100*numpy.mean(scores)
+        self.score = 100 * numpy.mean(scores)
 
     def center_loop(self, trials=4, face=True):
         self.beamline.sample_frontlight.set_off()
@@ -188,7 +195,6 @@ class Centering(Engine):
 
         # Center in loop on loop face
         if not failed:
-            self.beamline.sample_video.zoom(zoom + 1, wait=True)  # higher zoom gives better ellipses
             self.loop_face()
             angle, info = self.get_features()
             if info['found'] == 2:
@@ -196,11 +202,14 @@ class Centering(Engine):
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
             self.score = info['score']
-            return info
+
         else:
             self.score = 0.0
             logger.error('Sample not found. Centering Failed!')
-            return {}
+            info = {}
+
+        self.beamline.sample_frontlight.set_on()
+        return info
 
     def center_crystal(self):
         return self.center_loop()
@@ -219,8 +228,8 @@ class Centering(Engine):
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
         exposure = self.beamline.config.raster.exposure
-        det_exp_limit = 1/self.beamline.config.raster.max_freq
-        mtr_exp_limit = aperture*1e-3/self.beamline.config.raster.max_speed
+        det_exp_limit = 1 / self.beamline.config.raster.max_freq
+        mtr_exp_limit = aperture * 1e-3 / self.beamline.config.raster.max_speed
         exposure = max(exposure, det_exp_limit, mtr_exp_limit)
 
         for step in ['face', 'edge']:
@@ -229,7 +238,7 @@ class Centering(Engine):
             if step == 'edge':
                 self.beamline.goniometer.omega.move_by(90, wait=True)
             angle, info = self.get_features()
-            width = self.pixel_to_mm(1.75*abs(info['x'] - info['loop-x'])) * 1e3  # in microns
+            width = self.pixel_to_mm(1.75 * abs(info['x'] - info['loop-x'])) * 1e3  # in microns
             height = self.pixel_to_mm(info['loop-height']) * 1e3  # in microns
             width = max(width, height)
 
@@ -251,9 +260,9 @@ class Centering(Engine):
 
             }
             if step == 'edge':
-                params.update({'hsteps': 1, 'vsteps':   int(height*2//aperture)})
+                params.update({'hsteps': 1, 'vsteps': int(height * 3 // aperture)})
             else:
-                params.update({'hsteps': int(width*1.2//aperture), 'vsteps': int(height*1.2//aperture)})
+                params.update({'hsteps': int(width * 1.2 // aperture), 'vsteps': int(height * 1.2 // aperture)})
 
             params = datatools.update_for_sample(
                 params, sample=self.sample_store.get_current(), session=self.beamline.session_key
@@ -268,7 +277,7 @@ class Centering(Engine):
 
             grid_config = self.collector.get_grid()
 
-            grid_scores = grid_config['grid_scores'] #gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
+            grid_scores = grid_config['grid_scores']  # gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
             best = numpy.unravel_index(grid_scores.argmax(axis=None), grid_scores.shape)
 
             best_score = grid_scores[best]

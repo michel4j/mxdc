@@ -1,5 +1,67 @@
+import time
 import cv2
 import numpy
+from threading import Thread
+
+
+class LoopRecorder:
+    """
+    An Object that records the loop width and height from the sample video feed
+    """
+    def __init__(self, beamline):
+        super().__init__()
+        self.beamline = beamline
+        self.widths = []
+        self.heights = []
+        self.running = False
+
+    def run(self):
+        """
+        Run the loop recorder and record the loop width and height
+        """
+        self.running = True
+        self.widths = []    # Clear the previous data
+        self.heights = []
+        while self.running:
+            self.beamline.sample_video.fetch_frame()
+            raw = self.beamline.sample_video.get_frame()
+            frame = cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
+            info = get_loop_features(frame, orientation=self.beamline.config.orientation)
+            self.widths.append(info['loop-width'])
+            self.heights.append(info['loop-height'])
+            time.sleep(0.0)
+
+    def get_widths(self):
+        """
+        Get the recorded loop widths
+        """
+        return numpy.array(self.widths)
+
+    def get_heights(self):
+        """
+        Get the recorded loop heights
+        """
+        return numpy.array(self.heights)
+
+    def start(self):
+        """
+        Start the loop recorder in a separate thread
+        """
+        if not self.running:
+            worker_thread = Thread(target=self.run, daemon=True, name=self.__class__.__name__)
+            worker_thread.start()
+
+    def stop(self):
+        """
+        Stop the loop recorder
+        """
+        self.running = False
+
+    def is_running(self):
+        return self.running
+
+    def __del__(self):
+        self.stop()
 
 
 def get_loop_features(orig, offset=10, scale=0.5, orientation='left'):
@@ -11,7 +73,7 @@ def get_loop_features(orig, offset=10, scale=0.5, orientation='left'):
     gray = cv2.cvtColor(clean, cv2.COLOR_BGR2GRAY)
     thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 3)
     edges = cv2.bitwise_not(cv2.dilate(thresh, None, 10))
-    avg, stdev = cv2.meanStdDev(gray)
+    avg, stddev = cv2.meanStdDev(gray)
 
     edges[:offset, :] = 0
     edges[-offset:, :] = 0
@@ -21,8 +83,8 @@ def get_loop_features(orig, offset=10, scale=0.5, orientation='left'):
 
     info = {
         'mean': avg,
-        'std': stdev,
-        'signal': avg / stdev,
+        'std': stddev,
+        'signal': avg / stddev,
         'found': 0,                 # 0 = nothing found, 1 = tip found, 2 = ellipse fitted.
         'center-x': tip_x / scale,
         'center-y': tip_y / scale,
