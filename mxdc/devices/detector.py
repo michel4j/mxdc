@@ -655,10 +655,10 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
     :param name: Root process variable name
     :param size: detector size tuple in pixels
     :param detector_type: string representing the detector type, e.g. 'PILATUS 6M'
-    :param description: String escription of detector
+    :param description: String description of detector
     """
 
-    READOUT_TIME = 2.5e-3  # minimum readout time
+    READOUT_TIME = 5.0e-3  # minimum readout time
 
     def __init__(self, name, size=(2463, 2527), detector_type='PILATUS 6M', description='PILATUS Detector'):
         super().__init__()
@@ -738,7 +738,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
 
     def stop(self):
         logger.debug('{} Stopping Detector ...'.format(self.name))
-        self.acquire_cmd.put(0)
+        #self.acquire_cmd.put(0)
         return self.wait_while()
 
     def get_origin(self):
@@ -749,8 +749,9 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         return f'{prefix}_{{:0{self.FRAME_DIGITS}d}}.{extension}'
 
     def save(self, wait=False):
+        time.sleep(2)
         logger.debug('({}) Acquisition completed ...'.format(self.name))
-        self.acquire_cmd.put(0)
+        #self.acquire_cmd.put(0)
         self.wait_until(States.IDLE)
 
     def on_new_frame(self, obj, frame_number):

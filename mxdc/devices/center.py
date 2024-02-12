@@ -5,6 +5,7 @@ from zope.interface import implementer
 from mxdc import Device, Signal, Registry
 from .interfaces import ICenter
 
+MIN_WIDTH = 20
 
 @implementer(ICenter)
 class BaseCenter(Device):
@@ -76,7 +77,7 @@ class ExtCenter(BaseCenter):
         Registry.add_utility(ICenter, self)
 
     def on_pos_changed(self, *args, **kwargs):
-        if self.score.get() > self.threshold:
+        if self.score.get() > self.threshold and self.w.get() > MIN_WIDTH:
             cx = self.x.get() + self.w.get() / 2
             cy = self.y.get() + self.h.get() / 2
             self.update_found(cx, cy, self.score.get(), self.label.get())

@@ -281,7 +281,6 @@ class RasterController(Object):
             image_viewer.open_dataset(os.path.join(config['grid_params']['directory'], item['filename']))
             self.beamline.goniometer.stage.move_xyz(item['x_pos'], item['y_pos'], item['z_pos'], wait=False)
 
-
     def on_grid_changed(self, obj, param):
         params = self.microscope.grid_params
         if params is not None and 'width' in params and 'height' in params:

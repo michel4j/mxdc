@@ -155,17 +155,19 @@ class Centering(Engine):
 
         self.score = 100*numpy.mean(scores)
 
-    def center_loop(self, trials=5, face=True):
+    def center_loop(self, trials=4, face=True):
         self.beamline.sample_frontlight.set_off()
         zoom = self.beamline.config.zoom.centering
 
         # Find tip of loop at low and high zoom
         failed = False
-        self.beamline.sample_video.zoom(zoom, wait=True)
         for i in range(trials):
             if i != 0:
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+
+            if i == 4:
+                self.beamline.sample_video.zoom(zoom, wait=True)
 
             angle, info = self.get_features()
             if info['found'] == 0:
@@ -216,12 +218,11 @@ class Centering(Engine):
 
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
-        exposure =  self.beamline.config.raster.exposure
+        exposure = self.beamline.config.raster.exposure
         det_exp_limit = 1/self.beamline.config.raster.max_freq
         mtr_exp_limit = aperture*1e-3/self.beamline.config.raster.max_speed
         exposure = max(exposure, det_exp_limit, mtr_exp_limit)
 
-        #self.beamline.goniometer.omega.move_by(90, wait=True)
         for step in ['face', 'edge']:
             logger.info('Performing raster scan on {}'.format(step))
             self.beamline.goniometer.wait(start=False)
@@ -230,6 +231,7 @@ class Centering(Engine):
             angle, info = self.get_features()
             width = self.pixel_to_mm(1.75*abs(info['x'] - info['loop-x'])) * 1e3  # in microns
             height = self.pixel_to_mm(info['loop-height']) * 1e3  # in microns
+            width = max(width, height)
 
             params = {
                 'name': datetime.now().strftime('%y%m%d-%H%M'),
@@ -258,7 +260,7 @@ class Centering(Engine):
             )
             logger.info('Finding best diffraction spot in grid')
             self.collector.configure(params)
-            self.collector.run(centering=(step == "edge"))
+            self.collector.run(switch_to_center=(step == "edge"))
 
             # wait for results
             while not self.collector.is_complete():

@@ -174,7 +174,11 @@ class RasterCollector(Engine):
         res.connect('failed', self.on_raster_failed)
         res.connect('done', self.on_raster_done)
 
-    def run(self, centering=False):
+    def run(self, switch_to_center=True):
+        """
+        Run the rastering engine
+        :param switch_to_center: if True, return to centering mode after the scan is complete
+        """
         self.complete = False
         if not self.results_active:
             Thread(target=self.result_processor, daemon=True).start()  # Start result thread
@@ -192,16 +196,13 @@ class RasterCollector(Engine):
                     self.acquire_step()
 
                 time.sleep(1)
-                #self.beamline.goniometer.stage.move_xyz(*self.config['params']['origin'], wait=True)
-                #self.beamline.goniometer.omega.move_to(self.config['params']['angle'], wait=True)
 
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.detector.stop()
-                if not centering:
-                    self.beamline.low_dose.off()
+                self.beamline.low_dose.off()
+                if switch_to_center:
                     self.beamline.manager.center(wait=True)
-
 
         if self.stopped:
             self.emit('stopped', None)
@@ -215,7 +216,6 @@ class RasterCollector(Engine):
             if self.stopped: break
 
             # Prepare image header
-            template = self.beamline.detector.get_template(self.config['params']['name'])
             owner = misc.get_project_name()
             group = misc.get_group_name()
             detector_parameters = {
