@@ -102,11 +102,19 @@ def get_loop_features(orig, offset=10, scale=0.5, orientation='left'):
             profiles[i, :] = (cols[i], mini, maxi, maxi - mini, (maxi + mini) // 2)
             cv2.line(edges, (cols[i], mini), (cols[i], maxi), (128, 0, 255), 1)
 
-        search_width = width / 5
-        idx = 3
+        size = profiles[:, 3].max()
+        cap_tips = numpy.argwhere(profiles[:, 3] <= size / 2)
+
+        info['capillary-y'] = profiles[:, 4].mean() / scale
+        info['capillary-size'] = size / scale
+        if cap_tips.size > 0:
+           info['capillary-x'] = (cap_tips[0][0] - width) / scale
+        else:
+            info['capillary-x'] = (width // 2) / scale
+
         valid = (
-            (numpy.abs(profiles[:, idx] - profiles[:, idx].mean()) < 2 * profiles[:, idx].std())
-            & (profiles[:, idx] < 0.8 * height)
+            (numpy.abs(profiles[:, 3] - profiles[:, 3].mean()) < 2 * profiles[:, 3].std())
+            & (profiles[:, 3] < 0.8 * height)
         )
         if valid.sum() > 5:
             profiles = profiles[valid]
@@ -116,6 +124,7 @@ def get_loop_features(orig, offset=10, scale=0.5, orientation='left'):
 
         info['x'] = tip_x / scale
         info['y'] = tip_y / scale
+        search_width = width / 5
         valid = (profiles[:, 0] >= tip_x - search_width)
 
         vertices = numpy.concatenate((

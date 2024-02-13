@@ -100,7 +100,7 @@ class Centering(Engine):
         heights = recorder.get_heights()
         angles = numpy.linspace(start_angle, start_angle + 180, len(heights))
         face_angle = angles[numpy.argmin(heights)] - 90
-        self.beamline.goniometer.omega.move_to(face_angle, wait=True)
+        self.beamline.goniometer.omega.move_to(face_angle % 360, wait=True)
 
     def get_video_frame(self):
         self.beamline.goniometer.wait(start=False, stop=True)
@@ -145,66 +145,61 @@ class Centering(Engine):
 
         scores = []
         for i in range(trials):
+            last_trial = (i == trials - 1)
+            if i > 0 and not last_trial:
+                cur_pos = self.beamline.goniometer.omega.get_position()
+                self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+            elif last_trial:
+                self.loop_face()
+
             found = self.device.wait(2)
             if found is not None:
                 cx, cy, reliability, label = found
                 logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability}')
-
                 xmm, ymm = self.position_to_mm(cx, cy)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
             else:
                 reliability = 0.0
+                logger.warning('... No object found in field-of-view')
             scores.append(reliability)
-            if i < (trials - 1):
-                cur_pos = self.beamline.goniometer.omega.get_position()
-                self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
         self.score = 100 * numpy.mean(scores)
 
-    def center_loop(self, trials=4, face=True):
+    def center_loop(self, trials=4):
         self.beamline.sample_frontlight.set_off()
-        zoom = self.beamline.config.zoom.centering
 
-        # Find tip of loop at low and high zoom
-        failed = False
+        # Find tip of loop
+        failed = True
+        info = {}
         for i in range(trials):
-            if i != 0:
+            last_trial = (i == trials - 1)
+            if 0 < i < trials - 1:
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
-
-            if i == 4:
-                self.beamline.sample_video.zoom(zoom, wait=True)
+            elif last_trial and not failed:
+                self.loop_face()
 
             angle, info = self.get_features()
+            self.score = info.get('score', 0.0)
+            failed = (info['found'] == 0)
+
             if info['found'] == 0:
                 logger.warning('Loop not found in field-of-view')
                 logger.warning('Attempting to translate into view')
                 x, y = info['x'], info['y']
-                xmm, ymm = self.position_to_mm(x, y)
-                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-            else:
-                if i > 2:
-                    x, y = info['x'], info['loop-y']
-                else:
-                    x, y = info['x'], info['y']
+            elif not last_trial:
+                x, y = info['x'], info['y'] if i == 0 else info.get('loop-y', info['y'])
                 logger.debug('... tip found at {}, {}'.format(x, y))
-                xmm, ymm = self.position_to_mm(x, y)
-                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-                logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+            elif last_trial and info['found'] == 2:
+                x, y = info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y'))
+            else:
+                continue
+            xmm, ymm = self.position_to_mm(x, y)
+            self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+            logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
 
-        # Center in loop on loop face
-        if not failed:
-            self.loop_face()
-            angle, info = self.get_features()
-            if info['found'] == 2:
-                xmm, ymm = self.position_to_mm(info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y')))
-                self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-                logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-            self.score = info['score']
-
-        else:
-            self.score = 0.0
+        if failed:
             logger.error('Sample not found. Centering Failed!')
             info = {}
 
@@ -293,28 +288,44 @@ class Centering(Engine):
         self.beamline.low_dose.off()
         self.score = numpy.mean(scores)
 
-    def center_capillary(self):
-        zoom = self.beamline.config.zoom.centering
+    def center_capillary(self, trials=5):
         self.beamline.sample_frontlight.set_off()
-        self.beamline.sample_video.zoom(zoom, wait=True)
 
-        scores = []
+        # Find tip of loop
+        failed = True
+        info = {}
         half_width = self.beamline.sample_video.size[0] // 2
-        for j in range(8):
-            self.beamline.goniometer.stage.wait()
-            self.beamline.goniometer.omega.move_by(90, wait=True)
-            angle, info = self.get_features()
-            if 'x' in info and 'y' in info:
-                x = info['x'] - half_width
-                ypix = info['capillary-y'] if 'capillary-y' in info else info['y']
-                xmm, ymm = self.position_to_mm(x, ypix)
-                if j > 4:
-                    xmm = 0.0
+        for i in range(trials):
+            last_trial = (i == trials - 1)
+            if i > 0 and not last_trial:
+                cur_pos = self.beamline.goniometer.omega.get_position()
+                self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
-                if not self.beamline.goniometer.stage.is_busy():
-                    self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0)
-                scores.append(1.0)
+            angle, info = self.get_features()
+
+            if info['found']:
+                failed = False
+                x, y = info['capillary-x'], info['capillary-y']
+                logger.debug('... capillary found at {}, {}'.format(x, y))
+            elif i == 0:
+                x, y = info['x'], info['y']
+                if x <= half_width:
+                    logger.warning('Capillary does not fill view')
+                    logger.warning('Attempting to translate')
+                    x = 0
+                logger.warning('Capillary not found in field-of-view')
             else:
-                scores.append(0.5 if 'x' in info or 'y' in info else 0.0)
-            logger.debug('Centering: {}'.format(info))
-        self.score = numpy.mean(scores)
+                continue
+
+
+            xmm, ymm = self.position_to_mm(x, y)
+            self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+            logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+
+        self.score = info.get('score', 0.0)
+        if failed:
+            logger.error('Capillary not found. Centering Failed!')
+            info = {}
+
+        self.beamline.sample_frontlight.set_on()
+        return info
