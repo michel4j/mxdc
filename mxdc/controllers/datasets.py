@@ -444,7 +444,6 @@ class DatasetsController(Object):
             pos += 1
             item = self.run_store.get_item(pos)
 
-
     def create_run_config(self, item):
         config = datawidget.RunConfig()
         self.run_sg.add_widget(config.data_title_box)
@@ -484,6 +483,7 @@ class DatasetsController(Object):
         if item.state == item.StateType.ADD and num_items < MAX_RUNS:
             energy = self.beamline.bragg_energy.get_position()
             distance = self.beamline.distance.get_position()
+            start_angle = self.beamline.goniometer.omega.get_position()
             resolution = converter.dist_to_resol(
                 distance, self.beamline.detector.mm_size, energy
             )
@@ -504,6 +504,7 @@ class DatasetsController(Object):
             config.update({
                 'energy': energy,
                 'attenuation': attenuation,
+                'start': start_angle,
             })
             self.add_new_run(config)
         else:
@@ -758,8 +759,10 @@ class DatasetsController(Object):
             root = sample.get('name', 'test')
 
             energy = self.beamline.energy.get_position()
+            start_angle = self.beamline.goniometer.omega.get_position()
             info.update({
                 'energy': energy,
+                'start': start_angle,
                 'name': self.names.get(root),
                 'notes': ''
             })
