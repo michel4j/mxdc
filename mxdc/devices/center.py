@@ -7,6 +7,7 @@ from .interfaces import ICenter
 
 MIN_WIDTH = 20
 
+
 @implementer(ICenter)
 class BaseCenter(Device):
     class Signals:
@@ -81,3 +82,15 @@ class ExtCenter(BaseCenter):
             cx = self.x.get() + self.w.get() / 2
             cy = self.y.get() + self.h.get() / 2
             self.update_found(cx, cy, self.score.get(), self.label.get())
+
+
+class SimCenter(BaseCenter):
+    """
+    A simulated centering device.
+    """
+
+    def __init__(self, root, threshold=0.5):
+        super().__init__(threshold=threshold)
+        self.name = root
+
+        Registry.add_utility(ICenter, self)
