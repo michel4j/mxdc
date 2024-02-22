@@ -2,8 +2,11 @@ import random
 import time
 
 import numpy
-from zope.interface import implementer
+import gi
+gi.require_version('GLib', '2.0')
 
+from gi.repository import GLib
+from zope.interface import implementer
 from mxdc import Signal, Device, Property
 from mxdc.devices.interfaces import IStorageRing
 from mxdc.devices.misc import logger
@@ -32,9 +35,13 @@ class BaseStorageRing(Device):
     mode = Property(type=int, default=0)
     state = Property(type=int, default=0)
     message = Property(type=str, default='')
+    uri = Property(type=str, default='')
 
     def __init__(self):
         super().__init__()
+
+    def get_uri(self):
+        return self.uri
 
     def check_ready(self, *args, **kwargs):
         return True
@@ -60,18 +67,22 @@ class BaseStorageRing(Device):
 class StorageRing(BaseStorageRing):
     """
     EPICS Storage Ring Device
-
-    :param current_pv: Ring current PV name
-    :param mode_pv:  Ring mode PV name
-    :param state_pv: Ring Status PV name
     """
 
-    def __init__(self, current_pv, mode_pv, state_pv):
+    def __init__(self, current_pv, mode_pv, state_pv, uri: str = ''):
+        """
+
+        :param current_pv:
+        :param mode_pv: mode PV name
+        :param state_pv: state PV name
+        :param uri: Web address of machine status
+        """
         super().__init__()
         self.name = "CLS Storage Ring"
         self.mode_pv = self.add_pv(mode_pv)
         self.current_pv = self.add_pv(current_pv)
         self.state_pv = self.add_pv('{}:shutters'.format(state_pv))
+        self.props.uri = uri
         self.messages = [
             self.add_pv('{}:msg:L{}'.format(state_pv, i + 1))
             for i in range(3)
@@ -93,7 +104,7 @@ class StorageRing(BaseStorageRing):
         mode = self.mode_pv.get()
         current = self.current_pv.get()
         state = self.state_pv.get()
-        if not None in (mode, current, state):
+        if None not in (mode, current, state):
             self.props.current = self.current_pv.get()
             self.props.mode = self.mode_pv.get()
             self.props.state = self.state_pv.get()
@@ -106,17 +117,27 @@ class SimStorageRing(BaseStorageRing):
     Simulated Storage Ring.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, uri=''):
         super().__init__()
         self.name = name
         self.props.message = 'SR Testing!'
+        self.props.uri = uri
+        self.props.current = 250.0
         self.set_state(ready=True, active=True, health=(0, '', ''))
+        GLib.timeout_add_seconds(5, self.update)
 
     def update(self, *args, **kwargs):
-        if numpy.random.normal() > 0.5:
-            self.props.current = numpy.random.rand() * 250
-            self.props.mode = random.choice(list(range(5)))
-            self.props.state = random.choice([0, 1, 1, 1, 1])
+        self.props.mode = numpy.random.choice([0, 1, 2, 3, 4], replace=False, p=[0.01, 0.02, 0.01, 0.01, 0.95])
+        self.props.state = numpy.random.choice([0, 1], replace=False, p=[0.05, 0.95])
+        if self.props.state == 0:
+            self.props.current = 0.0
+            self.set_state(ready=False, health=(1, 'mode', 'No beam!'))
+        else:
+            self.set_state(ready=True, health=(0, 'mode', ''))
+            if self.props.current < 240.0:
+                self.props.current = 250.0
+            else:
+                self.props.current = self.props.current - numpy.random.rand()
         return True
 
     def check_ready(self, *args, **kwargs):

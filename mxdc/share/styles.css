@@ -97,6 +97,15 @@ toolbar.tool-box {
   border-radius: 2px;
 }
 
+button.link label {
+  text-decoration: none;
+}
+
+.status-fbk-frame {
+  border: 1px solid @borders;
+  border-radius: 4px;
+}
+
 .status-box label {
   font-size: 90%;
 }

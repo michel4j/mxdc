@@ -52,18 +52,22 @@ class DeviceMonitor(object):
 
 
 class PropertyMonitor(object):
-    def __init__(self, device, property, widget, format='{:.3e}', warning=None, error=None):
+    def __init__(self, device, property, widget, format='{:.3e}', uri=None, warning=None, error=None):
         self.widget = widget
         self.device = device
         self.property = property
         self.format = format
         self.warning = warning
+        self.uri = uri
         self.error = error
         self.device.connect('notify::{}'.format(self.property), self.on_value_changed)
-        if isinstance(widget, Gtk.Label):
+        if isinstance(widget, (Gtk.Label, Gtk.Button)):
             self.device.bind_property(self.property, self.widget, 'label', 0, self.transform)
         else:
             self.device.bind_property(self.property, self.widget, 'text', 0, self.transform)
+
+        if self.uri and isinstance(widget, Gtk.LinkButton):
+            self.widget.set_uri(self.uri)
 
     def transform(self, obj, value):
         return self.format.format(value)
