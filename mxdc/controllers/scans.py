@@ -131,8 +131,9 @@ class ScanController(Object):
             params = datatools.update_for_sample(
                 params, sample=self.sample_store.get_current(), session=self.beamline.session_key
             )
-            params['energy'] = max(self.beamline.energy.get_position(), params['energy'])
-            self.form.set_value('energy', params['energy'])
+            if 'energy' in params:
+                params['energy'] = max(self.beamline.energy.get_position(), params['energy'])
+                self.form.set_value('energy', params['energy'])
             self.props.config = params
             self.scanner.configure(**self.props.config)
             self.scanner.start()
