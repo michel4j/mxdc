@@ -182,7 +182,6 @@ class AutoMounter(Device):
         logger.debug(f'"{self.name}": {status} attained ')
         return True
 
-
     def wait_while(self, *states, timeout=20.0):
         """
         Wait for a maximum amount of time while the state is one of the specified states, or not busy

@@ -1,6 +1,6 @@
 import os
 from typing import Sequence
-
+from pathlib import Path
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
@@ -26,16 +26,16 @@ def combine_metadata(items: Sequence[dict]) -> dict:
     data = {}
     for meta in items:
         numbers = datatools.frameset_to_list(meta['frames'])
-        filename = os.path.join(meta['directory'], meta['filename'].format(numbers[0]))
-        file_names.append(filename)
+        filename = Path(meta['directory']).resolve() / meta['filename'].format(numbers[0])
+        file_names.append(str(filename))
         data['uuid'] = meta['uuid']
         data['id'] = [meta.get('id') for meta in items]
         data['sample_id'] = meta['sample_id']
         data['type'] = meta['type']
         data.update({
-            'beam_flux': meta['beam_flux'],
-            'beam_fwhm': meta['beam_fwhm'],
-            'beam_size': meta['beam_size'],
+            'beam_flux': meta.get('beam_flux', 0),
+            'beam_fwhm': meta.get('beam_fwhm', [50, 50]),
+            'beam_size': meta.get('beam_size', 50),
         })
     all_names = [meta['name'] for meta in items]
     data['name'] = os.path.commonprefix(all_names)
