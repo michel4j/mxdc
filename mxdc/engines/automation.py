@@ -43,7 +43,8 @@ class Automator(Engine):
         pos = 0
         self.pause_message = ''
         for sample in self.samples:
-            if self.stopped: break
+            if self.stopped:
+                break
             self.emit('sample-started', sample['uuid'])
             for task in self.tasks:
                 if self.paused:
@@ -64,6 +65,8 @@ class Automator(Engine):
                     if self.beamline.automounter.is_mounted(sample['port']):
                         method = task['options'].get('method')
                         self.centering.configure(method=method)
+                        self.beamline.manager.wait('CENTER')
+                        time.sleep(2)           # needed to make sure gonio is in the right state
                         self.centering.run()
                         if self.centering.score < 0.5:
                             self.intervene(

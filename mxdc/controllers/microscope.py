@@ -166,7 +166,6 @@ class Microscope(Object):
         self.beamline.goniometer.stage.connect('changed', self.update_overlay_coords)
         self.beamline.sample_zoom.connect('changed', self.update_overlay_coords)
         self.beamline.aperture.connect('changed', self.on_aperture)
-        self.beamline.sample_xcenter.connect('found', self.on_sample_found)
 
         # Video Area
         self.video = VideoWidget(self.camera)
@@ -184,6 +183,10 @@ class Microscope(Object):
         # disable centering buttons on click
         self.centering.connect('started', self.on_scripts_started)
         self.centering.connect('done', self.on_centering_done)
+
+        self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
+        self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
+        self.beamline.sample_xcenter.connect('found', self.on_sample_found)
 
         # lighting monitors
         self.monitors = []
@@ -414,6 +417,23 @@ class Microscope(Object):
         coords = numpy.array([[cx - w, cy - h], [cx + w, cy + h]]) * self.video.scale
         if self.show_annotations:
             self.video.set_annotations({label: coords})
+
+    def on_centering_object(self, dev, obj, t):
+        loop_state = dev.get_state("loop")
+        xtal_state = dev.get_state("crystal")
+
+        annotations = {}
+        for state in [loop_state, xtal_state]:
+            if state is None:
+                continue
+            obj, obj_time = state
+            if obj is not None and obj_time > time.time() - 2:
+                hw = obj.w / 2.0
+                hh = obj.h / 2.0
+                annotations[obj.label] = numpy.array(
+                    [[obj.x - hw, obj.y - hh], [obj.x + hw, obj.y + hh]]
+                ) * self.video.scale
+        self.video.set_annotations(annotations)
 
     def on_save_point(self, *args, **kwargs):
         self.add_point(self.beamline.goniometer.stage.get_xyz())

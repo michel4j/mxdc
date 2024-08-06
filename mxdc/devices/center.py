@@ -1,5 +1,5 @@
 import time
-
+from dataclasses import dataclass
 from zope.interface import implementer
 
 from mxdc import Device, Signal, Registry
@@ -8,10 +8,22 @@ from .interfaces import ICenter
 MIN_WIDTH = 20
 
 
+@dataclass
+class CenterObject:
+    x: int
+    y: int
+    score: float
+    w: int = 0
+    h: int = 0
+    label: str = 'loop'
+
+
 @implementer(ICenter)
 class BaseCenter(Device):
     class Signals:
         found = Signal("found", arg_types=(int, int, float, str))
+        loop = Signal("loop", arg_types=(object, float))
+        crystals = Signal("crystal", arg_types=(object, float))
 
     def __init__(self, threshold=0):
         super().__init__()
@@ -71,17 +83,35 @@ class ExtCenter(BaseCenter):
         self.score = self.add_pv(f'{root}:score')
         self.w = self.add_pv(f'{root}:w')
         self.h = self.add_pv(f'{root}:h')
-        self.label = self.add_pv(f'{root}:label')
+        self.obj_x = self.add_pv(f'{root}:objects:x')
+        self.obj_y = self.add_pv(f'{root}:objects:y')
+        self.obj_scores = self.add_pv(f'{root}:objects:score')
+        self.size = self.add_pv(f'{root}:objects:valid')
+
         self.status = self.add_pv(f'{root}:status')
         self.score.connect('changed', self.on_pos_changed)
-
+        self.size.connect('changed', self.on_obj_changed)
         Registry.add_utility(ICenter, self)
 
     def on_pos_changed(self, *args, **kwargs):
         if self.score.get() > self.threshold and self.w.get() > MIN_WIDTH:
             cx = self.x.get() + self.w.get() / 2
             cy = self.y.get() + self.h.get() / 2
-            self.update_found(cx, cy, self.score.get(), self.label.get())
+            self.update_found(cx, cy, self.score.get(), 'loop')
+            loop = CenterObject(cx, cy, self.score.get(), self.w.get(), self.h.get())
+            self.set_state(loop=(loop, time.time()))
+        else:
+            self.set_state(loop=(None, time.time()))
+
+    def on_obj_changed(self, *args, **kwargs):
+        if self.size.get() > 0:
+            x = self.obj_x.get()[0]
+            y = self.obj_y.get()[0]
+            score = self.obj_scores.get()[0]
+            crystal = CenterObject(x, y, score, label='xtal')
+            self.set_state(crystal=(crystal, time.time()))
+        else:
+            self.set_state(crystal=(None, time.time()))
 
 
 class SimCenter(BaseCenter):
