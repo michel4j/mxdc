@@ -420,7 +420,6 @@ class QuantaxMCA(XFlashMCA):
         self.acquiring.connect('changed', self.schedule_warmup)
         self.progress.connect('changed', self.on_progress)
 
-
     def get_count_rates(self):
         # get IRC and OCR tuple
         return [(self.input_counts.get(), self.output_counts.get())]

@@ -117,7 +117,6 @@ class BaseGoniometer(Device):
                 logger.warn(f'{self.name}: Timed-out waiting to stop after {timeout} sec')
         return success
 
-
     def wait(self, start=True, stop=True, timeout=None):
         """
         Wait for the goniometer busy state to change.
@@ -544,10 +543,10 @@ class SimGonio(BaseGoniometer):
 
         self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3)
         self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-5, 5), units='mm', speed=0.6)
-        self.sample_y1 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
-        self.sample_y2 = motor.SimMotor('Sample Y', 0.0, limits=(-2, 2), units='mm', speed=0.6)
+        self.sample_y1 = motor.SimMotor('Sample Y1', 0.0, limits=(-2, 2), units='mm', speed=0.6)
+        self.sample_y2 = motor.SimMotor('Sample Y2', 0.0, limits=(-2, 2), units='mm', speed=0.6)
         self.support_y = motor.SimMotor('Support Y', 0.0, limits=(-5, 5), units='mm', speed=0.6)
-        self.support_z = motor.SimMotor('Support Y', 0.0, limits=(-5, 5), units='mm', speed=0.6)
+        self.support_z = motor.SimMotor('Support Z', 0.0, limits=(-5, 5), units='mm', speed=0.6)
 
         self.stage = stages.SampleStage(self.sample_x, self.sample_y1, self.sample_y2, self.omega)
         self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_y)

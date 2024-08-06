@@ -36,7 +36,7 @@ class BaseManager(Device):
         ModeType.UNKNOWN: 'unknown',
     }
 
-    class Signals :
+    class Signals:
         mode = Signal("mode", arg_types=(object,))
         activity = Signal("activity", arg_types=(str,))
 

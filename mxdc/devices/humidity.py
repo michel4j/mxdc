@@ -67,7 +67,7 @@ class SimHumidifier(Device):
         self.dew_point = SimPositioner('Dew Point', pos=287.68, units='K')
 
         self.drop_size = SimPositioner('Drop Size', pos=150, units='px')
-        self.drop_coords = SimPositioner('Drop Coords', pos=((671, 333, 671657),))
+        self.drop_coords = SimPositioner('Drop Coords', pos=((671, 333, 671, 657),))
 
         self.add_components(self.humidity, self.temperature, self.dew_point, self.drop_size)
 

@@ -18,6 +18,7 @@ from mxdc.conf import SHARE_DIR
 
 from typing import Union, Any, Sequence, TypedDict
 
+
 class GUIFile(object):
     """
     GUI Resource File object
