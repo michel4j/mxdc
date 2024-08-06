@@ -288,7 +288,7 @@ class LogMonitor(object):
 
     def content_changed(self, widget, event, data=None):
         adj = self.scroll_win.get_vadjustment()
-        adj.set_value(adj.get_upper() - adj.get_page_size())
+        #adj.set_value(adj.get_upper() - adj.get_page_size())
 
     def set_prefix(self, txt):
         self.prefix = txt
