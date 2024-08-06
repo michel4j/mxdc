@@ -80,7 +80,7 @@ def voigt(x, coeffs):
 def gauss(x, coeffs):
     H, L, P, O = coeffs[:4]
     sigma = L / 2.35482
-    return O + abs(H) * scipy.exp(-(x - P) ** 2 / (2 * sigma ** 2))
+    return O + abs(H) * numpy.exp(-(x - P) ** 2 / (2 * sigma ** 2))
 
 
 def lorentz(x, coeffs):
