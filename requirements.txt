@@ -8,7 +8,6 @@ h5py
 hdf5plugin
 matplotlib==3.5.3
 msgpack
-msgpack_numpy
 opencv-python
 pillow
 PyGObject
