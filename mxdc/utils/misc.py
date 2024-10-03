@@ -15,13 +15,18 @@ import threading
 import time
 import unicodedata
 import uuid
+import shutil
+
 from abc import ABC
+from pathlib import Path
+from os import PathLike
 from html.parser import HTMLParser
 from importlib import import_module
 from typing import Any
 
 import numpy
 import msgpack
+
 from gi.repository import GLib
 from scipy import interpolate
 
@@ -114,8 +119,8 @@ def identifier_slug(value):
     underscores) and converts spaces to hyphens. Also strips leading and
     trailing whitespace.
     """
-    value = re.sub('[^\w\s-]', '', value).strip()
-    return re.sub('[-\s]+', '_', value)
+    value = re.sub(r'[^\w\s-]', '', value).strip()
+    return re.sub(r'[-\s]+', '_', value)
 
 
 def get_project_name():
@@ -214,15 +219,29 @@ def logistic_score(x, best=1, fair=0.5):
     return 1 / (1 + numpy.exp(-t))
 
 
-def save_metadata(metadata, filename):
+def save_metadata(metadata, filename, backup=False):
+    """
+    Save meta-data to a file, optionally backing up the existing file
+    :param metadata:
+    :param filename:
+    :param backup:
+    :return:
+    """
+    path = Path(filename)
     try:
-        if os.path.exists(filename) and not metadata.get('id'):
-            old_metadata = load_metadata(filename)
+        if path.exists() and not metadata.get('id'):
+            old_metadata = load_metadata(path)
             metadata['id'] = old_metadata.get('id')
     except ValueError as e:
         logger.error('Existing meta-data corrupted. Overwriting ...')
-    with open(filename, 'w') as handle:
+
+    if path.exists() and backup:
+        shutil.move(path, path.with_suffix('.bak'))
+    path.unlink(missing_ok=True)
+
+    with open(path, 'w') as handle:
         json.dump(metadata, handle, indent=2, separators=(',', ':'), sort_keys=True)
+
     return metadata
 
 
@@ -371,10 +390,11 @@ class Chain(object):
             time_left -= poll
 
 
-def wait_for_file(file_path, timeout=10):
+def wait_for_file(file_path: PathLike, timeout=10):
+    path = Path(file_path)
     poll = 0.05
     time_left = timeout
-    while not os.path.exists(file_path) and time_left > 0:
+    while not path.exists() and time_left > 0:
         time.sleep(poll)
         timeout -= poll
     return time_left > 0

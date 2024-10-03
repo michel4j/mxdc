@@ -1,12 +1,13 @@
 
 import random
+import shutil
 from pathlib import Path
 
 import gi
 
 gi.require_version('WebKit2', '4.0')
 
-from mxdc import Registry, Property
+from mxdc import Registry, Property, SHARE_DIR
 from mxdc.utils.data import analysis
 from gi.repository import Gtk, GLib
 
@@ -61,8 +62,10 @@ class ReportView(Gtk.Button):
         elif self.item.state == analysis.ReportState.FAILED:
             path = Path(self.item.directory) / "commands.log"
             controller.browse_file(str(path))
-        elif self.item.state == analysis.ReportState.ACTIVE:
-            path = Path(self.item.directory) / "auto.log"
+        else:
+            path = Path(self.item.directory) / "auto.html"
+            if not path.exists():
+                shutil.copy(Path(SHARE_DIR) / "auto.html", path)
             controller.browse_file(str(path))
         controller.set_strategy(self.item.strategy)
         controller.set_folder(self.item.directory)

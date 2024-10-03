@@ -5,12 +5,15 @@ import os
 import re
 import shutil
 import time
+from collections import namedtuple
+from typing import Dict
+
 import requests
 
 from pathlib import Path
 from datetime import datetime
 from enum import Enum, IntFlag, auto
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 from mxio import read_header, read_image
 from zope.interface import implementer
@@ -42,6 +45,9 @@ class DetectorFeatures(IntFlag):
     SHUTTERLESS = auto()
     TRIGGERING = auto()
     WEDGING = auto()
+
+
+DataSelection = namedtuple('DataSelection', ['realm', 'folder', 'first', 'count'])
 
 
 class Trigger(Object):
@@ -286,8 +292,8 @@ class SimDetector(BaseDetector):
         self.set_state(active=True, health=(0, '', ''), state=States.IDLE)
         self.sim_images_src = data
         self._datasets = {}
-        self._selection = ('', '', 0)
-        self._dataset_selections = {}
+        self._selection: DataSelection = ('', '', '', 0)
+        self._dataset_selections: Dict[str, DataSelection] = {}
         self.parameters = {}
         self._powders = {}
         self._state = 'idle'
@@ -295,15 +301,11 @@ class SimDetector(BaseDetector):
         self._stopped = False
         self.trigger = trigger
         self.trigger_count = 0
+        self.copier = ThreadPoolExecutor(max_workers=2)
         self.prepare_datasets()
-        self.copier = ProcessPoolExecutor(max_workers=10)
-        if trigger is not None:
-            self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS, DetectorFeatures.WEDGING)
-            self.trigger.connect('high', self.on_trigger )
+        self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS, DetectorFeatures.WEDGING)
 
     def save(self, wait=False):
-        if not self.supports(DetectorFeatures.TRIGGERING):
-            self._copy_frame()
         self.set_state(state=States.IDLE)
 
     def configure(self, **kwargs):
@@ -314,26 +316,35 @@ class SimDetector(BaseDetector):
         self._stopped = True
 
     def start(self, first=False):
-        if first:
-            self.initialize(True)
+        logger.debug(f'{self}: Starting Detector ...')
         time.sleep(0.1)
-        self.trigger_count = 0
         self.set_state(state=States.ACQUIRING)
+        self.copier.submit(self.simulate, self.parameters)
         return True
 
     def stop(self):
-        logger.debug('(%s) Stopping CCD ...' % (self.name,))
+        logger.debug(f'{self}: Stopping Detector ...')
+        self._stopped = True
         time.sleep(0.01)
 
     def get_origin(self):
         return self.size[0] // 2, self.size[0] // 2
 
-    def on_trigger(self, trigger, high):
-        if high and self.get_state('state') in [States.ACQUIRING, States.ARMED]:
-            self.trigger_count += 1
-        else:
-            self._copy_frame(self.trigger_count-1)
-            logger.debug(f'Received trigger for frame: {self.trigger_count}')
+    def simulate(self, parameters: dict):
+        """
+        Simulate a dataset
+        :param parameters: dictionary of acquisition parameters
+        """
+
+        num_frames = parameters.get('num_triggers', 1) * parameters.get('num_images', 1)
+        logger.debug(f'Simulating data wedge with {num_frames} frames: {parameters["file_prefix"]}')
+        time.sleep(1)
+        for i in range(num_frames):
+            time.sleep(parameters.get('exposure_time', 1))
+            self._copy_frame(i, parameters)
+
+            if self.get_state('state') not in [States.ACQUIRING, States.ARMED] or self._stopped:
+                break
 
     def _select_dir(self, name='junk'):
         if name in self._dataset_selections:
@@ -349,31 +360,33 @@ class SimDetector(BaseDetector):
             num_datasets = len(self._datasets[realm])
             if num_datasets:
                 chosen = int(time.time()) % num_datasets
-                self._selection = realm, list(self._datasets[realm].keys())[chosen]
+                self._selection = DataSelection(realm, *(list(self._datasets[realm].keys())[chosen]))
                 self._dataset_selections[name] = self._selection
 
-    def _copy_frame(self, number):
+    def _copy_frame(self, number, file_params):
         logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
-        realm, (folder, name, count) = self._selection
+        realm, folder, name, count = self._selection
+
         if count > 0:
-            file_params = copy.deepcopy(self.parameters)
             frame_number = file_params['start_frame'] + number
             src_img = os.path.join(folder, self._datasets[realm][(folder, name, count)][(frame_number - 1) % count])
             file_name = '{}_{:05d}.{}'.format(file_params['file_prefix'], frame_number, self.file_extension)
             file_path = os.path.join(file_params['directory'], file_name)
-            future = self.copier.submit(shutil.copyfile, src_img, file_path)
+            shutil.copyfile(src_img, file_path)
             logger.info('Frame saved: {}'.format(file_name))
             self.monitor.add(file_path)
+
         else:
             logger.error('No simulated image found')
 
         # progress
-        num_frames = self.parameters.get('num_frames', 1)
-        self.set_state(progress=((1 + number)/num_frames, 'frames acquired'))
+        total_frames = file_params.get('num_images', 1) * file_params.get('num_triggers', 1)
+        progress = (1 + number) / total_frames
+        self.set_state(progress=(progress, 'frames acquired'))
 
     @decorators.async_call
     def prepare_datasets(self):
-        self._datasets = { 'datasets': {},   'powders': {},      'rasters': {}}
+        self._datasets = {'datasets': {},   'powders': {},      'rasters': {}}
         patt = re.compile(rf'^.+_\d\d\d+.{self.file_extension}$')
         main = Path(self.sim_images_src)
 
