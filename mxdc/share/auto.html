@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log File</title>
+    <style>
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 2.5em;
+            font-size: 9px;
+        }
+    </style>
+    <script src=" https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js "></script>
+    <script src=" https://cdn.jsdelivr.net/npm/ansi-to-html@0.7.2/lib/ansi_to_html.min.js "></script>
+
+</head>
+<body>
+    <pre id="file-content"></pre>
+    <div id="errors"></div>
+    <script>
+        // Function to load the contents of the text file
+        function loadFileContent() {
+            //var convert = new Convert();
+            $.get('commands.log?dc=' + (new Date()).getTime(), function (data) {
+                $('#file-content').text(data);
+                window.scrollTo(0, document.body.scrollHeight);
+            }, "text");
+        }
+
+        $(document).ready(function () {
+            // Load the file content initially and set an interval to reload every 5 seconds
+            loadFileContent();
+            setInterval(function () {
+                loadFileContent();
+            }, 5000);
+
+        });
+    </script>
+</body>
+</html>

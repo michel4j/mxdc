@@ -37,8 +37,7 @@ class Browser(gui.Builder):
         browser_settings = WebKit2.Settings()
         browser_settings.set_property("allow-universal-access-from-file-urls", True)
         browser_settings.set_property("enable-plugins", False)
-        browser_settings.set_property("default-font-size", 11)
-        #browser_settings.set_property("enable-webgl", True)
+        browser_settings.set_property("default-font-size", 10)
         self.view.set_settings(browser_settings)
 
         self.back_btn.connect('clicked', self.go_back)

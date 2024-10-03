@@ -93,6 +93,11 @@ class Analyst(Engine):
 
     def process_generic(self, params, sample, session, method='mx'):
         params = datatools.update_for_sample(params, sample=sample, session=session, overwrite=True)
+
+        # create directory for processing
+        self.beamline.dss.setup_folder(params['directory'], misc.get_project_id())
+
+        # Run processing remotely
         if method == 'misc':
             res = self.beamline.dps.process_misc(**params, user=misc.get_project_id())
         elif method == 'powder':
@@ -162,9 +167,9 @@ class Analyst(Engine):
 
     def save_report(self, report):
         if 'filename' in report:
-            report_file = os.path.join(report['directory'], report['filename'])
+            report_file = Path(report['directory']) / report['filename']
             if misc.wait_for_file(report_file, timeout=5):
-                misc.save_metadata(report, report_file)
+                misc.save_metadata(report, report_file, backup=True)
                 self.beamline.lims.upload_report(self.beamline.name, report_file)
             else:
                 logger.error('Report file not found, therefore not uploaded to MxLIVE ({})!'.format(report_file))
