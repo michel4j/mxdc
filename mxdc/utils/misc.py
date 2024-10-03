@@ -66,7 +66,6 @@ def sci_fmt(number, digits=3):
     try:
         value = number * (10 ** -exp)
     except OverflowError as e:
-        logger.error(f'Overflow Error: {number}: {e}')
         value = number
     exp_text = f'{exp}'.translate(SUPERSCRIPTS_TRANS)
     val_fmt = f'{{:0.{digits}f}}'

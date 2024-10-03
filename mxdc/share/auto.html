@@ -13,8 +13,6 @@
         }
     </style>
     <script src=" https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js "></script>
-    <script src=" https://cdn.jsdelivr.net/npm/ansi-to-html@0.7.2/lib/ansi_to_html.min.js "></script>
-
 </head>
 <body>
     <pre id="file-content"></pre>
@@ -22,7 +20,6 @@
     <script>
         // Function to load the contents of the text file
         function loadFileContent() {
-            //var convert = new Convert();
             $.get('commands.log?dc=' + (new Date()).getTime(), function (data) {
                 $('#file-content').text(data);
                 window.scrollTo(0, document.body.scrollHeight);
