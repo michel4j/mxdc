@@ -184,9 +184,9 @@ class Microscope(Object):
         self.centering.connect('started', self.on_scripts_started)
         self.centering.connect('done', self.on_centering_done)
 
-        self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
-        self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
-        self.beamline.sample_xcenter.connect('found', self.on_sample_found)
+        # self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
+        # self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
+        # self.beamline.sample_xcenter.connect('found', self.on_sample_found)
 
         # lighting monitors
         self.monitors = []

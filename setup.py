@@ -6,6 +6,7 @@ with open("README.rst", "r") as fh:
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
+
 def my_version():
     from setuptools_scm.version import get_local_dirty_tag
 
@@ -16,6 +17,7 @@ def my_version():
         return str(version.format_with('{tag}.{distance}'))
 
     return {'local_scheme': clean_scheme, 'version_scheme': version_scheme}
+
 
 setup(
     name='mxdc',
