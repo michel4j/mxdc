@@ -5,7 +5,7 @@ from collections import defaultdict
 from copy import copy
 from enum import IntFlag, auto
 
-from gi.repository import Gio, Gtk, Gdk, Pango
+from gi.repository import Gio, Gtk, Gdk, Pango, GLib
 from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Object, IBeamline, Property
@@ -150,7 +150,7 @@ class SampleStore(Object):
         self.group_registry = {}
         self.prefetch_pending = False
         self.initializing = True
-
+        self.mxlive_retries = 0
 
         # initialize properties
         self.props.next_sample = {}
@@ -180,7 +180,7 @@ class SampleStore(Object):
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
         self.widget.samples_dismount_btn.connect('clicked', lambda x: self.dismount_action())
         self.widget.samples_search_entry.connect('search-changed', self.on_search)
-        self.widget.mxdc_main.connect('realize', self.import_mxlive)
+        self.widget.mxdc_main.connect('realize', self.load_lims_samples)
         self.connect('notify::cache', self.on_cache)
         self.connect('notify::current-sample', self.on_cur_changed)
         self.connect('notify::next-sample', self.on_next_changed)
@@ -379,7 +379,6 @@ class SampleStore(Object):
             self.mount_flags &= ~MountFlag.ROBOT
         self.update_button_states()
 
-
     def on_prefetched(self, obj, port):
         name_style = self.widget.samples_next_sample.get_style_context()
         port_style = self.widget.samples_next_port.get_style_context()
@@ -405,13 +404,27 @@ class SampleStore(Object):
         ])
         return (not self.filter_text) or (self.filter_text in search_text)
 
+    def load_lims_samples(self, *args, **kwargs):
+        """
+        Try loading samples from MxLIVE every 5 seconds
+        """
+        retry = self.import_mxlive(*args, **kwargs)
+        if retry:
+            GLib.timeout_add(2500, self.import_mxlive)
+
     def import_mxlive(self, *args, **kwargs):
-        data = self.beamline.lims.get_samples(self.beamline.name)
-        if not 'error' in data:
-            self.widget.notifier.notify('{} Samples Imported from MxLIVE'.format(len(data)))
-            self.load_data(data)
-        else:
-            self.widget.notifier.notify(data['error'])
+        """
+        Load samples from MxLIVE
+        :return: True if operation failed and should be retried
+        """
+        self.mxlive_retries += 1
+        if self.beamline.lims.is_active():
+            data = self.beamline.lims.get_samples(self.beamline.name)
+            if not 'error' in data:
+                self.widget.notifier.notify('{} Samples Imported from MxLIVE'.format(len(data)))
+                self.load_data(data)
+            return False
+        return self.mxlive_retries < 5
 
     def format_state(self, column, cell, model, itr, data):
         value = model[itr][self.Data.STATE]

@@ -20,6 +20,37 @@ BUTTON_TYPES = {
 }
 
 
+@Gtk.Template(resource_path='/org/gtk/mxdc/data/login_form.ui')
+class LoginForm(Gtk.Dialog):
+    __gtype_name__ = 'LoginForm'
+
+    message = Gtk.Template.Child()
+    instructions = Gtk.Template.Child()
+    username = Gtk.Template.Child()
+    password = Gtk.Template.Child()
+    login_btn = Gtk.Template.Child()
+    cancel_btn = Gtk.Template.Child()
+
+    def __init__(self, message, instructions = '', **kwargs):
+        super().__init__(**kwargs)
+        self.set_default_response(Gtk.ResponseType.CANCEL)
+        self.message.set_text(message)
+        self.instructions.set_text(instructions)
+        self.set_transient_for(MAIN_WINDOW)
+
+    def get_credentials(self):
+        response_id = super().run()
+        if response_id == Gtk.ResponseType.OK:
+            response = {
+                'username': self.username.get_text(),
+                'password': self.password.get_text()
+            }
+        else:
+            response = {}
+        self.destroy()
+        return response
+
+
 class SmartFilter(Gtk.FileFilter):
     def __init__(self, name: str = 'All', patterns: Sequence[str] = ('*',), extension: Union[str, None] = None):
         """

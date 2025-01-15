@@ -25,6 +25,7 @@
         <file compressed="true">data/sample_view.ui</file>
         <file compressed="true">data/video_view.ui</file>
         <file compressed="true">data/report_view.ui</file>
+        <file compressed="true">data/login_form.ui</file>
         <file>data/colormaps.data</file>
         <file>data/diagram.png</file>
         <file>data/icon.svg</file>

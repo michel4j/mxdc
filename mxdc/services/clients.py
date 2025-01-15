@@ -1,21 +1,23 @@
+from __future__ import annotations
+
 import json
 import os
 import random
 import re
 import socket
 import time
+from abc import abstractmethod
 from datetime import datetime
+from pathlib import Path
 
 import lorem
-import szrpc.client
-from szrpc.result.gresult import GResult
 import msgpack
 import redis
 import requests
-#szrpc.client.use(GResult)
-
-from pathlib import Path
+import szrpc.client
 from backports.datetime_fromisoformat import MonkeyPatch
+
+# szrpc.client.use(GResult)
 
 MonkeyPatch.patch_fromisoformat()
 
@@ -24,6 +26,7 @@ from mxdc.conf import settings
 from mxdc import Device, Object, Signal
 from mxdc.utils import mdns, signing, misc
 from mxdc.utils.log import get_module_logger
+from mxdc.widgets import dialogs
 from twisted.internet import reactor
 from twisted.spread import pb
 
@@ -36,6 +39,9 @@ class BaseService(Device):
     def __init__(self):
         super(BaseService, self).__init__()
         self.name = self.__class__.__name__ + ' Service'
+
+    def is_ready(self):
+        return self.get_state("active")
 
 
 class ServerClientFactory(pb.PBClientFactory):
@@ -105,7 +111,7 @@ class PBClient(BaseService):
             reactor.connectTCP(self.service_data['address'], self.service_data['port'], self.factory)
 
     def service_removed(self, obj):
-        self.set_state(active=False, health=(4,'connection', 'Disconnected'))
+        self.set_state(active=False, health=(4, 'connection', 'Disconnected'))
         if not self.browsing:
             logger.warning('Connection to {} disconnected'.format(self.name))
             GLib.timeout_add(self.retry_delay, self.retry)
@@ -128,12 +134,12 @@ class PBClient(BaseService):
         logger.info('{} {host}:{port} connected.'.format(self.name, **self.service_data))
         self.service = perspective
         self.service.notifyOnDisconnect(self.on_disconnect)
-        self.set_state(active=True, health=(0,'',''))
+        self.set_state(active=True, health=(0, '', ''))
         self.reset_retries()
 
     def on_disconnect(self, obj):
         """Used to detect disconnections if MDNS is not being used."""
-        self.set_state(active=False, health=(4,'connection', 'Disconnected'))
+        self.set_state(active=False, health=(4, 'connection', 'Disconnected'))
         if not self.retrying:
             logger.warning('Connection to {} disconnected'.format(self.name))
             GLib.timeout_add(self.retry_delay, self.retry)
@@ -193,31 +199,47 @@ class LocalDSSClient(BaseService):
         return True
 
 
-class MxLIVEClient(BaseService):
+class MxLIVEBase(BaseService):
+    KEY_FILE: str
+    LOGIN_URL: str
+    DATA_URL: str
+    REPORT_URL: str
+    SESSION_START_URL: str
+    SESSION_CLOSE_URL: str
+    SAMPLES_URL: str
+    headers: dict = {}
+    cookies: dict = {}
+    session_info: dict
+    session_active: tuple | None
+    server: requests.Session
+
     def __init__(self, address):
         super().__init__()
         self.name = "MxLIVE Server"
         self.address = address
+        self.server = requests.Session()
         self.cookies = {}
         self.keys = None
-        self.signer = None
         self.session_active = None
         self.session_info = {}
-        self.register(update=(not settings.keys_exist()))
+        self.headers = {
+            'Accept': 'application/json',
+        }
 
-    def is_ready(self):
-        return self.get_state("active")
+    @abstractmethod
+    def login(self, *args, **kwargs) -> bool:
+        ...
 
-    def url(self, path):
-        url_path = path[1:] if path[0] == '/' else path
-        return '{}/api/v2/{}/{}'.format(
-            self.address,
-            self.signer.sign(misc.get_project_name()),
-            url_path
-        )
+    @abstractmethod
+    def url(self, raw_path: str, **kwargs) -> str:
+        ...
+
+    @abstractmethod
+    def verify(self):
+        ...
 
     def get(self, path, *args, **kwargs):
-        r = requests.get(self.url(path), *args, cookies=self.cookies, **kwargs)
+        r = self.server.get(path, *args, headers=self.headers, cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
@@ -225,11 +247,11 @@ class MxLIVEClient(BaseService):
             r.raise_for_status()
 
     def post(self, path, **kwargs):
-        r = requests.post(self.url(path), cookies=self.cookies, **kwargs)
+        r = self.server.post(path, headers=self.headers, cookies=self.cookies, **kwargs)
         if r.status_code == requests.codes.ok:
             return r.json()
         else:
-            #logger.error(misc.html2text(r.content.decode()))
+            logger.error(misc.html2text(r.content.decode()))
             r.raise_for_status()
 
     def upload(self, path, filename):
@@ -241,6 +263,7 @@ class MxLIVEClient(BaseService):
         the object id of the existing database entry.
         :return:
         """
+        data = None
         try:
             data = misc.load_metadata(filename)
             reply = self.post(path, data=msgpack.dumps(data))
@@ -248,58 +271,29 @@ class MxLIVEClient(BaseService):
             logger.error(f'Unable to upload to MxLIVE')
         else:
             data.update(reply)
-        misc.save_metadata(data, filename)
+            misc.save_metadata(data, filename)
         return data
-
-    def register(self, update=False):
-        self.keys = settings.get_keys()
-        self.signer = signing.Signer(**self.keys)
-
-        if update:
-            try:
-                self.post('/project/', data={'public': self.keys['public']})
-                logger.info('MxLIVE Service configured for {}'.format(self.address))
-                settings.save_keys(self.keys)
-            except (IOError, ValueError, requests.HTTPError) as err:
-                logger.warning('MxLIVE Service Problem')
-                logger.debug(err)
-
-        self.set_state(active=True)
 
     def get_samples(self, beamline):
         logger.info('Requesting Samples from MxLIVE ...')
-        path = '/samples/{}/'.format(beamline)
         try:
-            reply = self.get(path)
+            reply = self.get(self.url(self.SAMPLES_URL, beamline=beamline))
         except (IOError, ValueError, requests.HTTPError) as e:
             logger.error('Unable to fetch Samples from MxLIVE')
             logger.debug(e)
             reply = {'error': 'Unable to fetch Samples from MxLIVE'}
         return reply
 
-    def open_session(self, beamline, session):
-        logger.debug('Openning MxLIVE session ...')
-        path = '/launch/{}/{}/'.format(beamline, session)
+    def start_session(self, beamline, session):
+        logger.debug('Starting MxLIVE session ...')
+        if not self.is_active():
+            self.verify()
+
         try:
-            reply = self.post(path)
+            reply = self.post(self.url(self.SESSION_START_URL, beamline=beamline, session=session))
         except requests.ConnectionError as err:
             logger.error('Unable to connect to MxLIVE!')
             logger.debug(err)
-        except requests.HTTPError as e:
-            if e.response.status_code == 400:
-                self.register(update=True)
-                try:
-                    reply = self.post(path)
-                except requests.HTTPError as err:
-                    logger.error('Unable to Open MxLIVE Session')
-                    logger.debug(err)
-                else:
-                    logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
-                    self.set_state(active=True)
-            else:
-                self.session_active = (beamline, session)
-                logger.error('Unable to Open MxLIVE Session')
-                logger.debug(e)
         else:
             self.session_info = reply
             if self.session_info['end_time'] is not None:
@@ -310,9 +304,8 @@ class MxLIVEClient(BaseService):
 
     def close_session(self, beamline, session):
         logger.debug('Closing MxLIVE session ...')
-        path = '/close/{}/{}/'.format(beamline, session)
         try:
-            reply = self.post(path)
+            reply = self.post(self.url(self.SESSION_START_URL, beamline=beamline, session=session))
         except (IOError, ValueError, requests.ConnectionError, requests.HTTPError) as err:
             logger.error('Unable to close MxLIVE Session')
             logger.debug(err)
@@ -327,7 +320,7 @@ class MxLIVEClient(BaseService):
         :param filename: json-formatted file containing metadata
         """
         logger.debug('Uploading meta-data to MxLIVE ...')
-        return self.upload('/data/{}/'.format(beamline), filename)
+        return self.upload(self.url(self.DATA_URL, beamline=beamline).format(beamline), filename)
 
     def upload_report(self, beamline, filename):
         """
@@ -336,12 +329,147 @@ class MxLIVEClient(BaseService):
         :param filename: json-formatted file containing metadata
         """
         logger.debug('Uploading analysis report to MxLIVE ...')
-        return self.upload('/report/{}/'.format(beamline), filename)
+        return self.upload(self.url(self.REPORT_URL, beamline=beamline).format(beamline), filename)
 
     def cleanup(self):
         if self.session_active:
             self.close_session(*self.session_active)
 
+
+class MxLIVEClient(MxLIVEBase):
+    """
+    MxLIVE Service Client - Version 2 API
+    """
+
+    KEY_FILE = 'keys.dsa'
+    LOGIN_URL = '/project/'
+    DATA_URL = '/api/v2/{key}/data/{beamline}/'
+    REPORT_URL = '/api/v2/{key}/report/{beamline}/'
+    SESSION_START_URL = '/api/v2/{key}/launch/{beamline}/{session}/'
+    SESSION_CLOSE_URL = '/api/v2/{key}/close/{beamline}/{session}/'
+    SAMPLES_URL = '/api/v2/{key}/samples/{beamline}/'
+
+    def __init__(self, address):
+        super().__init__(address)
+        self.signer = None
+
+    def login(self, *args, **kwargs):
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives.asymmetric import dsa
+        from cryptography.hazmat.primitives import serialization
+
+        key = dsa.generate_private_key(key_size=1024, backend=default_backend())
+        self.keys = {
+            'private': key.private_bytes(
+                serialization.Encoding.DER,
+                serialization.PrivateFormat.PKCS8,
+                serialization.NoEncryption()
+            ),
+            'public': key.public_key().public_bytes(
+                serialization.Encoding.OpenSSH,
+                serialization.PublicFormat.OpenSSH
+            )
+        }
+
+        try:
+            self.post(self.url(self.LOGIN_URL), data={'public': self.keys['public']})
+            logger.info('MxLIVE Service configured for {}'.format(self.address))
+            settings.save_keys(self.keys, self.KEY_FILE)
+            success = True
+        except (IOError, ValueError, requests.HTTPError) as err:
+            logger.warning('MxLIVE Service Problem')
+            logger.debug(err)
+            success = False
+        return success
+
+    def verify(self):
+        self.keys = settings.fetch_keys(self.KEY_FILE)
+        success = bool(self.keys)
+        if not success:
+            logger.debug('Authenticating client with MxLIVE ...')
+            success = self.login()
+
+        if success:
+            logger.debug('MxLIVE Authentication keys available')
+            self.signer = signing.Signer(**self.keys)
+            self.set_state(active=success)
+        else:
+            logger.error('Unable to authenticate with MxLIVE')
+
+    def url(self, raw_path, **kwargs):
+        key = self.signer.sign(misc.get_project_name())
+        path = raw_path.format(**kwargs, key=key)
+        url_path = path[1:] if path[0] == '/' else path
+
+        return f'{self.address}/{url_path}'
+
+
+class MxLIVEClient3(MxLIVEBase):
+    """
+    MxLIVE Service Client - Version 3 API
+    """
+    KEY_FILE = 'mxlive.keys'
+    LOGIN_URL = '/api/v3/token/'
+    VERIFY_URL = '/api/v3/token/verify/'
+    REFRESH_URL = '/api/v3/token/refresh/'
+    DATA_URL = '/api/v3/data/{beamline}/'
+    REPORT_URL = '/api/v3/report/{beamline}/'
+    SESSION_START_URL = '/api/v3/session/{beamline}/{session}/start/'
+    SESSION_CLOSE_URL = '/api/v3/session/{beamline}/{session}/close/'
+    SAMPLES_URL = '/api/v3/samples/{beamline}/'
+
+    def __init__(self, address):
+        super().__init__(address)
+
+    def login(self, username: str = '', password: str = '') -> bool:
+        try:
+            reply = self.post(self.url(self.LOGIN_URL), data={'username': username, 'password': password})
+        except requests.HTTPError as e:
+            logger.error('Unable to login to MxLIVE')
+            logger.debug(e)
+        else:
+            self.keys = reply
+            settings.save_keys(self.keys, self.KEY_FILE)
+            return True
+        return False
+
+    def verify(self):
+        success = False
+        self.keys = settings.fetch_keys(self.KEY_FILE)
+        if self.keys:
+            logger.debug('Verifying API keys ...')
+            r = self.server.post(self.url(self.VERIFY_URL), data={'token': self.keys['access']})
+            if r.status_code == requests.codes.ok:
+                success = True
+            else:
+                logger.debug('Refreshing API key ...')
+                r = self.server.post(self.url(self.REFRESH_URL), data={'refresh': self.keys['refresh']})
+                if r.status_code == requests.codes.ok:
+                    self.keys.update(r.json())
+                    settings.save_keys(self.keys)
+                    success = True
+
+        if not success:
+            logger.debug('No Valid API keys found. Requesting Login ...')
+            login_form = dialogs.LoginForm(
+                'MxLIVE Login', 'MxDC needs to link to your MxLIVE account'
+            )
+            credentials = login_form.get_credentials()
+            if credentials:
+                success = self.login(**credentials)
+                settings.save_keys(self.keys)
+
+        if success:
+            logger.debug('MxLIVE Account Linked Successful')
+            self.headers['Authorization'] = f'Bearer {self.keys["access"]}'
+            self.set_state(active=success)
+        else:
+            logger.error('Unable to authenticate with MxLIVE')
+
+    def url(self, path, **kwargs):
+        full_path = path.format(**kwargs)
+        url_path = full_path[1:] if full_path[0] == '/' else full_path
+        return f'{self.address}/{url_path}'
 
 
 class BaseMessenger(Object):
@@ -367,11 +495,13 @@ class Messenger(BaseMessenger):
         self.key = self.channel.format(misc.get_project_name())
         self.server = redis.Redis(host=host, port=6379, db=0)
         self.watcher = self.server.pubsub()
-        self.watcher.psubscribe(**{
-            self.channel.format('*'): self.get_message,
-            self.stat.format('*'): self.get_configs,
+        self.watcher.psubscribe(
+            **{
+                self.channel.format('*'): self.get_message,
+                self.stat.format('*'): self.get_configs,
 
-        })
+            }
+        )
         self.watch_thread = self.watcher.run_in_thread(sleep_time=0.01)
         self.get_configs()
 
@@ -460,7 +590,7 @@ class DPClient(BaseService):
         self.service = szrpc.client.Client(
             address, methods=('process_mx', 'process_xrd', 'process_misc', 'signal_strength')
         )
-        self.set_state(active=True, health=(0,'',''))
+        self.set_state(active=True, health=(0, '', ''))
 
     def process_mx(self, **kwargs):
         return self.service.process_mx(**kwargs)
@@ -501,5 +631,6 @@ class DSClient(BaseService):
 
 
 __all__ = [
-    'DPSClient', 'MxLIVEClient', 'DSSClient', 'LocalDSSClient', 'Messenger', 'SimMessenger', 'DPClient', 'DSClient'
+    'DPSClient', 'MxLIVEClient', 'MxLIVEClient3', 'DSSClient', 'LocalDSSClient', 'Messenger', 'SimMessenger',
+    'DPClient', 'DSClient'
 ]

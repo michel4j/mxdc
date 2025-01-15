@@ -321,13 +321,13 @@ class Application(Gtk.Application):
                 self.quit()
 
     def start_server(self, *args, **kwargs):
+        self.beamline.lims.start_session(self.beamline.name, self.beamline.session_key)
         self.service = server.MXDCService()
         logger.info(
             'Local MXDC instance {}@{} started {}'.format(
                 self.service_data['user'], self.beamline.name, self.service_data['started']
             )
         )
-        self.beamline.lims.open_session(self.beamline.name, self.beamline.session_key)
         reactor.listenTCP(MXDC_PORT, pb.PBServerFactory(server.IPerspectiveMXDC(self.service)))
 
     def on_shutdown(self, *args):

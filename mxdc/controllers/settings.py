@@ -1,9 +1,10 @@
-from gi.repository import Gio, Gtk
-from mxdc.conf import settings
-from mxdc.utils import gui
-from mxdc import Object, Property
 import re
 
+from gi.repository import Gio, Gtk
+
+from mxdc import Object, Property
+from mxdc.conf import settings
+from mxdc.utils import gui
 
 TEMPLATE_VARIABLES = {'sample', 'group', 'container', 'position', 'port', 'date', 'activity'}
 SCREENING_VARIABLES = {'autoprocess', 'mosflm'}
@@ -55,11 +56,11 @@ class SettingRow(gui.Builder):
 
 
 def valid_template(txt):
-    keys = set(re.findall('\{([\w]+?)\}', txt))
+    keys = set(re.findall(r'\{([\w]+?)\}', txt))
     valid = (
-        re.match(r'^[{\w\d}/-]+$', txt) and
-        re.match(r'^/(?:(\{[\w]+?\})*([\d\w/-]*))*$', txt) and
-        keys <= TEMPLATE_VARIABLES
+            re.match(r'^[{\w\d}/-]+$', txt) and
+            re.match(r'^/(?:(\{[\w]+?\})*([\d\w/-]*))*$', txt) and
+            keys <= TEMPLATE_VARIABLES
     )
     return bool(valid)
 
@@ -67,11 +68,13 @@ def valid_template(txt):
 def valid_screening(txt):
     return txt.strip().lower() in SCREENING_VARIABLES
 
+
 def valid_naming(txt):
     return txt.strip().lower() in NAMING_VARIABLES
 
+
 def valid_mode(value):
-    print (value)
+    print(value)
     return bool(value)
 
 
@@ -82,7 +85,7 @@ class SettingsDialog(gui.BuilderMixin):
 
     OPTIONS = [
         ('directory-template', 'dir-template-symbolic', valid_template),
-        #('dataset-naming', 'insert-text-symbolic', valid_naming),
+        # ('dataset-naming', 'insert-text-symbolic', valid_naming),
         ('screening-method', 'error-correct-symbolic', valid_screening),
     ]
 
@@ -135,4 +138,3 @@ class SettingsDialog(gui.BuilderMixin):
             self.use_default_switch.set_active(value_now == default_value)
             if value_now != default_value:
                 self.custom_entry.set_text(value_now)
-

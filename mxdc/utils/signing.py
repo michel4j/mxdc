@@ -39,6 +39,11 @@ class Signer(object):
         return '{value}{sep}{signature}'.format(value=timed_value, sep=self.sep, signature=self.signature(timed_value))
 
     def unsign(self, signed_value):
+        """
+        Verify the signature and return the value.
+        :param signed_value:
+        :return:
+        """
         if self.sep not in signed_value:
             raise exceptions.InvalidSignature('No "%s" found in value' % self.sep)
         timed_value, b64_sig = str(signed_value).rsplit(self.sep, 1)
