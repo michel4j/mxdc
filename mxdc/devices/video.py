@@ -394,7 +394,7 @@ class AxisPTZCamera(AxisCamera):
         presets = []
         r = requests.get(self.url_root, params={'query': 'presetposall'})
         if r.status_code == requests.codes.ok:
-            pospatt = re.compile('presetposno.+=(?P<name>[\w ]+)')
+            pospatt = re.compile(r'presetposno.+=(?P<name>[\w ]+)')
             for line in r.text.split('\n'):
                 m = pospatt.match(line)
                 if m:

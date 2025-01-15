@@ -89,7 +89,7 @@ class UncleSAM(AutoMounter):
             pv.connect('changed', self.on_states_changed)
 
     def is_valid(self, port):
-        if not re.match('[RML][ABCDEFGHIJKL]\d{1,2}', port):
+        if not re.match(r'[RML][ABCDEFGHIJKL]\d{1,2}', port):
             return False
         return True
 

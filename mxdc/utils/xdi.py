@@ -80,7 +80,7 @@ class OffsetTZ(tzinfo):
 
 
 def isotime(text):
-    patt = re.compile('(?P<date_text>[\d-]{8,10}[T ][\d:]{6,8}(?:\.\d+)?)Z?(?:(?P<sign>[+-])(?P<offset>\d{2}:\d{2}))?')
+    patt = re.compile(r'(?P<date_text>[\d-]{8,10}[T ][\d:]{6,8}(?:\.\d+)?)Z?(?:(?P<sign>[+-])(?P<offset>\d{2}:\d{2}))?')
     m = patt.match(text)
     if m:
         info = m.groupdict()
@@ -305,14 +305,14 @@ class XDIData(object):
                 if units is None:
                     field = Field(value=fmt(row['text'].strip()), units=None)
                 else:
-                    value_text, unit = re.match('([^\s]+)\s*(.+)?', row['text']).groups()
+                    value_text, unit = re.match(r'([^\s]+)\s*(.+)?', row['text']).groups()
                     try:
                         value = fmt(value_text)
                     except ValueError as e:
-                        sys.stderr.write('Invalid Value: {} for field {}.{}\n'.format(value_text, namespace, tag))
+                        sys.stderr.write(f'Invalid Value: {value_text} for field {namespace}.{tag}\n')
                         continue
                     if units and unit not in units:
-                        sys.stderr.write('Invalid Unit: {} for field {}.{}\n'.format(unit, namespace, tag))
+                        sys.stderr.write(f'Invalid Unit: {unit} for field {namespace}.{tag}\n')
                         continue
                     field = Field(value=value, units=unit)
             else:
