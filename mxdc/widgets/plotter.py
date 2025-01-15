@@ -30,7 +30,7 @@ class PlotterToolbar(NavigationToolbar):
     )
 
     def __init__(self, canvas, window):
-        super().__init__(canvas, window)
+        super().__init__(canvas)
         self.widgets = {}
 
         for i, item in enumerate(self):

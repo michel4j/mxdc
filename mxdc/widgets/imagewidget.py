@@ -318,9 +318,9 @@ class ImageWidget(Gtk.DrawingArea):
         canvas = FigureCanvasCairo(figure)
         width, height = canvas.get_width_height()
         renderer = RendererCairo(canvas.figure.dpi)
-        renderer.set_width_height(width, height)
         self.settings.profile = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        renderer.set_ctx_from_surface(self.settings.profile)
+        context = cairo.Context(self.settings.profile)
+        renderer.set_context(context)
         canvas.figure.draw(renderer)
 
     def draw_overlay_cairo(self, cr):

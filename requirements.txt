@@ -6,7 +6,7 @@ gepics
 pyepics
 h5py
 hdf5plugin
-matplotlib==3.5.3
+matplotlib~=3.10
 msgpack
 opencv-python
 pillow
