@@ -1,10 +1,12 @@
+import os
 import time
 import uuid
+from pathlib import Path
 
 from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering, transfer
 from mxdc.engines.interfaces import IDataCollector
-from mxdc.utils import datatools
+from mxdc.utils import datatools, misc
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
@@ -16,15 +18,20 @@ class Automator(Engine):
     class Task:
         (MOUNT, CENTER, PAUSE, ACQUIRE, ANALYSE, DISMOUNT) = list(range(6))
 
+    samples: list
+    tasks: list
+    unattended: bool
+
     class Signals:
         sample_done = Signal('sample-done', arg_types=(str,))
+        sample_failed = Signal('sample-failed', arg_types=(str,))
         sample_started = Signal('sample-started', arg_types=(str,))
 
     def __init__(self):
         super().__init__()
         self.pause_message = ''
         self.total = 1
-
+        self.unattended = False
         self.collector = Registry.get_utility(IDataCollector)
         self.centering = centering.Centering()
 
@@ -32,11 +39,23 @@ class Automator(Engine):
         self.samples = samples
         self.tasks = tasks
         self.total = len(tasks) * len(samples)
+        self.unattended = self.beamline.config.automation.unattended
 
     def get_progress(self, pos, task, sample):
         fraction = float(pos) / self.total
         msg = '{}: {}/{}'.format(self.TaskNames[task['type']], sample['group'], sample['name'])
         return fraction, msg
+
+    def take_snapshot(self, directory: str, name: str, index: int = 0):
+        # setup folder
+        self.beamline.dss.setup_folder(directory, misc.get_project_name())
+        file_path = Path(directory)
+        file_name = f"{name}-{index}.png"
+
+        # take snapshot
+        if file_path.exists():
+            self.beamline.sample_camera.save_frame(file_path / file_name)
+            logger.debug(f'Snapshot saved... {file_name}')
 
     def run(self):
         self.set_state(busy=True, started=None)
@@ -46,10 +65,16 @@ class Automator(Engine):
             if self.stopped:
                 break
             self.emit('sample-started', sample['uuid'])
+
+            params = {}
+            params.update({'name': sample['name'], 'uuid': str(uuid.uuid4())})
+            params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key)
+
             for task in self.tasks:
                 if self.paused:
                     self.intervene()
-                if self.stopped: break
+                if self.stopped:
+                    break
                 pos += 1
                 self.emit('progress', *self.get_progress(pos, task, sample))
                 logger.info(
@@ -64,18 +89,30 @@ class Automator(Engine):
                 elif task['type'] == self.Task.CENTER:
                     if self.beamline.automounter.is_mounted(sample['port']):
                         method = task['options'].get('method')
+                        params.update(task['options'])
                         self.centering.configure(method=method)
                         self.beamline.manager.wait('CENTER')
                         time.sleep(2)           # needed to make sure gonio is in the right state
+                        self.take_snapshot(params['directory'], sample['name'], 0)
                         self.centering.run()
                         if self.centering.score < 0.5:
-                            self.intervene(
-                                'Not confident about the centering, automation has been paused\n'
-                                'Please resume after manual centering. '
-                            )
+                            if not self.unattended:
+                                self.intervene(
+                                    f'Centering Sore: {self.centering.score:0.1f}.\n'
+                                    'Not confident about the centering, automation has been paused\n'
+                                    'Please resume after manual centering. '
+                                )
+                            else:
+                                logger.error(f'Skipping sample due to poor centering: Sore: {self.centering.score}')
+                                self.emit('sample-failed', sample['uuid'])
+                                break
                     else:
-                        self.emit('error', 'Sample not mounted. Aborting!')
-                        self.stop()
+                        self.emit('sample-failed', sample['uuid'])
+                        if not self.unattended:
+                            self.emit('error', 'Sample not mounted. Aborting!')
+                            self.stop()
+                        else:
+                            break
 
                 elif task['type'] == self.Task.MOUNT:
                     success = transfer.auto_mount_manual(self.beamline, sample['port'])
@@ -88,14 +125,15 @@ class Automator(Engine):
                         logger.debug('Success: {}, Mounted: {}'.format(
                             success, self.beamline.automounter.is_mounted(sample['port'])
                         ))
-                        self.emit('error', 'Mouting Failed. Unable to continue automation!')
-                        self.stop()
+                        if not self.unattended:
+                            self.emit('error', 'Mounting Failed. Unable to continue automation!')
+                            self.stop()
+                        else:
+                            self.emit('sample-failed', sample['uuid'])
+                            break
                 elif task['type'] == self.Task.ACQUIRE:
                     if self.beamline.automounter.is_mounted(sample['port']):
-                        params = {}
                         params.update(task['options'])
-                        params.update({'name': sample['name'], 'uuid': str(uuid.uuid4())})
-                        params = datatools.update_for_sample(params, sample=sample, session=self.beamline.session_key)
                         logger.debug('Acquiring frames for sample {}, in directory {}.'.format(
                             sample['name'], params['directory']
                         ))
@@ -107,10 +145,14 @@ class Automator(Engine):
                         sample['results'] = self.collector.execute()
 
                     else:
-                        self.emit('error', 'Sample not mounted. Unable to continue automation!')
-                        self.stop()
-
-            self.emit('sample-done', sample['uuid'])
+                        if not self.unattended:
+                            self.emit('error', 'Sample not mounted. Unable to continue automation!')
+                            self.stop()
+                        else:
+                            self.emit('sample-failed', sample['uuid'])
+                            break
+            else:
+                self.emit('sample-done', sample['uuid'])
 
         if self.stopped:
             self.set_state(stopped=None, busy=False)
