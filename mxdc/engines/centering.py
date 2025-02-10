@@ -35,6 +35,9 @@ class Centering(Engine):
     device: Device | None
     method: callable
     score: float
+    snapshots: bool
+    directory: str | None
+    name: str | None
 
     def __init__(self):
         super().__init__()
@@ -42,6 +45,10 @@ class Centering(Engine):
         self.method = None
         self.device = None
         self.score = 0.0
+        self.snapshots = False
+        self.directory = None
+        self.name = None
+
         self.methods = {
             'loop': self.center_loop,
             'crystal': self.center_crystal,
@@ -50,7 +57,7 @@ class Centering(Engine):
             'external': self.center_external,
         }
 
-    def configure(self, method='loop'):
+    def configure(self, method='loop', **kwargs):
         from mxdc.controllers.samplestore import ISampleStore
         from mxdc.engines.rastering import IRasterCollector
 
@@ -64,6 +71,13 @@ class Centering(Engine):
             self.method = self.center_external
         else:
             self.method = self.center_loop
+
+        for key in ['snapshots', 'directory', 'name']:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+
+        if not (self.directory and self.name):
+            self.snapshots = False
 
     def position_to_mm(self, x: int, y: int) -> tuple:
         """
@@ -98,9 +112,10 @@ class Centering(Engine):
         recorder.stop()
 
         heights = recorder.get_heights()
-        angles = numpy.linspace(start_angle, start_angle + 180, len(heights))
-        face_angle = angles[numpy.argmin(heights)] - 90
-        self.beamline.goniometer.omega.move_to(face_angle % 360, wait=True)
+        if len(heights):
+            angles = numpy.linspace(start_angle, start_angle + 180, len(heights))
+            face_angle = angles[numpy.argmin(heights)] - 90
+            self.beamline.goniometer.omega.move_to(face_angle % 360, wait=True)
 
     def get_video_frame(self):
         self.beamline.goniometer.wait(start=False, stop=True)

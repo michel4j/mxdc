@@ -222,6 +222,7 @@ class BESTTuner(BaseTuner):
 
         super().__init__()
         self.tunable = True
+        self.pv_data = {}
         self.name = name
         self.tune_step = tune_step
         self.enable_cmd = self.add_pv('{}:PID:Enable'.format(name))
@@ -230,17 +231,26 @@ class BESTTuner(BaseTuner):
         self.status_fbk = self.add_pv('{}:PID:Status'.format(name))
         self.value_fbk = self.add_pv('{}:BPM0:AvgInt'.format(name))
         self.current_fbk = self.add_pv(current)
+
         self.status_fbk.connect('changed', self.on_state_changed)
-        self.value_fbk.connect('changed', self.on_value_changed)
+        self.value_fbk.connect('changed', self.update_data, 'value')
+        self.current_fbk.connect('changed', self.update_data, 'current')
+
         if reference:
             self.reference_fbk = self.add_pv(reference)
         else:
             self.reference_fbk = self.value_fbk
 
+        self.reference_fbk.connect('changed', self.update_data, 'reference')
         if flux:
             self.max_flux = self.add_pv(flux)
+            self.max_flux.connect('changed', self.update_data, 'max_flux')
         else:
             self.max_flux = None
+
+    def update_data(self, pv, value, name):
+        self.pv_data[name] = value
+        self.on_value_changed()
 
     def is_paused(self):
         return self.status_fbk.get() in [0, 1, 2]
@@ -277,19 +287,20 @@ class BESTTuner(BaseTuner):
     def on_state_changed(self, obj, val):
         self.set_state(enabled=(val == 3))
 
-    def on_value_changed(self, obj, val):
-        ref = self.reference_fbk.get()
-        cur = max(0.0, self.current_fbk.get())
-        max_flux = 0.0 if not self.max_flux else self.max_flux.get()
+    def on_value_changed(self):
+        ref = self.pv_data.get('reference', 0.0)
+        cur = max(0.0, self.pv_data.get('current', 0.0))
+        max_flux = self.pv_data.get('max_flux', 0.0)
+        val = self.pv_data.get('value', 0.0)
+
         try:
             tgt = 0.0 if cur <= 1 else val * 220 / cur
             frac = 0.0 if ref == 0.0 else tgt / ref
             flux = 0.0 if ref == 0.0 else max_flux * frac * cur / 220
         except (TypeError, ValueError, ZeroDivisionError):
-            perc = 0.0
+            frac = 0.0
             flux = 0.0
         self.set_state(changed=val, percent=frac*100, flux=flux)
-
 
 
 class SimTuner(BaseTuner):

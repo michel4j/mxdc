@@ -27,8 +27,9 @@ class LoopRecorder:
             raw = self.beamline.sample_video.get_frame()
             frame = cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
             info = get_loop_features(frame, orientation=self.beamline.config.orientation)
-            self.widths.append(info['loop-width'])
-            self.heights.append(info['loop-height'])
+            if 'loop-width' in info and 'loop-height' in info:
+                self.widths.append(info['loop-width'])
+                self.heights.append(info['loop-height'])
             time.sleep(0.0)
 
     def get_widths(self):
@@ -157,7 +158,7 @@ def get_loop_features(orig, offset=10, scale=0.5, orientation='left'):
 
             info['loop-start'] = ellipse_x + info['loop-width']/2
             info['loop-end'] = ellipse_x - info['loop-width']/2
-            info['score'] = 100*(1 - abs(info['loop-start'] - info['x'])/info['loop-width'])
+            info['score'] = 0.0 if not info['loop-width'] else 100*(1 - abs(info['loop-start'] - info['x'])/info['loop-width'])
 
         info['sizes'] = (sizes / scale).astype(int)
         info['points'] = [(int(x / scale), int(y / scale)) for x, y in vertices]
