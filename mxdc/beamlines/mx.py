@@ -46,8 +46,9 @@ class MXBeamline(Beamline):
         'dataset.energy': 12.658,
         'dataset.beamstop': 30,
         'dataset.delta': 0.5,
+        'centering.show_bbox': False,
         'dataset.attenuation': 0.0,
-
+        'automation.unattended': False,
         'minimum_exposure': 0.1,
 
         'zoom.levels': (1, 4, 6),

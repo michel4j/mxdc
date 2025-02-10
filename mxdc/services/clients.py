@@ -291,7 +291,7 @@ class MxLIVEBase(BaseService):
 
         try:
             reply = self.post(self.url(self.SESSION_START_URL, beamline=beamline, session=session))
-        except requests.ConnectionError as err:
+        except (requests.ConnectionError, requests.HTTPError) as err:
             logger.error('Unable to connect to MxLIVE!')
             logger.debug(err)
         else:
@@ -409,8 +409,8 @@ class MxLIVEClient3(MxLIVEBase):
     MxLIVE Service Client - Version 3 API
     """
     KEY_FILE = 'mxlive.keys'
-    LOGIN_URL = '/api/v3/token/'
-    VERIFY_URL = '/api/v3/token/verify/'
+    LOGIN_URL = '/api/v3/auth/'
+    VERIFY_URL = '/api/v3/auth/verify/'
     REFRESH_URL = '/api/v3/token/refresh/'
     DATA_URL = '/api/v3/data/{beamline}/'
     REPORT_URL = '/api/v3/report/{beamline}/'
@@ -446,7 +446,7 @@ class MxLIVEClient3(MxLIVEBase):
                 r = self.server.post(self.url(self.REFRESH_URL), data={'refresh': self.keys['refresh']})
                 if r.status_code == requests.codes.ok:
                     self.keys.update(r.json())
-                    settings.save_keys(self.keys)
+                    settings.save_keys(self.keys, self.KEY_FILE)
                     success = True
 
         if not success:
@@ -457,11 +457,11 @@ class MxLIVEClient3(MxLIVEBase):
             credentials = login_form.get_credentials()
             if credentials:
                 success = self.login(**credentials)
-                settings.save_keys(self.keys)
+                settings.save_keys(self.keys, self.KEY_FILE)
 
         if success:
             logger.debug('MxLIVE Account Linked Successful')
-            self.headers['Authorization'] = f'Bearer {self.keys["access"]}'
+            self.headers['X-Access-Token'] = f'Bearer {self.keys["access"]}'
             self.set_state(active=success)
         else:
             logger.error('Unable to authenticate with MxLIVE')
