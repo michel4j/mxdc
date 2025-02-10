@@ -92,9 +92,9 @@ class Automator(Engine):
                         params.update(task['options'])
                         self.centering.configure(method=method)
                         self.beamline.manager.wait('CENTER')
-                        time.sleep(2)           # needed to make sure gonio is in the right state
-                        self.take_snapshot(params['directory'], sample['name'], 0)
+                        time.sleep(2)   # needed to make sure gonio is in the right state
                         self.centering.run()
+                        self.take_snapshot(params['directory'], sample['name'], 0)
                         if self.centering.score < 0.5:
                             if not self.unattended:
                                 self.intervene(
