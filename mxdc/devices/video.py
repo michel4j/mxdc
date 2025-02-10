@@ -4,6 +4,8 @@ import re
 import threading
 import time
 from io import BytesIO, StringIO
+from os import PathLike
+from pathlib import Path
 
 import numpy
 import redis
@@ -120,15 +122,16 @@ class VideoSrc(Device):
         pass
 
     @decorators.async_call
-    def save_frame(self, filename):
+    def save_frame(self, filename: PathLike):
         """
         Save current frame to filename
-        :param filename:
+        :param filename: str or Path
         """
+        file_path = Path(filename)
         self.fetch_frame()
         if self.frame:
-            logger.debug(f'Saving Frame ...{filename}')
-            self.frame.save(filename)
+            logger.debug(f'Saving Frame ...{file_path.name}')
+            self.frame.save(str(file_path))
 
     def cleanup(self):
         self.stop()

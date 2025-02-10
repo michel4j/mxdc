@@ -103,6 +103,7 @@ class AutomationController(Object):
         self.automator.connect('stopped', self.on_stopped)
         self.automator.connect('progress', self.on_progress)
         self.automator.connect('sample-done', self.on_sample_done)
+        self.automator.connect('sample-failed', self.on_sample_done)
         self.automator.connect('sample-started', self.on_sample_started)
         self.automator.connect('started', self.on_started)
         self.automator.connect('error', self.on_error)
@@ -266,6 +267,9 @@ class AutomationController(Object):
 
     def on_sample_done(self, obj, uuid):
         self.automation_queue.mark_progress(uuid, SampleStore.Progress.DONE)
+
+    def on_sample_failed(self, obj, uuid):
+        self.automation_queue.mark_progress(uuid, SampleStore.Progress.FAILED)
 
     def on_sample_started(self, obj, uuid):
         self.automation_queue.mark_progress(uuid, SampleStore.Progress.ACTIVE)

@@ -1,8 +1,7 @@
-import math
 import os
 import time
-
 from pathlib import Path
+
 import numpy
 from gi.repository import Gtk, Gdk, Gio, GLib
 from zope.interface import Interface, Attribute, implementer
@@ -17,7 +16,6 @@ from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget, VideoView
 from . import common
-
 
 logger = get_module_logger(__name__)
 
@@ -65,7 +63,6 @@ POINT_ITEM_TMPL = """
 
 @implementer(IMicroscope)
 class Microscope(Object):
-
     class ToolState(object):
         DEFAULT, CENTERING, GRID, MEASUREMENT = list(range(4))
 
@@ -183,10 +180,10 @@ class Microscope(Object):
         # disable centering buttons on click
         self.centering.connect('started', self.on_scripts_started)
         self.centering.connect('done', self.on_centering_done)
-
-        # self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
-        # self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
-        # self.beamline.sample_xcenter.connect('found', self.on_sample_found)
+        if self.beamline.config.centering.show_bbox:
+            self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
+            self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
+            self.beamline.sample_xcenter.connect('found', self.on_sample_found)
 
         # lighting monitors
         self.monitors = []
@@ -251,7 +248,7 @@ class Microscope(Object):
                     continue
                 if name == 'points':
                     for i, point in enumerate(value):
-                        self.points.append([f'P{i+1}', tuple(point)])
+                        self.points.append([f'P{i + 1}', tuple(point)])
                 else:
                     self.set_property(name, value)
 
@@ -279,7 +276,7 @@ class Microscope(Object):
         self.widget.microscope_grid_btn.set_active(False)
 
         self.video.clear_overlays()
-        self.video.set_overlay_beam(self.beamline.aperture.get_position()*1e-3)
+        self.video.set_overlay_beam(self.beamline.aperture.get_position() * 1e-3)
 
     def toggle_grid_mode(self, *args, **kwargs):
         if self.widget.microscope_grid_btn.get_active():
@@ -291,7 +288,7 @@ class Microscope(Object):
             self.video.set_overlay_box()
 
     def add_point(self, point):
-        self.points.append([f'P{len(self.points)+1}', point])
+        self.points.append([f'P{len(self.points) + 1}', point])
         self.update_points()
 
     @async_call
@@ -322,7 +319,7 @@ class Microscope(Object):
         step_size = 1e-3 * self.beamline.aperture.get() / self.video.get_mm_scale()
 
         bounds = bbox * factor
-        shape =  misc.calc_grid_size(bounds, step_size)
+        shape = misc.calc_grid_size(bounds, step_size)
         w, h = 1000 * shape * self.video.get_mm_scale() * step_size
         if min(w, h) == 0.0:
             self.props.grid_bbox = []
@@ -375,7 +372,7 @@ class Microscope(Object):
         points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
         xyz = numpy.empty_like(points)
         xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
-            points[:, 0], points[:, 1],  points[:, 2]
+            points[:, 0], points[:, 1], points[:, 2]
         )
         xyz /= self.video.get_mm_scale()
         xyz[:, :2] += center
@@ -388,12 +385,14 @@ class Microscope(Object):
             # Update grid
             if self.props.grid_xyz is not None:
                 self.props.grid = self.recalculate_grid()
-                self.video.set_overlay_grid({
-                    'coords': self.props.grid,
-                    'indices': self.props.grid_index,
-                    'frames': self.props.grid_frames,
-                    'scores': self.props.grid_scores
-                })
+                self.video.set_overlay_grid(
+                    {
+                        'coords': self.props.grid,
+                        'indices': self.props.grid_index,
+                        'frames': self.props.grid_frames,
+                        'scores': self.props.grid_scores
+                    }
+                )
             else:
                 self.props.grid = None
                 self.video.set_overlay_grid()
@@ -402,7 +401,7 @@ class Microscope(Object):
     def colorize(self, button):
         self.video.set_colorize(state=button.get_active())
 
-    def on_clear_objects(self, *args,**kwargs):
+    def on_clear_objects(self, *args, **kwargs):
         response = dialogs.warning(
             "Clear Grid & Points?",
             "All saved points and defined grids will be cleared.\nThis operation cannot be undone!",

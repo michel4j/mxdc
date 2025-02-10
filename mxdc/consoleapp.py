@@ -22,7 +22,7 @@ from mxdc.controllers import scanplot, common
 from mxdc.beamlines import build_beamline
 from twisted.internet import reactor
 
-USE_TWISTED = True
+USE_TWISTED = False
 MXDC_PORT = misc.get_free_tcp_port()  # 9898
 VERSION = __version__
 COPYRIGHT = "Copyright (c) 2006-{}, Canadian Light Source, Inc. All rights reserved.".format(datetime.now().year)
@@ -126,7 +126,7 @@ class ConsoleApp(object):
             reactor.registerGApplication(self.application)
             reactor.run()
         else:
-            self.application.run(sys.argv)
+            self.application.run()
 
 
 

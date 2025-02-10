@@ -113,7 +113,7 @@ class SampleStore(Object):
         )
 
     class Progress(object):
-        NONE, PENDING, ACTIVE, DONE = list(range(4))
+        NONE, PENDING, ACTIVE, DONE, FAILED = list(range(5))
 
     Column = OrderedDict([
         (Data.SELECTED, ''),
