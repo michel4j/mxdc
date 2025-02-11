@@ -74,7 +74,7 @@ class ExtCenter(BaseCenter):
     An external centering device.
     """
 
-    def __init__(self, root, threshold=0.5):
+    def __init__(self, root, threshold=0.25):
         super().__init__(threshold=threshold)
         self.name = root
 
@@ -89,6 +89,7 @@ class ExtCenter(BaseCenter):
         self.size = self.add_pv(f'{root}:objects:valid')
 
         self.status = self.add_pv(f'{root}:status')
+        self.label = self.add_pv(f'{root}:label')
         self.score.connect('changed', self.on_pos_changed)
         self.size.connect('changed', self.on_obj_changed)
         Registry.add_utility(ICenter, self)
@@ -97,8 +98,9 @@ class ExtCenter(BaseCenter):
         if self.score.get() > self.threshold and self.w.get() > MIN_WIDTH:
             cx = self.x.get() + self.w.get() / 2
             cy = self.y.get() + self.h.get() / 2
-            self.update_found(cx, cy, self.score.get(), 'loop')
-            loop = CenterObject(cx, cy, self.score.get(), self.w.get(), self.h.get())
+
+            self.update_found(cx, cy, self.score.get(), self.label.get())
+            loop = CenterObject(cx, cy, self.score.get(), self.w.get(), self.h.get(), label=self.label.get())
             self.set_state(loop=(loop, time.time()))
         else:
             self.set_state(loop=(None, time.time()))

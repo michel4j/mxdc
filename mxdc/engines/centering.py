@@ -106,7 +106,7 @@ class Centering(Engine):
         """
 
         start_angle = self.beamline.goniometer.omega.get_position()
-        recorder = imgproc.LoopRecorder(self.beamline)
+        recorder = imgproc.LoopRecorder(self.beamline, self.device)
         recorder.start()
         self.beamline.goniometer.omega.move_by(180, wait=True)
         recorder.stop()
@@ -147,7 +147,7 @@ class Centering(Engine):
             )
         )
 
-    def center_external(self, label='loop', trials=3):
+    def center_external(self, label='loop', trials=4):
         """
         External centering device
         :param trials: Number of trials to perform
@@ -159,25 +159,44 @@ class Centering(Engine):
             return
 
         scores = []
-        for i in range(trials):
-            last_trial = (i == trials - 1)
+        good_trials = 0
+        last_trial = False
+        max_trials = 8
+        omega_step = 90
+        valid_objects = ['loop', 'img-loop']
+
+        for i in range(max_trials):
+            if good_trials == 2:
+                self.beamline.sample_zoom.move_by(2, wait=True)
+
             if i > 0 and not last_trial:
-                cur_pos = self.beamline.goniometer.omega.get_position()
-                self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+                self.beamline.goniometer.omega.move_by(omega_step, wait=True)
             elif last_trial:
                 self.loop_face()
 
             found = self.device.wait(2)
-            if found is not None:
+
+            if found is not None and found[-1] in valid_objects:
                 cx, cy, reliability, label = found
                 logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability}')
                 xmm, ymm = self.position_to_mm(cx, cy)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+                good_trials += 1
+                last_trial = (good_trials == trials - 1)
+                omega_step = 90
+                if good_trials > 2:
+                    valid_objects = ['loop']
             else:
+                last_trial = False
                 reliability = 0.0
                 logger.warning('... No object found in field-of-view')
+                omega_step = 45
+
             scores.append(reliability)
+
+            if good_trials == trials:
+                break
 
         self.score = 100 * numpy.mean(scores)
 

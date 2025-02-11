@@ -8,12 +8,20 @@ class LoopRecorder:
     """
     An Object that records the loop width and height from the sample video feed
     """
-    def __init__(self, beamline):
+    def __init__(self, beamline, device=None):
+        """
+        Initialize the loop recorder
+        :param beamline: beamline object
+        :param device: Centering device
+        """
         super().__init__()
         self.beamline = beamline
         self.widths = []
         self.heights = []
+        self.scores = []
+        self.angles = []
         self.running = False
+        self.device = device
 
     def run(self):
         """
@@ -22,7 +30,9 @@ class LoopRecorder:
         self.running = True
         self.widths = []    # Clear the previous data
         self.heights = []
+        self.scores = []
         while self.running:
+
             self.beamline.sample_video.fetch_frame()
             raw = self.beamline.sample_video.get_frame()
             frame = cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
