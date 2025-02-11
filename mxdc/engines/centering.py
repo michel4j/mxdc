@@ -164,10 +164,12 @@ class Centering(Engine):
         max_trials = 8
         omega_step = 90
         valid_objects = ['loop', 'img-loop']
+        zoomed_in = False
 
         for i in range(max_trials):
-            if good_trials == 2:
+            if good_trials == 2 and not zoomed_in:
                 self.beamline.sample_zoom.move_by(2, wait=True)
+                zoomed_in = True
 
             if i > 0 and not last_trial:
                 self.beamline.goniometer.omega.move_by(omega_step, wait=True)
