@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, Future
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import mxio
 import pytz
@@ -37,6 +37,7 @@ class DataCollector(Engine):
 
     class Signals:
         message = Signal('message', arg_types=(str,))
+        dataset_ready = Signal('dataset-ready', arg_types=(str, object))
 
     # Properties:
     name = 'Data Collector'
@@ -60,12 +61,12 @@ class DataCollector(Engine):
         self.data_saver = ThreadPoolExecutor(max_workers=5)
 
     def save_dataset(self, dataset, analyse=True) -> tuple:
-        timeout_time = datetime.utcnow() + timedelta(seconds=self.beamline.config.dataset.overhead)
+        timeout_time = datetime.now(timezone.utc) + timedelta(seconds=self.beamline.config.dataset.overhead)
         names = ",".join(details['name'] for details in dataset.get_details())
 
         logger.debug(f'Waiting for files to be transferred for datasets {names}...')
         #FIXME - check that all files have been transferred instead of waiting
-        while datetime.utcnow() < timeout_time:
+        while datetime.now(timezone.utc) < timeout_time:
             time.sleep(0.001)
 
         logger.debug(f'Saving datasets {names}...')
@@ -76,13 +77,12 @@ class DataCollector(Engine):
         return analyse, meta_data, dataset.sample
 
     def analyse_dataset(self, future: Future):
-        from mxio.formats import cbf
         analyse, meta_data, sample = future.result(timeout=5)
-
         for entry in meta_data:
             self.analyst.add_dataset(entry)
             self.results.append(entry)
 
+        self.emit('dataset-ready', meta_data[0]['uuid'], meta_data)
         if analyse and meta_data:
             logger.debug(f'Running Analysis for saved dataset')
             data_type = meta_data[0]['type']
@@ -97,7 +97,6 @@ class DataCollector(Engine):
         :param analysis: bool, whether to run analysis after acquiring frames
         :param anomalous: bool, enable analysis mode for data analysis
         """
-
         self.config['analysis'] = analysis
         self.config['anomalous'] = anomalous
         self.config['take_snapshot'] = take_snapshots
@@ -408,9 +407,9 @@ class DataCollector(Engine):
             'detector_size': min(self.beamline.detector.size),
             'start_angle': params['start'],
             'delta_angle': params['delta'],
-            'comments': params['notes']
+            'comments': params.get('notes', '')
         }
-        filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+        filename = os.path.join(metadata['directory'], f'{metadata["name"]}.meta')
         misc.save_metadata(metadata, filename)
         reply = self.beamline.lims.upload_data(self.beamline.name, filename)
         return reply
