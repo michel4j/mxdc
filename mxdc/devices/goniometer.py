@@ -540,8 +540,8 @@ class SimGonio(BaseGoniometer):
         self.settings = {}
         self._scanning = False
         self._lock = Lock()
-
-        self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=60.0, precision=3)
+        self.omega_speed = 45.0
+        self.omega = motor.SimMotor('Omega', 0.0, 'deg', speed=self.omega_speed, precision=3)
         self.sample_x = motor.SimMotor('Sample X', 0.0, limits=(-5, 5), units='mm', speed=0.6)
         self.sample_y1 = motor.SimMotor('Sample Y1', 0.0, limits=(-2, 2), units='mm', speed=0.6)
         self.sample_y2 = motor.SimMotor('Sample Y2', 0.0, limits=(-2, 2), units='mm', speed=0.6)
@@ -552,9 +552,9 @@ class SimGonio(BaseGoniometer):
         self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_y)
 
         if self.supports(GonioFeatures.KAPPA):
-            self.kappa = motor.SimMotor('Kappa', 0.0, limits=(-1, 180), units='deg', speed=30)
-            self.chi = motor.SimMotor('Chi', 0.0, limits=(-1, 48), units='deg', speed=30)
-            self.phi = motor.SimMotor('Phi', 0.0, units='deg', speed=30)
+            self.kappa = motor.SimMotor('Kappa', 0.0, limits=(-1, 180), units='deg', speed=self.omega_speed)
+            self.chi = motor.SimMotor('Chi', 0.0, limits=(-1, 48), units='deg', speed=self.omega_speed)
+            self.phi = motor.SimMotor('Phi', 0.0, units='deg', speed=self.omega_speed)
 
         self.set_state(active=True, health=(0, '', ''))
 
@@ -567,33 +567,34 @@ class SimGonio(BaseGoniometer):
         self._scan_sync()
 
     def _scan_sync(self):
+        while self._scanning:
+            time.sleep(0.1)
+
+        self._scanning = True
         self.set_state(message='Scanning ...', busy=True)
-        with self._lock:
-            self._scanning = True
-            bl = Registry.get_utility(IBeamline)
-            config = self.omega.get_config()
-            logger.debug('Starting scan at: %s' % datetime.now().isoformat())
-            logger.debug('Moving to scan starting position')
-            bl.fast_shutter.open()
-            self.omega.move_to(self.settings['angle'] - 0.05, wait=True)
-            scan_speed = float(self.settings['range']) / self.settings['time']
-            self.omega.configure(speed=scan_speed)
-            self.trigger_index = 0
-            self.trigger_positions = numpy.arange(
-                self.settings['angle'],
-                self.settings['angle'] + self.settings['range'],
-                self.settings['range'] / self.settings.get('frames', 1)
-            ).tolist()
-            if self.supports(GonioFeatures.TRIGGERING):
-                logger.debug('starting {} triggers'.format(len(self.trigger_positions)))
-                #GLib.timeout_add(int(self._frame_exposure*1000), self.send_triggers)
-                GLib.idle_add(self.send_triggers)
-            self.omega.move_to(self.settings['angle'] + self.settings['range'] + 0.05, wait=True)
-            bl.fast_shutter.close()
-            self.omega.configure(speed=config['speed'])
-            logger.debug('Scan done at: %s' % datetime.now().isoformat())
-            self.set_state(message='Scan complete!', busy=False)
-            self._scanning = False
+        bl = Registry.get_utility(IBeamline)
+        logger.debug('Starting scan at: %s' % datetime.now().isoformat())
+        logger.debug('Moving to scan starting position')
+        bl.fast_shutter.open()
+        self.omega.move_to(self.settings['angle'] - 0.05, wait=True)
+        scan_speed = float(self.settings['range']) / self.settings['time']
+        self.omega.configure(speed=scan_speed)
+        self.trigger_index = 0
+        self.trigger_positions = numpy.arange(
+            self.settings['angle'],
+            self.settings['angle'] + self.settings['range'],
+            self.settings['range'] / self.settings.get('frames', 1)
+        ).tolist()
+        if self.supports(GonioFeatures.TRIGGERING):
+            logger.debug('starting {} triggers'.format(len(self.trigger_positions)))
+            GLib.idle_add(self.send_triggers)
+        self.omega.move_to(self.settings['angle'] + self.settings['range'] + 0.05, wait=True)
+        bl.fast_shutter.close()
+
+        logger.debug('Scan done at: %s' % datetime.now().isoformat())
+        self.set_state(message='Scan complete!', busy=False)
+        self.omega.configure(speed=self.omega_speed)
+        self._scanning = False
 
     def send_triggers(self):
         if len(self.trigger_positions):
