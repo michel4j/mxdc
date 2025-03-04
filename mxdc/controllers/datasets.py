@@ -19,6 +19,8 @@ from mxdc.widgets.datawidget import RunItem
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from .microscope import IMicroscope
 from .samplestore import ISampleStore, SampleQueue, SampleStore
+from ..utils.datatools import StrategyType, Strategy, AnalysisType, calculate_skip
+from ..widgets.tasks import TaskItem, TaskRow, ANALYSIS_DESCRIPTIONS
 
 logger = get_module_logger(__name__)
 
@@ -87,120 +89,118 @@ class AutomationController(Object):
         self.widget = widget
         self.control = status.DataControl()
         self.widget.auto_datasets_box.pack_end(self.control, False, True, 0)
-        self.run_dialog = datawidget.DataDialog()
-
-        self.widget.auto_edit_acq_btn.set_popover(self.run_dialog.popover)
+        self.list_box = widget.unattended_box
+        self.task_list = Gio.ListStore(item_type=TaskItem)
+        self.list_box.bind_model(self.task_list, TaskRow)
         self.automation_queue = SampleQueue(self.widget.auto_queue)
         self.automator = Automator()
-
-        self.config = RunItem()
-        self.config_display = ConfigDisplay(self.config, self.widget, 'auto')
 
         self.start_time = 0
         self.pause_info = None
         self.automator.connect('done', self.on_done)
         self.automator.connect('paused', self.on_pause)
         self.automator.connect('stopped', self.on_stopped)
-        self.automator.connect('progress', self.on_progress)
-        self.automator.connect('sample-done', self.on_sample_done)
-        self.automator.connect('sample-failed', self.on_sample_done)
-        self.automator.connect('sample-started', self.on_sample_started)
+        self.automator.connect('message', self.on_message)
+        self.automator.connect('task-progress', self.on_task_progress)
         self.automator.connect('started', self.on_started)
         self.automator.connect('error', self.on_error)
 
         self.connect('notify::state', self.on_state_changed)
-
-        # default
-        params = self.run_dialog.get_default(strategy_type=datawidget.StrategyType.SINGLE)
-        params.update({
-            'resolution': converter.dist_to_resol(
-                250, self.beamline.detector.mm_size, self.beamline.energy.get_position()
-            ),
-            'energy': self.beamline.energy.get_position(),
-        })
-        self.run_dialog.configure(params)
-        self.config.props.info = self.run_dialog.get_parameters()
-
-        # btn, type, options method
-        self.tasks = {
-            'mount': self.widget.mount_task_btn,
-            'center': self.widget.center_task_btn,
-            'pause1': self.widget.pause1_task_btn,
-            'acquire': self.widget.acquire_task_btn,
-            'analyse': self.widget.analyse_task_btn,
-            'pause2': self.widget.pause2_task_btn,
-        }
-        self.task_templates = [
-            (self.widget.mount_task_btn, Automator.Task.MOUNT),
-            (self.widget.center_task_btn, Automator.Task.CENTER),
-            (self.widget.pause1_task_btn, Automator.Task.PAUSE),
-            (self.widget.acquire_task_btn, Automator.Task.ACQUIRE),
-            (self.widget.analyse_task_btn, Automator.Task.ANALYSE),
-            (self.widget.pause2_task_btn, Automator.Task.PAUSE)
-        ]
-        self.options = {
-            'capillary': self.widget.center_cap_option,
-            'loop': self.widget.center_loop_option,
-            'external': self.widget.center_ai_option,
-            'diffraction': self.widget.center_diff_option,
-            'screen': self.widget.analyse_screen_option,
-            'process': self.widget.analyse_process_option,
-            'anomalous': self.widget.analyse_anom_option,
-            'powder': self.widget.analyse_powder_option,
-            'analyse': self.widget.analyse_task_btn
-        }
         self.setup()
 
+    def data_defaults(self, strategy_type=StrategyType.SINGLE, **kwargs):
+        info = Strategy[strategy_type]
+        delta, exposure = self.beamline.config.dataset.delta, self.beamline.config.dataset.exposure
+        default = {'delta': delta, 'exposure': exposure, 'attenuation': 0.0, 'resolution': 2.0, **kwargs}
+        rate = delta / float(exposure)
+        info['delta'] = delta if 'delta' not in info else info['delta']
+        info['exposure'] = info['delta'] / rate if exposure not in info else info['exposure']
+        default.update(info)
+        return default
+
+    def setup_tasks(self):
+        tasks = [
+            TaskItem(
+                name='Center', type=TaskItem.Type.CENTER,
+                active=True, options={'method': 'loop', 'skip_on_failure': True, 'pause': False, 'min_score': 50.0}
+            ),
+            TaskItem(
+                name='Screen', type=TaskItem.Type.SCREEN, active=True,
+                options=self.data_defaults(strategy_type=StrategyType.SCREEN_3, skip_on_failure=True, pause=False)
+            ),
+            TaskItem(
+                name='Strategy', type=TaskItem.Type.ANALYSE,
+                active=True, options={
+                    'method': 'strategy', 'skip_on_failure': True, 'pause': False, 'min_score': 0.4,
+                    'desc': ANALYSIS_DESCRIPTIONS['strategy']
+                }
+            ),
+            TaskItem(
+                name='Acquire', type=TaskItem.Type.ACQUIRE, active=True,
+                options=self.data_defaults(strategy_type=StrategyType.FULL, skip_on_failure=True, pause=False, use_strategy=True)
+            ),
+            TaskItem(
+                name='Process', type=TaskItem.Type.ANALYSE,
+                active=True, options={
+                    'method': 'process', 'skip_on_failure': True, 'pause': False, 'min_score': 0.5,
+                    'desc': ANALYSIS_DESCRIPTIONS['process']
+                }
+            ),
+        ]
+        for task in tasks:
+            self.task_list.append(task)
+            task.connect('notify::active', self.save_to_cache)
+
     def setup(self):
-        self.import_from_cache()
-        self.widget.auto_edit_acq_btn.connect('clicked', self.on_edit_acquisition)
-        self.run_dialog.data_save_btn.connect('clicked', self.on_save_acquisition)
+        self.setup_tasks()
+        self.load_from_cache()
         self.control.action_btn.set_sensitive(True)
-
-        for btn in list(self.tasks.values()):
-            btn.connect('toggled', self.on_save_acquisition)
-
         self.control.action_btn.connect('clicked', self.on_start_automation)
         self.control.stop_btn.connect('clicked', self.on_stop_automation)
-
         self.widget.auto_clean_btn.connect('clicked', self.on_clean_automation)
         self.widget.auto_groups_btn.set_popover(self.widget.auto_groups_pop)
-        self.widget.center_task_btn.bind_property('active', self.widget.center_options_box, 'sensitive')
-        self.widget.analyse_task_btn.bind_property('active', self.widget.analyse_options_box, 'sensitive')
-        self.widget.acquire_task_btn.bind_property('active', self.widget.acquire_options_box, 'sensitive')
 
-    def import_from_cache(self):
-        config = load_cache('auto')
-        if config:
-            self.config.info = config['info']
-            for name, btn in list(self.tasks.items()):
-                if name in config:
-                    btn.set_active(config[name])
-            for name, option in list(self.options.items()):
-                if name in config:
-                    option.set_active(config[name])
+    def load_from_cache(self):
+        config = load_cache('automation')
+        if not config:
+            return
 
-    def get_options(self, task_type):
-        if task_type == Automator.Task.CENTER:
-            for name in ['loop', 'crystal', 'diffraction', 'capillary', 'external']:
-                if name in self.options and self.options[name].get_active():
-                    return {'method': name}
-        elif task_type == Automator.Task.ACQUIRE:
-            options = {}
-            if self.options['analyse'].get_active():
-                for name in ['screen', 'process', 'powder']:
-                    if self.options[name].get_active():
-                        options = {'analysis': name, 'anomalous': self.options['anomalous'].get_active()}
-                        break
-            options.update(self.config.props.info)
-            options['energy'] = self.beamline.energy.get_position()  # use current beamline energy
-            return options
-        return {}
+        for task in self.task_list:
+            if task.name not in config:
+                continue
+            task.set_active(config[task.name])
+
+    def save_to_cache(self, *args, **kwargs):
+        config = {task.name: task.is_active() for task in self.task_list}
+        save_cache(config, 'automation')
+
+    def get_task_options(self, task) -> dict:
+        params = task.get_parameters()
+        if task.type not in [TaskItem.Type.SCREEN, TaskItem.Type.ACQUIRE]:
+            return params
+
+        # Validate data collection parameters
+        options = {
+            **params['options'],
+            'energy': self.beamline.bragg_energy.get_position()
+        }
+        options['exposure'] = max(self.beamline.config.minimum_exposure, options['exposure'])
+        options['distance'] = converter.resol_to_dist(
+            options['resolution'], self.beamline.detector.mm_size, options['energy']
+        )
+        options['skip'] = datatools.calculate_skip(
+            options['strategy'], options['range'], options['delta'], options['first']
+        )
+        options['frames'] = datatools.calc_num_frames(
+            options['strategy'], options['delta'], options['range'], skip=options['skip']
+        )
+        options['strategy_desc'] = options.pop('desc', '')
+        params['options'] = options
+        return params
 
     def get_task_list(self):
         return [
-            {'type': kind, 'options': self.get_options(kind)}
-            for btn, kind in self.task_templates if btn.get_active()
+            self.get_task_options(task) for task in self.task_list if task.active
         ]
 
     def get_sample_list(self):
@@ -241,38 +241,16 @@ class AutomationController(Object):
             self.widget.auto_sequence_box.set_sensitive(True)
             self.widget.auto_groups_btn.set_sensitive(True)
 
-    def on_edit_acquisition(self, obj):
-        info = self.config.info
-        info['energy'] = self.beamline.energy.get_position()
-        self.run_dialog.configure(info)
+    def on_message(self, obj,message):
+        self.control.progress_fbk.set_text(message)
 
-    def on_save_acquisition(self, obj):
-        self.config.props.info = self.run_dialog.get_parameters()
-        cache = {
-            'info': self.config.info,
-        }
-        for name, btn in list(self.tasks.items()):
-            cache[name] = btn.get_active()
-        for name, option in list(self.options.items()):
-            cache[name] = option.get_active()
-        save_cache(cache, 'auto')
-
-    def on_progress(self, obj, fraction, message):
+    def on_task_progress(self, obj, fraction, uuid, code):
+        self.automation_queue.set_progress(uuid, code)
         used_time = time.time() - self.start_time
         remaining_time = 0 if not fraction else int((1 - fraction) * used_time / fraction)
         eta_time = timedelta(seconds=remaining_time)
         self.control.eta_fbk.set_markup(f'<small><tt>{eta_time}</tt></small>')
         self.control.progress_bar.set_fraction(fraction)
-        self.control.progress_fbk.set_text(message)
-
-    def on_sample_done(self, obj, uuid):
-        self.automation_queue.mark_progress(uuid, SampleStore.Progress.DONE)
-
-    def on_sample_failed(self, obj, uuid):
-        self.automation_queue.mark_progress(uuid, SampleStore.Progress.FAILED)
-
-    def on_sample_started(self, obj, uuid):
-        self.automation_queue.mark_progress(uuid, SampleStore.Progress.ACTIVE)
 
     def on_done(self, obj, data):
         self.props.state = self.StateType.STOPPED
@@ -316,7 +294,7 @@ class AutomationController(Object):
     def on_started(self, obj, data):
         self.start_time = time.time()
         self.props.state = self.StateType.ACTIVE
-        logger.info("Automation Started.")
+        logger.warning("Automation Started.")
 
     def on_stop_automation(self, obj):
         self.automator.stop()
@@ -872,3 +850,5 @@ class DatasetsController(Object):
             self.collector.configure(checked_runs, analysis='default')
             self.collector.start()
             self.image_viewer.set_collect_mode(True)
+
+
