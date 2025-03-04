@@ -290,7 +290,9 @@ class MxLIVEBase(BaseService):
             self.verify()
 
         try:
-            reply = self.post(self.url(self.SESSION_START_URL, beamline=beamline, session=session))
+            reply = self.post(
+                self.url(self.SESSION_START_URL, beamline=beamline, session=session)
+            )
         except (requests.ConnectionError, requests.HTTPError) as err:
             logger.error('Unable to connect to MxLIVE!')
             logger.debug(err)
@@ -426,7 +428,7 @@ class MxLIVEClient3(MxLIVEBase):
             reply = self.post(self.url(self.LOGIN_URL), data={'username': username, 'password': password})
         except requests.HTTPError as e:
             logger.error('Unable to login to MxLIVE')
-            logger.debug(e)
+            logger.exception(e)
         else:
             self.keys = reply
             settings.save_keys(self.keys, self.KEY_FILE)
