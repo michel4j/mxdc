@@ -550,6 +550,14 @@ class Validator(object):
         def __call__(self, val):
             return slugify(str(val)[:self.max_length])
 
+    class Literal(object):
+        def __init__(self, *values, default=None):
+            self.values = values
+            self.default = default
+
+        def __call__(self, val):
+            return val if val in self.values else self.default
+
     class Enum(object):
         """
         Make sure integer value is within the valid values for an emum type
