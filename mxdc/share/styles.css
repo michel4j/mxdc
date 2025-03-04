@@ -8,7 +8,7 @@ toolbar.tool-box {
 }
 .section-box > * > label, .section-box > label {
   font-weight: bold;
-  margin: 3px 6px;
+  margin: 6px 6px;
 }
 
 .device-fbk {
@@ -84,10 +84,16 @@ toolbar.tool-box {
   border-left-width: 0px;
 }
 
-.run-row {
+.run-row, .task-row {
   border-bottom: 1px solid alpha(@borders, 0.4);
 }
-
+.task-row {
+  padding: 3px 3px
+}
+.task-description {
+  font-size: 80%;
+  font-family: monospace;
+}
 .shaded-bg {
    background-color: alpha(@borders, 0.2);
 }
@@ -95,6 +101,10 @@ toolbar.tool-box {
 .status-box {
   border: 1px solid @borders;
   border-radius: 2px;
+}
+
+button.tiny {
+  padding: 0px 4px;
 }
 
 button.link label {
@@ -280,7 +290,7 @@ label.status-fbk {
 }
 
 .mode-fbk.activity-aligning {
-  background-color: #D2413A;
+  background-color: #853726;
 }
 
 .mode-fbk.activity-scanning {
@@ -379,4 +389,13 @@ label.status-fbk {
 
 .data-sample-row:selected .report-pill {
   color: inherit;
+}
+
+switch.tiny {
+  font-size: 0px;
+}
+
+switch.tiny slider {
+  min-height: 10px;
+  min-width: 12px;
 }

@@ -50,8 +50,8 @@ class Centering(Engine):
         self.name = None
 
         self.methods = {
-            'loop': self.center_loop,
-            'crystal': self.center_crystal,
+            'loop': self.center_external,
+            'crystal': self.center_external,
             'capillary': self.center_capillary,
             'diffraction': self.center_diffraction,
             'external': self.center_external,
@@ -155,8 +155,7 @@ class Centering(Engine):
         """
         if not (self.device and self.device.is_active()):
             logger.warning('External centering device not present/active')
-            self.score = 0.0
-            return
+            return self.center_loop()
 
         scores = []
         good_trials = 0

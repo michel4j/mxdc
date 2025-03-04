@@ -1,9 +1,9 @@
 import re
 import uuid
-from collections import OrderedDict
 from collections import defaultdict
 from copy import copy
-from enum import IntFlag, auto
+from enum import IntFlag, auto, IntEnum
+from functools import lru_cache
 
 from gi.repository import Gio, Gtk, Gdk, Pango, GLib
 from zope.interface import Interface, implementer
@@ -25,6 +25,18 @@ class ISampleStore(Interface):
 
     def get_next(self):
         pass
+
+
+@lru_cache(maxsize=128)
+def rgba_color(r, g, b, a=1.0):
+    return Gdk.RGBA(red=r, green=g, blue=b, alpha=a)
+
+
+@lru_cache(maxsize=128)
+def hex_color(color):
+    rgba = Gdk.RGBA()
+    rgba.parse(color)
+    return rgba
 
 
 class GroupItem(Object):
@@ -65,7 +77,7 @@ class GroupItem(Object):
                 valid_ports = [Port.GOOD, Port.UNKNOWN, Port.MOUNTED]
                 if sample[SampleStore.Data.PORT] and sample[SampleStore.Data.STATE] in valid_ports:
                     sample[SampleStore.Data.SELECTED] = self.props.selected
-                    sample[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
+                    sample[SampleStore.Data.PROGRESS] = ''
                     changed.add(sample[SampleStore.Data.DATA]['id'])
         self.props.changed = changed
 
@@ -99,31 +111,34 @@ class MountFlag(IntFlag):
     ADMIN = auto()
 
 
-
 @implementer(ISampleStore)
 class SampleStore(Object):
     class Data(object):
         (
             SELECTED, NAME, GROUP, CONTAINER, PORT, LOCATION, BARCODE, MISMATCHED,
-            PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, SORT_NAME, DATA
-        ) = list(range(16))
+            PRIORITY, COMMENTS, STATE, CONTAINER_TYPE, PROGRESS, UUID, SORT_NAME, DATA,
+        ) = range(16)
         TYPES = (
             bool, str, str, str, str, str, str, bool,
-            int, str, int, str, int, str, object, object
+            int, str, int, str, str, str, object, object,
         )
 
-    class Progress(object):
-        NONE, PENDING, ACTIVE, DONE, FAILED = list(range(5))
+    class Progress(IntEnum):
+        NONE = auto()
+        PENDING = auto()
+        ACTIVE = auto()
+        DONE = auto()
+        FAILED = auto()
 
-    Column = OrderedDict([
-        (Data.SELECTED, ''),
-        (Data.STATE, ''),
-        (Data.NAME, 'Name'),
-        (Data.GROUP, 'Group'),
-        (Data.PORT, 'Port'),
-        (Data.LOCATION, 'Container'),
-        (Data.PRIORITY, 'Priority'),
-    ])
+    Column = {
+        Data.SELECTED: '',
+        Data.STATE: '',
+        Data.NAME: 'Name',
+        Data.GROUP: 'Group',
+        Data.PORT: 'Port',
+        Data.LOCATION: 'Container',
+        Data.PRIORITY: 'Priority',
+    }
 
     class Signals:
         updated = Signal("updated", arg_types=())
@@ -187,6 +202,23 @@ class SampleStore(Object):
 
         Registry.add_utility(ISampleStore, self)
 
+    @classmethod
+    def get_progress_state(cls, txt):
+        succeeded = txt.count('S')
+        failed = txt.count('F')
+        pending = txt.count('_')
+        skipped = txt.count('*')
+        total = len(txt)
+
+        if not total or pending == total:
+            return cls.Progress.PENDING
+        elif succeeded + failed + skipped < total:
+            return cls.Progress.ACTIVE
+        elif txt.endswith('*') or txt.endswith('F'):
+            return cls.Progress.FAILED
+        else:
+            return cls.Progress.DONE
+
     def get_current(self):
         return self.current_sample
 
@@ -213,7 +245,7 @@ class SampleStore(Object):
                     self.sort_model.set_sort_func(data, human_name_sort, data)
 
                 column.set_sort_column_id(data)
-                column.set_cell_data_func(renderer, self.format_progress)
+                column.set_cell_data_func(renderer, self.format_processed)
                 if data in [self.Data.NAME, self.Data.GROUP]:
                     column.set_resizable(True)
 
@@ -245,7 +277,8 @@ class SampleStore(Object):
         groups = defaultdict(list)
         for item in data:
             key = self.add_item(item)
-            groups[item['group']].append(key)
+            if key is not None:
+                groups[item['group']].append(key)
         for name, samples in list(groups.items()):
             group_item = GroupItem(name, self.model, items=samples)
             group_item.connect('notify::changed', self.on_group_changed)
@@ -259,10 +292,12 @@ class SampleStore(Object):
         if not (item.get('port') and self.beamline.automounter.is_valid(item.get('port'))):
             item['port'] = ''
             state = Port.UNKNOWN
+            return None
         else:
             ports = self.beamline.automounter.get_state('ports')
             state = ports.get(item['port'], Port.UNKNOWN)
             state = state if state in [Port.BAD, Port.MOUNTED, Port.EMPTY] else Port.GOOD
+
         self.model.append([
             item['id'] in self.cache,
             item.get('name', 'unknown'),
@@ -276,7 +311,7 @@ class SampleStore(Object):
             item.get('comments', ''),
             state,
             item.get('container_type', ''),
-            self.Progress.NONE,
+            '',
             item['uuid'],
             re.split(r'(\d+)', item.get('name', 'unknown')),
             item
@@ -434,24 +469,22 @@ class SampleStore(Object):
         if not loaded:
             cell.set_property("text", "")
         elif mismatched:
-            col = Gdk.RGBA(red=0.5, green=0.5, blue=0.0, alpha=1.0)
-            cell.set_property("foreground-rgba", col)
+            cell.set_property("foreground-rgba", rgba_color(0.5, 0.5, 0.0, 1.0))
             cell.set_property("text", "\u2b24")
         elif value in [Port.EMPTY]:
-            col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=0.5)
-            cell.set_property("foreground-rgba", col)
+            cell.set_property("foreground-rgba", rgba_color(0.0, 0.0, 0.0, 0.5))
             cell.set_property("text", "\u2b24")
         elif value in [Port.UNKNOWN]:
-            col = Gdk.RGBA(red=0.0, green=0.0, blue=0.0, alpha=1.0)
-            cell.set_property("foreground-rgba", col)
+            cell.set_property("foreground-rgba", rgba_color(0.0, 0.0, 0.0, 1.0))
             cell.set_property("text", "\u25ef")
         else:
             col = Gdk.RGBA(**PortColors[value])
             cell.set_property("foreground-rgba", col)
             cell.set_property("text", "\u2b24")
 
-    def format_progress(self, column, cell, model, itr, data):
-        value = model.get_value(itr, self.Data.PROGRESS)
+    def format_processed(self, column, cell, model, itr, data):
+        progress = model.get_value(itr, self.Data.PROGRESS)
+        value = self.get_progress_state(progress)
         if value == self.Progress.DONE:
             cell.set_property("style", Pango.Style.ITALIC)
         else:
@@ -526,7 +559,7 @@ class SampleStore(Object):
             row[self.Data.SELECTED] = selected
             cache = self.cache
             if selected:
-                row[self.Data.PROGRESS] = self.Progress.NONE
+                row[self.Data.PROGRESS] = ''
                 cache.add(row[self.Data.DATA]['id'])
             else:
                 cache.remove(row[self.Data.DATA]['id'])
@@ -634,13 +667,14 @@ class SampleStore(Object):
 
 
 class SampleQueue(Object):
-    Column = OrderedDict([
-        (SampleStore.Data.STATE, ''),
-        (SampleStore.Data.NAME, 'Name'),
-        (SampleStore.Data.GROUP, 'Group'),
-        (SampleStore.Data.CONTAINER, 'Container'),
-        (SampleStore.Data.PORT, 'Port'),
-    ])
+    Column = {
+        SampleStore.Data.STATE:  '',
+        SampleStore.Data.NAME: 'Name',
+        SampleStore.Data.GROUP: 'Group',
+        SampleStore.Data.PORT: 'Port',
+        SampleStore.Data.CONTAINER: 'Container',
+        SampleStore.Data.PROGRESS: 'Progress'
+    }
 
     def __init__(self, view):
         super().__init__()
@@ -663,56 +697,88 @@ class SampleQueue(Object):
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
                 column.set_fixed_width(32)
                 column.set_cell_data_func(renderer, self.format_state)
+            elif data == SampleStore.Data.PROGRESS:
+                renderer = Gtk.CellRendererText()
+                renderer.set_property('xalign', 0.5)
+                column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, text=data)
+                column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+                column.set_fixed_width(120)
+                column.set_expand(False)
+                column.set_resizable(False)
+                column.set_cell_data_func(renderer, self.format_progress)
             else:
                 renderer = Gtk.CellRendererText()
                 column = Gtk.TreeViewColumn(title=title, cell_renderer=renderer, text=data)
                 column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
                 column.set_expand(True)
-
-                column.set_cell_data_func(renderer, self.format_processed)
+                column.set_cell_data_func(renderer, self.format_labels)
                 if data in [SampleStore.Data.NAME, SampleStore.Data.GROUP]:
                     column.set_resizable(True)
-            column.props.sizing = Gtk.TreeViewColumnSizing.FIXED
+
             self.view.append_column(column)
         self.view.set_tooltip_column(SampleStore.Data.COMMENTS)
 
-    def mark_progress(self, uuid, state):
+    def set_progress(self, id_code: str, state_code: str):
         model = self.sample_store.model
         for item in model:
-            if item[SampleStore.Data.UUID] == uuid:
-                item[SampleStore.Data.PROGRESS] = state
+            if item[SampleStore.Data.UUID] == id_code:
+                item[SampleStore.Data.PROGRESS] = state_code
                 break
 
     def queued_data(self, model, itr, dat):
         """Test if the row is visible"""
         return (
-                self.model.get_value(itr, SampleStore.Data.SELECTED) or
-                self.model.get_value(itr, SampleStore.Data.PROGRESS) != SampleStore.Progress.NONE
+            self.model.get_value(itr, SampleStore.Data.SELECTED) or
+            self.model.get_value(itr, SampleStore.Data.PROGRESS) != ''
         )
 
     def clean(self):
         model = self.sample_store.model
         for item in model:
-            if item[SampleStore.Data.PROGRESS] != SampleStore.Progress.NONE:
-                item[SampleStore.Data.PROGRESS] = SampleStore.Progress.NONE
+            if item[SampleStore.Data.PROGRESS] != '':
+                item[SampleStore.Data.PROGRESS] = ''
 
     @staticmethod
     def format_state(column, cell, model, itr, data):
-        processed = model[itr][SampleStore.Data.PROGRESS]
+        progress = model[itr][SampleStore.Data.PROGRESS]
+        processed = SampleStore.get_progress_state(progress)
+
         if processed == SampleStore.Progress.ACTIVE:
             cell.set_property("icon-name", 'emblem-synchronizing-symbolic')
         elif processed == SampleStore.Progress.DONE:
             cell.set_property("icon-name", "object-select-symbolic")
+        elif processed == SampleStore.Progress.FAILED:
+            cell.set_property("icon-name", "dialog-error-symbolic")
         else:
             cell.set_property("icon-name", "content-loading-symbolic")
 
     @staticmethod
-    def format_processed(column, cell, model, itr, data):
-        value = model[itr][SampleStore.Data.PROGRESS]
+    def format_labels(column, cell, model, itr, data):
+        progress = model[itr][SampleStore.Data.PROGRESS]
+        value = SampleStore.get_progress_state(progress)
+
         if value == SampleStore.Progress.DONE:
-            cell.set_property("foreground-rgba", Gdk.RGBA(red=0.0, green=0.5, blue=0.0, alpha=1.0))
+            cell.set_property('foreground-rgba', hex_color('#0c6e03'))
+        elif value == SampleStore.Progress.FAILED:
+            cell.set_property('foreground-rgba', hex_color('#d2413a'))
+        elif value == SampleStore.Progress.ACTIVE:
+            cell.set_property('foreground-rgba', hex_color('#3a7ca8'))
         else:
-            cell.set_property("foreground-rgba", None)
+            cell.set_property('foreground-set', False)
+
+    @staticmethod
+    def format_progress(column, cell, model, itr, data):
+        progress = model[itr][SampleStore.Data.PROGRESS]
+        states = {
+            '_': '<span>◯︎</span>',
+            'S': '<span foreground="#2cbd69">⬤</span>',
+            'F': '<span foreground="#853726">⬤</span>',
+            '*': '<span foreground="#d2413a">︎◯︎</span>',
+        }
+        markup = ''.join([
+            states.get(char, '') for char in progress
+        ])
+        cell.set_property("markup", markup)
 
     def get_samples(self):
         return [

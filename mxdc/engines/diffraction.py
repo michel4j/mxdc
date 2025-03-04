@@ -195,7 +195,6 @@ class DataCollector(Engine):
         group = misc.get_group_name()
 
         for wedge in datatools.interleave(*self.config['datasets'].values()):
-
             self.current_wedge = wedge
             if self.stopped or self.paused: break
             self.prepare_for_wedge(wedge)
@@ -428,8 +427,11 @@ class DataCollector(Engine):
             self.analyst.process_powder(*metadata, flags=flags, sample=sample)
 
     def on_progress(self, obj, fraction, message):
-        self.config['datasets'][self.current_wedge['uuid']].set_progress(fraction)
 
+        if not self.current_wedge['uuid'] in self.config['datasets']:
+            return
+
+        self.config['datasets'][self.current_wedge['uuid']].set_progress(fraction)
         overall = sum([
             dataset.progress * dataset.weight for dataset in self.config['datasets'].values()
         ]) / self.total
