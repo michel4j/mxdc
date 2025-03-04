@@ -92,7 +92,7 @@ class Analyst(Engine):
         self.set_state(data=metadata)
 
     def process_generic(self, params, sample, session, method='mx'):
-        params = datatools.update_for_sample(params, sample=sample, session=session, overwrite=True)
+        params = datatools.update_for_sample(params, sample=sample, session=session)
 
         # create directory for processing
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_id())
