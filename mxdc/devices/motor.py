@@ -318,7 +318,6 @@ class SimMotor(BaseMotor):
         self.step_time = .01  # 100 steps per second
         self.speed = speed
         self.stopped = False
-        self.lock = Lock()
         self.limits = limits
 
         self.set_state(changed=pos, target=(None, pos), health=health)
@@ -339,32 +338,31 @@ class SimMotor(BaseMotor):
         }
 
     def configure(self, speed=None, accel=None, precision=None):
-        with self.lock:
-            if speed is not None:
-                self.speed = speed  # speed
-                self.step_size = self.speed * self.step_time
-            if precision is not None:
-                self.precision = precision
+        if speed is not None:
+            self.speed = speed  # speed
+            self.step_size = self.speed * self.step_time
+        if precision is not None:
+            self.precision = precision
 
     @async_call
     def move_operation(self, target):
         self.stopped = False
         self.set_state(starting=True)
-        with self.lock:
-            self.set_state(busy=True)
-            self.on_target(self, target)
-            if isinstance(self.limits, tuple):
-                target = min(max(target, self.limits[0]), self.limits[1])
-            num_steps = int(abs(self.get_state('changed') - target) / self.step_size)
-            targets = numpy.linspace(self.get_state('changed'), target, num_steps)
-            for pos in targets:
-                self.set_state(changed=pos)
-                if self.stopped:
-                    break
-                time.sleep(self.step_time)
-            if not self.stopped:
-                self.set_state(changed=target)
+
+        self.set_state(busy=True)
+        self.on_target(self, target)
+        if isinstance(self.limits, tuple):
+            target = min(max(target, self.limits[0]), self.limits[1])
+        num_steps = int(abs(self.get_state('changed') - target) / self.step_size)
+        targets = numpy.linspace(self.get_state('changed'), target, num_steps)
+        for pos in targets:
+            self.set_state(changed=pos)
+            if self.stopped:
+                break
             time.sleep(self.step_time)
+        if not self.stopped:
+            self.set_state(changed=target)
+        time.sleep(self.step_time)
         self.set_state(busy=False)
 
     def stop(self):
