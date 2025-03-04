@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 from datetime import date
 from datetime import datetime
+from enum import IntEnum, auto
 
 import numpy
 import pytz
@@ -16,8 +17,24 @@ FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
 
 
-class StrategyType(object):
-    SINGLE, FULL, SCREEN_1, SCREEN_2, SCREEN_3, SCREEN_4, POWDER = range(7)
+class StrategyType(IntEnum):
+    SINGLE = auto()
+    FULL = auto()
+    SCREEN_1 = auto()
+    SCREEN_2 = auto()
+    SCREEN_3 = auto()
+    SCREEN_4 = auto()
+    POWDER = auto()
+
+
+class TaskType(IntEnum):
+    MOUNT = auto()
+    CENTER = auto()
+    SCREEN = auto()
+    ACQUIRE = auto()
+    RASTER = auto()
+    XRF = auto()
+    ANALYSE = auto()
 
 
 Strategy = {
@@ -83,18 +100,30 @@ ScreeningAngles = {
 }
 
 
-class AnalysisType:
-    MX_NATIVE, MX_ANOM, MX_SCREEN, RASTER, XRD = range(5)
+class AnalysisType(IntEnum):
+    MX_NATIVE = auto()
+    MX_ANOM = auto()
+    MX_SCREEN = auto()
+    RASTER = auto()
+    XRD = auto()
 
 
-def update_for_sample(info, sample=None, session="", overwrite=True):
-    # Add directory and related auxillary information to dictionary
-    # provides values for {session} {sample}, {group}, {container}, {port}, {date}, {activity}
+def update_for_sample(info: dict, sample: dict = None, session: str = "") -> dict:
+    """
+    Update the directory information with sample specific information. The directory template will
+    be instantiated with values for the fields {session} {sample}, {group}, {container}, {port}, {date}, {activity}
+    from the info dictionary and the sample dictionary.
+
+    :param info: dictionary containing activity information
+    :param sample:
+    :param session:
+    :return:
+    """
 
     from mxdc.conf import settings
 
     sample = {} if not sample else sample
-    params = copy.deepcopy(info)
+    params = {**info}
 
     params.update({
         'session': session,
@@ -113,13 +142,6 @@ def update_for_sample(info, sample=None, session="", overwrite=True):
     activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
     dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
     params['directory'] = dir_template.format(**params).replace('//', '/').replace('//', '/')
-
-    if not overwrite and os.path.exists(params['directory']):
-        for i in range(99):
-            new_directory = '{}.{}'.format(params['directory'], i + 1)
-            if not os.path.exists(new_directory):
-                params['directory'] = new_directory
-                break
     params['sample'] = sample
     return params
 
@@ -605,3 +627,36 @@ def interleave(*datasets):
             if dataset.has_items():
                 for wedge in dataset.fetch():
                     yield wedge
+
+
+def calculate_skip(strategy, total_range, delta, first):
+    if strategy in [StrategyType.SCREEN_1, StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
+        return skips(
+            wedge=total_range,
+            delta=delta,
+            first=first,
+            start_angles=ScreeningAngles[strategy],
+            range_end=ScreeningRange[strategy]
+        )
+    else:
+        return ''
+
+
+def skips(wedge, delta, first=1, start_angles=(0,), range_end=360):
+    """
+    Calculate the skip ranges based on
+
+    :param wedge: angle range for each wedge
+    :param delta: angle per frame
+    :param first: first frame index
+    :param start_angles: tuple of start_angles
+    :param range_end:  End of range
+    :return: string representation of frame number ranges to skip
+    """
+    end_angles = numpy.array(start_angles)
+    start_angles = end_angles + wedge
+    end_angles[:-1] = end_angles[1:]
+    end_angles[-1] = range_end
+    starts = first + (start_angles / delta).astype(int)
+    ends = first + (end_angles / delta).astype(int) - 1
+    return ','.join((f'{lo}-{hi}' for lo, hi in zip(starts, ends)))

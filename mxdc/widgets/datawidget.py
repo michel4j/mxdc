@@ -2,46 +2,14 @@ import time
 import uuid
 from datetime import timedelta
 
-import numpy
 from gi.repository import Gtk, Gdk, Gio
 
 from mxdc import Registry, IBeamline, Property, Object
 from mxdc.devices.detector import DetectorFeatures
 from mxdc.devices.goniometer import GonioFeatures
 from mxdc.utils import gui, converter, datatools, glibref
-from mxdc.utils.datatools import StrategyType, Strategy, ScreeningAngles, ScreeningRange
+from mxdc.utils.datatools import StrategyType, Strategy, calculate_skip
 from mxdc.utils.gui import Validator
-
-
-def skips(wedge, delta, first=1, start_angs=(0,), range_end=360):
-    """
-    Calculate the skip ranges based on
-    :param wedge: angle range for each wedge
-    :param delta: angle per frame
-    :param first: first frame index
-    :param start_angs: tuple of start_angles
-    :return: string representation of frame number ranges to skip
-    """
-    end_angs = numpy.array(start_angs)
-    start_angs = end_angs + wedge
-    end_angs[:-1] = end_angs[1:]
-    end_angs[-1] = range_end
-    starts = first + (start_angs / delta).astype(int)
-    ends = first + (end_angs / delta).astype(int) - 1
-    return ','.join((f'{lo}-{hi}' for lo, hi in zip(starts, ends)))
-
-
-def calculate_skip(strategy, total_range, delta, first):
-    if strategy in [StrategyType.SCREEN_1, StrategyType.SCREEN_2, StrategyType.SCREEN_3, StrategyType.SCREEN_4]:
-        return skips(
-            wedge=total_range,
-            delta=delta,
-            first=first,
-            start_angs=ScreeningAngles[strategy],
-            range_end=ScreeningRange[strategy]
-        )
-    else:
-        return ''
 
 
 class RunItem(Object):
@@ -80,10 +48,10 @@ class RunItem(Object):
             )
             self.props.title = self.info['name']
             self.props.subtitle = '{} frames, {:0.4g}°/{:0.2g}s{}{}'.format(
-                self.props.size, self.props.info.get('delta'), self.props.info.get('exposure'),
-                ', {:g}° wedges'.format(self.props.info.get('wedge', 720)) if self.props.info.get('wedge',
-                                                                                                  720) < self.props.info.get(
-                    'range') else '',
+                self.props.size,
+                self.props.info.get('delta'),
+                self.props.info.get('exposure'),
+                f', {self.props.info.get("wedge", 720):g}° wedges' if self.props.info.get('wedge', 720) < self.props.info.get('range') else '',
                 ', [INV]' if self.props.info.get('inverse') else ''
             )
             self.props.duration = self.props.size * self.props.info.get('exposure')
@@ -134,7 +102,7 @@ class RunItem(Object):
             return self.props.info[item]
 
     def __str__(self):
-        return '<Run Item: {} - {}|{}>'.format(self.props.position, self.props.title, self.props.subtitle)
+        return f'<Run Item: {self.props.position} - {self.props.title}|{self.props.subtitle}>'
 
 
 STATE_COLORS = {
