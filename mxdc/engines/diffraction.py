@@ -427,14 +427,13 @@ class DataCollector(Engine):
             self.analyst.process_powder(*metadata, flags=flags, sample=sample)
 
     def on_progress(self, obj, fraction, message):
-
         if not self.current_wedge['uuid'] in self.config['datasets']:
             return
 
         self.config['datasets'][self.current_wedge['uuid']].set_progress(fraction)
         overall = sum([
             dataset.progress * dataset.weight for dataset in self.config['datasets'].values()
-        ]) / self.total
+        ]) / max(1, self.total)
 
         if not (self.paused or self.stopped):
             self.set_state(progress=(overall, message))

@@ -176,30 +176,31 @@ class AutomationController(Object):
 
     def get_task_options(self, task) -> dict:
         params = task.get_parameters()
-        if task.type not in [TaskItem.Type.SCREEN, TaskItem.Type.ACQUIRE]:
-            return params
-
-        # Validate data collection parameters
-        options = {
-            **params['options'],
-            'energy': self.beamline.bragg_energy.get_position()
-        }
-        options['exposure'] = max(self.beamline.config.minimum_exposure, options['exposure'])
-        options['distance'] = converter.resol_to_dist(
-            options['resolution'], self.beamline.detector.mm_size, options['energy']
-        )
-        options['skip'] = datatools.calculate_skip(
-            options['strategy'], options['range'], options['delta'], options['first']
-        )
-        options['frames'] = datatools.calc_num_frames(
-            options['strategy'], options['delta'], options['range'], skip=options['skip']
-        )
-        options['strategy_desc'] = options.pop('desc', '')
-        params['options'] = options
+        options = {**params['options']}
+        if task.type in [TaskItem.Type.SCREEN, TaskItem.Type.ACQUIRE]:
+            # Validate data collection parameters
+            options['energy'] = self.beamline.bragg_energy.get_position()
+            options['exposure'] = max(self.beamline.config.minimum_exposure, options.get('exposure', 0))
+            options['distance'] = converter.resol_to_dist(
+                options.get('resolution', 2), self.beamline.detector.mm_size, options['energy']
+            )
+            options['skip'] = datatools.calculate_skip(
+                options['strategy'], options['range'], options['delta'], options['first']
+            )
+            options['frames'] = datatools.calc_num_frames(
+                options['strategy'], options['delta'], options['range'], skip=options['skip']
+            )
+            options['strategy_desc'] = options.pop('desc', '')
+            params['options'] = options
         return params
 
     def get_task_list(self):
-        return [
+        # mount task as first implicit task
+        return [{
+            'name': 'Mount',
+            'type': TaskItem.Type.MOUNT,
+            'options': {'skip_on_failure': True, 'pause': False}
+        }] + [
             self.get_task_options(task) for task in self.task_list if task.active
         ]
 
