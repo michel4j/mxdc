@@ -1,8 +1,7 @@
 import hashlib
-import random
 import textwrap
 from enum import Enum
-from typing import Tuple, Union, Sequence
+from typing import Tuple, Union
 
 from gi.repository import Gio
 from zope.interface import Interface

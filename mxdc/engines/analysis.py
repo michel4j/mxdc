@@ -109,6 +109,7 @@ class Analyst(Engine):
         self.set_state(report=params)
         res.connect('done', self.on_process_done, params)
         res.connect('failed', self.on_process_failed, params)
+        return res
 
     def process_dataset(self, *metadata, flags=(), sample=None):
         try:
@@ -117,7 +118,7 @@ class Analyst(Engine):
             return
         prefix, kind = (f'ano', 'ANOMALOUS') if 'anomalous' in flags else ('nat', "NATIVE")
         params.update(anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind)
-        self.process_generic(params, sample, self.beamline.session_key)
+        return self.process_generic(params, sample, self.beamline.session_key)
 
     def process_multiple(self, *metadata, flags=(), sample=None):
         try:
@@ -132,7 +133,7 @@ class Analyst(Engine):
             screen=False, activity=f'process/{prefix}-{params["name"]}',
             type=kind
         )
-        self.process_generic(params, sample, self.beamline.session_key)
+        return self.process_generic(params, sample, self.beamline.session_key)
 
     def screen_dataset(self, *metadata, flags=(), sample=None):
         try:
@@ -143,9 +144,9 @@ class Analyst(Engine):
 
         method = settings.get_string('screening-method').lower()
         if method == 'autoprocess':
-            self.process_generic(params, sample, self.beamline.session_key, method='mx')
+            return self.process_generic(params, sample, self.beamline.session_key, method='mx')
         else:
-            self.process_generic(params, sample, self.beamline.session_key, method='misc')
+            return self.process_generic(params, sample, self.beamline.session_key, method='misc')
 
     def process_powder(self, metadata, flags=(), sample=None):
         file_names = [
@@ -163,7 +164,7 @@ class Analyst(Engine):
             'activity': f'process/xrd-{metadata["name"]}',
             'type': "XRD",
         }
-        self.process_generic(params, sample, self.beamline.session_key, method='powder')
+        return self.process_generic(params, sample, self.beamline.session_key, method='powder')
 
     def save_report(self, report):
         if 'filename' in report:

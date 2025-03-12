@@ -1,65 +1,87 @@
 import time
 import uuid
-from collections import defaultdict
 from enum import IntEnum
 from pathlib import Path
 from typing import Any
 
 from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering, transfer
-from mxdc.engines.interfaces import IDataCollector
-from mxdc.utils import datatools, misc
+from mxdc.engines.interfaces import IDataCollector, IAnalyst
+from mxdc.utils import datatools, misc, scitools
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 
 
 class TaskState:
-    def __init__(self, sample_code, position, count, total):
+    def __init__(self, master, sample_code, position, tasks, total):
+        self.master = master
         self.position = position
         self.uuid = sample_code
         self.total = total
-        self.count = count
-        self.history = {}
+        self.count = len(tasks)
+        self.tasks = tasks
+        self.states = {}
         self.results = {}
-        self.index = 0
-        self.states = []
-        self.reset()
+        self.skipped = False
 
-    def reset(self):
-        self.states = ['_'] * self.count
-        self.index = 0
-        self.history = {}
-        self.results = {}
+    def set_state(self, task_id, code):
+        self.states[task_id] = code
+        self.master.emit('task-progress', self.progress(), self.uuid, self.text())
 
-    def last(self):
-        return list(self.history.keys())[-1]
+    def wait_for(self, task_id, timeout=60):
+        start = time.time()
+        while time.time() - start < timeout:
+            if task_id in self.states.keys() and self.states[task_id] == 'S':
+                return True
+            time.sleep(0.1)
+
+    def get_result(self, task_id):
+        return self.results.get(task_id, {})
+
+    def start(self, task_id: str):
+        self.set_state(task_id, '>')
+        return task_id
+
+    def previous(self, task_type: datatools.TaskType = None, task_id: str = None):
+        history = []
+        for t, task in zip(self.states.keys(), self.tasks):
+            type_ = task['type']
+            if t == task_id:
+                break
+            history.append((t, type_))
+
+        for t, type_ in reversed(history):
+            if type_ == task_type or task_type is None:
+                return t
 
     def succeed(self, task_id, results):
-        self.history[task_id] = self.states[self.index] = 'S'
         self.results[task_id] = results
-        self.index += 1
+        self.set_state(task_id, 'S')
         return task_id
 
     def fail(self, task_id):
-        self.history[task_id] = self.states[self.index] = 'F'
-        self.index += 1
+        self.set_state(task_id, 'F')
         return task_id
 
     def defer(self, task_id):
-        self.history[task_id] = self.states[self.index] = '_'
-        self.index += 1
+        self.set_state(task_id, '_')
         return task_id
 
     def skip(self):
-        self.states = ['*' if x == '_' else x for x in self.states]
-        self.index = self.count
+        self.skipped = True
+        self.master.emit('task-progress', self.progress(), self.uuid, self.text())
 
     def text(self):
-        return ''.join(self.states)
+        rest = '_' if not self.skipped else 'F'
+        state_txt = ''.join(self.states.values())
+        return state_txt + rest * (self.count - len(state_txt))
 
     def progress(self):
-        return ((self.count + self.position) + (self.count - self.states.count('_'))) / max(self.total, 1)
+        state_txt = self.text()
+        state_prog = self.count - state_txt.count('_') - 0.5 * state_txt.count('>')
+        total_prog = self.position * self.count + state_prog
+        return total_prog / max(self.total, 1)
 
 
 class Automator(Engine):
@@ -84,6 +106,7 @@ class Automator(Engine):
         self.total = 1
         self.unattended = False
         self.collector = Registry.get_utility(IDataCollector)
+        self.analyst = Registry.get_utility(IAnalyst)
         self.centering = centering.Centering()
         self.processing_queue = {}
         self.task_results = {}
@@ -116,11 +139,65 @@ class Automator(Engine):
         }
         return datatools.update_for_sample(options, sample, self.beamline.session_key)
 
-    def on_dataset_ready(self, collector, task_id, meta_data):
-        logger.info(f'Dataset ready: {task_id}')
-        if task_id in self.processing_queue:
-            task = self.processing_queue.pop(task_id)
-            logger.info(f'Processing task: {task_id}')
+    def on_dataset_ready(self, collector, data_id, meta_data):
+        logger.info(f'Dataset ready: {data_id}')
+        if data_id in self.processing_queue:
+
+            logger.critical(f'Processing data: {data_id}')
+            params = self.processing_queue.pop(data_id)
+
+            options = params['options']
+            sample = params['sample']
+            states = params['states']
+            task_id = options['uuid']
+
+            states.start(task_id)
+            method = options.get('method', 'process')
+            flags = ('anomalous',) if options.get('anomalous') else ()
+            if method == 'process':
+                res = self.analyst.process_dataset(*meta_data, flags=flags, sample=sample)
+            elif method == 'strategy':
+                res = self.analyst.screen_dataset(*meta_data, flags=flags, sample=sample)
+            elif method == 'powder':
+                res = self.analyst.process_powder(*meta_data, flags=flags, sample=sample)
+            else:
+                logger.error(f'Unknown method: {method}')
+                return
+            res.connect('done', self.on_analysis_done, states, task_id)
+            res.connect('failed', self.on_analysis_failed, states, task_id)
+
+    @staticmethod
+    def on_analysis_done(response, results, states, task_id):
+        states.succeed(task_id, results)
+        logger.info(f'Analysis done: {task_id}')
+
+    @staticmethod
+    def on_analysis_failed(response, results, states, task_id):
+        states.fail(task_id)
+        logger.info(f'Analysis failed: {task_id}')
+
+    def update_strategy(self, strategy: dict, options: dict) -> dict:
+        """
+        Apply acquisition strategy to options and return an updated options
+        :param strategy: strategy dictionary
+        :param options: options dictionary
+        :return: updated options dictionary
+        """
+        if strategy:
+            default_rate = options['delta'] / options['exposure']
+            exposure_rate = strategy.get('exposure_rate_worst', default_rate)
+            delta = scitools.nearest(min(strategy.get('max_delta'), options['delta']), 0.1)
+            min_exposure = self.beamline.config.dataset.exposure
+            run = {
+                'attenuation': strategy.get('attenuation', 0.0),
+                'start': strategy.get('start_angle', 0.0),
+                'range': max(strategy.get('total_range', 180.0), options['range']),
+                'resolution': strategy.get('resolution', 2.0),
+                'exposure': max(min_exposure, scitools.nearest(delta / exposure_rate, min_exposure)),
+                'delta': delta,
+            }
+            options.update(run)
+        return options
 
     def take_snapshot(self, directory: str, name: str, index: int = 0):
         # setup folder
@@ -136,6 +213,7 @@ class Automator(Engine):
 
     def mount_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='centering')
+        states.start(options['uuid'])
         success = transfer.auto_mount_manual(self.beamline, sample['port'])
         if success and self.beamline.automounter.is_mounted(sample['port']):
             mounted = self.beamline.automounter.get_state("sample")
@@ -149,6 +227,7 @@ class Automator(Engine):
 
     def center_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='centering')
+        states.start(options['uuid'])
         method = options.get('method', 'loop')
         self.centering.configure(method=method)
         self.beamline.manager.wait('CENTER')
@@ -167,15 +246,34 @@ class Automator(Engine):
 
     def acquire_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample)
+        states.start(options['uuid'])
+        if task['type'] == self.Task.ACQUIRE and options.get('use_strategy', False):
+            strategy_task = states.previous(task_type=self.Task.ANALYSE)
+            self.emit('message', f'{task["name"]}: {sample["group"]}/{sample["name"]} - Waiting for strategy ...')
+            logger.info(f'Waiting for strategy: {strategy_task} ...')
+            found = states.wait_for(strategy_task, timeout=60)
+            if found:
+                results = states.get_result(strategy_task)
+                strategy = results.get('strategy', {})
+                options = self.update_strategy(strategy, options)
+                logger.info(f'Data acquisition strategy updated!')
+            else:
+                logger.error('Strategy not found! Proceeding with default settings ...')
+        self.emit('message', f'{task["name"]}: {sample["group"]}/{sample["name"]} - Acquiring ...')
         self.collector.configure([options], take_snapshots=False, analysis=None)
         results = self.collector.execute()
         return self.ResultType.SUCCESS, states.succeed(options['uuid'], results)
 
     def analyse_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='process')
-        self.processing_queue[(states.uuid, states.index)] = {
+        states.start(options['uuid'])
+
+        # we assume the previous task is the acquisition task we want to analyse
+        target_acquisition = states.previous(task_id=options['uuid'])
+        self.processing_queue[target_acquisition] = {
             'task': task, 'sample': sample, 'states': states, 'options': options
         }
+        logger.critical(f'Queueing processing for data: {target_acquisition}')
         return self.ResultType.ASYNC, states.defer(options['uuid'])
 
     def execute_task(self, task, sample, states: TaskState) -> bool:
@@ -186,9 +284,7 @@ class Automator(Engine):
         :param states: task progress state
         :return: bool
         """
-
         self.emit('message', f'{task["name"]}: {sample["group"]}/{sample["name"]}')
-        self.emit('task-progress', states.progress(), sample['uuid'], states.text())
         if task['type'] == self.Task.MOUNT:
             success, task_id = self.mount_task(task, sample, states)
         elif task['type'] == self.Task.CENTER:
@@ -199,14 +295,7 @@ class Automator(Engine):
             success, task_id = self.analyse_task(task, sample, states)
         else:
             success, task_id = self.ResultType.FAILED, None
-        self.emit('task-progress', states.progress(), sample['uuid'], states.text())
         return success in [self.ResultType.SUCCESS, self.ResultType.ASYNC]
-
-    @staticmethod
-    def skip_rest(i, states):
-        for i in range(i + 1, len(states)):
-            states[i] = '*'
-        return states
 
     def run(self):
         """
@@ -215,29 +304,18 @@ class Automator(Engine):
         """
         self.set_state(busy=True, started=None)
         self.pause_message = ''
-        num_tasks = len(self.tasks) + 1
 
         for j, sample in enumerate(self.samples):
             if self.stopped:
                 break
 
-            task_states = TaskState(sample['uuid'], j, num_tasks, self.total)
-            self.task_results[sample['uuid']] = task_states
-            task = {'name': 'Mount', 'type': self.Task.MOUNT, 'options': {}}  # Mount task
-            success = self.execute_task(task, sample, task_states)
-
-            if not success:
-                task_states.skip()
-                self.emit('task-progress', task_states.progress(), sample['uuid'], task_states.text())
-                continue
-
+            task_states = TaskState(self, sample['uuid'], j, self.tasks, self.total)
             for i, task in enumerate(self.tasks):
                 logger.info(f'Sample: {sample["group"]}/{sample["name"]}, Task: {task["name"]}')
                 success = self.execute_task(task, sample, task_states)
                 if not success:
                     if task['options'].get('skip_on_failure', False):
                         task_states.skip()
-                        self.emit('task-progress', task_states.progress(), sample['uuid'], task_states.text())
                         break
                     elif task['options'].get('pause', False):
                         self.intervene(
