@@ -774,6 +774,7 @@ class SampleQueue(Object):
             'S': '<span foreground="#2cbd69">⬤</span>',
             'F': '<span foreground="#853726">⬤</span>',
             '*': '<span foreground="#d2413a">︎◯︎</span>',
+            '>': '<span foreground="#2cbd69">◯︎</span>',
         }
         markup = ''.join([
             states.get(char, '') for char in progress

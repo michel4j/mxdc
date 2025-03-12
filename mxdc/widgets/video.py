@@ -408,10 +408,10 @@ class VideoWidget(Gtk.DrawingArea):
             # label
             label = label.upper()
             xb, yb, w, h = cr.text_extents(label)[:4]
-            cr.rectangle(x1 + 0.5, y1 + 0.5, w + 4, h + 4)
+            cr.rectangle(x1 + 0.5, y1 + 0.5, w + 6, h + 6)
             cr.fill()
 
-            cr.move_to(x1 + xb + 2, y1 - yb + 2)
+            cr.move_to(x1 + xb + 3, y1 - yb + 3)
             cr.show_text(label)
 
         cr.set_operator(cairo.OPERATOR_OVER)

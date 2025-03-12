@@ -315,9 +315,9 @@ class AcquisitionOptions(Gtk.Popover):
             FormField(
                 'strategy', self.strategy_cbox, fmt='{}', validator=Validator.Int(None, None, StrategyType.SINGLE)
             ),
-            FormField('resolution', self.range_entry, fmt='{:0.4g}', validator=Validator.Float(0.5, 50, 1.5)),
+            FormField('resolution', self.resolution_entry, fmt='{:0.4g}', validator=Validator.Float(0.5, 50, 1.5)),
             FormField('delta', self.delta_entry, fmt='{:0.3g}', validator=Validator.AngleFrac(0.001, 720, 1.)),
-            FormField('range', self.resolution_entry, fmt='{:0.3g}', validator=Validator.Float(0.05, 10000, 1.)),
+            FormField('range', self.range_entry, fmt='{:0.3g}', validator=Validator.Float(0.05, 10000, 1.)),
             FormField('start', self.start_entry, fmt='{:0.3g}', validator=Validator.Float(-360., 360., 0.)),
             FormField('wedge', HiddenWidget(), fmt='{:0.3g}', validator=Validator.Float(0.05, 720., 720.)),
             FormField('energy', HiddenWidget(), fmt='{:0.3g}', validator=Validator.Float(1.0, 25.0, 12.66)),

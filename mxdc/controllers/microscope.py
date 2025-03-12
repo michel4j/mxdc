@@ -413,9 +413,10 @@ class Microscope(Object):
     def on_sample_found(self, obj, cx, cy, score, label):
         w = self.beamline.sample_xcenter.w.get() / 2.0
         h = self.beamline.sample_xcenter.h.get() / 2.0
+        score = self.beamline.sample_xcenter.score.get()
         coords = numpy.array([[cx - w, cy - h], [cx + w, cy + h]]) * self.video.scale
         if self.show_annotations:
-            self.video.set_annotations({label: coords})
+            self.video.set_annotations({f'{label} ({score:0.0%})': coords})
 
     def on_centering_object(self, dev, obj, t):
         loop_state = dev.get_state("loop")
@@ -429,7 +430,7 @@ class Microscope(Object):
             if obj is not None and obj_time > time.time() - 2:
                 hw = obj.w / 2.0
                 hh = obj.h / 2.0
-                annotations[obj.label] = numpy.array(
+                annotations[f'{obj.label} | {obj.score:0.0%}'] = numpy.array(
                     [[obj.x - hw, obj.y - hh], [obj.x + hw, obj.y + hh]]
                 ) * self.video.scale
         self.video.set_annotations(annotations)
