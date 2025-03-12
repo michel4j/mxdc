@@ -42,6 +42,7 @@ class ReportManager:
         Add a new dataset to the store or update an existing one
         :param data: Dataset metadata
         """
+        # FIXME: sample and container info should be included in the data dictionary
         self.sample_store = Registry.get_utility(ISampleStore)
         sample = {
             "id": data['sample_id'],
@@ -56,12 +57,12 @@ class ReportManager:
                 sample['port'] = row[self.sample_store.Data.DATA]['port']
 
         data_id = data.get('id')
-        meta_file = data['directory'] + "/" + data["name"] + ".meta"
+        meta_file = Path(data['directory']) / f'{data["name"]}.meta'
         key_src = data_id if data_id else data['directory'] + "/" + data["name"]
         data_key = analysis.make_key(f'{key_src}')
         new_data = analysis.Data(
             key=data_key, name=data["name"], kind=data["type"],
-            file=meta_file, size=len(datatools.frameset_to_list(data["frames"])),
+            file=str(meta_file), size=len(datatools.frameset_to_list(data["frames"])),
         )
 
         directory = Path(data["directory"])
