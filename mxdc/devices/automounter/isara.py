@@ -216,17 +216,17 @@ class AuntISARA(AutoMounter):
         enabled = self.wait(states={State.IDLE, State.PREPARING}, timeout=240)
 
         if not enabled:
-            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            logger.warning(f'{self.name}: not ready. command ignored!')
             self.set_state(message="Not ready, command ignored!")
             self.cancel()
             return False
         elif not self.is_mounted():
-            logger.info('{}: No Sample mounted.'.format(self.name))
+            logger.info(f'{self.name}: No Sample mounted.')
             self.set_state(message="No Sample mounted!")
             return True
         else:
             self.dismount_cmd.put(1)
-            logger.info('{}: Dismounting sample.'.format(self.name, ))
+            logger.info(f'{self.name}: Dismounting sample.')
             if wait:
                 success = self.wait(states={State.BUSY}, timeout=10)
                 if success:
@@ -240,7 +240,7 @@ class AuntISARA(AutoMounter):
                     self.set_state(message=message)
                 return success
             else:
-                self.set_state(message=f'Dismount succeeded!')
+                self.set_state(message='Dismount succeeded!')
                 return True
 
     def abort(self):

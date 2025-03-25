@@ -158,6 +158,7 @@ class Centering(Engine):
             return self.center_loop()
 
         scores = []
+
         good_trials = 0
         last_trial = False
         max_trials = 8
@@ -182,7 +183,7 @@ class Centering(Engine):
                 logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability}')
                 xmm, ymm = self.position_to_mm(cx, cy)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
-                logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+                logger.debug(f'Adjustment: {-xmm:0.4f}, {-ymm:0.4f}')
                 good_trials += 1
                 last_trial = (good_trials == trials - 1)
                 omega_step = 90
@@ -198,8 +199,7 @@ class Centering(Engine):
 
             if good_trials == trials:
                 break
-
-        self.score = 100 * numpy.mean(scores)
+        self.score = 100 * numpy.mean(scores[-2:])
 
     def center_loop(self, trials=4):
         self.beamline.sample_frontlight.set_off()

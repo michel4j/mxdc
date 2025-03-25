@@ -184,6 +184,7 @@ class AutomationController(Object):
             options['distance'] = converter.resol_to_dist(
                 options.get('resolution', 2), self.beamline.detector.mm_size, options['energy']
             )
+
             options['skip'] = datatools.calculate_skip(
                 options['strategy'], options['range'], options['delta'], options['first']
             )

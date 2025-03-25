@@ -214,15 +214,16 @@ class Automator(Engine):
     def mount_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='centering')
         states.start(options['uuid'])
-        success = transfer.auto_mount_manual(self.beamline, sample['port'])
+        success = self.beamline.automounter.mount(sample['port'], wait=True)
+        # success = transfer.auto_mount_manual(self.beamline, sample['port'])
         if success and self.beamline.automounter.is_mounted(sample['port']):
             mounted = self.beamline.automounter.get_state("sample")
             barcode = mounted.get('barcode')
             if sample['barcode'] and barcode and barcode != sample['barcode']:
-                logger.error(f'Barcode mismatch: {barcode} vs {sample["barcode"]}')
+                logger.warning(f'Barcode mismatch: {barcode} vs {sample["barcode"]}')
             return self.ResultType.SUCCESS, states.succeed(options['uuid'], mounted)
         else:
-            logger.debug(f'Success: {success}, Mounted: {self.beamline.automounter.is_mounted(sample["port"])}')
+            logger.warning(f'Success: {success}, Mounted: {self.beamline.automounter.is_mounted(sample["port"])}')
             return self.ResultType.FAILED, states.fail(options['uuid'])
 
     def center_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
@@ -234,7 +235,7 @@ class Automator(Engine):
         time.sleep(2)  # needed to make sure gonio is in the right state
         self.centering.run()
         snapshot_name = self.take_snapshot(options['directory'], sample['name'], 0)
-        logger.debug(f'Centering Score: {self.centering.score:0.1f}, Snapshot: {snapshot_name}')
+        logger.info(f'Centering Score: {self.centering.score:0.1f}, Snapshot: {snapshot_name}')
 
         results = {
             'score': self.centering.score,
@@ -330,7 +331,7 @@ class Automator(Engine):
             logger.info('Automation stopped')
 
         else:
-            transfer.auto_dismount_manual(self.beamline)
+            self.beamline.automounter.dismount(wait=True)
             self.set_state(done=None, busy=False)
             logger.info('Automation complete')
 

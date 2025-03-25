@@ -19,6 +19,7 @@ def set_object_properties(obj, kwargs):
     for k,v in list(kwargs.items()):
         obj.set_property(k,v)
 
+
 @implementer(IAutomounter)
 class AutoMounter(Device):
     """

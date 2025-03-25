@@ -500,7 +500,7 @@ class ImageWidget(Gtk.DrawingArea):
         if self.surface is not None:
             alloc = self.get_allocation()
             width = min(alloc.width, alloc.height)
-            self.settings.scale = float(width) / self.view.width
+            self.settings.scale = float(width) / max(1, self.view.width)
             self.paint_image(cr, self.settings.scale)
             self.draw_profile(cr)
             self.draw_overlay_cairo(cr)
