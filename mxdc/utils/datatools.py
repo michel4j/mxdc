@@ -146,6 +146,28 @@ def update_for_sample(info: dict, sample: dict = None, session: str = "") -> dic
     return params
 
 
+def get_activity_folder(sample: dict, activity: str, session: str = '') -> str:
+    from mxdc.conf import settings
+    sample = {} if not sample else sample
+    params = {
+        'session': session,
+        'sample': misc.slugify(sample.get('name', '')),
+        'group': misc.slugify(sample.get('group', '')),
+        'container': misc.slugify(sample.get('container', '')),
+        'port': sample.get('port', ''),
+        'position': '' if not sample.get('location', '') else sample['location'].zfill(2),
+        'date': date.today().strftime('%Y%m%d'),
+        'activity': activity,
+        'sample_id': sample.get('id'),
+    }
+
+    template = settings.get_string('directory-template')
+    activity_template = template[1:] if template[0] == os.sep else template
+    activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
+    dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
+    return dir_template.format(**params).replace('//', '/').replace('//', '/')
+
+
 class NameManager(object):
     """
     An object which keeps track of dataset names in a run list and makes sure
