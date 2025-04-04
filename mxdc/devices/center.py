@@ -10,12 +10,12 @@ MIN_WIDTH = 20
 
 @dataclass
 class CenterObject:
-    x: int
-    y: int
-    score: float
+    x: int = 0
+    y: int = 0
+    score: float = 0.0
     w: int = 0
     h: int = 0
-    label: str = 'loop'
+    label: str = 'none'
 
 
 @implementer(ICenter)
@@ -93,6 +93,14 @@ class ExtCenter(BaseCenter):
         self.score.connect('changed', self.on_pos_changed)
         self.size.connect('changed', self.on_obj_changed)
         Registry.add_utility(ICenter, self)
+
+    def get_object(self, label='loop'):
+        """
+        Get the object coordinates with score
+        """
+        loop, timestamp = self.get_state(label)
+        loop = CenterObject() if loop is None else loop
+        return loop
 
     def on_pos_changed(self, *args, **kwargs):
         if self.score.get() > self.threshold and self.w.get() > MIN_WIDTH:
