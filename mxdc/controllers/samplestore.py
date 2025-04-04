@@ -284,6 +284,10 @@ class SampleStore(Object):
             group_item.connect('notify::changed', self.on_group_changed)
             self.group_model.append(group_item)
             self.group_registry[name] = group_item
+
+        if self.current_sample:
+            self.on_sample_mounted(None, self.current_sample)
+
         self.emit('updated')
         self.props.containers = self.containers
 
@@ -615,7 +619,6 @@ class SampleStore(Object):
             self.props.current_sample = {}
 
         self.widget.spinner.stop()
-
         if not self.initializing:
             self.roll_next_sample()
         self.initializing = False

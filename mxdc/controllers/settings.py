@@ -74,7 +74,6 @@ def valid_naming(txt):
 
 
 def valid_mode(value):
-    print(value)
     return bool(value)
 
 
