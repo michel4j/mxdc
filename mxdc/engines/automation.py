@@ -199,23 +199,11 @@ class Automator(Engine):
             options.update(run)
         return options
 
-    def take_snapshot(self, directory: str, name: str, index: int = 0):
-        # setup folder
-        self.beamline.dss.setup_folder(directory, misc.get_project_name())
-        file_path = Path(directory)
-        file_name = f"{name}-{index}.png"
-
-        # take snapshot
-        if file_path.exists():
-            self.beamline.sample_camera.save_frame(file_path / file_name)
-            logger.debug(f'Snapshot saved... {file_name}')
-        return file_name
-
     def mount_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='centering')
         states.start(options['uuid'])
         success = self.beamline.automounter.mount(sample['port'], wait=True)
-        # success = transfer.auto_mount_manual(self.beamline, sample['port'])
+
         if success and self.beamline.automounter.is_mounted(sample['port']):
             mounted = self.beamline.automounter.get_state("sample")
             barcode = mounted.get('barcode')
@@ -230,17 +218,11 @@ class Automator(Engine):
         options = self.prepare_task_options(task, sample, activity='centering')
         states.start(options['uuid'])
         method = options.get('method', 'loop')
-        self.centering.configure(method=method)
+        self.centering.configure(method=method, directory=options['directory'], name=sample['name'])
         self.beamline.manager.wait('CENTER')
         time.sleep(2)  # needed to make sure gonio is in the right state
-        self.centering.run()
-        snapshot_name = self.take_snapshot(options['directory'], sample['name'], 0)
-        logger.info(f'Centering Score: {self.centering.score:0.1f}, Snapshot: {snapshot_name}')
-
-        results = {
-            'score': self.centering.score,
-            'snapshot': snapshot_name
-        }
+        results = self.centering.run()
+        logger.info(f'Centering Score: {self.centering.score:0.1f}')
         if self.centering.score < options.get('min_score', 50):
             return self.ResultType.FAILED, states.fail(options['uuid'])
         return self.ResultType.SUCCESS, states.succeed(options['uuid'], results)
@@ -261,7 +243,7 @@ class Automator(Engine):
             else:
                 logger.error('Strategy not found! Proceeding with default settings ...')
         self.emit('message', f'{task["name"]}: {sample["group"]}/{sample["name"]} - Acquiring ...')
-        self.collector.configure([options], take_snapshots=False, analysis=None)
+        self.collector.configure([options], take_snapshots=True, analysis=None)
         results = self.collector.execute()
         return self.ResultType.SUCCESS, states.succeed(options['uuid'], results)
 
