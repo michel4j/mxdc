@@ -121,6 +121,7 @@ class AuntISARA(AutoMounter):
         self.back_cmd = self.add_pv(f'{root}:CMD:back')
         self.safe_cmd = self.add_pv(f'{root}:CMD:safe')
         self.set_smpl_cmd = self.add_pv(f'{root}:CMD:setDiffSmpl')
+        self.prefetch_cmd = self.add_pv(f'{root}:CMD:prefetch')
 
         # feedback
         self.status_fbk = self.add_pv(f'{root}:STATUS')
@@ -241,6 +242,44 @@ class AuntISARA(AutoMounter):
                 return success
             else:
                 self.set_state(message='Dismount succeeded!')
+                return True
+
+    def prefetch(self, port, wait=False):
+        if self.tooled_fbk.get():
+            return False
+
+        enabled = self.wait_until(State.IDLE, State.PREPARING, State.STANDBY, timeout=120)
+        if enabled and self.get_state('status') == State.STANDBY:
+            self.set_state(message='STANDBY. Prefetch will be executed after current operation.')
+            self.wait_while(State.STANDBY, timeout=720)
+
+        if not enabled:
+            logger.warning(f'{self.name}: not ready. command ignored!')
+            self.set_state(message="Not ready, command ignored!")
+            self.cancel()
+            return False
+        elif self.is_mounted(port):
+            logger.info(f'{self.name}: Sample {port} already mounted. Will not prefetch it.')
+            self.set_state(message="Sample already mounted!")
+            return True
+        elif not self.is_mountable(port):
+            logger.info(f'{self.name}: Sample {port} cannot be prefetched!')
+            self.set_state(message="Port cannot be prefetched!")
+            return False
+        else:
+            logger.info(f'{self.name}: Prefetch Sample: {port}')
+            self.next_smpl.put(port, wait=True)
+            self.prefetch_cmd.put(1)
+
+            if wait:
+                success = self.wait_while(State.IDLE, timeout=60)
+                success |= self.wait_until(State.IDLE, timeout=240)
+                prefetched_port = self.tooled_fbk.get()
+                success |= (port == prefetched_port)
+                if not success:
+                    self.set_state(message="Prefetch failed!")
+                return success
+            else:
                 return True
 
     def abort(self):

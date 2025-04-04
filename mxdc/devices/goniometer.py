@@ -384,7 +384,7 @@ class MD2Gonio(BaseGoniometer):
         logger.debug(f'MD2 State: state={state}, phase={phase}')
         self.set_state(health=health, busy=busy)
 
-        if phase == 0 and self.prev_state == 6 and state == 4:
+        if phase == 3 or (phase == 0 and self.prev_state == 6 and state == 4):
             self.save_centering()
         self.prev_state = state
 

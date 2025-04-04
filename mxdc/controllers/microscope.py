@@ -10,12 +10,13 @@ from mxdc import Registry, IBeamline, Object, Property
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
-from mxdc.utils import colors, misc
+from mxdc.utils import colors, misc, datatools
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
 from mxdc.widgets.video import VideoWidget, VideoView
 from . import common
+from .samplestore import ISampleStore
 
 logger = get_module_logger(__name__)
 
@@ -507,7 +508,12 @@ class Microscope(Object):
     def on_auto_center(self, widget, method='loop'):
         if method == 'external':
             self.show_annotations = True
-        self.centering.configure(method=method)
+        samples = Registry.get_utility(ISampleStore)
+        sample = samples.get_current()
+        directory = datatools.get_activity_folder(
+            sample, activity='centering', session=self.beamline.session_key
+        )
+        self.centering.configure(method=method, directory=directory, name=sample.get('name', 'unknown'))
         self.centering.start()
         return True
 
