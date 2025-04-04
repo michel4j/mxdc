@@ -1,58 +1,118 @@
 import time
+from dataclasses import dataclass
+
 import cv2
 import numpy
+import pprint
 from threading import Thread
+
+
+@dataclass
+class Stats:
+    avg: float
+    std: float
+    min: float
+    max: float
+    range: float
+    values: list
+
+    @staticmethod
+    def create(data):
+        """
+        Create a stats object from the data
+        :param data: array of values
+        :return: Stats object
+        """
+
+        return Stats(
+            avg=float(numpy.mean(data)),
+            std=float(numpy.std(data)),
+            min=float(numpy.min(data)),
+            max=float(numpy.max(data)),
+            range=float(numpy.ptp(data)),
+            values=data
+        )
 
 
 class LoopRecorder:
     """
     An Object that records the loop width and height from the sample video feed
     """
-    def __init__(self, beamline, device=None):
+    def __init__(self, start, total, device=None):
         """
         Initialize the loop recorder
-        :param beamline: beamline object
+        :param start: start angle
+        :param total: total angle range
         :param device: Centering device
         """
         super().__init__()
-        self.beamline = beamline
-        self.widths = []
-        self.heights = []
-        self.scores = []
-        self.angles = []
+        self.objects = []
         self.running = False
+        self.stopped = False
         self.device = device
+        self.start_angle = start
+        self.total_angle = total
+        self.stats = {}
 
     def run(self):
         """
         Run the loop recorder and record the loop width and height
         """
         self.running = True
-        self.widths = []    # Clear the previous data
-        self.heights = []
-        self.scores = []
+        self.stopped = False
+        self.objects = []    # Clear the previous data
         while self.running:
+            self.objects.append(self.device.get_object())
+            time.sleep(0.001)
+        self.calc_stats()
+        self.stopped = True
 
-            self.beamline.sample_video.fetch_frame()
-            raw = self.beamline.sample_video.get_frame()
-            frame = cv2.cvtColor(numpy.asarray(raw), cv2.COLOR_RGB2BGR)
-            info = get_loop_features(frame, orientation=self.beamline.config.orientation)
-            if 'loop-width' in info and 'loop-height' in info:
-                self.widths.append(info['loop-width'])
-                self.heights.append(info['loop-height'])
-            time.sleep(0.0)
+    def has_objects(self):
+        """
+        Check if there are any objects recorded
+        :return: True if there are objects, False otherwise
+        """
+        return len(self.objects) > 2
 
-    def get_widths(self):
+    def calc_stats(self):
         """
-        Get the recorded loop widths
+        Calculate some information for scoring the recorded loops
         """
-        return numpy.array(self.widths)
 
-    def get_heights(self):
+        total = len(self.objects)
+        valid = [obj for obj in self.objects if obj is not None]
+        self.stats = {
+            'total': total,
+            'valid': len(valid) / total,
+            'x': Stats.create([obj.x for obj in valid]),
+            'y': Stats.create([obj.y for obj in valid]),
+            'w': Stats.create([obj.w for obj in valid]),
+            'h': Stats.create([obj.h for obj in valid]),
+            'score': Stats.create([obj.score for obj in valid]),
+        }
+
+    def get_stats(self) -> dict:
         """
-        Get the recorded loop heights
+        Get the stats for the recorded loops
+        :return: stats dictionary
         """
-        return numpy.array(self.heights)
+        return self.stats
+
+    def get_face_angle(self):
+        """
+        Get the face angle for the recorded loops
+        """
+        if not self.stats:
+            return self.start_angle
+
+        angles = numpy.linspace(self.start_angle, self.start_angle + self.total_angle, self.stats['total'])
+        return angles[numpy.argmax(self.stats['h'].values)]
+
+    def get_edge_angle(self):
+        """
+        Get the edge angle for the recorded loops
+        """
+        return (self.get_face_angle() - 90) % 360
 
     def start(self):
         """
@@ -67,6 +127,8 @@ class LoopRecorder:
         Stop the loop recorder
         """
         self.running = False
+        while not self.stopped:
+            time.sleep(0.1)
 
     def is_running(self):
         return self.running
