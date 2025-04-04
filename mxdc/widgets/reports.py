@@ -5,7 +5,7 @@ from pathlib import Path
 
 import gi
 
-gi.require_version('WebKit2', '4.0')
+gi.require_version('WebKit2', '4.1')
 
 from mxdc import Registry, Property, SHARE_DIR
 from mxdc.utils.data import analysis

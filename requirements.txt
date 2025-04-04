@@ -6,7 +6,7 @@ gepics
 pyepics
 h5py
 hdf5plugin
-matplotlib~=3.10
+matplotlib
 msgpack
 opencv-python
 pillow
@@ -29,5 +29,4 @@ szrpc
 wget
 pytest
 setuptools_scm
-importlib-metadata; python_version<"3.10"
 methodtools

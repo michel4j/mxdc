@@ -4,7 +4,7 @@ from pathlib import Path
 import gi
 import numpy
 
-gi.require_version('WebKit2', '4.0')
+gi.require_version('WebKit2', '4.1')
 from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils import misc, log
