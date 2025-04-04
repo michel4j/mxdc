@@ -4,15 +4,17 @@ import time
 import traceback
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import cv2
 import numpy
 import scipy.stats
+import yaml
 
 from mxdc import Registry, Engine, Device
 from mxdc.devices.interfaces import ICenter
-from mxdc.utils import imgproc, datatools, converter
+from mxdc.utils import imgproc, datatools, converter, misc
 from mxdc.utils.log import get_module_logger
 
 # setup module logger with a default do-nothing handler
@@ -38,16 +40,20 @@ class Centering(Engine):
     snapshots: bool
     directory: str | None
     name: str | None
+    results: dict
 
     def __init__(self):
         super().__init__()
         self.name = 'Auto Centering'
         self.method = None
+        self.method_name = 'loop'
         self.device = None
         self.score = 0.0
-        self.snapshots = False
+        self.snapshots = True
         self.directory = None
         self.name = None
+        self.start_time = 0
+        self.results = {}
 
         self.methods = {
             'loop': self.center_external,
@@ -60,7 +66,7 @@ class Centering(Engine):
     def configure(self, method='loop', **kwargs):
         from mxdc.controllers.samplestore import ISampleStore
         from mxdc.engines.rastering import IRasterCollector
-
+        self.method_name = method
         self.sample_store = Registry.get_utility(ISampleStore)
         self.collector = Registry.get_utility(IRasterCollector)
         self.device = Registry.get_utility(ICenter)
@@ -106,16 +112,17 @@ class Centering(Engine):
         """
 
         start_angle = self.beamline.goniometer.omega.get_position()
-        recorder = imgproc.LoopRecorder(self.beamline, self.device)
+        total_range = 180
+        recorder = imgproc.LoopRecorder(start_angle, total_range,  self.device)
         recorder.start()
-        self.beamline.goniometer.omega.move_by(180, wait=True)
+        self.beamline.goniometer.omega.move_by(total_range, wait=True)
         recorder.stop()
 
-        heights = recorder.get_heights()
-        if len(heights):
-            angles = numpy.linspace(start_angle, start_angle + 180, len(heights))
-            face_angle = angles[numpy.argmin(heights)] - 90
-            self.beamline.goniometer.omega.move_to(face_angle % 360, wait=True)
+        if recorder.has_objects():
+            face_angle = recorder.get_face_angle()
+            self.beamline.goniometer.omega.move_to(face_angle, wait=True)
+
+        return recorder
 
     def get_video_frame(self):
         self.beamline.goniometer.wait(start=False, stop=True)
@@ -131,21 +138,26 @@ class Centering(Engine):
 
     def run(self):
         self.score = 0.0
-        start_time = time.time()
+        self.start_time = time.time()
         with self.beamline.lock:
             self.emit('started', None)
+            self.take_snapshot(index=0)
             try:
                 self.method()
             except Exception as e:
-                traceback.print_exc()
+                logger.exception(e)
                 self.emit('error', str(e))
             else:
                 self.emit('done', None)
+            self.take_snapshot(index=1)
+            self.save_results()
+
         logger.info(
             'Centering Done in {:0.1f} seconds [Confidence={:0.0f}%]'.format(
-                time.time() - start_time, self.score
+                time.time() - self.start_time, self.score
             )
         )
+        return self.results
 
     def center_external(self, label='loop', trials=4):
         """
@@ -165,16 +177,23 @@ class Centering(Engine):
         omega_step = 90
         valid_objects = ['loop', 'img-loop']
         zoomed_in = False
+        recorder = None
+        steps = []
 
         for i in range(max_trials):
-            if good_trials == 2 and not zoomed_in:
-                self.beamline.sample_zoom.move_by(2, wait=True)
-                zoomed_in = True
+            step = {'trial': i, 'looking_for': valid_objects}
+            # if good_trials == 2 and not zoomed_in:
+            #     self.beamline.sample_zoom.move_by(2, wait=True)
+            #     zoomed_in = True
+            #     step['zoom'] = 2
 
             if i > 0 and not last_trial:
                 self.beamline.goniometer.omega.move_by(omega_step, wait=True)
+                step['omega_step'] = omega_step
+
             elif last_trial:
-                self.loop_face()
+                recorder = self.loop_face()
+                step['loop_face'] = recorder.get_face_angle()
 
             found = self.device.wait(2)
 
@@ -189,17 +208,64 @@ class Centering(Engine):
                 omega_step = 90
                 if good_trials > 2:
                     valid_objects = ['loop']
+                step['object_found'] = {
+                    'label': label,
+                    'x': cx,
+                    'y': cy,
+                    'reliability': reliability,
+                }
+                step['adjustment'] = [float(-xmm), float(-ymm)]
             else:
+                step['object_found'] = {}
                 last_trial = False
                 reliability = 0.0
                 logger.warning('... No object found in field-of-view')
                 omega_step = 45
 
-            scores.append(reliability)
-
+            step['reliability'] = reliability
+            steps.append(step)
             if good_trials == trials:
                 break
-        self.score = 100 * numpy.mean(scores[-2:])
+
+        # calculate score
+        if recorder and recorder.has_objects():
+            score_info = recorder.get_stats()
+            self.score = score_info['score'].avg * 100
+        else:
+            self.score = 0.0
+
+        self.results = {
+            'method': self.method_name,
+            'score': self.score,
+            'trials': good_trials,
+            'steps': steps,
+        }
+
+    def take_snapshot(self, index=0):
+        """
+        Take a snapshot of the current frame
+        :param index: Index of the snapshot
+        """
+        if self.snapshots:
+            self.beamline.dss.setup_folder(self.directory, misc.get_project_name())
+            file_path = Path(self.directory)
+            file_name = f"{self.name}-{index}.png"
+
+            # take snapshot
+            self.beamline.sample_camera.save_frame(file_path / file_name)
+            logger.debug(f'Snapshot saved... {file_name}')
+
+    def save_results(self):
+        """
+        Save the results of the centering process to a YAML file
+        """
+        if not self.directory:
+            return
+        self.results['duration'] = time.time() - self.start_time
+        filename = Path(self.directory) / 'centering.yml'
+        with open(filename, 'w') as file:
+            yaml.dump(self.results, file)
+            logger.info(f'Centering results saved to {filename}')
 
     def center_loop(self, trials=4):
         self.beamline.sample_frontlight.set_off()
@@ -207,17 +273,23 @@ class Centering(Engine):
         # Find tip of loop
         failed = True
         info = {}
+        steps = []
         for i in range(trials):
+            step = {'trial': i}
             last_trial = (i == trials - 1)
             if 0 < i < trials - 1:
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
+                step['omega_step'] = 90
+
             elif last_trial and not failed:
                 self.loop_face()
+                step['loop_face'] = self.beamline.goniometer.omega.get_position()
 
             angle, info = self.get_features()
             self.score = info.get('score', 0.0)
             failed = (info['found'] == 0)
+            step['object_found'] = info
 
             if info['found'] == 0:
                 logger.warning('Loop not found in field-of-view')
@@ -229,26 +301,33 @@ class Centering(Engine):
             elif last_trial and info['found'] == 2:
                 x, y = info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y'))
             else:
+                steps.append(step)
                 continue
             xmm, ymm = self.position_to_mm(x, y)
+            step['adjustment'] = [float(-xmm), float(-ymm)]
             self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
             logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
-
+            steps.append(step)
         if failed:
             logger.error('Sample not found. Centering Failed!')
-            info = {}
 
         self.beamline.sample_frontlight.set_on()
-        return info
+        self.results = {
+            'method': self.method_name,
+            'score': float(self.score),
+            'trials': trials,
+            'steps': steps,
+        }
 
     def center_crystal(self):
         return self.center_loop()
 
     def center_diffraction(self):
-        info = self.center_loop()
+        self.center_loop()
+        steps = {'loop': self.results}
         scores = [self.score]
 
-        if self.score < 0.5 or 'loop-x' not in info:
+        if self.score < 0.25:
             logger.error('Loop-centering failed, aborting diffraction centering!')
             return
 
@@ -289,6 +368,7 @@ class Centering(Engine):
                 'angle': self.beamline.goniometer.omega.get_position(),
 
             }
+
             if step == 'edge':
                 params.update({'hsteps': 1, 'vsteps': int(height * 3 // aperture)})
             else:
@@ -306,8 +386,13 @@ class Centering(Engine):
                 time.sleep(.1)
 
             grid_config = self.collector.get_grid()
-
             grid_scores = grid_config['grid_scores']  # gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
+
+            steps[step] = {
+                'parameters': params,
+                'scores': grid_scores,
+            }
+
             best = numpy.unravel_index(grid_scores.argmax(axis=None), grid_scores.shape)
 
             best_score = grid_scores[best]
@@ -322,22 +407,29 @@ class Centering(Engine):
 
         self.beamline.low_dose.off()
         self.score = numpy.mean(scores)
+        self.results = {
+            'method': self.method_name,
+            'score': float(self.score),
+            'trials': 3,
+            'steps': steps
+        }
 
     def center_capillary(self, trials=5):
         self.beamline.sample_frontlight.set_off()
-
+        steps = []
         # Find tip of loop
         failed = True
         info = {}
         half_width = self.beamline.sample_video.size[0] // 2
         for i in range(trials):
+            step = {'trial': i}
             last_trial = (i == trials - 1)
             if i > 0 and not last_trial:
                 cur_pos = self.beamline.goniometer.omega.get_position()
                 self.beamline.goniometer.omega.move_to((90 + cur_pos) % 360, wait=True)
 
             angle, info = self.get_features()
-
+            step['object_found'] = info
             if info['found']:
                 failed = False
                 x, y = info['capillary-x'], info['capillary-y']
@@ -350,17 +442,23 @@ class Centering(Engine):
                     x = 0
                 logger.warning('Capillary not found in field-of-view')
             else:
+                steps.append(step)
                 continue
-
 
             xmm, ymm = self.position_to_mm(x, y)
             self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+            step['adjustment'] = [float(-xmm), float(-ymm)]
             logger.debug('Adjustment: {:0.4f}, {:0.4f}'.format(-xmm, -ymm))
+            steps.append(step)
 
         self.score = info.get('score', 0.0)
         if failed:
             logger.error('Capillary not found. Centering Failed!')
-            info = {}
 
         self.beamline.sample_frontlight.set_on()
-        return info
+        self.results = {
+            'method': self.method_name,
+            'score': float(self.score),
+            'trials': trials,
+            'steps': steps,
+        }
