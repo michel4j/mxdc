@@ -1,10 +1,8 @@
 import time
 from enum import IntFlag, auto, IntEnum
 
-from gi.repository import GLib
 from mxdc.devices.automounter import AutoMounter, State, logger
 from mxdc.utils.automounter import Port, Puck
-from mxdc.utils.decorators import async_call
 
 ISARA_DEWAR = {
     '1A': Puck('1A', 0.1667, 1.75 / 13.),
@@ -62,12 +60,14 @@ class Error(IntFlag):
 class StatusType(IntEnum):
     IDLE, WAITING, BUSY, STANDBY, FAULT = range(5)
 
+
 class HealthType(IntEnum):
     OK = 0
     TIMEOUT = auto()
     SAMPLE = auto()
     COLLISION = auto()
     ERROR = auto()
+
 
 class ISARAMessages(object):
     @staticmethod
@@ -130,7 +130,7 @@ class AuntISARA(AutoMounter):
         self.cryo_fbk = self.add_pv(f'{root}:INP:cryoLevel')
         self.autofill_fbk = self.add_pv(f'{root}:STATE:autofill')
         self.position_fbk = self.add_pv(f'{root}:STATE:pos')
-
+        self.warning_fbk = self.add_pv(f'{root}:WARNING')
         self.enabled_fbk = self.add_pv(f'{root}:ENABLED')
         self.connected_fbk = self.add_pv(f'{root}:CONNECTED')
         self.message_fbk = self.add_pv(f'{root}:LOG')
@@ -146,6 +146,7 @@ class AuntISARA(AutoMounter):
 
         # handle signals
         self.path_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
+        self.warning_fbk.connect('changed', self.on_warning_message)
         self.pucks_fbk.connect('changed', self.on_pucks_changed)
         self.mounted_fbk.connect('changed', self.on_sample_changed)
 
@@ -173,16 +174,16 @@ class AuntISARA(AutoMounter):
         self.power_on()
         enabled = self.wait_until(State.IDLE, State.PREPARING, timeout=240)
         if not enabled:
-            logger.warning('{}: not ready. command ignored!'.format(self.name))
+            logger.warning(f'{self.name}: not ready. command ignored!')
             self.set_state(message="Not ready, command ignored!")
             self.cancel()
             return False
         elif self.is_mounted(port):
-            logger.info('{}: Sample {} already mounted.'.format(self.name, port))
+            logger.info(f'{self.name}: Sample {port} already mounted.')
             self.set_state(message="Sample already mounted!")
             return True
         elif not self.is_mountable(port):
-            logger.info('{}: Sample {} cannot be mounted!'.format(self.name, port))
+            logger.info(f'{self.name}: Sample {port} cannot be mounted!')
             self.set_state(message="Port cannot be mounted!")
             return False
         else:
@@ -205,10 +206,9 @@ class AuntISARA(AutoMounter):
                     if sample_on_gonio and not sample_matches:
                         message += " Unknown sample is present on the gonio."
                     elif not sample_on_gonio:
-                        message += " No sample present on gonio. Did you mount a blank?"
+                        message += " No sample present on gonio."
                     self.set_state(message=message)
-                else:
-                    self.set_state(message=f'Mounting succeeded: {port}')
+
                 return success
             return True
 
@@ -241,7 +241,6 @@ class AuntISARA(AutoMounter):
                     self.set_state(message=message)
                 return success
             else:
-                self.set_state(message='Dismount succeeded!')
                 return True
 
     def prefetch(self, port, wait=False):
@@ -250,7 +249,7 @@ class AuntISARA(AutoMounter):
 
         enabled = self.wait_until(State.IDLE, State.PREPARING, State.STANDBY, timeout=120)
         if enabled and self.get_state('status') == State.STANDBY:
-            self.set_state(message='STANDBY. Prefetch will be executed after current operation.')
+            self.set_state(message='Prefetch will be executed after current operation.')
             self.wait_while(State.STANDBY, timeout=720)
 
         if not enabled:
@@ -274,10 +273,6 @@ class AuntISARA(AutoMounter):
             if wait:
                 success = self.wait_while(State.IDLE, timeout=60)
                 success |= self.wait_until(State.IDLE, timeout=240)
-                prefetched_port = self.tooled_fbk.get()
-                success |= (port == prefetched_port)
-                if not success:
-                    self.set_state(message="Prefetch failed!")
                 return success
             else:
                 return True
@@ -291,13 +286,13 @@ class AuntISARA(AutoMounter):
             states = {
                 '{}{}'.format(puck, 1 + pin): Port.UNKNOWN for pin in range(16) for puck in pucks
             }
-            self.set_state(ports = states)
-            self.set_state(containers = pucks)
+            self.set_state(ports=states)
+            self.set_state(containers=pucks)
             self.set_state(health=(0, 'pucks', ''))
         else:
             self.set_state(health=(16, 'pucks', 'Puck detection!'), message='Could not read puck positions!')
-            self.set_state(ports = {})
-            self.set_state(containers = set())
+            self.set_state(ports={})
+            self.set_state(containers=set())
 
     def on_sample_changed(self, obj, mounted_port):
         # reset state
@@ -313,7 +308,7 @@ class AuntISARA(AutoMounter):
         else:
             if ports.get(port) == Port.MOUNTED:
                 ports[port] = Port.UNKNOWN
-                self.set_state(message='Sample dismounted')
+
             sample = {}
         self.set_state(sample=sample)
         self.set_state(ports=ports)
@@ -348,15 +343,15 @@ class AuntISARA(AutoMounter):
             status = State.PREPARING
 
         if raw_health == HealthType.TIMEOUT:
-            message = 'Robot timeout. Recovering, please try again!'
+            message = 'Robot timeout!'
         elif raw_health == HealthType.COLLISION:
             health |= 32
-            diagnosis += ['Robot collision. Staff needed!']
+            diagnosis += ['Robot collision!']
             status = State.ERROR
         elif raw_health == HealthType.ERROR:
             health |= 32
-            diagnosis += ['Robot collision. Staff needed!']
-            message = 'Robot Error. Staff needed!'
+            diagnosis += ['Robot collision!']
+            message = 'Robot Error!'
             status = State.ERROR
         elif raw_health == HealthType.SAMPLE:
             message = 'Sample mismatch. Recovering, please try again!'
@@ -372,16 +367,21 @@ class AuntISARA(AutoMounter):
 
     def on_message(self, obj, value, transform):
         message = transform(value)
+        self.on_warning_message(obj, message)
+
+    def on_warning_message(self, obj, message):
         if message:
             self.set_state(message=message)
 
     def on_error_changed(self, *args):
-        messages = ', '.join([
-            txt for txt, obj in list(self.errors.items()) if obj.is_active() and obj.get() == 1
-        ])
+        messages = ', '.join(
+            [
+                txt for txt, obj in list(self.errors.items()) if obj.is_active() and obj.get() == 1
+            ]
+        )
         self.set_state(message=messages)
         if messages:
-            self.set_state(health=(4, 'error','Staff needed'))
+            self.set_state(health=(4, 'error', 'Staff needed'))
         else:
             self.set_state(health=(0, 'error', ''))
 
@@ -402,4 +402,3 @@ class AuntISARA(AutoMounter):
         if time_remaining <= 0:
             logger.warning('Timed out waiting for {} to reach {} position'.format(self.name, position))
             return False
-

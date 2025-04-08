@@ -163,7 +163,6 @@ class SampleStore(Object):
         self.sort_model = Gtk.TreeModelSort(model=self.search_model)
         self.group_model = Gio.ListStore(item_type=GroupItem)
         self.group_registry = {}
-        self.prefetch_pending = False
         self.initializing = True
         self.mxlive_retries = 0
 
@@ -189,7 +188,7 @@ class SampleStore(Object):
         self.view.connect('key-press-event', self.on_key_press)
         self.widget.samples_reload_btn.connect('clicked', lambda x: self.import_mxlive())
         self.beamline.automounter.connect('sample', self.on_sample_mounted)
-        self.beamline.automounter.connect('next-port', self.on_prefetched)
+
         self.beamline.automounter.connect('ports', self.update_states)
         self.beamline.automounter.connect('status', self.on_automounter_status)
         self.widget.samples_mount_btn.connect('clicked', lambda x: self.mount_action())
@@ -198,7 +197,9 @@ class SampleStore(Object):
         self.widget.mxdc_main.connect('realize', self.load_lims_samples)
         self.connect('notify::cache', self.on_cache)
         self.connect('notify::current-sample', self.on_cur_changed)
-        self.connect('notify::next-sample', self.on_next_changed)
+
+        self.beamline.automounter.connect('next-port', self.on_prefetched)
+        # self.connect('notify::next-sample', self.on_next_changed)
 
         Registry.add_utility(ISampleStore, self)
 
@@ -334,15 +335,6 @@ class SampleStore(Object):
         item.connect('notify::selected', self.on_group_item_toggled, btn)
         return btn
 
-    @async_call
-    def schedule_prefetch(self):
-        port = self.next_sample.get('port')
-        cur = self.current_sample.get('port')
-        if port and not self.prefetch_pending and port != cur:
-            self.prefetch_pending = True
-            self.beamline.automounter.prefetch(port, wait=True)
-            self.prefetch_pending = False
-
     def update_button_states(self):
         mountable = (
             bool(self.mount_flags & MountFlag.SAMPLE) and
@@ -389,12 +381,8 @@ class SampleStore(Object):
             self.mount_flags |= MountFlag.SAMPLE
         else:
             self.mount_flags &= ~MountFlag.SAMPLE
-
         self.update_button_states()
 
-        # Only prefetch if there is a sample currently mounted
-        if port not in ['—', '...', '<manual>', None] and self.beamline.automounter.is_mounted():
-            self.schedule_prefetch()
 
     def on_cur_changed(self, *args, **kwargs):
         name = self.current_sample.get('name', '')

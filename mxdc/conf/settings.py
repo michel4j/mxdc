@@ -53,8 +53,15 @@ def get_session():
     realm = 'session'
     config = load_cache(realm)
     today = date.today()
+    isodate = today.isocalendar()
     this_week = list(date.today().isocalendar()[:2])
-    session_week = config.get('session-week', [1990, 1])
+
+    if DEBUG:
+        this_week = [isodate.year, (isodate.week - 1) * 7 + isodate.weekday // 2]
+        session_week = config.get('session-week', [1990, 1])
+    else:
+        this_week = [isodate.year, isodate.week]
+        session_week = config.get('session-week', [1990, 1])
 
     if (this_week != session_week) or 'session-key' not in config:
         date_string = today.strftime('%Y%m%d')

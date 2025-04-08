@@ -8,12 +8,15 @@ from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering, transfer
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc, scitools
+from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 
 logger = get_module_logger(__name__)
 
 
 class TaskState:
+    position: int
+
     def __init__(self, master, sample_code, position, tasks, total):
         self.master = master
         self.position = position
@@ -199,6 +202,18 @@ class Automator(Engine):
             options.update(run)
         return options
 
+    @async_call
+    def request_prefetch(self, position: int):
+        """
+        Prefetch the next sample
+        :param position: the current sample position
+        """
+
+        next_sample = None if position >= len(self.samples) else self.samples[position + 1]
+        if next_sample:
+            logger.debug(f'Prefetching next sample ... {next_sample["port"]}')
+            self.beamline.automounter.prefetch(next_sample['port'], wait=True)
+
     def mount_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='centering')
         states.start(options['uuid'])
@@ -209,6 +224,8 @@ class Automator(Engine):
             barcode = mounted.get('barcode')
             if sample['barcode'] and barcode and barcode != sample['barcode']:
                 logger.warning(f'Barcode mismatch: {barcode} vs {sample["barcode"]}')
+
+            self.request_prefetch(states.position)
             return self.ResultType.SUCCESS, states.succeed(options['uuid'], mounted)
         else:
             logger.warning(f'Success: {success}, Mounted: {self.beamline.automounter.is_mounted(sample["port"])}')

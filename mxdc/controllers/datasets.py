@@ -200,7 +200,7 @@ class AutomationController(Object):
         return [{
             'name': 'Mount',
             'type': TaskItem.Type.MOUNT,
-            'options': {'skip_on_failure': True, 'pause': False}
+            'options': {'skip_on_failure': False, 'pause': True}
         }] + [
             self.get_task_options(task) for task in self.task_list if task.active
         ]
