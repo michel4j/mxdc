@@ -42,36 +42,43 @@ Strategy = {
         'range': 1.0, 'delta': 1.0, 'start': 0.0, 'inverse': False,
         'desc': 'Single Frame',
         'activity': 'test',
+        'strategy': StrategyType.SINGLE,
     },
     StrategyType.FULL: {
         'range': 360,
         'desc': 'Full Dataset',
         'activity': 'data',
+        'strategy': StrategyType.FULL,
     },
     StrategyType.SCREEN_4: {
         'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°, 90°, 180°, 270°',
-        'activity': 'screen'
+        'activity': 'screen',
+        'strategy': StrategyType.SCREEN_4,
     },
     StrategyType.SCREEN_3: {
         'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°, 45°, 90°',
-        'activity': 'screen'
+        'activity': 'screen',
+        'strategy': StrategyType.SCREEN_3,
     },
     StrategyType.SCREEN_2: {
         'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°, 90°',
-        'activity': 'screen'
+        'activity': 'screen',
+        'strategy': StrategyType.SCREEN_2,
     },
     StrategyType.SCREEN_1: {
         'delta': 0.5, 'range': 2, 'start': 0.0, 'inverse': False,
         'desc': 'Screen 0°',
-        'activity': 'screen'
+        'activity': 'screen',
+        'strategy': StrategyType.SCREEN_1,
     },
     StrategyType.POWDER: {
         'delta': 180.0, 'exposure': 30.0, 'range': 360.0, 'inverse': False,
         'desc': 'Powder',
-        'activity': 'data'
+        'activity': 'data',
+        'strategy': StrategyType.POWDER,
     }
 }
 
@@ -310,7 +317,7 @@ def calc_range(run):
         return run['range']
 
 
-def calc_num_frames(strategy, delta, angle_range, skip=''):
+def calc_num_frames(strategy: StrategyType, delta: float, angle_range: float, skip: str = '') -> int:
     """
     Count the number of frames in a dataset
 

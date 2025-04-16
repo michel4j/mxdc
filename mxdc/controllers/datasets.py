@@ -111,7 +111,11 @@ class AutomationController(Object):
     def data_defaults(self, strategy_type=StrategyType.SINGLE, **kwargs):
         info = Strategy[strategy_type]
         delta, exposure = self.beamline.config.dataset.delta, self.beamline.config.dataset.exposure
-        default = {'delta': delta, 'exposure': exposure, 'attenuation': 0.0, 'resolution': 2.0, **kwargs}
+        default = {
+            'delta': delta, 'exposure': exposure, 'attenuation': 0.0, 'resolution': 2.0,
+            'start': 0.0, 'first': 1,
+            **kwargs
+        }
         rate = delta / float(exposure)
         info['delta'] = delta if 'delta' not in info else info['delta']
         info['exposure'] = info['delta'] / rate if exposure not in info else info['exposure']
@@ -122,7 +126,13 @@ class AutomationController(Object):
         tasks = [
             TaskItem(
                 name='Center', type=TaskItem.Type.CENTER,
-                active=True, options={'method': 'loop', 'skip_on_failure': True, 'pause': False, 'min_score': 50.0}
+                active=True, options={
+                    'method': 'loop',
+                    'skip_on_failure': True,
+                    'pause': False,
+                    'thaw_delay': 0.0,
+                    'min_score': 25.0,
+                }
             ),
             TaskItem(
                 name='Screen', type=TaskItem.Type.SCREEN, active=True,
@@ -131,13 +141,15 @@ class AutomationController(Object):
             TaskItem(
                 name='Strategy', type=TaskItem.Type.ANALYSE,
                 active=True, options={
-                    'method': 'strategy', 'skip_on_failure': True, 'pause': False, 'min_score': 0.4,
+                    'method': 'strategy', 'skip_on_failure': False, 'pause': False, 'min_score': 0.4,
                     'desc': ANALYSIS_DESCRIPTIONS['strategy']
                 }
             ),
             TaskItem(
                 name='Acquire', type=TaskItem.Type.ACQUIRE, active=True,
-                options=self.data_defaults(strategy_type=StrategyType.FULL, skip_on_failure=True, pause=False, use_strategy=True)
+                options=self.data_defaults(
+                    strategy_type=StrategyType.FULL, skip_on_failure=True, pause=False, use_strategy=True,
+                )
             ),
             TaskItem(
                 name='Process', type=TaskItem.Type.ANALYSE,
@@ -186,7 +198,7 @@ class AutomationController(Object):
             )
 
             options['skip'] = datatools.calculate_skip(
-                options['strategy'], options['range'], options['delta'], options['first']
+                options['strategy'], options['range'], options['delta'], options.get('first', 1)
             )
             options['frames'] = datatools.calc_num_frames(
                 options['strategy'], options['delta'], options['range'], skip=options['skip']
