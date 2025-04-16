@@ -3,8 +3,11 @@ from dataclasses import dataclass
 
 import cv2
 import numpy
-import pprint
+
 from threading import Thread
+
+
+TIME_OFFSET = 0.1       # Time offset for the spindle position, equiv. to inference duration
 
 
 @dataclass
@@ -38,19 +41,20 @@ class LoopRecorder:
     """
     An Object that records the loop width and height from the sample video feed
     """
-    def __init__(self, start, total, device=None):
+    def __init__(self, spindle, total, device=None):
         """
         Initialize the loop recorder
-        :param start: start angle
+        :param spindle: sample spindle motor
         :param total: total angle range
         :param device: Centering device
         """
         super().__init__()
         self.objects = []
+        self.angles = []
         self.running = False
         self.stopped = False
         self.device = device
-        self.start_angle = start
+        self.spindle = spindle
         self.total_angle = total
         self.stats = {}
 
@@ -61,11 +65,22 @@ class LoopRecorder:
         self.running = True
         self.stopped = False
         self.objects = []    # Clear the previous data
+        self.angles = []
+        cb_id = self.spindle.connect('changed', self.save_angle)
+
         while self.running:
-            self.objects.append(self.device.get_object())
+            obj = self.device.get_object(label='loop')
+            if obj:
+                self.objects.append(obj)
             time.sleep(0.001)
+
+        self.spindle.disconnect(cb_id)
+
         self.calc_stats()
         self.stopped = True
+
+    def save_angle(self, obj, position):
+        self.angles.append([time.time(), position])
 
     def has_objects(self):
         """
@@ -81,15 +96,19 @@ class LoopRecorder:
 
         total = len(self.objects)
         valid = [obj for obj in self.objects if obj is not None]
-        self.stats = {
-            'total': total,
-            'valid': len(valid) / total,
-            'x': Stats.create([obj.x for obj in valid]),
-            'y': Stats.create([obj.y for obj in valid]),
-            'w': Stats.create([obj.w for obj in valid]),
-            'h': Stats.create([obj.h for obj in valid]),
-            'score': Stats.create([obj.score for obj in valid]),
-        }
+        if valid:
+            self.stats = {
+                'total': total,
+                'valid': len(valid) / total,
+                'time': Stats.create([obj.time for obj in valid]),
+                'x': Stats.create([obj.x for obj in valid]),
+                'y': Stats.create([obj.y for obj in valid]),
+                'w': Stats.create([obj.w for obj in valid]),
+                'h': Stats.create([obj.h for obj in valid]),
+                'score': Stats.create([obj.score for obj in valid]),
+            }
+        else:
+            self.stats = {}
 
     def get_stats(self) -> dict:
         """
@@ -102,11 +121,23 @@ class LoopRecorder:
         """
         Get the face angle for the recorded loops
         """
-        if not self.stats:
-            return self.start_angle
 
-        angles = numpy.linspace(self.start_angle, self.start_angle + self.total_angle, self.stats['total'])
-        return angles[numpy.argmax(self.stats['h'].values)]
+        angles = numpy.array(self.angles)
+        target = self.spindle.get_position()
+        if self.objects:
+            obj_times = numpy.array([obj.time for obj in self.objects if obj is not None and obj.label == 'loop'])
+            obj_heights = numpy.array([obj.h for obj in self.objects if obj is not None and obj.label == 'loop'])
+            obj_angles = numpy.interp(obj_times, angles[:, 0], angles[:, 1], left=0, right=0)
+
+            target = (obj_angles[numpy.argmin(obj_heights)] + 90.0) % 360
+
+            # from matplotlib import pyplot as plt
+            # fig, ax = plt.subplots()
+            # ax.plot(obj_times, obj_angles)
+            # ax.plot(obj_times, obj_heights)
+            # fig.savefig('/tmp/angle.png')
+
+        return target
 
     def get_edge_angle(self):
         """
@@ -132,6 +163,10 @@ class LoopRecorder:
 
     def is_running(self):
         return self.running
+
+    def stop(self):
+        self.running = False
+        self.stopped = True
 
     def __del__(self):
         self.stop()
