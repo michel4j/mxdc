@@ -111,9 +111,26 @@ class Centering(Engine):
         Rotate the sample to the widest face of the loop
         """
 
-        start_angle = self.beamline.goniometer.omega.get_position()
         total_range = 180
-        recorder = imgproc.LoopRecorder(start_angle, total_range,  self.device)
+        recorder = imgproc.LoopRecorder(self.beamline.goniometer.omega, total_range,  self.device)
+        recorder.start()
+        self.beamline.goniometer.omega.move_by(total_range, wait=True)
+        recorder.stop()
+
+        if recorder.has_objects():
+            face_angle = recorder.get_face_angle()
+            logger.info(f'Centering on loop face ... {face_angle:0.2f}')
+            self.beamline.goniometer.omega.move_to(face_angle, wait=True)
+
+        return recorder
+
+    def find_loop(self):
+        """
+        Rotate the sample to try and find an object
+        """
+
+        total_range = 180
+        recorder = imgproc.LoopRecorder(self.beamline.goniometer.omega, total_range,  self.device)
         recorder.start()
         self.beamline.goniometer.omega.move_by(total_range, wait=True)
         recorder.stop()
@@ -169,24 +186,17 @@ class Centering(Engine):
             logger.warning('External centering device not present/active')
             return self.center_loop()
 
-        scores = []
-
         good_trials = 0
-        last_trial = False
         max_trials = 8
         omega_step = 90
-        valid_objects = ['loop', 'img-loop']
-        zoomed_in = False
+        valid_objects = ['loop', 'crystal', 'pin']
         recorder = None
         steps = []
 
         for i in range(max_trials):
             step = {'trial': i, 'looking_for': valid_objects}
-            # if good_trials == 2 and not zoomed_in:
-            #     self.beamline.sample_zoom.move_by(2, wait=True)
-            #     zoomed_in = True
-            #     step['zoom'] = 2
 
+            last_trial = (good_trials >= trials - 1)
             if i > 0 and not last_trial:
                 self.beamline.goniometer.omega.move_by(omega_step, wait=True)
                 step['omega_step'] = omega_step
@@ -195,36 +205,40 @@ class Centering(Engine):
                 recorder = self.loop_face()
                 step['loop_face'] = recorder.get_face_angle()
 
-            found = self.device.wait(2)
+            # find first valid object, loop first then crystal then pin
+            objects = self.device.wait(2)
+            for kind in valid_objects:
+                if kind in objects:
+                    found = objects[kind]
+                    break
+            else:
+                found = None
 
-            if found is not None and found[-1] in valid_objects:
-                cx, cy, reliability, label = found
+            if found:
+                cx, cy = found.x, found.y
+                reliability = found.score
+                label = found.label
+
                 logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability}')
                 xmm, ymm = self.position_to_mm(cx, cy)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug(f'Adjustment: {-xmm:0.4f}, {-ymm:0.4f}')
                 good_trials += 1
-                last_trial = (good_trials == trials - 1)
+                if good_trials >= 2:
+                    valid_objects = ['loop', 'xtal']    # ignore pins after two good trials
+
                 omega_step = 90
-                if good_trials > 2:
-                    valid_objects = ['loop']
-                step['object_found'] = {
-                    'label': label,
-                    'x': cx,
-                    'y': cy,
-                    'reliability': reliability,
-                }
+                step['object_found'] = found
                 step['adjustment'] = [float(-xmm), float(-ymm)]
             else:
-                step['object_found'] = {}
-                last_trial = False
+                step['object_found'] = None
                 reliability = 0.0
                 logger.warning('... No object found in field-of-view')
-                omega_step = 45
 
             step['reliability'] = reliability
             steps.append(step)
-            if good_trials == trials:
+
+            if good_trials >= trials:
                 break
 
         # calculate score
@@ -267,12 +281,11 @@ class Centering(Engine):
             yaml.dump(self.results, file)
             logger.info(f'Centering results saved to {filename}')
 
-    def center_loop(self, trials=4):
+    def center_loop(self, trials=6):
         self.beamline.sample_frontlight.set_off()
 
         # Find tip of loop
         failed = True
-        info = {}
         steps = []
         for i in range(trials):
             step = {'trial': i}

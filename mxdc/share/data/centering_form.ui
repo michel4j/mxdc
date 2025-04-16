@@ -96,55 +96,6 @@
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="homogeneous">True</property>
-            <child>
-              <object class="GtkEntry">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="editable">False</property>
-                <property name="width-chars">5</property>
-                <property name="text" translatable="yes">Min Score</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="min_score_entry">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">Minimum Successful 
-Centering Score 
-Range 0 - 100</property>
-                <property name="width-chars">5</property>
-                <property name="primary-icon-sensitive">False</property>
-                <property name="primary-icon-tooltip-text" translatable="yes">Minimum Acceptable Centering Score in the range 0 - 100</property>
-                <property name="primary-icon-tooltip-markup" translatable="yes">Minimum Acceptable Centering Score in the range 0 - 100</property>
-                <property name="input-purpose">number</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <style>
-              <class name="linked"/>
-            </style>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
             <child>
               <object class="GtkButton" id="cancel_btn">
                 <property name="label" translatable="yes">Cancel</property>
@@ -191,23 +142,20 @@ Range 0 - 100</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="pack-type">end</property>
-            <property name="position">4</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
-          <object class="GtkCheckButton" id="skip_opt">
-            <property name="label" translatable="yes">Skip on failure</property>
+          <object class="GtkCheckButton" id="pause_opt">
+            <property name="label" translatable="yes">Pause on failure</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">False</property>
-            <property name="tooltip-text" translatable="yes">Skip to the next
-sample</property>
             <property name="draw-indicator">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="padding">1</property>
             <property name="position">4</property>
           </packing>
         </child>
@@ -224,17 +172,114 @@ sample</property>
           </packing>
         </child>
         <child>
-          <object class="GtkCheckButton" id="pause_opt">
-            <property name="label" translatable="yes">Pause on failure</property>
+          <object class="GtkCheckButton" id="skip_opt">
+            <property name="label" translatable="yes">Skip on failure</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Skip to the next
+sample</property>
             <property name="draw-indicator">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="padding">1</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkEntry">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="editable">False</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">Thaw Delay</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="thaw_delay_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">5</property>
+                <property name="secondary-icon-name">units-sec-symbolic</property>
+                <property name="primary-icon-sensitive">False</property>
+                <property name="secondary-icon-tooltip-text" translatable="yes">Duration in seconds 
+to wait before centering </property>
+                <property name="input-purpose">number</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <style>
+              <class name="linked"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
             <property name="position">7</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="homogeneous">True</property>
+            <child>
+              <object class="GtkEntry">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="editable">False</property>
+                <property name="width-chars">10</property>
+                <property name="text" translatable="yes">Min Score</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="min_score_entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="width-chars">5</property>
+                <property name="secondary-icon-name">units-pct-symbolic</property>
+                <property name="primary-icon-sensitive">False</property>
+                <property name="primary-icon-tooltip-text" translatable="yes">Minimum Acceptable Centering Score in the range 0 - 100</property>
+                <property name="secondary-icon-tooltip-text" translatable="yes">Minimum Acceptable Centering Score in the range 0 - 100</property>
+                <property name="input-purpose">number</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <style>
+              <class name="linked"/>
+            </style>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">8</property>
           </packing>
         </child>
       </object>

@@ -1,5 +1,8 @@
 import time
 from dataclasses import dataclass
+from enum import IntEnum
+from typing import Literal, Optional
+
 from zope.interface import implementer
 
 from mxdc import Device, Signal, Registry
@@ -16,35 +19,61 @@ class CenterObject:
     w: int = 0
     h: int = 0
     label: str = 'none'
+    time: float = 0.0
+
+    def __post_init__(self):
+        self.time = time.time()
+
+
+OBJECT_LABEL = Literal["loop", "crystal", "pin"]
 
 
 @implementer(ICenter)
 class BaseCenter(Device):
     class Signals:
-        found = Signal("found", arg_types=(int, int, float, str))
-        loop = Signal("loop", arg_types=(object, float))
-        crystals = Signal("crystal", arg_types=(object, float))
+        found = Signal("found", arg_types=(int, str))
+        loop = Signal("loop", arg_types=(object,))
+        crystal = Signal("crystal", arg_types=(object,))
+        pin = Signal("pin", arg_types=(object,))
 
     def __init__(self, threshold=0):
         super().__init__()
         self.found_since = time.time()
         self.threshold = threshold
 
-    def update_found(self, x, y, score, label):
+    def update_found(self, obj: CenterObject) -> bool:
         """
         Update position
 
-        :param x: X position
-        :param y: Y position
-        :param score: score
-        :param label: type of object found
+        :param obj: Center object
         :return: True if signal sent
         """
 
-        if score >= self.threshold:
-            self.set_state(found=(x, y, score, label))
-            self.found_since = time.time()
+        if obj.score >= self.threshold:
+            self.set_state(found=(obj.time, obj.label))
+            self.found_since = obj.time
             return True
+
+    def get_object(self, label: str = 'loop') -> Optional[CenterObject]:
+        """
+        Get the object coordinates with score
+        """
+        return self.get_state(label)
+
+    def get_objects(self, since: float = 0.0, threshold: float = None) -> dict[str, CenterObject]:
+        """
+        Get all objects coordinates with score updated since the provided timestamp
+        :param since: time stamp to check for updates
+        :param threshold: minimum score to consider, if None use the current threshold
+        """
+        threshold = self.threshold if threshold is None else threshold
+        objects = {}
+        for label in ['loop', 'crystal', 'pin']:
+            obj = self.get_object(label)
+            if obj and obj.time > since and obj.score >= threshold:
+                objects[label] = obj
+
+        return objects
 
     def fetch(self):
         """
@@ -54,25 +83,33 @@ class BaseCenter(Device):
 
     def wait(self, timeout=2):
         """
-        Wait for up to a given amount time for the crystal position to be updated
+        Wait for up to a given amount time for the object position to be updated
 
         :param timeout: time to wait
-        :return: True if crystal found in the given time
+        :return: True if object found in the given time
         """
 
         expired = time.time() + timeout
         self.found_since = 0  # invalidate coords first
         while time.time() < expired:
+            time.sleep(0.01)
             if self.found_since > 0:
-                return self.get_state('found')
-            time.sleep(0.001)
-        return None
+                return self.get_objects()
+
+        return {}
 
 
 class ExtCenter(BaseCenter):
     """
     An external centering device.
     """
+
+    class ObjectType(IntEnum):
+        """
+        Object type for the centering device, update this if the definition
+        in the centering device changes
+        """
+        NONE, LOOP, CRYSTAL, PIN = range(4)
 
     def __init__(self, root, threshold=0.25):
         super().__init__(threshold=threshold)
@@ -86,42 +123,58 @@ class ExtCenter(BaseCenter):
         self.obj_x = self.add_pv(f'{root}:objects:x')
         self.obj_y = self.add_pv(f'{root}:objects:y')
         self.obj_scores = self.add_pv(f'{root}:objects:score')
+        self.obj_types = self.add_pv(f'{root}:objects:type')
         self.size = self.add_pv(f'{root}:objects:valid')
 
         self.status = self.add_pv(f'{root}:status')
         self.label = self.add_pv(f'{root}:label')
         self.score.connect('changed', self.on_pos_changed)
-        self.size.connect('changed', self.on_obj_changed)
+        self.obj_scores.connect('changed', self.on_obj_changed)
         Registry.add_utility(ICenter, self)
-
-    def get_object(self, label='loop'):
-        """
-        Get the object coordinates with score
-        """
-        loop, timestamp = self.get_state(label)
-        loop = CenterObject() if loop is None else loop
-        return loop
 
     def on_pos_changed(self, *args, **kwargs):
         if self.score.get() > self.threshold and self.w.get() > MIN_WIDTH:
             cx = self.x.get() + self.w.get() / 2
             cy = self.y.get() + self.h.get() / 2
-
-            self.update_found(cx, cy, self.score.get(), self.label.get())
             loop = CenterObject(cx, cy, self.score.get(), self.w.get(), self.h.get(), label=self.label.get())
-            self.set_state(loop=(loop, time.time()))
+            self.update_found(loop)
+            self.set_state(loop=loop)
         else:
-            self.set_state(loop=(None, time.time()))
+            self.set_state(loop=None)
 
     def on_obj_changed(self, *args, **kwargs):
-        if self.size.get() > 0:
-            x = self.obj_x.get()[0]
-            y = self.obj_y.get()[0]
-            score = self.obj_scores.get()[0]
-            crystal = CenterObject(x, y, score, label='xtal')
-            self.set_state(crystal=(crystal, time.time()))
+        num_obj = self.size.get()
+        if num_obj > 0:
+            xs = self.obj_x.get()[:num_obj]
+            ys = self.obj_y.get()[:num_obj]
+            scores = self.obj_scores.get()[:num_obj]
+            types = self.obj_types.get()[:num_obj]
+            crystals = types == self.ObjectType.CRYSTAL
+            pins = types == self.ObjectType.PIN
+            objects = []
+            if crystals.any():
+                x = xs[crystals][0]
+                y = ys[crystals][0]
+                score = scores[crystals][0]
+                crystal = CenterObject(x, y, score, label='xtal')
+                self.set_state(crystal=crystal)
+                objects.append(crystal)
+            else:
+                self.set_state(crystal=None)
+            if pins.any():
+                x = xs[pins][0]
+                y = ys[pins][0]
+                score = scores[pins][0]
+                pin = CenterObject(x, y, score, label='pin')
+                self.set_state(pin=pin)
+                objects.append(pin)
+            else:
+                self.set_state(pin=None)
+
+            for obj in objects:
+                self.update_found(obj)
         else:
-            self.set_state(crystal=(None, time.time()))
+            self.set_state(crystal=None, pin=None)
 
 
 class SimCenter(BaseCenter):
