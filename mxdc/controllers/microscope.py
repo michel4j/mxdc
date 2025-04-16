@@ -184,7 +184,7 @@ class Microscope(Object):
         if self.beamline.config.centering.show_bbox:
             self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
             self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
-            self.beamline.sample_xcenter.connect('found', self.on_sample_found)
+            self.beamline.sample_xcenter.connect('pin', self.on_centering_object)
 
         # lighting monitors
         self.monitors = []
@@ -411,29 +411,23 @@ class Microscope(Object):
         if response == Gtk.ButtonsType.OK:
             self.remove_objects()
 
-    def on_sample_found(self, obj, cx, cy, score, label):
-        w = self.beamline.sample_xcenter.w.get() / 2.0
-        h = self.beamline.sample_xcenter.h.get() / 2.0
-        score = self.beamline.sample_xcenter.score.get()
-        coords = numpy.array([[cx - w, cy - h], [cx + w, cy + h]]) * self.video.scale
-        if self.show_annotations:
-            self.video.set_annotations({f'{label} ({score:0.0%})': coords})
-
-    def on_centering_object(self, dev, obj, t):
-        loop_state = dev.get_state("loop")
-        xtal_state = dev.get_state("crystal")
-
+    def on_centering_object(self, dev, obj):
+        objects = dev.get_objects()
         annotations = {}
-        for state in [loop_state, xtal_state]:
-            if state is None:
-                continue
-            obj, obj_time = state
-            if obj is not None and obj_time > time.time() - 2:
+        for key, obj in objects.items():
+            if obj and obj.time > time.time() - 2.0:
                 hw = obj.w / 2.0
                 hh = obj.h / 2.0
-                annotations[f'{obj.label} | {obj.score:0.0%}'] = numpy.array(
-                    [[obj.x - hw, obj.y - hh], [obj.x + hw, obj.y + hh]]
-                ) * self.video.scale
+                if 'loop' in obj.label:
+                    annotations[f'{obj.label} | {obj.score:0.0%}'] = {
+                        'coords': numpy.array([[obj.x - hw, obj.y - hh], [obj.x + hw, obj.y + hh]]) * self.video.scale,
+                        'expire': obj.time + 2.0
+                    }
+                else:
+                    annotations[f'{obj.label} | {obj.score:0.0%}'] = {
+                        'coords': numpy.array([[obj.x, obj.y], [obj.x, obj.y]]) * self.video.scale,
+                        'expire': obj.time + 2.0
+                    }
         self.video.set_annotations(annotations)
 
     def on_save_point(self, *args, **kwargs):

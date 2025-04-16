@@ -400,16 +400,28 @@ class VideoWidget(Gtk.DrawingArea):
 
         # rectangle
         cr.set_operator(cairo.OPERATOR_DIFFERENCE)
-        for label, coords in self.overlays['annotations'].items():
-            (x1, y1), (x2, y2) = coords
-            cr.rectangle(x1, y1, x2 - x1, y2 - y1)
-            cr.stroke()
+        for label, info in self.overlays['annotations'].items():
+            (x1, y1), (x2, y2) = info['coords']
+            expire = info.get('expire', time.time() + 10)
+            if expire < time.time():
+                continue
 
             # label
             label = label.upper()
             xb, yb, w, h = cr.text_extents(label)[:4]
-            cr.rectangle(x1 + 0.5, y1 + 0.5, w + 6, h + 6)
-            cr.fill()
+
+            if (x1, y1) == (x2, y2):
+                cr.move_to(x1 - 10, y1)
+                cr.line_to(x1 + 10, y1)
+                cr.stroke()
+                cr.move_to(x1, y1 - 10)
+                cr.line_to(x1, y1 + 10)
+                cr.stroke()
+            else:
+                cr.rectangle(x1, y1, x2 - x1, y2 - y1)
+                cr.stroke()
+                cr.rectangle(x1 + 0.5, y1 + 0.5, w + 6, h + 6)
+                cr.fill()
 
             cr.move_to(x1 + xb + 3, y1 - yb + 3)
             cr.show_text(label)
