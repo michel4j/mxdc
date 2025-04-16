@@ -54,7 +54,6 @@ def get_session():
     config = load_cache(realm)
     today = date.today()
     isodate = today.isocalendar()
-    this_week = list(date.today().isocalendar()[:2])
 
     if DEBUG:
         this_week = [isodate.year, (isodate.week - 1) * 7 + isodate.weekday // 2]
