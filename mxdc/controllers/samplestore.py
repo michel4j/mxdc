@@ -129,6 +129,7 @@ class SampleStore(Object):
         ACTIVE = auto()
         DONE = auto()
         FAILED = auto()
+        WARNING = auto()
 
     Column = {
         Data.SELECTED: '',
@@ -199,7 +200,7 @@ class SampleStore(Object):
         self.connect('notify::current-sample', self.on_cur_changed)
 
         self.beamline.automounter.connect('next-port', self.on_prefetched)
-        # self.connect('notify::next-sample', self.on_next_changed)
+        self.connect('notify::next-sample', self.on_next_changed)
 
         Registry.add_utility(ISampleStore, self)
 
@@ -215,10 +216,13 @@ class SampleStore(Object):
             return cls.Progress.PENDING
         elif succeeded + failed + skipped < total:
             return cls.Progress.ACTIVE
-        elif txt.endswith('*') or txt.endswith('F'):
+        elif succeeded == total:
+            cls.Progress.DONE
+        elif txt.endswith('*'):
             return cls.Progress.FAILED
         else:
-            return cls.Progress.DONE
+            return cls.Progress.WARNING
+
 
     def get_current(self):
         return self.current_sample
@@ -382,7 +386,6 @@ class SampleStore(Object):
         else:
             self.mount_flags &= ~MountFlag.SAMPLE
         self.update_button_states()
-
 
     def on_cur_changed(self, *args, **kwargs):
         name = self.current_sample.get('name', '')
@@ -740,6 +743,8 @@ class SampleQueue(Object):
             cell.set_property("icon-name", "object-select-symbolic")
         elif processed == SampleStore.Progress.FAILED:
             cell.set_property("icon-name", "dialog-error-symbolic")
+        elif processed == SampleStore.Progress.WARNING:
+            cell.set_property("icon-name", "dialog-warning-symbolic")
         else:
             cell.set_property("icon-name", "content-loading-symbolic")
 
@@ -752,6 +757,8 @@ class SampleQueue(Object):
             cell.set_property('foreground-rgba', hex_color('#0c6e03'))
         elif value == SampleStore.Progress.FAILED:
             cell.set_property('foreground-rgba', hex_color('#d2413a'))
+        elif value == SampleStore.Progress.WARNING:
+            cell.set_property('foreground-rgba', hex_color('#f57900'))
         elif value == SampleStore.Progress.ACTIVE:
             cell.set_property('foreground-rgba', hex_color('#3a7ca8'))
         else:
