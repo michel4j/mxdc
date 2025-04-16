@@ -438,6 +438,7 @@ class CenteringOptions(Gtk.Popover):
 
     method_cbox = Gtk.Template.Child()
     min_score_entry = Gtk.Template.Child()
+    thaw_delay_entry = Gtk.Template.Child()
 
     skip_opt = Gtk.Template.Child()
     pause_opt = Gtk.Template.Child()
@@ -458,6 +459,7 @@ class CenteringOptions(Gtk.Popover):
                 validator=Validator.Literal('loop', 'crystal', 'diffraction', 'capillary', default='loop')
             ),
             FormField('min_score', self.min_score_entry, fmt='{:0.2g}', validator=Validator.Float(0.0, 100.0, 0.50)),
+            FormField('thaw_delay', self.thaw_delay_entry, fmt='{:0.1g}', validator=Validator.Float(0.0, 120.0, 0.0)),
             FormField('skip_on_failure', self.skip_opt, fmt='{}', validator=Validator.Bool(True)),
             FormField('pause', self.pause_opt, fmt='{}', validator=Validator.Bool(False)),
         ]

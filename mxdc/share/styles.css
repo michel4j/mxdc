@@ -91,8 +91,8 @@ toolbar.tool-box {
   padding: 3px 3px
 }
 .task-description {
-  font-size: 80%;
   font-family: monospace;
+  font-size: 80%;
 }
 .shaded-bg {
    background-color: alpha(@borders, 0.2);
