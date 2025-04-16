@@ -5,11 +5,11 @@ from pathlib import Path
 
 import gi
 
-gi.require_version('WebKit2', '4.1')
+gi.require_version('WebKit2', '4.0')
 
 from mxdc import Registry, Property, SHARE_DIR
 from mxdc.utils.data import analysis
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk
 
 
 @Gtk.Template.from_resource('/org/gtk/mxdc/data/report_view.ui')
