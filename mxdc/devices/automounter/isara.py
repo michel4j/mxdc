@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from enum import IntFlag, auto, IntEnum
 
 from mxdc.devices.automounter import AutoMounter, State, logger
@@ -190,25 +191,14 @@ class AuntISARA(AutoMounter):
             self.next_smpl.put(port, wait=True)
             self.mount_cmd.put(1, wait=True)
 
-            logger.info('{}: Mounting Sample: {}'.format(self.name, port))
+            logger.info(f'{self.name}: Mounting Sample: {port}')
             if wait:
-                success = self.wait(states={State.BUSY}, timeout=20)
-                sample_on_gonio = True
-                sample_matches = True
+                success = self.wait_for_value(self.mounted_fbk, port, timeout=180)
                 if success:
-                    mount_completed = self.wait(states={State.STANDBY, State.IDLE}, timeout=120)
-                    sample_on_gonio = bool(self.sample_detected.get())
-                    sample_matches = self.mounted_fbk.get() == port
-                    success = sample_on_gonio and sample_matches and mount_completed
+                    success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
 
                 if not success:
-                    message = "Mounting failed!"
-                    if sample_on_gonio and not sample_matches:
-                        message += " Unknown sample is present on the gonio."
-                    elif not sample_on_gonio:
-                        message += " No sample present on gonio."
-                    self.set_state(message=message)
-
+                    self.set_state(message='Mounting failed!')
                 return success
             return True
 
@@ -229,16 +219,11 @@ class AuntISARA(AutoMounter):
             self.dismount_cmd.put(1)
             logger.info(f'{self.name}: Dismounting sample.')
             if wait:
-                success = self.wait(states={State.BUSY}, timeout=10)
+                success = self.wait_for_value(self.mounted_fbk, '', timeout=180)
                 if success:
-                    mount_completed = self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
-                    sample_removed = not bool(self.sample_detected.get())
-                    success = mount_completed and sample_removed
+                    success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
                 if not success:
-                    message = "Dismounting failed!"
-                    if self.sample_detected.get():
-                        message += " A sample is still on gonio!"
-                    self.set_state(message=message)
+                    self.set_state(message='Dismounting failed!')
                 return success
             else:
                 return True
@@ -385,20 +370,29 @@ class AuntISARA(AutoMounter):
         else:
             self.set_state(health=(0, 'error', ''))
 
-    def wait_for_position(self, position, timeout=120):
+    @staticmethod
+    def wait_for_value(variable: Any, *values: Any, timeout: int = 30, invert: bool = False) -> bool:
         """
-        Wait for the given position to be reached
-        :param position: requested position to wait for
-        :param timeout: maximum time to wait
-        :return: bool, True if state was attained or False if timeout was exhausted
+        Wait for a variable to reach a specific value
+        :param variable: process variable to check
+        :param values: values to check
+        :param timeout: max duration to wait
+        :param invert: if True, wait for the variable to not be in values
+        :return: True if successful, False if timed out
         """
-
-        time_remaining = timeout
-        poll = 0.05
-        while time_remaining > 0 and self.position_fbk.get() != position:
-            time_remaining -= poll
-            time.sleep(poll)
-
-        if time_remaining <= 0:
-            logger.warning('Timed out waiting for {} to reach {} position'.format(self.name, position))
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            current_value = variable.get()
+            if invert != (current_value in values):
+                break
+            time.sleep(0.01)
+        else:
+            value_str = ' | '.join([str(v) for v in values])
+            logger.warn(f'Timeout waiting for variable "{variable.name}" to be "{value_str}"')
             return False
+        return True
+
+    def wait_for_position(self, position, timeout=120):
+        return self.wait_for_value(self.position_fbk, position, timeout=timeout)
+
+
