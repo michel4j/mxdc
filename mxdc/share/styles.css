@@ -103,6 +103,10 @@ toolbar.tool-box {
   border-radius: 2px;
 }
 
+.queue-progress {
+  font-size: 110%;
+}
+
 button.tiny {
   padding: 0px 4px;
 }

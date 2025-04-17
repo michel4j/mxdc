@@ -476,6 +476,44 @@ class CenteringOptions(Gtk.Popover):
         self.hide()
 
 
+@Gtk.Template.from_resource('/org/gtk/mxdc/data/mount_form.ui')
+class MountOptions(Gtk.Popover):
+    __gtype_name__ = 'MountOptions'
+    __gsignals__ = {
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
+
+    skip_opt = Gtk.Template.Child()
+    pause_opt = Gtk.Template.Child()
+    prefetch_opt = Gtk.Template.Child()
+    save_btn = Gtk.Template.Child()
+    cancel_btn = Gtk.Template.Child()
+
+    form: Form
+
+    def __init__(self, name: str, kind: TaskType, *args, **kwargs):
+        """
+        Mounting options popover form
+        :param name: name of the form
+        """
+        super().__init__(*args, **kwargs)
+        fields = [
+            FormField('use_prefetch', self.prefetch_opt, fmt='{}', validator=Validator.Bool(True)),
+            FormField('skip_on_failure', self.skip_opt, fmt='{}', validator=Validator.Bool(True)),
+            FormField('pause', self.pause_opt, fmt='{}', validator=Validator.Bool(True)),
+        ]
+        self.kind = kind
+        self.form = Form(name, fields)
+        self.cancel_btn.connect('clicked', lambda x: self.hide())
+        self.save_btn.connect_after('clicked', self.on_save)
+
+    def __getattr__(self, item):
+        return getattr(self.form, item)
+
+    def on_save(self, widget):
+        self.emit('changed', self.form.get_values())
+        self.hide()
+
 def format_markup(markup: str, options: dict) -> str:
     """
     Format a description string with the given options or return empty string if the markup is invalid
@@ -499,13 +537,14 @@ _ACQUISITION_DESCR = [
 
 class TaskItem(Object):
     Type = TaskType
-
+    index = Property(type=int, default=1)
     type = Property(type=int, default=Type.CENTER)
     active = Property(type=bool, default=False)
     name = Property(type=str, default="Task Name")
     options = Property(type=object)
 
     DESCRIPTIONS = {
+        Type.MOUNT: ['Mount Sample', 'Prefetch next: <b>{use_prefetch}</b>'],
         Type.CENTER: [
             "Auto-centering by <b>{method}</b>",
             "Minimum score=<b>{min_score}%</b>"],
@@ -572,7 +611,8 @@ TASK_OPTIONS = {
     TaskItem.Type.CENTER: CenteringOptions,
     TaskItem.Type.ACQUIRE: AcquisitionOptions,
     TaskItem.Type.SCREEN: AcquisitionOptions,
-    TaskItem.Type.ANALYSE: AnalysisOptions
+    TaskItem.Type.ANALYSE: AnalysisOptions,
+    TaskItem.Type.MOUNT: MountOptions
 }
 
 
@@ -582,6 +622,7 @@ class TaskRow(Gtk.Box):
 
     enable_btn = Gtk.Template.Child()
     name = Gtk.Template.Child()
+    index = Gtk.Template.Child()
     description = Gtk.Template.Child()
     task_box = Gtk.Template.Child()
     options_btn = Gtk.Template.Child()
@@ -617,6 +658,7 @@ class TaskRow(Gtk.Box):
 
     def do_task_changed(self, *args):
         self.name.set_markup(self.task.name)
+        self.index.set_markup(f"{self.task.index}")
         self.description.set_markup(self.task.get_description())
 
     def on_form_saved(self, *args):

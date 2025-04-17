@@ -125,6 +125,10 @@ class AutomationController(Object):
     def setup_tasks(self):
         tasks = [
             TaskItem(
+                name='Mount', type=TaskItem.Type.MOUNT,
+                active=True, options={'skip_on_failure': False, 'pause': True, 'use_prefetch': True}
+            ),
+            TaskItem(
                 name='Center', type=TaskItem.Type.CENTER,
                 active=True, options={
                     'method': 'loop',
@@ -159,7 +163,8 @@ class AutomationController(Object):
                 }
             ),
         ]
-        for task in tasks:
+        for i, task in enumerate(tasks):
+            task.props.index = i + 1
             self.task_list.append(task)
             task.connect('notify::active', self.save_to_cache)
 
@@ -177,7 +182,7 @@ class AutomationController(Object):
         if not config:
             return
 
-        for task in self.task_list:
+        for i, task in enumerate(self.task_list):
             if task.name not in config:
                 continue
             task.set_active(config[task.name])
@@ -208,12 +213,7 @@ class AutomationController(Object):
         return params
 
     def get_task_list(self):
-        # mount task as first implicit task
-        return [{
-            'name': 'Mount',
-            'type': TaskItem.Type.MOUNT,
-            'options': {'skip_on_failure': False, 'pause': True}
-        }] + [
+        return [
             self.get_task_options(task) for task in self.task_list if task.active
         ]
 

@@ -216,13 +216,10 @@ class SampleStore(Object):
             return cls.Progress.PENDING
         elif succeeded + failed + skipped < total:
             return cls.Progress.ACTIVE
-        elif succeeded == total:
-            cls.Progress.DONE
-        elif txt.endswith('*'):
+        elif txt.endswith('*') or txt.endswith('F'):
             return cls.Progress.FAILED
         else:
-            return cls.Progress.WARNING
-
+            return cls.Progress.DONE
 
     def get_current(self):
         return self.current_sample
@@ -765,19 +762,34 @@ class SampleQueue(Object):
             cell.set_property('foreground-set', False)
 
     @staticmethod
+    def get_default_foreground():
+        ctx = Gtk.StyleContext()
+        widget_path = Gtk.WidgetPath()
+        widget_path.append_type(Gtk.Button)
+        ctx.set_path(widget_path)
+        rgba =  ctx.get_property('color', Gtk.StateFlags.NORMAL)
+        red, green, blue = int(rgba.red * 255), int(rgba.green * 255), int(rgba.blue * 255)
+        return f'#{red:02x}{green:02x}{blue:02x}'
+
+    @staticmethod
     def format_progress(column, cell, model, itr, data):
         progress = model[itr][SampleStore.Data.PROGRESS]
-        states = {
-            '_': '<span>◯︎</span>',
-            'S': '<span foreground="#2cbd69">⬤</span>',
-            'F': '<span foreground="#853726">⬤</span>',
-            '*': '<span foreground="#d2413a">︎◯︎</span>',
-            '>': '<span foreground="#2cbd69">◯︎</span>',
+        colors = {
+            'S': '#2cbd69',
+            'F': "#853726",
+            '*': "#d2413a",
+            '>': "#2cbd69"
         }
-        markup = ''.join([
-            states.get(char, '') for char in progress
-        ])
-        cell.set_property("markup", markup)
+        markups = []
+        for i, code in enumerate(progress):
+            symbol = '⬤' if code in 'SF' else '◯'
+            color = colors.get(code)
+            if color:
+                markups.append(f'<span foreground="{color}">{symbol}</span>')
+            else:
+                markups.append(f'<span>{symbol}</span>')
+
+        cell.set_property("markup", ''.join(markups))
 
     def get_samples(self):
         return [

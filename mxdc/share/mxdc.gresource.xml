@@ -27,6 +27,7 @@
         <file compressed="true">data/report_view.ui</file>
         <file compressed="true">data/login_form.ui</file>
         <file compressed="true">data/centering_form.ui</file>
+        <file compressed="true">data/mount_form.ui</file>
         <file compressed="true">data/acquisition_form.ui</file>
         <file compressed="true">data/analysis_form.ui</file>
         <file compressed="true">data/task_row.ui</file>

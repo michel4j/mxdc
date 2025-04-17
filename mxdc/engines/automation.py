@@ -225,7 +225,8 @@ class Automator(Engine):
             if sample['barcode'] and barcode and barcode != sample['barcode']:
                 logger.warning(f'Barcode mismatch: {barcode} vs {sample["barcode"]}')
 
-            self.request_prefetch(states.position)
+            if options.get('use_prefetch', False):
+                self.request_prefetch(states.position)
             return self.ResultType.SUCCESS, states.succeed(options['uuid'], mounted)
         else:
             logger.warning(f'Success: {success}, Mounted: {self.beamline.automounter.is_mounted(sample["port"])}')
