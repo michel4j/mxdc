@@ -339,6 +339,7 @@ class DataCollector(Engine):
             num_images = 359//offset
             images = []
             for i in range(num_images):
+                time.sleep(0.5)
                 images.append(self.beamline.sample_camera.get_frame())
                 self.beamline.goniometer.omega.move_by(offset, wait=True)
 
