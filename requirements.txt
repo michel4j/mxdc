@@ -30,3 +30,4 @@ wget
 pytest
 setuptools_scm
 methodtools
+webp

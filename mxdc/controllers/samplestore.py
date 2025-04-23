@@ -13,7 +13,6 @@ from mxdc.conf import load_cache, save_cache
 from mxdc.engines import transfer
 from mxdc.utils import misc
 from mxdc.utils.automounter import Port, PortColors
-from mxdc.utils.decorators import async_call
 from .automounter import DewarController
 
 

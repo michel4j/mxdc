@@ -217,7 +217,12 @@ class Automator(Engine):
     def mount_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
         options = self.prepare_task_options(task, sample, activity='centering')
         states.start(options['uuid'])
-        success = self.beamline.automounter.mount(sample['port'], wait=True)
+
+        if self.beamline.automounter.is_mounted(sample['port']):
+            logger.info(f'Sample {sample["port"]} already mounted')
+            success = True
+        else:
+            success = self.beamline.automounter.mount(sample['port'], wait=True)
 
         if success and self.beamline.automounter.is_mounted(sample['port']):
             mounted = self.beamline.automounter.get_state("sample")

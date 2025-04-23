@@ -171,9 +171,17 @@ class AuntISARA(AutoMounter):
         if self.power_fbk.get() == 0:
             self.power_cmd.put(1)
 
+    def clear_prefetch(self):
+        logger.warning(f'{self.name}: Switching prefetched sample!')
+        self.back_cmd.put(1)
+        success = self.wait_while(State.IDLE, timeout=10)
+        success |= self.wait_until(State.IDLE, timeout=30)
+        return success
+
     def mount(self, port, wait=True):
         self.power_on()
         enabled = self.wait_until(State.IDLE, State.PREPARING, timeout=240)
+
         if not enabled:
             logger.warning(f'{self.name}: not ready. command ignored!')
             self.set_state(message="Not ready, command ignored!")
@@ -187,20 +195,23 @@ class AuntISARA(AutoMounter):
             logger.info(f'{self.name}: Sample {port} cannot be mounted!')
             self.set_state(message="Port cannot be mounted!")
             return False
-        else:
-            self.next_smpl.put(port, wait=True)
-            self.mount_cmd.put(1, wait=True)
 
-            logger.info(f'{self.name}: Mounting Sample: {port}')
-            if wait:
-                success = self.wait_for_value(self.mounted_fbk, port, timeout=180)
-                if success:
-                    success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+        if self.tooled_fbk.get() and self.tooled_fbk.get() != port:
+            self.clear_prefetch()
 
-                if not success:
-                    self.set_state(message='Mounting failed!')
-                return success
-            return True
+        self.next_smpl.put(port, wait=True)
+        self.mount_cmd.put(1, wait=True)
+
+        logger.info(f'{self.name}: Mounting Sample: {port}')
+        if wait:
+            success = self.wait_for_value(self.mounted_fbk, port, timeout=180)
+            if success:
+                success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+
+            if not success:
+                self.set_state(message='Mounting failed!')
+            return success
+        return True
 
     def dismount(self, wait=False):
         self.power_on()
@@ -215,23 +226,20 @@ class AuntISARA(AutoMounter):
             logger.info(f'{self.name}: No Sample mounted.')
             self.set_state(message="No Sample mounted!")
             return True
+
+        self.dismount_cmd.put(1)
+        logger.info(f'{self.name}: Dismounting sample.')
+        if wait:
+            success = self.wait_for_value(self.mounted_fbk, '', timeout=180)
+            if success:
+                success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+            if not success:
+                self.set_state(message='Dismounting failed!')
+            return success
         else:
-            self.dismount_cmd.put(1)
-            logger.info(f'{self.name}: Dismounting sample.')
-            if wait:
-                success = self.wait_for_value(self.mounted_fbk, '', timeout=180)
-                if success:
-                    success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
-                if not success:
-                    self.set_state(message='Dismounting failed!')
-                return success
-            else:
-                return True
+            return True
 
     def prefetch(self, port, wait=False):
-        if self.tooled_fbk.get():
-            return False
-
         enabled = self.wait_until(State.IDLE, State.PREPARING, State.STANDBY, timeout=120)
         if enabled and self.get_state('status') == State.STANDBY:
             self.set_state(message='Prefetch will be executed after current operation.')
@@ -250,17 +258,25 @@ class AuntISARA(AutoMounter):
             logger.info(f'{self.name}: Sample {port} cannot be prefetched!')
             self.set_state(message="Port cannot be prefetched!")
             return False
-        else:
-            logger.info(f'{self.name}: Prefetch Sample: {port}')
-            self.next_smpl.put(port, wait=True)
-            self.prefetch_cmd.put(1)
 
-            if wait:
-                success = self.wait_while(State.IDLE, timeout=60)
-                success |= self.wait_until(State.IDLE, timeout=240)
-                return success
-            else:
-                return True
+        if self.tooled_fbk.get() and self.tooled_fbk.get() != port:
+            self.clear_prefetch()
+
+        if self.tooled_fbk.get():
+            logger.warning(f'{self.name}: Sample {self.tooled_fbk.get()} is mounted. Prefetching will be skipped!')
+            self.set_state(message='Sample is mounted. Prefetching will be skipped!')
+            return False
+
+        logger.info(f'{self.name}: Prefetch Sample: {port}')
+        self.next_smpl.put(port, wait=True)
+        self.prefetch_cmd.put(1)
+
+        if wait:
+            success = self.wait_while(State.IDLE, timeout=60)
+            success |= self.wait_until(State.IDLE, timeout=240)
+            return success
+        else:
+            return True
 
     def abort(self):
         self.abort_cmd.put(1)
@@ -355,7 +371,7 @@ class AuntISARA(AutoMounter):
         self.on_warning_message(obj, message)
 
     def on_warning_message(self, obj, message):
-        if message:
+        if len(message):
             self.set_state(message=message)
 
     def on_error_changed(self, *args):

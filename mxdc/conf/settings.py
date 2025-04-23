@@ -56,7 +56,7 @@ def get_session():
     isodate = today.isocalendar()
 
     if DEBUG:
-        this_week = [isodate.year, (isodate.week - 1) * 7 + isodate.weekday // 2]
+        this_week = [isodate.year, (isodate.week - 1) * 7 + isodate.weekday]
         session_week = config.get('session-week', [1990, 1])
     else:
         this_week = [isodate.year, isodate.week]

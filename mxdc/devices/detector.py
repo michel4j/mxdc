@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import time
+import random
 from collections import namedtuple
 from typing import Dict
 
@@ -359,7 +360,7 @@ class SimDetector(BaseDetector):
 
             num_datasets = len(self._datasets[realm])
             if num_datasets:
-                chosen = int(time.time()) % num_datasets
+                chosen = random.randint(0, num_datasets - 1)
                 self._selection = DataSelection(realm, *(list(self._datasets[realm].keys())[chosen]))
                 self._dataset_selections[name] = self._selection
 
@@ -370,10 +371,10 @@ class SimDetector(BaseDetector):
         if count > 0:
             frame_number = file_params['start_frame'] + number
             src_img = os.path.join(folder, self._datasets[realm][(folder, name, count)][(frame_number - 1) % count])
-            file_name = '{}_{:05d}.{}'.format(file_params['file_prefix'], frame_number, self.file_extension)
+            file_name = f'{file_params["file_prefix"]}_{frame_number:05d}.{self.file_extension}'
             file_path = os.path.join(file_params['directory'], file_name)
             shutil.copyfile(src_img, file_path)
-            logger.info('Frame saved: {}'.format(file_name))
+            logger.info(f'Frame saved: {file_name}')
             self.monitor.add(file_path)
 
         else:

@@ -224,7 +224,7 @@ class Centering(Engine):
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug(f'Adjustment: {-xmm:0.4f}, {-ymm:0.4f}')
                 good_trials += 1
-                if good_trials >= 2:
+                if good_trials > 2:
                     valid_objects = ['loop', 'xtal']    # ignore pins after two good trials
 
                 omega_step = 90

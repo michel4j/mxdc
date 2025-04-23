@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import mxio
 import pytz
+import webp
 from gi.repository import GLib
 from zope.interface import implementer
 from mxio.formats import cbf
@@ -24,6 +25,8 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 GRACE_PERIOD = 10  # Amount of time to wait after completion for frames to all appear.
+SNAPSHOT_INTERVAL = 500  # Time between taking snapshots in milliseconds
+SNAPSHOT_ANGLE = 90  # Angle to move between snapshots in degrees
 
 
 @implementer(IDataCollector)
@@ -329,11 +332,26 @@ class DataCollector(Engine):
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
 
         # take snapshot
-        snapshot_file = os.path.join(params['directory'], f"{params['name']}.png")
+        snapshot_file = os.path.join(params['directory'], f"{params['name']}.webp")
         if os.path.exists(params['directory']):
             logger.info('Taking snapshot ...')
-            self.beamline.sample_camera.save_frame(snapshot_file)
-            logger.debug('Snapshot saved...')
+            offset = SNAPSHOT_ANGLE
+            num_images = 359//offset
+            images = []
+            for i in range(num_images):
+                images.append(self.beamline.sample_camera.get_frame())
+                self.beamline.goniometer.omega.move_by(offset, wait=True)
+
+            enc = webp.WebPAnimEncoder.new(images[0].width, images[0].height)
+            timestamp = 0
+            for image in images:
+                pic = webp.WebPPicture.from_pil(image)
+                enc.encode_frame(pic, timestamp)
+                timestamp += SNAPSHOT_INTERVAL
+            anim = enc.assemble(timestamp)
+            with open(snapshot_file, 'wb') as f:
+                f.write(anim.buffer())
+            logger.debug('Snapshot animation saved...')
 
     def prepare_for_saving(self, params):
         if params['name'] not in params['combine']:

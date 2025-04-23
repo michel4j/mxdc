@@ -126,7 +126,7 @@ class AutomationController(Object):
         tasks = [
             TaskItem(
                 name='Mount', type=TaskItem.Type.MOUNT,
-                active=True, options={'skip_on_failure': False, 'pause': True, 'use_prefetch': True}
+                active=True, options={'skip_on_failure': True, 'pause': False, 'use_prefetch': True}
             ),
             TaskItem(
                 name='Center', type=TaskItem.Type.CENTER,
