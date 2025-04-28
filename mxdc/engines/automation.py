@@ -14,6 +14,9 @@ from mxdc.utils.log import get_module_logger
 logger = get_module_logger(__name__)
 
 
+MAX_FAILED_MOUNTS = 2
+
+
 class TaskState:
     position: int
 
@@ -107,6 +110,8 @@ class Automator(Engine):
         super().__init__()
         self.pause_message = ''
         self.total = 1
+        self.failed_mounts = 0
+        self.force_pause = False
         self.unattended = False
         self.collector = Registry.get_utility(IDataCollector)
         self.analyst = Registry.get_utility(IAnalyst)
@@ -225,6 +230,7 @@ class Automator(Engine):
             success = self.beamline.automounter.mount(sample['port'], wait=True)
 
         if success and self.beamline.automounter.is_mounted(sample['port']):
+            self.failed_mounts = 0
             mounted = self.beamline.automounter.get_state("sample")
             barcode = mounted.get('barcode')
             if sample['barcode'] and barcode and barcode != sample['barcode']:
@@ -234,6 +240,10 @@ class Automator(Engine):
                 self.request_prefetch(states.position)
             return self.ResultType.SUCCESS, states.succeed(options['uuid'], mounted)
         else:
+            self.failed_mounts += 1
+            if self.failed_mounts > MAX_FAILED_MOUNTS:
+                self.pause_message = f'Maximum number of failed mounts reached: {self.failed_mounts}'
+                self.force_pause = True
             logger.warning(f'Success: {success}, Mounted: {self.beamline.automounter.is_mounted(sample["port"])}')
             return self.ResultType.FAILED, states.fail(options['uuid'])
 
@@ -309,7 +319,8 @@ class Automator(Engine):
         :return:
         """
         self.set_state(busy=True, started=None)
-        self.pause_message = ''
+        self.pause_message = 'as requested'
+        self.force_pause = False
 
         for j, sample in enumerate(self.samples):
             if self.stopped:
@@ -323,9 +334,9 @@ class Automator(Engine):
                     if task['options'].get('skip_on_failure', False):
                         task_states.skip()
                         break
-                    elif task['options'].get('pause', False):
+                    if task['options'].get('pause', False) or self.force_pause:
                         self.intervene(
-                            'As requested, automation has been paused for manual intervention. \n'
+                            f'Paused for manual intervention {self.pause_message}. \n'
                             'Please resume after intervening to continue the sequence. '
                         )
                 if self.stopped:

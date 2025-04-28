@@ -340,7 +340,10 @@ class DataCollector(Engine):
             images = []
             for i in range(num_images):
                 time.sleep(0.5)
-                images.append(self.beamline.sample_camera.get_frame())
+                self.beamline.sample_camera.fetch_frame()
+                frame = self.beamline.sample_camera.get_frame()
+                if frame:
+                    images.append(frame)
                 self.beamline.goniometer.omega.move_by(offset, wait=True)
 
             enc = webp.WebPAnimEncoder.new(images[0].width, images[0].height)

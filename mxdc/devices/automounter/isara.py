@@ -70,6 +70,19 @@ class HealthType(IntEnum):
     ERROR = auto()
 
 
+def chain_monitors(*funcs, **kwargs) -> bool:
+    """
+    Chain multiple monitors together.  Each monitor will be called in order with the same arguments.
+    :param funcs: functions or methods to call, each function should return a boolean to indicate success
+    :param kwargs: arguments to pass to each function
+    """
+
+    for func in funcs:
+        if not func(**kwargs):
+            return False
+    return True
+
+
 class ISARAMessages(object):
     @staticmethod
     def trajectory(message):
@@ -204,9 +217,11 @@ class AuntISARA(AutoMounter):
 
         logger.info(f'{self.name}: Mounting Sample: {port}')
         if wait:
-            success = self.wait_for_value(self.mounted_fbk, port, timeout=180)
+            success = self.wait(states={State.BUSY}, timeout=10)
             if success:
-                success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+                success &= self.wait_while(State.BUSY, timeout=60)
+            if success:
+                success &= (self.mounted_fbk.get() == port)
 
             if not success:
                 self.set_state(message='Mounting failed!')
@@ -230,9 +245,11 @@ class AuntISARA(AutoMounter):
         self.dismount_cmd.put(1)
         logger.info(f'{self.name}: Dismounting sample.')
         if wait:
-            success = self.wait_for_value(self.mounted_fbk, '', timeout=180)
+            success = self.wait(states={State.BUSY}, timeout=10)
             if success:
-                success &= self.wait(states={State.STANDBY, State.IDLE}, timeout=60)
+                success &= self.wait_while(State.BUSY, timeout=60)
+            if success:
+                success &= (self.mounted_fbk.get() == '')
             if not success:
                 self.set_state(message='Dismounting failed!')
             return success
@@ -272,8 +289,9 @@ class AuntISARA(AutoMounter):
         self.prefetch_cmd.put(1)
 
         if wait:
-            success = self.wait_while(State.IDLE, timeout=60)
-            success |= self.wait_until(State.IDLE, timeout=240)
+            success = self.wait_while(State.IDLE, timeout=30)
+            if success:
+                success &= self.wait_until(State.IDLE, timeout=30)
             return success
         else:
             return True
