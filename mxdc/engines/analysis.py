@@ -115,7 +115,7 @@ class Analyst(Engine):
         try:
             params = combine_metadata(metadata)
         except IndexError:
-            return
+            return None
         prefix, kind = (f'ano', 'ANOMALOUS') if 'anomalous' in flags else ('nat', "NATIVE")
         params.update(anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind)
         return self.process_generic(params, sample, self.beamline.session_key)
@@ -124,7 +124,7 @@ class Analyst(Engine):
         try:
             params = combine_metadata(metadata)
         except IndexError:
-            return
+            return None
         suffix = 'sep' if 'separate' in flags else 'mrg'
         prefix, kind = (f'ano{suffix}', 'ANOMALOUS') if 'anomalous' in flags else (suffix, "NATIVE")
         params.update(
@@ -139,7 +139,7 @@ class Analyst(Engine):
         try:
             params = combine_metadata(metadata)
         except IndexError:
-            return
+            return None
         params.update(merge=True, screen=True,type="SCREEN")
 
         method = settings.get_string('screening-method').lower()
