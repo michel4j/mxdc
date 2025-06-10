@@ -246,7 +246,7 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="icon-name">emblem-synchronizing-symbolic</property>
+                    <property name="icon-name">view-refresh-symbolic</property>
                   </object>
                 </child>
                 <style>

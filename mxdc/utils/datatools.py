@@ -172,7 +172,8 @@ def get_activity_folder(sample: dict, activity: str, session: str = '') -> str:
     activity_template = template[1:] if template[0] == os.sep else template
     activity_template = activity_template[:-1] if activity_template[-1] == os.sep else activity_template
     dir_template = os.path.join(misc.get_project_home(), '{session}', activity_template)
-    return dir_template.format(**params).replace('//', '/').replace('//', '/')
+    folder = dir_template.format(**params).replace('//', '/').replace('//', '/')
+    return folder
 
 
 class NameManager(object):

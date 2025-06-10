@@ -503,11 +503,15 @@ class Microscope(Object):
         if method == 'external':
             self.show_annotations = True
         samples = Registry.get_utility(ISampleStore)
-        sample = samples.get_current()
-        directory = datatools.get_activity_folder(
-            sample, activity='centering', session=self.beamline.session_key
-        )
-        self.centering.configure(method=method, directory=directory, name=sample.get('name', 'unknown'))
+        directory = None
+        name = 'unknown'
+        if samples:
+            sample = samples.get_current()
+            directory = datatools.get_activity_folder(
+                sample, activity='centering', session=self.beamline.session_key
+            )
+            name = sample.get('name', 'unknown')
+        self.centering.configure(method=method, directory=directory, name=name)
         self.centering.start()
         return True
 
