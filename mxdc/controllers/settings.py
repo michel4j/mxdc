@@ -73,6 +73,10 @@ def valid_naming(txt):
     return txt.strip().lower() in NAMING_VARIABLES
 
 
+def valid_structure_solution(txt):
+    return txt
+
+
 def valid_mode(value):
     return bool(value)
 
@@ -84,8 +88,9 @@ class SettingsDialog(gui.BuilderMixin):
 
     OPTIONS = [
         ('directory-template', 'dir-template-symbolic', valid_template),
-        # ('dataset-naming', 'insert-text-symbolic', valid_naming),
+        #('dataset-naming', 'insert-text-symbolic', valid_naming),
         ('screening-method', 'error-correct-symbolic', valid_screening),
+        ('auto-structure-solution', 'applications-science-symbolic', valid_structure_solution),
     ]
 
     def __init__(self, parent):

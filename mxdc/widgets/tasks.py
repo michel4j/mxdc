@@ -429,6 +429,62 @@ class AnalysisOptions(Gtk.Popover):
         return values
 
 
+@Gtk.Template.from_resource('/org/gtk/mxdc/data/structure_form.ui')
+class StructureOptions(Gtk.Popover):
+    __gtype_name__ = 'StructureOptions'
+    __gsignals__ = {
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+    }
+
+    method_cbox = Gtk.Template.Child()
+    per_sample_opt = Gtk.Template.Child()
+    per_group_opt = Gtk.Template.Child()
+    per_cell_opt = Gtk.Template.Child()
+
+    min_score_entry = Gtk.Template.Child()
+
+    skip_opt = Gtk.Template.Child()
+    pause_opt = Gtk.Template.Child()
+    save_btn = Gtk.Template.Child()
+    cancel_btn = Gtk.Template.Child()
+
+    form: Form
+
+    def __init__(self, name: str, kind: TaskType, *args, **kwargs):
+        """
+        Analysis options popover form
+        :param name: name of the form
+        """
+        super().__init__(*args, **kwargs)
+        fields = [
+            FormField('method', self.method_cbox, fmt='{}', validator=Validator.Literal('auto_mr', 'auto_ep')),
+            FormField('per_sample', self.per_sample_opt, fmt='{}', validator=Validator.Bool(False)),
+            FormField('per_group', self.per_group_opt, fmt='{}', validator=Validator.Bool(False)),
+            FormField('per_cell', self.per_cell_opt, fmt='{}', validator=Validator.Bool(False)),
+            FormField('min_score', self.min_score_entry, fmt='{:0.2g}', validator=Validator.Float(0.0, 1.0, 0.1)),
+            FormField('skip_on_failure', self.skip_opt, fmt='{}', validator=Validator.Bool(True)),
+            FormField('pause', self.pause_opt, fmt='{}', validator=Validator.Bool(False)),
+        ]
+        self.kind = kind
+        self.form = Form(name, fields)
+        self.cancel_btn.connect('clicked', lambda x: self.hide())
+        self.save_btn.connect_after('clicked', self.on_save)
+
+    def __getattr__(self, item):
+        return getattr(self.form, item)
+
+    def on_save(self, widget):
+        self.emit('changed', self.form.get_values())
+        self.hide()
+
+    def get_values(self):
+        values = self.form.get_values()
+        values.update({
+            "desc": ANALYSIS_DESCRIPTIONS.get(values["method"], values['method'])
+        })
+        return values
+
+
 @Gtk.Template.from_resource('/org/gtk/mxdc/data/centering_form.ui')
 class CenteringOptions(Gtk.Popover):
     __gtype_name__ = 'CenteringOptions'
@@ -554,6 +610,11 @@ class TaskItem(Object):
             "<b>{desc}</b>",
             "Anomalous=<b>{anomalous}</b>",
             "Minimum score=<b>{min_score:0.1f}</b>"
+        ],
+        Type.STRUCTURE: [
+            "<b>{desc}</b>",
+            "Method=<b>{method}</b> Per sample=<b>{per_sample}</b>, per group=<b>{per_group}</b>, per cell=<b>{per_cell}</b>",
+            "Minimum score=<b>{min_score:0.1f}</b>"
         ]
     }
 
@@ -612,7 +673,8 @@ TASK_OPTIONS = {
     TaskItem.Type.ACQUIRE: AcquisitionOptions,
     TaskItem.Type.SCREEN: AcquisitionOptions,
     TaskItem.Type.ANALYSE: AnalysisOptions,
-    TaskItem.Type.MOUNT: MountOptions
+    TaskItem.Type.MOUNT: MountOptions,
+    TaskItem.Type.STRUCTURE: StructureOptions
 }
 
 

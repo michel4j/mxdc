@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <schemalist>
+    <enum id="my-enum">
+        <value nick="Disabled" value="0" />
+        <value nick="Molecular Replacement" value="1"/>
+        <value nick="Experimental Phasing" value="2"/>
+    </enum>
     <schema id="org.mxdc" path="/org/gtk/mxdc/">
         <key name='directory-template' type='s'>
             <default>"/{group}/{sample}/{activity}/"</default>
@@ -30,6 +35,13 @@
                 Analysis method for screening images. The default is 'AutoProcess'.
 
                 Allowed:   'AutoProcess', 'MOSFLM'.
+            </description>
+        </key>
+        <key name='auto-structure-solution' enum="my-enum">
+            <default>"Disabled"</default>
+            <summary>Automated Structure Solution</summary>
+            <description>
+                Run Automated Structure Solution pipeline after data processing.
             </description>
         </key>
     </schema>

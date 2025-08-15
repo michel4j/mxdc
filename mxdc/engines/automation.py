@@ -10,11 +10,14 @@ from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc, scitools
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import debug_value
 
 logger = get_module_logger(__name__)
 
 
 MAX_FAILED_MOUNTS = 2
+ANALYSIS_WAIT_SECONDS = 240
+STRATEGY_WAIT_SECONDS = 60
 
 
 class TaskState:
@@ -60,6 +63,7 @@ class TaskState:
         for t, type_ in reversed(history):
             if type_ == task_type or task_type is None:
                 return t
+        return None
 
     def succeed(self, task_id, results):
         self.results[task_id] = results
@@ -124,6 +128,7 @@ class Automator(Engine):
             self.Task.ACQUIRE: self.acquire_task,
             self.Task.SCREEN: self.acquire_task,
             self.Task.ANALYSE: self.analyse_task,
+            self.Task.STRUCTURE: self.structure_task,
         }
         self.collector.connect('dataset-ready', self.on_dataset_ready)
 
@@ -174,10 +179,49 @@ class Automator(Engine):
             res.connect('done', self.on_analysis_done, states, task_id)
             res.connect('failed', self.on_analysis_failed, states, task_id)
 
-    @staticmethod
-    def on_analysis_done(response, results, states, task_id):
-        states.succeed(task_id, results)
-        logger.info(f'Analysis done: {task_id}')
+    def on_analysis_done(self, response, results, states, data_id):
+        debug_value(results)
+        states.succeed(data_id, results)
+        logger.info(f'Processing done: {data_id}')
+
+        if data_id in self.processing_queue:
+            logger.critical(f'Running structure solution for data: {data_id}')
+            params = self.processing_queue.pop(data_id)
+            options = params['options']
+            sample = params['sample']
+            states = params['states']
+            task_id = options['uuid']
+            states.start(task_id)
+
+            method = options.get('method', 'auto_mr')
+            per_sample = options.get('per_sample', False)
+            per_group = options.get('per_group', False)
+            per_cell = options.get('per_cell', False)
+            # FIXME: find a way to decide based on per_sample, per_group, or per_cell
+
+            directory = Path(results['directory']).resolve()
+            reflections = {
+                file_type: str(directory / file) for file_type, file in results.get('outputs', {}).items()
+            }
+
+            if method == 'auto_mr':
+                res = self.analyst.structure_mr(reflections, sample=sample)
+            elif method == 'auto_ep':
+                res = self.analyst.structure_mr(reflections, sample=sample)
+            else:
+                logger.error(f'Unknown method: {method}')
+                return
+
+            res.connect('done', self.on_structure_done, states, task_id)
+            res.connect('failed', self.on_analysis_failed, states, task_id)
+
+    def on_structure_done(self, response, results, states, data_id):
+        debug_value(results)
+        states.succeed(data_id, results)
+        logger.info(f'Structure solution done: {data_id}')
+
+        if self.unattended:
+            self.emit('message', f'Structure solution completed for {data_id}.')
 
     @staticmethod
     def on_analysis_failed(response, results, states, task_id):
@@ -267,7 +311,7 @@ class Automator(Engine):
             strategy_task = states.previous(task_type=self.Task.ANALYSE)
             self.emit('message', f'{task["name"]}: {sample["group"]}/{sample["name"]} - Waiting for strategy ...')
             logger.info(f'Waiting for strategy: {strategy_task} ...')
-            found = states.wait_for(strategy_task, timeout=60)
+            found = states.wait_for(strategy_task, timeout=STRATEGY_WAIT_SECONDS)
             if found:
                 results = states.get_result(strategy_task)
                 strategy = results.get('strategy', {})
@@ -290,6 +334,18 @@ class Automator(Engine):
             'task': task, 'sample': sample, 'states': states, 'options': options
         }
         logger.critical(f'Queueing processing for data: {target_acquisition}')
+        return self.ResultType.ASYNC, states.defer(options['uuid'])
+
+    def structure_task(self, task, sample, states: TaskState) -> tuple[ResultType, Any]:
+        options = self.prepare_task_options(task, sample, activity='structure')
+        states.start(options['uuid'])
+        analysis_task = states.previous(task_type=self.Task.ANALYSE)
+
+        # add the task to the processing queue
+        self.processing_queue[analysis_task] = {
+            task: task, 'sample': sample, 'states': states, 'options': options
+        }
+        logger.critical(f'Queueing structure solution for data: {analysis_task}')
         return self.ResultType.ASYNC, states.defer(options['uuid'])
 
     def execute_task(self, task, sample, states: TaskState) -> bool:

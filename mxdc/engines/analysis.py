@@ -80,6 +80,12 @@ class Analyst(Engine):
         self.set_state(update=(result.identity, report, True))
         logger.debug('Updating Analysis Report ...')
 
+        # FIXME: determine if user requested MR and submit a request to the MR engine
+        # - fetch mtz file from processing
+        # - fetch sequence information from LIMS
+        # - submit a request to the MR engine
+        # - connect future to register MR results with done
+
     def on_process_failed(self, result, error, params):
         report = {
             'error': error,
@@ -110,6 +116,21 @@ class Analyst(Engine):
         res.connect('done', self.on_process_done, params)
         res.connect('failed', self.on_process_failed, params)
         return res
+
+    def structure_mr(self, reflections, sample=None):
+        params.update(anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind)
+        return self.process_generic(params, sample, self.beamline.session_key)
+
+    def structure_ep(self, reflections, sample=None):
+        try:
+            params = combine_metadata(metadata)
+        except IndexError:
+            return None
+        prefix, kind = (f'ano', 'ANOMALOUS') if 'anomalous' in flags else ('nat', "NATIVE")
+        params.update(
+            anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind
+        )
+        return self.process_generic(params, sample, self.beamline.session_key)
 
     def process_dataset(self, *metadata, flags=(), sample=None):
         try:

@@ -162,6 +162,12 @@ class AutomationController(Object):
                     'desc': ANALYSIS_DESCRIPTIONS['process']
                 }
             ),
+            TaskItem(
+                name='Structure', type=TaskItem.Type.STRUCTURE, active=False,
+                options={
+                    'method': 'auto_mr', 'per_cell': True, 'skip_on_failure': False, 'pause': False, 'min_score': 0.5,
+                }
+            ),
         ]
         for i, task in enumerate(tasks):
             task.props.index = i + 1

@@ -30,6 +30,7 @@
         <file compressed="true">data/mount_form.ui</file>
         <file compressed="true">data/acquisition_form.ui</file>
         <file compressed="true">data/analysis_form.ui</file>
+        <file compressed="true">data/structure_form.ui</file>
         <file compressed="true">data/task_row.ui</file>
         <file>data/colormaps.data</file>
         <file>data/diagram.png</file>

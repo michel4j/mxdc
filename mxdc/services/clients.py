@@ -590,12 +590,15 @@ class DPClient(BaseService):
         super().__init__()
         self.name = 'Data Analysis Service'
         self.service = szrpc.client.Client(
-            address, methods=('process_mx', 'process_xrd', 'process_misc', 'signal_strength')
+            address, methods=('process_mx', 'process_xrd', 'process_misc', 'signal_strength', 'solve_mr')
         )
         self.set_state(active=True, health=(0, '', ''))
 
     def process_mx(self, **kwargs):
         return self.service.process_mx(**kwargs)
+
+    def solve_mr(self, **kwargs):
+        return self.service.solve_mr(**kwargs)
 
     def process_xrd(self, **kwargs):
         return self.service.process_xrd(**kwargs)

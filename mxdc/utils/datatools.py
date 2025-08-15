@@ -35,6 +35,7 @@ class TaskType(IntEnum):
     RASTER = auto()
     XRF = auto()
     ANALYSE = auto()
+    STRUCTURE = auto()
 
 
 Strategy = {

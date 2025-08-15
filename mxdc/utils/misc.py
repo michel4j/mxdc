@@ -1,13 +1,14 @@
+import gzip
 import hashlib
 import ipaddress
 import json
 import math
 import os
-import pwd
-import gzip
 import pickle
+import pwd
 import re
 import reprlib
+import shutil
 import socket
 import string
 import struct
@@ -15,18 +16,17 @@ import threading
 import time
 import unicodedata
 import uuid
-import shutil
-
+from inspect import getframeinfo, stack
 from abc import ABC
-from pathlib import Path
-from os import PathLike
 from html.parser import HTMLParser
 from importlib import import_module
+from os import PathLike
+from pathlib import Path
 from typing import Any
 
-import numpy
 import msgpack
-
+import numpy
+import yaml
 from gi.repository import GLib
 from scipy import interpolate
 
@@ -875,3 +875,17 @@ class DotDict:
         :param value: value to set
         """
         set_dict_field(self.details, key, value)
+
+
+def debug_value(value, name=None):
+    """
+    Returns a string representation of the value for debugging purposes.
+    If 'name' is provided, it will be included in the output.
+    """
+    caller = getframeinfo(stack()[1][0])
+    print('='*80)
+    print(f'Name: {name}\nType: {type(value)}\nFile: {caller.filename}\nLine #: {caller.lineno}')
+    print('-'*80)
+    print(yaml.dump(value))
+    print('='*80)
+    print('\n')

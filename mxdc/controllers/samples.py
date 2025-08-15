@@ -92,7 +92,9 @@ class HutchSamplesController(Object):
             bool(self.dismount_flags & MountFlag.ROBOT) and
             self.beamline.is_admin()
         )
-        logger.critical(f'Mount: [{self.mount_flags!r}]{mountable}, Dismount: [{self.dismount_flags!r}]{dismountable}')
+        logger.warning(
+            f'Mountable: {mountable} [{self.mount_flags.name}], Dismountable: {dismountable} [{self.mount_flags.name}]'
+        )
         self.widget.samples_mount_btn.set_sensitive(mountable)
         self.widget.samples_dismount_btn.set_sensitive(dismountable)
 
