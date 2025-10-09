@@ -10,7 +10,7 @@ matplotlib
 msgpack
 opencv-python
 pillow
-PyGObject==3.50.0
+PyGObject
 pyyaml
 redis
 requests
