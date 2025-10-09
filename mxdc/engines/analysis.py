@@ -108,6 +108,10 @@ class Analyst(Engine):
             res = self.beamline.dps.process_misc(**params, user=misc.get_project_id())
         elif method == 'powder':
             res = self.beamline.dps.process_xrd(**params, user=misc.get_project_id())
+        elif method == 'auto-mr':
+            res = self.beamline.dps.solve_mr(**params, user=misc.get_project_id())
+        elif method == 'auto-ep':
+            res = self.beamline.dps.solve_ep(**params, user=misc.get_project_id())
         else:
             res = self.beamline.dps.process_mx(**params, user=misc.get_project_id())
 
@@ -117,19 +121,22 @@ class Analyst(Engine):
         res.connect('failed', self.on_process_failed, params)
         return res
 
-    def structure_mr(self, reflections, sample=None):
-        params.update(anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind)
+    def structure_mr(self, metadata, flags=(), sample=None):
+        params = {
+            'name': metadata['name'],
+            'anomalous': 'anomalous' in flags,
+            'type': 'auto-mr',
+            'activity': f'structure/mr-{metadata["name"]}',
+        }
         return self.process_generic(params, sample, self.beamline.session_key)
 
-    def structure_ep(self, reflections, sample=None):
-        try:
-            params = combine_metadata(metadata)
-        except IndexError:
-            return None
-        prefix, kind = (f'ano', 'ANOMALOUS') if 'anomalous' in flags else ('nat', "NATIVE")
-        params.update(
-            anomalous="anomalous" in flags, screen=False, activity=f'process/{prefix}-{params["name"]}', type=kind
-        )
+    def structure_ep(self, metadata, flags=(), sample=None):
+        params = {
+            'name': metadata['name'],
+            'anomalous': 'anomalous' in flags,
+            'type': 'auto-ep',
+            'activity': f'structure/ep-{metadata["name"]}',
+        }
         return self.process_generic(params, sample, self.beamline.session_key)
 
     def process_dataset(self, *metadata, flags=(), sample=None):

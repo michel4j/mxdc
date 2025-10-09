@@ -367,7 +367,6 @@ class Plotter(Gtk.Box):
 
         if event.inaxes and self.lines and not self.grid_mode:
             x, y = event.xdata, event.ydata
-
             if self.cursor_line is None:
                 self.cursor_line = default.axvline(x, lw=1, color='#3a7ca8', antialiased=None)
                 for axis, lines in self.plot_scales.items():
@@ -384,7 +383,7 @@ class Plotter(Gtk.Box):
                                 va="center"
                             )
             else:
-                self.cursor_line.set_xdata(x)
+                self.cursor_line.set_xdata([x])
                 for axis, lines in self.plot_scales.items():
                     for name in lines:
                         if name in self.lines:

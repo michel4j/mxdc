@@ -91,20 +91,20 @@ class Fit(object):
         ax.plot([hm_left_hist, hm_right_hist], [hh, hh], c='b', ls='--', lw=0.5)
 
         # refresh plot
+        print(self)
         self.plotter.redraw()
-        return self.info
 
     def gaussian(self, column=None):
-        return self.do_fit('gaussian', column)
+        self.do_fit('gaussian', column)
 
     def lorentz(self, column=None):
-        return self.do_fit('lorentz', column)
+        self.do_fit('lorentz', column)
 
     def voigt(self, column=None):
-        return self.do_fit('voigt', column)
+        self.do_fit('voigt', column)
 
     def step(self, column=None):
-        return self.do_fit('step', column)
+        self.do_fit('step', column)
 
 
 @implementer(IScanPlotter)

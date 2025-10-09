@@ -207,7 +207,7 @@ class Automator(Engine):
             if method == 'auto_mr':
                 res = self.analyst.structure_mr(reflections, sample=sample)
             elif method == 'auto_ep':
-                res = self.analyst.structure_mr(reflections, sample=sample)
+                res = self.analyst.structure_ep(reflections, sample=sample)
             else:
                 logger.error(f'Unknown method: {method}')
                 return
