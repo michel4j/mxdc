@@ -59,7 +59,6 @@ class IScan(Interface):
     def save(filename):
         """Save the scan data to the provided file name."""
     
-    
 
 class IDataCollector(Interface):
     

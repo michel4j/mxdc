@@ -11,7 +11,7 @@ from enum import IntEnum, auto
 import numpy
 import pytz
 from mxio import read_image
-from mxdc.utils import misc
+from mxdc.utils import misc, converter
 
 FRAME_NUMBER_DIGITS = 4
 OUTLIER_DEVIATION = 50
@@ -691,3 +691,24 @@ def skips(wedge, delta, first=1, start_angles=(0,), range_end=360):
     starts = first + (start_angles / delta).astype(int)
     ends = first + (end_angles / delta).astype(int) - 1
     return ','.join((f'{lo}-{hi}' for lo, hi in zip(starts, ends)))
+
+
+def clip_resolution(resolution, beamline, energy) -> tuple[float, float]:
+    """
+    Clip the requested resolution to the limits of the beamline
+    :param resolution: Detector resolution in Angstroms (d-spacing)
+    :param beamline: beamline instance
+    :param energy: target energy
+    :return: resolution, distance clipped to beamline range
+    """
+
+    min_res = converter.dist_to_resol(
+        beamline.config.distance_limits[0], beamline.detector.mm_size, energy
+    )
+    max_res = converter.dist_to_resol(
+        beamline.config.distance_limits[1], beamline.detector.mm_size, energy
+    )
+    res = max(min(resolution, max_res), min_res)
+    dist = converter.resol_to_dist(res, beamline.detector.mm_size, energy)
+    return res, dist
+

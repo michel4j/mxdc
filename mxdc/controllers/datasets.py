@@ -19,7 +19,7 @@ from mxdc.widgets.datawidget import RunItem
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from .microscope import IMicroscope
 from .samplestore import ISampleStore, SampleQueue, SampleStore
-from ..utils.datatools import StrategyType, Strategy, AnalysisType, calculate_skip
+from ..utils.datatools import StrategyType, Strategy, AnalysisType, calculate_skip, clip_resolution
 from ..widgets.tasks import TaskItem, TaskRow, ANALYSIS_DESCRIPTIONS
 
 logger = get_module_logger(__name__)
@@ -204,9 +204,11 @@ class AutomationController(Object):
             # Validate data collection parameters
             options['energy'] = self.beamline.bragg_energy.get_position()
             options['exposure'] = max(self.beamline.config.minimum_exposure, options.get('exposure', 0))
-            options['distance'] = converter.resol_to_dist(
-                options.get('resolution', 2), self.beamline.detector.mm_size, options['energy']
-            )
+
+            # clip resolution and adjust distance to beamline range
+            resolution, distance = clip_resolution(options['resolution'], self.beamline, options['energy'])
+            options['distance'] = distance
+            options['resolution'] = resolution
 
             options['skip'] = datatools.calculate_skip(
                 options['strategy'], options['range'], options['delta'], options.get('first', 1)

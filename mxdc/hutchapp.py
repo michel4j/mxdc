@@ -135,9 +135,9 @@ class Application(Gtk.Application):
 
 def clear_loggers():
     # disconnect all log handlers first
-    logger = logging.getLogger('')
-    for h in logger.handlers:
-        logger.removeHandler(h)
+    _logger = logging.getLogger('')
+    for h in _logger.handlers:
+        _logger.removeHandler(h)
 
 
 class HutchApp(object):
