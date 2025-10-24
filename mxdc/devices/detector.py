@@ -118,16 +118,46 @@ class BaseDetector(Device):
         """
         self.emit("new-image", data, force=True)
 
-    def wait_for_files(self, folder, prefix,  timeout=60):
+    def guess_file_list(self, folder, prefix, frames: int) -> list[Path]:
+        """
+        Given a folder and file name prefix, generate the expected list of files for the dataset.
+
+        :param folder: directory
+        :param prefix: dataset name
+        :param frames: number of frames expected
+        :return: list of file paths
+        """
+
+        template = self.get_template(prefix)
+        return [Path(folder) / template.format(i + 1) for i in range(frames)]
+
+    def wait_for_files(self, folder, prefix, frames: int, timeout=60):
         """
         Wait for files to be saved
         :param folder: directory
         :param prefix: dataset name
-        :param timeout:
+        :param frames: number of frames expected
+        :param timeout: maximum time to wait in seconds
         :return: True if successful
         """
 
-        return True
+        poll_interval = 5
+        files_to_find = set(self.guess_file_list(folder, prefix, frames))
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            found_files = set()
+            for file_path in files_to_find:
+                if file_path.exists():
+                    found_files.add(file_path)
+            files_to_find -= found_files
+            if not files_to_find:
+                break
+            time.sleep(poll_interval)
+        else:
+            missing_files = ', '.join(f.name for f in files_to_find)
+            logger.warning(f'Timeout waiting for files: {missing_files}')
+            return False
+        return len(files_to_find) == 0
 
     def get_template(self, prefix):
         """
@@ -832,6 +862,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     """
 
     detector_type = 'Eiger'
+    FRAME_DIGITS = 6    # number of digits in frame numbering
 
     def __init__(self, name, stream, data_url, size=(3110, 3269), description='Eiger'):
         super().__init__()
@@ -955,6 +986,14 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def get_template(self, prefix):
         return f'{prefix}_master.h5/{{:0{self.FRAME_DIGITS}d}}'
 
+    def guess_file_list(self, directory, prefix, num_images):
+        frames_per_file = self.settings['batch_size'].get()
+        num_data_files = (num_images + frames_per_file - 1) // frames_per_file
+        file_list = [f'{prefix}_master.h5']
+        template = f'{prefix}_data_{{:0{self.FRAME_DIGITS}d}}.h5'
+        file_list.extend([template.format(i + 1) for i in range(num_data_files)])
+        return [Path(directory) / file_name for file_name in file_list]
+
     def get_file_list(self, prefix):
         response = requests.get(self.data_url)
         if response.ok:
@@ -966,7 +1005,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         else:
             return []
 
-    def wait_for_files(self, folder, prefix, timeout=300):
+    def wait_for_files_old(self, folder, prefix, frames, timeout=300):
         file_list = self.get_file_list(prefix)
         end_time = time.time() + timeout
         while file_list and time.time() < end_time:
@@ -990,7 +1029,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
                 try:
                     os.remove(file_path)
                 except OSError:
-                    logger.error('Unable to remove existing frame: {}'.format(file_path))
+                    logger.error(f'Unable to remove existing frame: {file_path}')
 
     def check(self, directory, prefix, first=1):
         master_file = f'{prefix}_master.h5'

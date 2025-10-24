@@ -68,10 +68,9 @@ class DataCollector(Engine):
         timeout_time = datetime.now(timezone.utc) + timedelta(seconds=self.beamline.config.dataset.overhead)
         names = ",".join(details['name'] for details in dataset.get_details())
 
-        logger.debug(f'Waiting for files to be transferred for datasets {names}...')
-        #FIXME - check that all files have been transferred instead of waiting
-        while datetime.now(timezone.utc) < timeout_time:
-            time.sleep(0.001)
+        for details in dataset.get_details():
+            logger.debug(f'Waiting for files to be transferred for dataset {details["name"]}...')
+            self.beamline.detector.wait_for_files(details['directory'], details['name'], details['frames'])
 
         logger.debug(f'Saving datasets {names}...')
         meta_data = [
@@ -369,7 +368,7 @@ class DataCollector(Engine):
             # Converting multiple sub-datasets to single CBF formatted dataset
             frame_numbers = []
             for part_name in params['combine']:
-                self.beamline.detector.wait_for_files(params['directory'], part_name)
+                #self.beamline.detector.wait_for_files(params['directory'], part_name, params['frames'])
                 reference = self.beamline.detector.get_template(part_name).format(1)
                 dset = mxio.DataSet.new_from_file(os.path.join(params['directory'], reference))
                 for frame in dset.frames():
@@ -379,7 +378,7 @@ class DataCollector(Engine):
                     cbf.CBFDataSet.save_frame(os.path.join(params['directory'], cbf_file), frame)
             frame_set = datatools.summarize_list(frame_numbers)
         else:
-            self.beamline.detector.wait_for_files(params['directory'], params['name'])
+            #self.beamline.detector.wait_for_files(params['directory'], params['name'], params['frames'])
             template = self.beamline.detector.get_template(params['name'])
             reference = template.format(params['first'])
 

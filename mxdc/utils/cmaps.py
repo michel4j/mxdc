@@ -1058,7 +1058,7 @@ for (name, data) in (('magma', _magma_data),
 
 
 values = numpy.linspace(0, 1, 256)
-for name in ['jet', 'rainbow', 'gist_ncar', 'binary']:
+for name in ['jet', 'rainbow', 'gist_ncar', 'binary', 'nipy_spectral']:
     cmap = cm.get_cmap(name)
     data = cmap(values)[:,:3].tolist()
     cmaps[name] = ListedColormap(data, name=name)
@@ -1071,4 +1071,5 @@ viridis = cmaps['viridis']
 jet = cmaps['jet']
 rainbow = cmaps['rainbow']
 gist_ncar = cmaps['gist_ncar']
+spectral = cmaps['nipy_spectral']
 binary = cmaps['binary']

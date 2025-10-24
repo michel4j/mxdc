@@ -60,7 +60,8 @@ class VideoWidget(Gtk.DrawingArea):
         self.stopped = False
         self.colorize = False
         self.ready = False
-        self.palette = color_palette(cmaps.gist_ncar)
+        #self.palette = color_palette(cmaps.gist_ncar)
+        self.palette = color_palette(cmaps.spectral)
         self.colormap = colors.ColorMapper(vmin=0, vmax=100)
         self.set_display_size(width)
 

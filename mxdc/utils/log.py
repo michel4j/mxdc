@@ -127,6 +127,7 @@ def log_call(f):
 
     return _decorator
 
+
 def inspect(*objs, depth=1):
     """
     Introspect variables and display them
