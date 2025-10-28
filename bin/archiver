@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-from mxdc.services.archiver import ArchiverApp
+"""
+Wrapper script that delegates to mxdc.utils.scripts.archiver.
+"""
+
+from mxdc.utils.scripts import archiver
 
 if __name__ == "__main__":
-    app = ArchiverApp()
-    app.run()
+    archiver()

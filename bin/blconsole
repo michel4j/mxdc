@@ -1,17 +1,7 @@
 #!/usr/bin/env python
 
-import argparse
-from mxdc import conf
-
-# Setup single argument for verbose logging
-parser = argparse.ArgumentParser(description='Beamline Console')
-parser.add_argument('-b',  type=str, help='Beamline Name')
+"""Wrapper script that delegates to mxdc.utils.scripts.console."""
+from mxdc.utils.scripts import console
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    conf.initialize(name=args.b)
-    from mxdc.consoleapp import ConsoleApp
-
-    app = ConsoleApp()
-    app.run()
-
+    console()

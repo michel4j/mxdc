@@ -1,26 +1,10 @@
 #! /usr/bin/env python
 
-import argparse
-import logging
-import sys
-from mxdc import conf
-from mxdc.utils import log
+"""
+Wrapper script that delegates to mxdc.utils.scripts.sim_mxdc.
+"""
 
-# Setup single argument for verbose logging
-parser = argparse.ArgumentParser(description='Mx Data Collector')
-parser.add_argument('-v', action='store_true', help='Verbose Logging')
+from mxdc.utils.scripts import sim_mxdc
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-
-    if args.v:
-        log.log_to_console(logging.DEBUG)
-    else:
-        log.log_to_console(logging.INFO)
-
-    conf.initialize('SIM-1')
-    from mxdc.mxdcapp import MxDCApp
-
-    app = MxDCApp()
-    sys.exit(app.run())
-
+    sim_mxdc()

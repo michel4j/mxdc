@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-from mxdc.imageapp import ImageApp
-from mxdc.utils import log
+"""
+Wrapper script that delegates to mxdc.utils.scripts.image_viewer.
+"""
+
+from mxdc.utils.scripts import image_viewer
 
 if __name__ == "__main__":
-    log.log_to_console()
-    app = ImageApp()
-    app.run()
+    image_viewer()

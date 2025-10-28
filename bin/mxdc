@@ -1,27 +1,10 @@
 #!/usr/bin/env python
 
-import argparse
-import logging
-import sys
+"""
+Wrapper script that delegates to mxdc.utils.scripts.mxdc.
+"""
 
-from mxdc import conf
-from mxdc.utils import log
-
-# Setup single argument for verbose logging
-parser = argparse.ArgumentParser(description='Mx Data Collector')
-parser.add_argument('-v',  action='store_true', help='Verbose Logging')
-parser.add_argument('-d',  action='store_true', help='Prefer Dark Mode if available')
-parser.add_argument('-b',  type=str, help='Beamline Name')
+from mxdc.utils.scripts import mxdc
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    if args.v:
-        log.log_to_console(logging.DEBUG)
-    else:
-        log.log_to_console(logging.INFO)
-
-    conf.initialize(name=args.b)
-    from mxdc.mxdcapp import MxDCApp
-
-    app = MxDCApp(dark=args.d)
-    sys.exit(app.run())
+    mxdc()

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-from mxdc import conf
+"""
+Wrapper script that delegates to mxdc.utils.scripts.sim_console.
+"""
+
+from mxdc.utils.scripts import sim_console
 
 if __name__ == "__main__":
-    conf.initialize('SIM-1')
-    from mxdc.consoleapp import ConsoleApp
-
-    app = ConsoleApp()
-    app.run()
-
+    sim_console()
