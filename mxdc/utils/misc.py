@@ -61,7 +61,15 @@ def same_value(a, b, prec, deg=False):
 SUPERSCRIPTS_TRANS = str.maketrans('0123456789+-', '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻')
 
 
-def sci_fmt(number, digits=3):
+class SciFormatter:
+    def __init__(self, digits=3, units=''):
+        self.digits = digits
+        self.units = units
+
+    def __call__(self, number):
+        return sci_fmt(number, self.digits, self.units)
+
+def sci_fmt(number, digits=3, units=''):
     exp = 0 if number == 0 else math.floor(math.log10(abs(number)))
     try:
         value = number * (10 ** -exp)
@@ -70,7 +78,8 @@ def sci_fmt(number, digits=3):
     exp_text = f'{exp}'.translate(SUPERSCRIPTS_TRANS)
     val_fmt = f'{{:0.{digits}f}}'
     val_text = val_fmt.format(value)
-    return f"{val_text}" if exp == 0 else f"{val_text}×10{exp_text}"
+    units_text = f' {units}' if units else ''
+    return f"{val_text}{units_text}" if exp == 0 else f"{val_text}×10{exp_text}{units_text}"
 
 
 class NameToInt(object):
