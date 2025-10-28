@@ -20,7 +20,6 @@ v2020.5
 
 v2019.7
 -------
-
 - gain_factor field on video device for scaling the gain under special circumstances
 - Updated ISARA interface
 - Now using new ImageIO module based on OpenCV.
