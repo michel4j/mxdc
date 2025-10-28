@@ -20,9 +20,9 @@ class CryoJetNozzle(mxdc.devices.shutter.EPICSShutter):
     """
 
     def __init__(self, name):
-        open_name = "%s:opr:open" % name
-        close_name = "%s:opr:close" % name
-        state_name = "%s:out" % name
+        open_name = f"{name}:opr:open"
+        close_name = f"{name}:opr:close"
+        state_name = f"{name}:out"
         mxdc.devices.shutter.EPICSShutter.__init__(self, open_name, close_name, state_name)
         self._messages = ['Restoring', 'Retracting']
         self._name = 'Cryojet Nozzle'
@@ -39,7 +39,6 @@ class CryostatBase(Device):
         - sample (float,): Cryogen flow-rate
         - shield (float,): Shield flow-rate
     """
-
 
     class Positions(Enum):
         IN, OUT = range(2)
@@ -76,7 +75,6 @@ class CryostatBase(Device):
         """
         Start the cryostat
         """
-
 
 
 @implementer(ICryostat)
@@ -129,16 +127,16 @@ class CryoJetBase(Device):
         if val > 5:
             self.set_state(health=(0, 'shield', ''))
         elif val > 4:
-            self.set_state(health=(2, 'shield','Shield Flow Low!'))
+            self.set_state(health=(2, 'shield', 'Shield Flow Low!'))
         else:
-            self.set_state(health=(4, 'shield','Shield Flow Too Low!'))
+            self.set_state(health=(4, 'shield', 'Shield Flow Too Low!'))
         self.set_property('shield', val)
 
     def on_level(self, obj, val):
         if val < 15:
-            self.set_state(health=(4, 'cryo','Cryogen too low!'))
+            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
         elif val < 20:
-            self.set_state(health=(2, 'cryo','Cryogen low!'))
+            self.set_state(health=(2, 'cryo', 'Cryogen low!'))
         else:
             self.set_state(health=(0, 'cryo', ''))
 
@@ -156,12 +154,12 @@ class CryoJet(CryoJetBase):
         super().__init__()
         self.add_features(self.Features.ANNEALING)
 
-        self.temp_fbk = self.add_pv('{}:sensorTemp:get'.format(name))
-        self.sample_fbk = self.add_pv('{}:SampleFlow:get'.format(name))
-        self.shield_fbk = self.add_pv('{}:ShieldFlow:get'.format(name))
-        self.sample_sp = self.add_pv('{}:sampleFlow:set'.format(name))
-        self.level_fbk = self.add_pv('{}:ch1LVL:get'.format(level_name))
-        self.fill_status = self.add_pv('{}:status:ch1:N.SVAL'.format(level_name))
+        self.temp_fbk = self.add_pv(f'{name}:sensorTemp:get')
+        self.sample_fbk = self.add_pv(f'{name}:SampleFlow:get')
+        self.shield_fbk = self.add_pv(f'{name}:ShieldFlow:get')
+        self.sample_sp = self.add_pv(f'{name}:sampleFlow:set')
+        self.level_fbk = self.add_pv(f'{level_name}:ch1LVL:get')
+        self.fill_status = self.add_pv(f'{level_name}:status:ch1:N.SVAL')
         self.nozzle = CryoJetNozzle(nozzle_name)
 
         # connect signals for monitoring state
@@ -173,9 +171,9 @@ class CryoJet(CryoJetBase):
 
     def on_level(self, obj, val):
         if val < 150:
-            self.set_state(health=(4, 'cryo','Cryogen too low!'))
+            self.set_state(health=(4, 'cryo', 'Cryogen too low!'))
         elif val < 200:
-            self.set_state(health=(2, 'cryo','Cryogen low!'))
+            self.set_state(health=(2, 'cryo', 'Cryogen low!'))
         else:
             self.set_state(health=(0, 'cryo', ''))
         self.set_property('level', val/10.)
@@ -189,12 +187,12 @@ class CryoJet(CryoJetBase):
 class CryoJet5(CryoJetBase):
     def __init__(self, name, nozzle_name):
         super().__init__()
-        self.temp_fbk = self.add_pv('{}:sample:temp:fbk'.format(name))
-        self.sample_fbk = self.add_pv('{}:sample:flow:fbk'.format(name))
-        self.shield_fbk = self.add_pv('{}:shield:flow:fbk'.format(name))
-        self.sample_sp = self.add_pv('{}:sample:flow'.format(name))
-        self.level_fbk = self.add_pv('{}:autofill:level:fbk'.format(name))
-        self.fill_status = self.add_pv('{}:autofill:state'.format(name))
+        self.temp_fbk = self.add_pv(f'{name}:sample:temp:fbk')
+        self.sample_fbk = self.add_pv(f'{name}:sample:flow:fbk')
+        self.shield_fbk = self.add_pv(f'{name}:shield:flow:fbk')
+        self.sample_sp = self.add_pv(f'{name}:sample:flow')
+        self.level_fbk = self.add_pv(f'{name}:autofill:level:fbk')
+        self.fill_status = self.add_pv(f'{name}:autofill:state')
         self.nozzle = CryoJetNozzle(nozzle_name)
 
         # connect signals for monitoring state

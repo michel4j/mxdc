@@ -878,22 +878,22 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         self.mm_size = self.resolution * min(self.size)
         self.name = description
 
-        self.acquire_cmd = self.add_pv('{}:Acquire'.format(name))
-        self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
-        self.initialize_cmd = self.add_pv('{}:Initialize'.format(name))
+        self.acquire_cmd = self.add_pv(f'{name}:Acquire')
+        self.mode_cmd = self.add_pv(f'{name}:TriggerMode')
+        self.initialize_cmd = self.add_pv(f'{name}:Initialize')
 
-        self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
-        self.armed_status = self.add_pv("{}:Armed".format(name))
+        self.connected_status = self.add_pv(f'{name}:AsynIO.CNCT')
+        self.armed_status = self.add_pv(f"{name}:Armed")
 
-        self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
-        self.state_msg = self.add_pv('{}:State_RBV'.format(name))
-        self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
-        self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.file_format = self.add_pv("{}:FileTemplate".format(name))
+        self.state_value = self.add_pv(f'{name}:DetectorState_RBV')
+        self.state_msg = self.add_pv(f'{name}:State_RBV')
+        self.command_string = self.add_pv(f'{name}:StringToServer_RBV')
+        self.response_string = self.add_pv(f'{name}:StringFromServer_RBV')
+        self.file_format = self.add_pv(f"{name}:FileTemplate")
 
-        self.saved_frame_num = self.add_pv('{}:NumImagesCounter_RBV'.format(name))
-        self.frame_counter = self.add_pv('{}:ArrayCounter'.format(name))
-        self.stream_enable = self.add_pv('{}:StreamEnable'.format(name))
+        self.saved_frame_num = self.add_pv(f'{name}:NumImagesCounter_RBV')
+        self.frame_counter = self.add_pv(f'{name}:ArrayCounter')
+        self.stream_enable = self.add_pv(f'{name}:StreamEnable')
 
         self.state_value.connect('changed', self.on_state_value)
         self.armed_status.connect('changed', self.on_state_value)
@@ -902,20 +902,20 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
 
         # Data Parameters
         self.settings = {
-            'user':  self.add_pv("{}:FileOwner".format(name)),
-            'group':  self.add_pv("{}:FileOwnerGrp".format(name)),
-            'start_frame': self.add_pv("{}:FileNumber".format(name)),
-            'num_images': self.add_pv('{}:NumImages'.format(name)),
-            'num_triggers': self.add_pv('{}:NumTriggers'.format(name)),
+            'user':  self.add_pv(f"{name}:FileOwner"),
+            'group':  self.add_pv(f"{name}:FileOwnerGrp"),
+            'start_frame': self.add_pv(f"{name}:FileNumber"),
+            'num_images': self.add_pv(f'{name}:NumImages'),
+            'num_triggers': self.add_pv(f'{name}:NumTriggers'),
 
-            'file_prefix': self.add_pv("{}:FWNamePattern".format(name)),
-            'batch_size': self.add_pv("{}:FWNImagesPerFile".format(name)),
-            'directory': self.add_pv("{}:FilePath".format(name)),
+            'file_prefix': self.add_pv(f"{name}:FWNamePattern"),
+            'batch_size': self.add_pv(f"{name}:FWNImagesPerFile"),
+            'directory': self.add_pv(f"{name}:FilePath"),
 
-            'start_angle': self.add_pv("{}:OmegaStart".format(name)),
-            'delta_angle': self.add_pv("{}:OmegaIncr".format(name)),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
-            'acquire_period': self.add_pv("{}:AcquirePeriod".format(name)),
+            'start_angle': self.add_pv(f"{name}:OmegaStart"),
+            'delta_angle': self.add_pv(f"{name}:OmegaIncr"),
+            'exposure_time': self.add_pv(f"{name}:AcquireTime"),
+            'acquire_period': self.add_pv(f"{name}:AcquirePeriod"),
 
             'wavelength': self.add_pv(f"{name}:Wavelength"),
             'beam_x': self.add_pv(f"{name}:BeamX"),
@@ -925,7 +925,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             'kappa': self.add_pv(f"{name}:KappaStart"),
             'phi': self.add_pv(f"{name}:PhiStart"),
             'chi': self.add_pv(f"{name}:ChiStart"),
-            'energy': self.add_pv('{}:PhotonEnergy'.format(name)),
+            'energy': self.add_pv(f'{name}:PhotonEnergy'),
         }
 
     def on_state_value(self, obj, value):
@@ -976,7 +976,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
         return self.wait_until(States.ARMED, timeout=200)
 
     def stop(self):
-        logger.debug('"{}" Disarming detector ...'.format(self.name))
+        logger.debug(f'"{self.name}" Disarming detector ...')
         self.acquire_cmd.put(0)
         return self.wait_while()
 

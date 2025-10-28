@@ -221,7 +221,7 @@ class MD2Manager(BaseManager):
 
         self.mode_cmd = self.add_pv(f"{root}:CurrentPhase")
         self.mode_fbk = self.add_pv(f"{root}:CurrentPhase")
-        self.state_fbk = self.add_pv("{root}:State")
+        self.state_fbk = self.add_pv(f"{root}:State")
         self.mca_nozzle = self.add_pv(f"{root}:FluoDetectorIsBack")
 
         # signal handlers
@@ -275,7 +275,8 @@ class MD2Manager(BaseManager):
         Switch to Mount mode
         :param wait: wait for switch to complete
         """
-        self.mode_cmd.put(self.mode_to_int[self.ModeType.MOUNT])
+        if self.get_state('mode') != self.ModeType.MOUNT:
+            self.mode_cmd.put(self.mode_to_int[self.ModeType.MOUNT])
         if wait:
             self.wait(self.ModeType.MOUNT)
 
@@ -284,7 +285,8 @@ class MD2Manager(BaseManager):
         Switch to Mount mode
         :param wait: wait for switch to complete
         """
-        self.mode_cmd.put(self.mode_to_int[self.ModeType.CENTER])
+        if self.get_state('mode') != self.ModeType.CENTER:
+            self.mode_cmd.put(self.mode_to_int[self.ModeType.CENTER])
         if wait:
             self.wait(self.ModeType.CENTER)
 
@@ -293,8 +295,8 @@ class MD2Manager(BaseManager):
         Switch to Mount mode
         :param wait: wait for switch to complete
         """
-        # self.fluor_cmd.put(1)
-        self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
+        if self.get_state('mode') != self.ModeType.COLLECT:
+            self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
         if wait:
             self.wait(self.ModeType.COLLECT)
 
@@ -303,7 +305,8 @@ class MD2Manager(BaseManager):
         Switch to Mount mode
         :param wait: wait for switch to complete
         """
-        self.mode_cmd.put(self.mode_to_int[self.ModeType.ALIGN])
+        if self.get_state('mode') != self.ModeType.ALIGN:
+            self.mode_cmd.put(self.mode_to_int[self.ModeType.ALIGN])
         if wait:
             self.wait(self.ModeType.ALIGN)
 
@@ -333,9 +336,9 @@ class ModeManager(BaseManager):
             self.ModeType.SCAN: self.add_pv(f'{root}:Scan:cmd'),
         }
 
-        self.mode_fbk = self.add_pv("{}:mode:fbk".format(root))
-        self.moving_fbk = self.add_pv("{}:moving".format(root))
-        self.calib_fbk = self.add_pv("{}:calibrated".format(root))
+        self.mode_fbk = self.add_pv(f"{root}:mode:fbk")
+        self.moving_fbk = self.add_pv(f"{root}:moving")
+        self.calib_fbk = self.add_pv(f"{root}:calibrated")
 
         # signal handlers
         self.mode_fbk.connect('changed', self.on_status_changed)
@@ -380,7 +383,8 @@ class ModeManager(BaseManager):
         Switch to Mount mode
         :param wait: wait for switch to complete
         """
-        self.mode_commands[self.ModeType.MOUNT].put(1)
+        if self.get_state('mode') != self.ModeType.MOUNT:
+            self.mode_commands[self.ModeType.MOUNT].put(1)
         if wait:
             self.wait(self.ModeType.MOUNT)
 
@@ -390,7 +394,8 @@ class ModeManager(BaseManager):
         :param wait: wait for switch to complete
         """
         logger.debug('Switching to collect mode ...')
-        self.mode_commands[self.ModeType.CENTER].put(1)
+        if self.get_state('mode') != self.ModeType.CENTER:
+            self.mode_commands[self.ModeType.CENTER].put(1)
         if wait:
             self.wait(self.ModeType.CENTER)
 
@@ -400,7 +405,8 @@ class ModeManager(BaseManager):
         :param wait: wait for switch to complete
         """
         logger.debug('Switching to collect mode ...')
-        self.mode_commands[self.ModeType.COLLECT].put(1)
+        if self.get_state('mode') != self.ModeType.COLLECT:
+            self.mode_commands[self.ModeType.COLLECT].put(1)
         if wait:
             self.wait(self.ModeType.COLLECT)
 
@@ -410,7 +416,8 @@ class ModeManager(BaseManager):
         :param wait: wait for switch to complete
         """
         logger.debug('Switching to collect mode ...')
-        self.mode_commands[self.ModeType.ALIGN].put(1)
+        if self.get_state('mode') != self.ModeType.ALIGN:
+            self.mode_commands[self.ModeType.ALIGN].put(1)
         if wait:
             self.wait(self.ModeType.ALIGN)
 
@@ -419,6 +426,7 @@ class ModeManager(BaseManager):
         Switch to Scan mode
         :param wait: wait for switch to complete
         """
-        self.mode_commands[self.ModeType.SCAN].put(1)
+        if self.get_state('mode') != self.ModeType.SCAN:
+            self.mode_commands[self.ModeType.SCAN].put(1)
         if wait:
             self.wait(self.ModeType.SCAN)

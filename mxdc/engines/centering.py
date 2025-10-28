@@ -85,6 +85,8 @@ class Centering(Engine):
         if not (self.directory and self.name):
             self.snapshots = False
 
+        self.beamline.manager.center(wait=True)
+
     def position_to_mm(self, x: int, y: int) -> tuple:
         """
         Convert position in pixel coordinates to mm offset from the center
@@ -170,9 +172,7 @@ class Centering(Engine):
             self.save_results()
 
         logger.info(
-            'Centering Done in {:0.1f} seconds [Confidence={:0.0f}%]'.format(
-                time.time() - self.start_time, self.score
-            )
+            f'Centering Done in {time.time() - self.start_time:0.1f} seconds [Confidence={self.score:0.0f}%]'
         )
         return self.results
 
