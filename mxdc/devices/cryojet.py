@@ -213,6 +213,7 @@ class SimCryoJet(CryoJetBase):
         self.sample_fbk = misc.SimPositioner('Cryo Sample flow', pos=6.5, noise=1)
         self.shield_fbk = misc.SimPositioner('Cryo Shield flow', pos=9.5, noise=1)
         self.level_fbk = misc.SimPositioner('Cryo Level', pos=35.5, noise=10)
+        self.sample_sp = misc.SimPositioner('Cryo Flow', pos=6.5)
 
         self.name = 'Sim CryoJet'
         # connect signals for monitoring state
@@ -231,8 +232,8 @@ class SimCryoJet(CryoJetBase):
 
     def anneal(self, duration):
         previous_flow = self.sample_fbk.get()
-        self.sample_sp.put(0.0)
-        GLib.timeout_add(duration*1000, self.sample_fbk.put, previous_flow)
+        self.sample_sp.set(0.0)
+        GLib.timeout_add(duration*1000, self.sample_fbk.set, previous_flow)
 
 
 __all__ = ['CryoJet', 'CryoJet5', 'SimCryoJet']
