@@ -1,21 +1,14 @@
-"""Helper functions that expose the entry-point logic of the scripts in `bin/`.
-
-Each function mirrors the code that normally lives in the script's
-`if __name__ == "__main__"` block so the script behavior can be
-invoked programmatically (useful for tests, embedding, or tooling).
-
-Functions accept an optional `argv` (sequence of strings) where an
-argparse-based script exists, allowing tests to pass arguments.
 """
-import sys
-from typing import Optional, Sequence
+Helper functions that expose the entry-point logic of the scripts in `bin/`.
+"""
+
 
 __all__ = [
     "archiver",
     "console",
     "hutch_viewer",
     "image_viewer",
-    "mxdc",
+    "main_mxdc",
     "plot_xdi",
     "sim_console",
     "sim_mxdc",
@@ -23,7 +16,10 @@ __all__ = [
 
 
 def archiver():
-    """Run the ArchiverApp (from bin/archiver)."""
+    """
+    Run the ArchiverApp (from bin/archiver).
+
+    """
     from mxdc.services.archiver import ArchiverApp
 
     app = ArchiverApp()
@@ -39,8 +35,7 @@ def console():
 
     parser = argparse.ArgumentParser(description="Beamline Console")
     parser.add_argument("-b", type=str, help="Beamline Name")
-
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args()
     conf.initialize(name=args.b)
 
     from mxdc.consoleapp import ConsoleApp
@@ -63,7 +58,7 @@ def hutch_viewer():
     parser.add_argument("-d", action="store_true", help="Prefer Dark Mode if available")
     parser.add_argument("-b", type=str, help="Beamline Name")
 
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args()
 
     if args.v:
         log.log_to_console(logging.DEBUG)
@@ -78,7 +73,10 @@ def hutch_viewer():
 
 
 def image_viewer():
-    """Run the Image viewer (from bin/imgview)."""
+    """
+    Run the Image viewer (from bin/imgview).
+
+    """
     from mxdc.imageapp import ImageApp
     from mxdc.utils import log
 
@@ -87,9 +85,10 @@ def image_viewer():
     return app.run()
 
 
-def mxdc():
+def main_mxdc():
     """
     Run the main Mx Data Collector (from bin/mxdc).
+
     """
     import argparse
     import logging
@@ -102,7 +101,7 @@ def mxdc():
     parser.add_argument("-d", action="store_true", help="Prefer Dark Mode if available")
     parser.add_argument("-b", type=str, help="Beamline Name")
 
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args()
     if args.v:
         log.log_to_console(logging.DEBUG)
     else:
@@ -142,7 +141,7 @@ def plot_xdi():
     parser.add_argument("-x", type=str, help="X-axis column name")
     parser.add_argument("-y", type=str, help="Y-axis column name")
 
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args()
     XDI = xdi.read_xdi(args.file)
     names = XDI.get_names()
 
@@ -184,7 +183,7 @@ def sim_mxdc():
     parser = argparse.ArgumentParser(description="Mx Data Collector")
     parser.add_argument("-v", action="store_true", help="Verbose Logging")
 
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args()
 
     if args.v:
         log.log_to_console(logging.DEBUG)

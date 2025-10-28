@@ -298,8 +298,10 @@ class MxLIVEBase(BaseService):
             logger.debug(err)
         else:
             self.session_info = reply
+            print(self.session_info)
             if self.session_info['end_time'] is not None:
                 self.session_info['end_time'] = datetime.fromisoformat(self.session_info['end_time'])
+            print(self.session_info)
             self.session_active = (beamline, session)
             logger.info('Joined session {session}, {duration}, in progress.'.format(**reply))
             self.set_state(active=True)

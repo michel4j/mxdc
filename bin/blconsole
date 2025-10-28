@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""Wrapper script that delegates to mxdc.utils.scripts.console."""
+"""
+Wrapper script that delegates to mxdc.utils.scripts.console.
+"""
+
 from mxdc.utils.scripts import console
 
 if __name__ == "__main__":

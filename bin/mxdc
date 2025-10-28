@@ -4,7 +4,7 @@
 Wrapper script that delegates to mxdc.utils.scripts.mxdc.
 """
 
-from mxdc.utils.scripts import mxdc
+from mxdc.utils.scripts import main_mxdc
 
 if __name__ == "__main__":
-    mxdc()
+    main_mxdc()

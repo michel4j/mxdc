@@ -1,0 +1,111 @@
+
+[project]
+name = "mxdc"
+dynamic = ["version"]
+description = "Mx Data Collector"
+readme = "README.rst"
+readme-content-type = "text/x-rst"
+keywords = ["beamline", "data-acquisition", "crystallography", "MX"]
+license = { file = "LICENSE" }
+authors = [
+    {name = "Michel Fodje",email = "michel.fodje@lightsource.ca"}
+]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+requires-python = ">=3.9,<4.0"
+dependencies = [
+  "numpy",
+  "lz4",
+  "pyzmq",
+  "cryptography",
+  "gepics",
+  "pyepics",
+  "h5py",
+  "hdf5plugin",
+  "matplotlib",
+  "msgpack",
+  "opencv-python",
+  "pillow",
+  "PyGObject",
+  "pyyaml",
+  "redis",
+  "requests",
+  "scipy",
+  "twisted",
+  "zeroconf",
+  "python-magic",
+  "pytz",
+  "ipython",
+  "mxio>=2023.1.4",
+  "humanize",
+  "lorem",
+  "pandas",
+  "backports-datetime-fromisoformat",
+  "szrpc",
+  "wget",
+  "pytest",
+  "methodtools",
+  "webp",
+]
+
+[project.urls]
+Homepage = "https://github.com/michel4j/mxdc"
+Issues = "https://github.com/michel4j/mxdc/issues"
+
+[tool.poetry]
+packages = [
+    { include = "mxdc", from = "." },
+]
+include = [
+    {path = "docs/**", format = ["sdist"]},
+    {path = "deploy/*desktop", format = ["sdist"]},
+    {path = "deploy/CONFIG_example.py", format = ["sdist"]},
+    {path = "LICENSE", format = ["sdist"]},
+    {path = "README.rst", format = ["sdist"]},
+]
+version = "0.0.0"
+
+[tool.poetry.scripts]
+archiver = "mxdc.utils.scripts:archiver"
+blconsole = "mxdc.utils.scripts:console"
+hutchviewer = "mxdc.utils.scripts:hutch_viewer"
+imgview = "mxdc.utils.scripts:image_viewer"
+mxdc = "mxdc.utils.scripts:mxdc"
+plotxdi = "mxdc.utils.scripts:plot_xdi"
+sim-console = "mxdc.utils.scripts:sim_console"
+sim-mxdc = "mxdc.utils.scripts:sim_mxdc"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+
+[tool.setuptools.package-data]
+"mxdc" = [
+  "share/data/simulated/*.*",
+  "share/data/*.*",
+  "share/gschemas.compiled",
+  "share/mxdc.*.xml",
+  "share/mxdc.gresource",
+  "share/styles.css",
+  "share/dark.mplstyle",
+  "share/imgsync.tac",
+]
+
+
+[tool.poetry.group.dev.dependencies]
+Sphinx = ">=4.2.0"
+sphinx-rtd-theme = ">=1.0.0"
+sphinxcontrib-napoleon = ">=0.7"
+
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+format = "{base}.{revision}{distance}"
