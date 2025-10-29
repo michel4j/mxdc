@@ -28,6 +28,7 @@ from mxdc.utils.gui import color_palette
 logger = logging.getLogger('image-widget')
 
 RESCALE_TIMEOUT = 10  # duration between images to apply auto-rescale
+DISPLAY_FREQ = 10     # maximum display frequency in Hz
 
 
 class DataLoader:
@@ -54,7 +55,6 @@ class DataLoader:
 
         :param path: full path to data frame
         """
-        print(path)
         self.pending_files.append(path)
 
     def pause(self):
@@ -109,9 +109,9 @@ class DataLoader:
         return dataset
 
     def run(self):
-        last_display_time = 0
+
         while not self.stopped:
-            time.sleep(0.01)
+            time.sleep(1/DISPLAY_FREQ)
             if self.paused:
                 continue
             try:
@@ -179,7 +179,7 @@ class ImageWidget(Gtk.DrawingArea):
         self.spots = images.Spots()  # used for reflections
         self.view = images.Box()  # the rectangle region of the image to display
         self.view_stack = deque()  # view box history for undoing zoom
-        self.display_queue = deque(maxlen=5)  # images.Frames waiting to be displayed
+        self.display_queue = deque(maxlen=2)  # images.Frames waiting to be displayed
 
         self.set_events(
             Gdk.EventMask.EXPOSURE_MASK |
@@ -223,7 +223,7 @@ class ImageWidget(Gtk.DrawingArea):
                     self.view = Box(0, 0, 0, 0)
                 self.spots.select(self.frame.index)
                 self.data_loader.set_frame(self.frame)
-            time.sleep(0.01)
+            time.sleep(1/DISPLAY_FREQ)
 
     def create_surface(self, full=False):
         self.settings.width, self.settings.height = self.frame.size.x, self.frame.size.y
