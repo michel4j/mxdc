@@ -44,12 +44,12 @@ class ReportView(Gtk.Button):
             self.set_tooltip_text('Failed!\nClick for Log file.')
         elif self.item.state == analysis.ReportState.ACTIVE:
             self.report_type.set_text(self.item.kind[:3].upper())
-            self.report_score.set_text("🗘")
+            self.report_score.set_text("☸")
             context.add_class(f"report-active")
             self.set_tooltip_text('In-progress!')
         else:
             self.report_type.set_text(self.item.kind[:3].upper())
-            self.report_score.set_text(f"🯄")
+            self.report_score.set_text("?")
             context.add_class(f"report-unknown")
             self.set_tooltip_text('Unknown State!')
 

@@ -120,7 +120,6 @@ class ReportManager:
                     data_entry.add(new_entry)
                     self.reports[new_entry.key] = new_entry
 
-
     def update_report(self, key, report: dict, success: bool = True):
         """
         Update the state and score of an existing report
