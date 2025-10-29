@@ -5,12 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from mxdc import Registry, Signal, Engine
-from mxdc.engines import centering, transfer
+from mxdc.engines import centering
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
-from mxdc.utils import datatools, misc, scitools
+from mxdc.utils import datatools, scitools
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import debug_value
 
 logger = get_module_logger(__name__)
 
@@ -180,7 +179,6 @@ class Automator(Engine):
             res.connect('failed', self.on_analysis_failed, states, task_id)
 
     def on_analysis_done(self, response, results, states, data_id):
-        debug_value(results)
         states.succeed(data_id, results)
         logger.info(f'Processing done: {data_id}')
 
@@ -216,7 +214,6 @@ class Automator(Engine):
             res.connect('failed', self.on_analysis_failed, states, task_id)
 
     def on_structure_done(self, response, results, states, data_id):
-        debug_value(results)
         states.succeed(data_id, results)
         logger.info(f'Structure solution done: {data_id}')
 

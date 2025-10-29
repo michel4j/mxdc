@@ -20,7 +20,6 @@ from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, misc, decorators, scitools
 from mxdc.utils.converter import energy_to_wavelength, dist_to_resol
 from mxdc.utils.log import get_module_logger
-from mxdc.utils.misc import debug_value
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
@@ -368,7 +367,6 @@ class DataCollector(Engine):
             # Converting multiple sub-datasets to single CBF formatted dataset
             frame_numbers = []
             for part_name in params['combine']:
-                #self.beamline.detector.wait_for_files(params['directory'], part_name, params['frames'])
                 reference = self.beamline.detector.get_template(part_name).format(1)
                 dset = mxio.DataSet.new_from_file(os.path.join(params['directory'], reference))
                 for frame in dset.frames():
@@ -378,7 +376,6 @@ class DataCollector(Engine):
                     cbf.CBFDataSet.save_frame(os.path.join(params['directory'], cbf_file), frame)
             frame_set = datatools.summarize_list(frame_numbers)
         else:
-            #self.beamline.detector.wait_for_files(params['directory'], params['name'], params['frames'])
             template = self.beamline.detector.get_template(params['name'])
             reference = template.format(params['first'])
 
