@@ -8,3 +8,4 @@ from mxdc.utils.scripts import main_mxdc
 
 if __name__ == "__main__":
     main_mxdc()
+
