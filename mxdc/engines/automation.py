@@ -294,7 +294,9 @@ class Automator(Engine):
         method = options.get('method', 'loop')
         self.centering.configure(method=method, directory=options['directory'], name=sample['name'])
         self.beamline.manager.wait('CENTER')
-        time.sleep(2)  # needed to make sure gonio is in the right state
+        delay = options.get('thaw_delay', 2)
+        logger.info(f'Waiting {delay} seconds for base to thaw ... ')
+        time.sleep(delay)
         results = self.centering.run()
         logger.info(f'Centering Score: {self.centering.score:0.1f}')
         if self.centering.score < options.get('min_score', 50):
