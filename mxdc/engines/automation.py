@@ -255,7 +255,7 @@ class Automator(Engine):
         :param position: the current sample position
         """
 
-        next_sample = None if position >= len(self.samples) else self.samples[position + 1]
+        next_sample = None if position >= len(self.samples) - 1 else self.samples[position + 1]
         if next_sample:
             logger.debug(f'Prefetching next sample ... {next_sample["port"]}')
             self.beamline.automounter.prefetch(next_sample['port'], wait=True)
