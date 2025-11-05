@@ -165,12 +165,15 @@ class ExtCenter(BaseCenter):
             else:
                 self.set_state(crystal=None)
             if pins.any():
-                x = xs[pins][0]
-                y = ys[pins][0]
-                score = scores[pins][0]
-                pin = CenterObject(x, y, score, label='pin')
-                self.set_state(pin=pin)
-                objects.append(pin)
+                try:
+                    x = xs[pins][0]
+                    y = ys[pins][0]
+                    score = scores[pins][0]
+                    pin = CenterObject(x, y, score, label='pin')
+                    self.set_state(pin=pin)
+                    objects.append(pin)
+                except IndexError:
+                    pass
             else:
                 self.set_state(pin=None)
 
