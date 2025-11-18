@@ -29,16 +29,14 @@ class Diagnostic(Object):
         Registry.subscribe(IDiagnostic, self)
 
     def __repr__(self):
-        return "<{}:'{}', status:{}>".format(
-            self.__class__.__name__, self.description, self.state[0].name
-        )
+        return f"<{self.__class__.__name__}:'{self.description}', status:{self.state[0].name}>"
 
     def update_status(self, status, msg):
         if status != self.state or msg != self.message:
             self.props.state = status
             self.props.message = msg
             if status != self.State.GOOD:
-                logger.warning("{}: {}".format(self.description, msg))
+                logger.warning(f"{self.description}: {msg}")
 
 
 class DeviceDiag(Diagnostic):

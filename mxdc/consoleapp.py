@@ -6,6 +6,7 @@ import gi
 
 from datetime import datetime
 from IPython.terminal.embed import InteractiveShellEmbed
+from IPython import embed
 from traitlets.config import Config
 
 gi.require_version('Gtk', '3.0')
@@ -86,9 +87,8 @@ class Application(Gtk.Application):
         from mxdc.com.ca import PV
 
         self.shell_config.InteractiveShellEmbed.colors = 'Neutral'
-        self.shell_config.InteractiveShellEmbed.color_info = True
         self.shell_config.InteractiveShellEmbed.true_color = True
-        self.shell_config.InteractiveShellEmbed.banner2 = '{} Beamline Console\n'.format(self.beamline.name)
+        self.shell_config.InteractiveShellEmbed.banner2 = f'{self.beamline.name} Beamline Console\n'
         bl = self.beamline
 
         plot = self.plot
@@ -96,19 +96,18 @@ class Application(Gtk.Application):
         self.shell_vars = {'plot': plot, 'fit': fit}
         self.builder.scan_beamline_lbl.set_text(bl.name)
         self.ipshell = InteractiveShellEmbed.instance(config=self.shell_config)
-        self.ipshell.magic('%gui gtk3')
+        self.ipshell.run_line_magic('gui', 'gtk3')
         self.ipshell()
         print('Stopping ...')
         self.window.destroy()
-
-        reactor.stop()
+        self.quit()
 
     def on_quit(self, *args, **kwargs):
         self.quit()
 
     def on_shutdown(self, *args):
         logger.info('Stopping ...')
-        self.ipshell.dummy_mode = True
+        #self.ipshell.dummy_mode = True
         self.beamline.cleanup()
 
         _log = logging.getLogger('')
