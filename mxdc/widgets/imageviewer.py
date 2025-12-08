@@ -51,8 +51,8 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
 
     def __init__(self, size=700):
         super(ImageViewer, self).__init__()
-        self.set_halign(Gtk.Align.CENTER)
-        self.set_valign(Gtk.Align.CENTER)
+        self.set_halign(Gtk.Align.FILL)
+        self.set_valign(Gtk.Align.FILL)
         self.setup_gui()
 
         self.frame = None
