@@ -96,7 +96,6 @@ class CryoJetBase(Device):
         self.name = 'Cryojet'
         self._previous_flow = 7.0
 
-
     def anneal(self, duration):
         """
         Anneal for the specified duration
@@ -115,7 +114,7 @@ class CryoJetBase(Device):
         self.set_property('temperature', val)
 
     def on_sample(self, obj, val):
-        if val > 5:
+        if val > 4.5:
             self.set_state(health=(0, 'sample', ''))
         elif val > 4:
             self.set_state(health=(2, 'sample', 'Sample Flow Low!'))
@@ -124,7 +123,7 @@ class CryoJetBase(Device):
         self.set_property('sample', val)
 
     def on_shield(self, obj, val):
-        if val > 5:
+        if val > 4.5:
             self.set_state(health=(0, 'shield', ''))
         elif val > 4:
             self.set_state(health=(2, 'shield', 'Shield Flow Low!'))
@@ -166,7 +165,7 @@ class CryoJet(CryoJetBase):
         self.temp_fbk.connect('changed', self.on_temp)
         self.level_fbk.connect('changed', self.on_level)
         self.sample_fbk.connect('changed', self.on_sample)
-        self.sample_fbk.connect('changed', self.on_shield)
+        self.shield_fbk.connect('changed', self.on_shield)
         self.nozzle.connect('changed', self.on_nozzle)
 
     def on_level(self, obj, val):

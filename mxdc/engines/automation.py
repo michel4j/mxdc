@@ -10,6 +10,7 @@ from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, scitools
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import slugify
 
 logger = get_module_logger(__name__)
 
@@ -146,7 +147,7 @@ class Automator(Engine):
         """
         options = {
             'uuid': str(uuid.uuid4()),
-            'name': sample['name'],
+            'name': slugify(sample['name']),
             **task.get("options", {}), **kwargs
         }
         return datatools.update_for_sample(options, sample, self.beamline.session_key)
@@ -292,7 +293,7 @@ class Automator(Engine):
         options = self.prepare_task_options(task, sample, activity='centering')
         states.start(options['uuid'])
         method = options.get('method', 'loop')
-        self.centering.configure(method=method, directory=options['directory'], name=sample['name'])
+        self.centering.configure(method=method, directory=options['directory'], name=options['name'])
         self.beamline.manager.wait('CENTER')
         delay = options.get('thaw_delay', 2)
         logger.info(f'Waiting {delay} seconds for base to thaw ... ')
