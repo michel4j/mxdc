@@ -1,7 +1,7 @@
 import pprint
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any
+from typing import Any, Callable
 
 import gi
 
@@ -38,7 +38,7 @@ class HiddenWidget:
 
 
 class FormField:
-    def __init__(self, name, widget: Any, fmt: str = None, validator: callable = None):
+    def __init__(self, name, widget: Any, fmt: str = None, validator: Callable = None):
         self.name = name
         self.widget = widget
         self.validator = validator

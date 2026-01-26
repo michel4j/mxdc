@@ -3,6 +3,8 @@ import time
 import os
 from datetime import timedelta
 from enum import Enum
+from pathlib import Path
+
 from gi.repository import Gio, Gtk
 from zope.interface import Interface
 
@@ -400,6 +402,7 @@ class DatasetsController(Object):
         self.collector.connect('stopped', self.on_stopped)
         self.collector.connect('progress', self.on_progress)
         self.collector.connect('started', self.on_started)
+        self.collector.connect('dataset-ready', self.on_dataset_ready)
         self.connect('notify::state', self.on_state_changed)
 
         self.widget.datasets_list.bind_model(self.run_store, self.create_run_config)
@@ -476,6 +479,13 @@ class DatasetsController(Object):
         next_row = self.widget.datasets_list.get_row_at_index(item.position)
         self.editor_frame.set_row(next_row)
         self.run_editor.set_item(item)
+
+    def on_dataset_ready(self, collector, name, meta_data):
+        if meta_data and not self.image_viewer.is_collecting():
+            dataset = meta_data[0]
+            first_frame = datatools.frameset_to_list(dataset['frames'])[0]
+            reference_image = Path(dataset['directory']) / dataset['filename'].format(first_frame)
+            self.image_viewer.open_dataset(str(reference_image))
 
     def on_row_activated(self, list, row):
         self.auto_save_run()

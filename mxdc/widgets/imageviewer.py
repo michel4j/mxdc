@@ -10,7 +10,7 @@ from gi.repository import Gtk
 from mxdc.utils import gui, misc
 from mxdc.widgets import dialogs
 from mxdc.widgets.imagewidget import ImageWidget
-from mxdc import Registry
+from mxdc import Registry, Property
 from zope.interface import Interface
 
 logger = logging.getLogger(__name__)
@@ -124,6 +124,9 @@ class ImageViewer(Gtk.EventBox, gui.BuilderMixin):
         else:
             status = 'off'
         self.play_btn.set_icon_name(self.icons[status])
+
+    def is_collecting(self):
+        return self.collecting
 
     def open_dataset(self, filename):
         self.canvas.open_path(filename)

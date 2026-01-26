@@ -64,13 +64,13 @@ class DataCollector(Engine):
         self.data_saver = ThreadPoolExecutor(max_workers=5)
 
     def save_dataset(self, dataset, analyse=True) -> tuple:
-        timeout_time = datetime.now(timezone.utc) + timedelta(seconds=self.beamline.config.dataset.overhead)
-        names = ",".join(details['name'] for details in dataset.get_details())
-
         for details in dataset.get_details():
             logger.debug(f'Waiting for files to be transferred for dataset {details["name"]}...')
-            self.beamline.detector.wait_for_files(details['directory'], details['name'], details['frames'])
+            subsets = details.get('combine', [details["name"]])
+            for subset in subsets:
+                self.beamline.detector.wait_for_files(details['directory'], subset, details['frames'])
 
+        names = ",".join(details['name'] for details in dataset.get_details())
         logger.debug(f'Saving datasets {names}...')
         meta_data = [
             self.save(details) for details in dataset.get_details()
@@ -80,11 +80,12 @@ class DataCollector(Engine):
 
     def analyse_dataset(self, future: Future):
         analyse, meta_data, sample = future.result(timeout=5)
+        self.emit('dataset-ready', meta_data[0]['uuid'], meta_data)
+
         for entry in meta_data:
             self.analyst.add_dataset(entry)
             self.results.append(entry)
 
-        self.emit('dataset-ready', meta_data[0]['uuid'], meta_data)
         if analyse and meta_data:
             logger.debug(f'Running Analysis for saved dataset')
             data_type = meta_data[0]['type']
