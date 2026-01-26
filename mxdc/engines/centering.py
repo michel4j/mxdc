@@ -333,10 +333,10 @@ class Centering(Engine):
         }
 
     def center_crystal(self):
-        return self.center_loop()
+        return self.center_external()
 
     def center_diffraction(self):
-        self.center_loop()
+        self.center_external()
         steps = {'loop': self.results}
         scores = [self.score]
 
