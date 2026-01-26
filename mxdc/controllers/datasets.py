@@ -483,8 +483,8 @@ class DatasetsController(Object):
     def on_dataset_ready(self, collector, name, meta_data):
         if meta_data and not self.image_viewer.is_collecting():
             dataset = meta_data[0]
-            first_frame = datatools.frameset_to_list(dataset['frames'])[0]
-            reference_image = Path(dataset['directory']) / dataset['filename'].format(first_frame)
+            last_frame = datatools.frameset_to_list(dataset['frames'])[-1]
+            reference_image = Path(dataset['directory']) / dataset['filename'].format(last_frame)
             self.image_viewer.open_dataset(str(reference_image))
 
     def on_row_activated(self, list, row):
