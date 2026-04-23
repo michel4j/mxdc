@@ -153,7 +153,7 @@ class AuntISARA(AutoMounter):
         self.path_fbk = self.add_pv(f'{root}:STATE:path')
         self.mounted_fbk = self.add_pv(f'{root}:STATE:onDiff')
         self.barcode_fbk = self.add_pv(f'{root}:STATE:barcode')
-        self.tooled_fbk = self.add_pv(f'{root}:STATE:onTool')
+        self.tooled_fbk = self.add_pv(f'{root}:STATE:onToolA')
         self.pucks_fbk = self.add_pv(f'{root}:STATE:pucks')
         self.path_fbk = self.add_pv(f'{root}:STATE:path')
         self.sample_detected = self.add_pv(f'{root}:INP:smplOnGonio')

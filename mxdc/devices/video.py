@@ -121,17 +121,21 @@ class VideoSrc(Device):
         """
         pass
 
-    @decorators.async_call
     def save_frame(self, filename: PathLike):
         """
         Save current frame to filename
         :param filename: str or Path
         """
+
+        @decorators.async_call
+        def save_it(frame, path):
+            logger.debug(f'Saving Frame ...{path.name}')
+            frame.save(str(path))
+
         file_path = Path(filename)
         self.fetch_frame()
         if self.frame:
-            logger.debug(f'Saving Frame ...{file_path.name}')
-            self.frame.save(str(file_path))
+            save_it(self.frame, file_path)
 
     def cleanup(self):
         self.stop()
