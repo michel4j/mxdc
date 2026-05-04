@@ -20,6 +20,7 @@ from .samplestore import ISampleStore
 logger = get_module_logger(__name__)
 ENERGY_OFFSET = 2.0
 
+
 def summarize_lines(data):
     name_dict = {
         'L1M2,3,L2M4': 'L1,2M',
@@ -124,9 +125,12 @@ class ScanController(Object):
             self.scanner.resume()
         elif self.props.state == self.StateType.READY:
             self.progress_lbl.set_text("Starting {} ...".format(self.desc))
+            sample = self.sample_store.get_current()
+            prefix = 'test' if not sample else sample.get('name', 'test')
+            suffix = datetime.now().strftime('%m%d-%H%M%S')
             params = self.form.get_values()
             params['uuid'] = str(uuid.uuid4())
-            params['name'] = datetime.now().strftime('%y%m%d-%H%M')
+            params['name'] = f'{prefix}-{suffix}'
             params['activity'] = '{}-scan'.format(self.prefix)
             params = datatools.update_for_sample(
                 params, sample=self.sample_store.get_current(), session=self.beamline.session_key

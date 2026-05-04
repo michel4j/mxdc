@@ -98,6 +98,12 @@ class MXBeamline(Beamline):
         self.diagnostics.append(diagnostics.DeviceDiag(self.registry['disk_space']))
         self.emit('ready', True)
 
+    def end_session(self):
+        if self.get_state('ready'):
+            self.all_shutters.close()
+            self.automounter.park()
+        pass
+
 
 class DummyBeamline(Beamline):
 

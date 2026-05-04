@@ -252,7 +252,7 @@ class Application(Gtk.Application):
 
         response = dialogs.warning(header, sub_header, buttons=buttons, countdown=countdown)
         if response == SHUTDOWN_ENDSESSION:
-            self.beamline.all_shutters.close()
+            self.beamline.end_session()
 
             # show survey form here.
             url = self.beamline.lims.session_info.get('survey')

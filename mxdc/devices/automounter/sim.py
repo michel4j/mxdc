@@ -64,6 +64,9 @@ class SimSAM(AutoMounter):
             return ports.get(port, Port.UNKNOWN) not in [Port.BAD, Port.EMPTY]
         return False
 
+    def park(self):
+        logger.info(f'{self.name}: Parking Automounter.')
+
     def mount(self, port, wait=False):
         enabled = self.wait(states={State.IDLE, State.PREPARING})
         if not enabled:

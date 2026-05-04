@@ -157,6 +157,7 @@ class AuntISARA(AutoMounter):
         self.pucks_fbk = self.add_pv(f'{root}:STATE:pucks')
         self.path_fbk = self.add_pv(f'{root}:STATE:path')
         self.sample_detected = self.add_pv(f'{root}:INP:smplOnGonio')
+        self.close_lid_cmd = self.add_pv(f'{root}:CMD:lid:close')
 
         # handle signals
         self.path_fbk.connect('changed', self.on_message, ISARAMessages.trajectory)
@@ -179,6 +180,9 @@ class AuntISARA(AutoMounter):
 
     def is_valid(self, port):
         return port[:2] in self.PUCKS[1:] and 1 <= int(port[2:]) <= 16
+
+    def park(self):
+        self.close_lid_cmd.put(1)
 
     def power_on(self):
         if self.power_fbk.get() == 0:

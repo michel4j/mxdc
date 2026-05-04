@@ -134,7 +134,7 @@ class DataLoader:
                         self.load_number = None
                     if success:
                         frame = images.DisplayFrame(
-                            dataset=self.frame.dataset, color_scheme=self.color_scheme, settings=self.frame.settings
+                            dataset=self.frame.dataset, color_scheme=self.color_scheme#, settings=self.frame.settings
                         )
                         self.view_queue.append(frame)
 

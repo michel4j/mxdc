@@ -302,17 +302,18 @@ class UncleSAM(AutoMounter):
         containers = set()
         for location, (type_code, port_states_str) in list(info.items()):
             type_name = self.TypeCodes.get(type_code)
-            if not type_name: continue
+            if not type_name:
+                continue
             spec = container_spec.get(type_name)
 
             if type_name == 'puck':
-                containers |= {'{}{}'.format(location, pos) for pos in spec[0]}
+                containers |= {f'{location}{pos}' for pos in spec[0]}
             elif type_name in ['cassette', 'calib']:
                 containers |= {location}
 
             if spec:
                 ports = [
-                    '{}{}{}'.format(location, sub_loc, pos)
+                    f'{location}{sub_loc}{pos}'
                     for sub_loc in spec[0]
                     for pos in spec[1]
                 ]

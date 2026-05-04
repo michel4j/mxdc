@@ -56,21 +56,18 @@ class XRFScan(BasicScan):
             saved_attenuation = self.beamline.attenuator.get_position()
             try:
                 self.emit("progress", 0.01, "Preparing devices ...")
+                self.beamline.manager.scan(wait=False)
                 self.beamline.energy.move_to(self.config['energy'])
                 self.beamline.mca.configure(cooling=True)
                 if self.config.low_dose:
-                    #self.beamline.low_dose.on()
-                    #attenuation = 100.0 - self.beamline.beam_tuner.get_state('percent')
-                    self.emit("progress", 0.02, "Setting attenuataion ...")
+                    self.emit("progress", 0.02, "Setting attenuation ...")
                     attenuation = self.beamline.config.xrf.attenuation
                     self.beamline.attenuator.move_to(attenuation, wait=True)
                     self.config.attenuation = attenuation
-
-                self.beamline.manager.scan(wait=True)
                 self.emit("progress", 0.06, f"Setting energy to {self.config['energy']} ...")
                 self.beamline.energy.wait()
                 self.beamline.attenuator.wait()
-
+                self.beamline.manager.wait(stop=True)
                 self.emit("progress", .1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
                 src_id = self.beamline.mca.connect('progress', self.on_mca_progress)

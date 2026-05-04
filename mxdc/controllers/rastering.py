@@ -2,6 +2,7 @@
 import time
 import os
 import uuid
+from datetime import datetime
 from enum import Enum
 
 from mxdc import Registry, IBeamline, Object, Property, Signal
@@ -160,7 +161,13 @@ class RasterController(Object):
         params = {}
         params.update(self.microscope.grid_params)
         params.update(self.form.get_values())
+
+        sample = self.sample_store.get_current()
+        prefix = 'test' if not sample else sample.get('name', 'test')
+        suffix = datetime.now().strftime('%m%d-%H%M%S')
+
         params.update({
+            'name': f'{prefix}-{suffix}',
             'distance': resol_to_dist(params['resolution'], self.beamline.detector.mm_size, self.beamline.energy.get_position()),
             'aperture': self.beamline.aperture.get_position(),
             'origin': self.beamline.goniometer.stage.get_xyz(),
@@ -227,7 +234,7 @@ class RasterController(Object):
         self.control.progress_fbk.set_text("Rastering analysis complete.")
         params = collector.get_parameters()
         logger.info('Saving overlay ...')
-        self.microscope.save_image(os.path.join(params['directory'], '{}.png'.format(params['name'])))
+        self.microscope.save_image(os.path.join(params['directory'], f'{params["name"]}.png'))
 
     def on_done(self, collector, data):
         self.props.state = self.StateType.READY   # previously WAITING

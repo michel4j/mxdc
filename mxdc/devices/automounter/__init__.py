@@ -83,6 +83,12 @@ class AutoMounter(Device):
         """
         self.state_history.add(status)
 
+    def park(self):
+        """
+        Tidy up and put the automounter away  for long-term. Used for actions like
+        closing the lid, and parking the arm.
+        """
+
     def recover(self, failure):
         """
         Recover from a specific failure type
@@ -196,7 +202,7 @@ class AutoMounter(Device):
         states = states if len(states) else (State.BUSY,)
         states_text = "|".join([str(state) for state in states])
 
-        logger.debug('"{}" Waiting while {}'.format(self.name, states_text))
+        logger.debug(f'"{self.name}" Waiting while {states_text}')
         elapse = time.time() + timeout
         while time.time() <= elapse:
             time.sleep(0.05)

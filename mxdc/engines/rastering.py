@@ -64,14 +64,9 @@ class RasterCollector(Engine):
         return self.complete
 
     def configure(self, params):
-        name_tag = datetime.now().strftime('%j%H%M')
-        self.series[name_tag] += 1
-
         det_exp_limit = 1 / self.beamline.config.raster.max_freq
         mtr_exp_limit = params['aperture'] * 1e-3 / self.beamline.config.raster.max_speed
         params['exposure'] = max(params['exposure'], det_exp_limit, mtr_exp_limit)
-
-        params['name'] = f'R{name_tag}{self.series[name_tag]:02d}'
         self.config['params'] = params
 
         # calculate grid from dimensions
@@ -230,7 +225,7 @@ class RasterCollector(Engine):
                 'num_triggers': 1,
                 'start_angle': frame['start'],
                 'delta_angle': frame['delta'],
-                'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+                'comments': f'BEAMLINE: {"CLS"} {self.beamline.name}',
                 'user': owner,
                 'group': group,
             }
@@ -317,7 +312,7 @@ class RasterCollector(Engine):
 
         self.count += 1
         fraction = self.count / self.total_frames
-        msg = 'Analysis {}: {} of {} complete'.format(self.config['params']['name'], self.count, self.total_frames)
+        msg = f'Analysis {self.config["params"]["name"]}: {self.count} of {self.total_frames} complete'
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
@@ -373,10 +368,10 @@ class RasterCollector(Engine):
             'grid_origin': params['origin'],
             'grid_size': (params['hsteps'], params['vsteps'])
         }
-        filename = os.path.join(metadata['directory'], '{}.meta'.format(metadata['name']))
+        filename = os.path.join(metadata['directory'], f'{metadata["name"]}.meta')
         misc.save_metadata(metadata, filename)
         self.beamline.lims.upload_data(self.beamline.name, filename)
-        grid_file = os.path.join(metadata['directory'], '{}.grid'.format(metadata['name']))
+        grid_file = os.path.join(metadata['directory'], f'{metadata["name"]}.grid')
         self.config['params']['template'] = template
         misc.save_pickle((self.config['params'], self.config['properties']), grid_file)
         return metadata

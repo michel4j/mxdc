@@ -140,6 +140,22 @@ class Beamline(Object):
         and all devices and services have been added to the registry
         """
 
+    def start_session(self, user: str) -> str:
+        """
+        Start the beamline session or join one if it exists
+        :param user: user name
+        :return: session id
+        """
+        return ''
+
+    def end_session(self) -> bool:
+        """
+        End the beamline session and cleanup after the user. Returns a bool indicating whether the session was ended
+        successfully or not.
+        :return: bool
+        """
+        return True
+
     def cleanup(self):
         """
         Cleanup devices which can be cleaned up
