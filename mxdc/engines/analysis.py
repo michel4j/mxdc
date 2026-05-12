@@ -103,6 +103,9 @@ class Analyst(Engine):
         # create directory for processing
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_id())
 
+        # normalize directory for remote
+        params['directory'] = str(Path(params['directory']).resolve())
+
         # Run processing remotely
         if method == 'misc':
             res = self.beamline.dps.process_misc(**params, user=misc.get_project_id())

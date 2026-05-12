@@ -350,19 +350,18 @@ class Tuner(object):
         self.tune_func = None
 
 
-
 class DataDirectory:
     def __init__(self, button: Gtk.Button, label: Gtk.Label):
         self.button = button
         self.label = label
         self.directory = Path(misc.get_project_home())
-        self.label.set_text(str(self.directory).replace(misc.get_project_home(), '~'))
+        self.label.set_text(str(self.directory).replace(misc.get_project_home(), ''))
         self.button.connect('clicked', self.open_terminal)
 
     def update_view(self):
         if self.directory.exists():
             os.chdir(self.directory)
-            self.label.set_text(str(self.directory).replace(misc.get_project_home(), '~'))
+            self.label.set_text(str(self.directory).replace(misc.get_project_home(), ''))
             return False
         else:
             return True
