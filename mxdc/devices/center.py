@@ -149,8 +149,8 @@ class ExtCenter(BaseCenter):
             ys = self.obj_y.get()[:num_obj]
             scores = self.obj_scores.get()[:num_obj]
             types = self.obj_types.get()[:num_obj]
-            crystals = types == self.ObjectType.CRYSTAL
-            pins = types == self.ObjectType.PIN
+            crystals = (types == self.ObjectType.CRYSTAL)
+            pins = (types == self.ObjectType.PIN)
             objects = []
             if crystals.any():
                 try:
