@@ -86,9 +86,9 @@ class Application(Gtk.Application):
         logger.info('Starting HutchViewer ({})... '.format(self.beamline.name))
         self.hook = excepthook.ExceptHook(
             name='HutchViewer',
-            emails=self.beamline.config.bug_report, exit_function=self.quit
+            beamline=self.beamline, exit_function=self.quit
         )
-        # self.hook.install()
+        self.hook.install()
         self.find_service()
 
     def do_activate(self):

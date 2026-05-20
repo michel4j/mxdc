@@ -1,6 +1,9 @@
 import gi
 
-gi.require_version('WebKit2', '4.0')
+try:
+    gi.require_version('WebKit2', '4.0')
+except ValueError:
+    gi.require_version('WebKit2', '4.1')
 from gi.repository import WebKit2
 from mxdc.utils import gui
 
@@ -24,8 +27,7 @@ class Browser(gui.Builder):
         self.browser.set_keep_above(self.modal)
         if self.modal:
             self.browser.props.modal = self.modal
-        self.content_box.set_size_request(*self.size)
-
+        self.browser.set_size_request(*self.size)
         self.setup()
 
     def setup(self):

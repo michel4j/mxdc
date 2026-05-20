@@ -13,27 +13,34 @@ logger = get_module_logger(__name__)
 
 
 class ExceptHook(object):
-    def __init__(self, name='MxDC', exit_function=sys.exit, emails=None, prefix='Bug Report', ignore=[]):
+    def __init__(self, name='MxDC', exit_function=sys.exit, beamline=None, prefix='Bug Report', ignore=()):
         self.exit_function = exit_function
         self.system_hook = sys.excepthook
-        self.emails = emails
-        self.prefix = '{} {}'.format(name, prefix)
+        self.beamline = beamline
+        self.prefix = f'{name} {prefix}'
         self.ignore = ignore
         self.name = name
         self.lock = threading.Lock()
 
     def send_mail(self, subject, message):
-        from_addr = '{}@{}'.format(getpass.getuser(), socket.gethostname())
-        to_addr = self.emails
+        if not self.beamline.config.secrets.EMAIL:
+            logger.error('Could not submit bug report.')
+            return
+
+        recipients = self.beamline.config.secrets.ADMINS.split(',')
+        sender = self.beamline.config.secrets.EMAIL
+        smtp_server = self.beamline.config.secrets.SMTP_SERVER
+        smtp_password = self.beamline.config.secrets.PASSWORD
+
         msg = MIMEText(message)
-        msg['Subject'] = '[{}] - {}'.format(self.prefix, subject)
-        msg['From'] = from_addr
-        msg['To'] = ', '.join(to_addr)
+        msg['Subject'] = f'[{self.prefix}] - {self.beamline.name} | {subject}'
+        msg['From'] = sender
+        msg['To'] = ', '.join(recipients)
 
         try:
-            server = smtplib.SMTP('localhost')
-            server.sendmail(from_addr, to_addr, msg.as_string())
-            server.quit()
+            with smtplib.SMTP_SSL(smtp_server, 465) as server:
+                server.login(sender, smtp_password)
+                server.sendmail(sender, recipients, msg.as_string())
         except socket.error:
             logger.error('Could not submit bug report.')
         else:
@@ -63,10 +70,11 @@ class ExceptHook(object):
                     logger.error(trace)
                     return
 
-                title = "{} has stopped".format(self.name)
+                title = f"{self.name} has encountered an error!"
                 message = (
-                    "An unexpected problem has been detected. The developers will be notified. "
-                    "You can either ignore the problem and attempt to continue or quit the program."
+                    "An unexpected problem has occurred. The developers have be notified. "
+                    "You can either ignore the problem and attempt to continue "
+                    "or quit and restart the program."
                 )
                 buttons = (
                     ('Ignore', Gtk.ResponseType.CANCEL),
@@ -74,11 +82,11 @@ class ExceptHook(object):
                 )
 
                 dialog = dialogs.exception_dialog(title, message, details=trace, buttons=buttons)
+                self.send_mail(exctyp.__name__, trace)
                 response = dialog.run()
                 dialog.destroy()
                 if response == Gtk.ResponseType.CANCEL:
-                    logger.warning("{} will attempt to continue.".format(self.name))
-                    self.send_mail(exctyp.__name__, trace)
+                    logger.warning(f"{self.name} will attempt to continue.")
+
                 elif response == Gtk.ResponseType.CLOSE:
-                    self.send_mail(exctyp.__name__, trace)
                     self.exit_function()

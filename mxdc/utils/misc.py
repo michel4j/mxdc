@@ -898,3 +898,51 @@ def debug_value(value, name=None):
     print(yaml.dump(value))
     print('='*80)
     print('\n')
+
+
+def load_env(path):
+    """
+    Read an environment file and return name value pairs
+    :param path: environment file path
+    :return: dictionary of name value pairs
+    """
+    env = {}
+    # Accept Path, PathLike or str
+    p = Path(path)
+    if not p.exists():
+        return env
+
+    with p.open('r') as handle:
+        for raw in handle:
+            line = raw.strip()
+            # skip empty lines and comments
+            if not line or line.startswith('#'):
+                continue
+
+            # support lines like: export KEY=VALUE
+            if line.startswith('export '):
+                line = line[len('export '):].lstrip()
+
+            # split on first '=' so values may contain '='
+            if '=' not in line:
+                # bare variable name, treat as truthy empty string
+                key = line
+                value = ''
+            else:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+
+            # Remove surrounding quotes if present
+            if (len(value) >= 2) and ((value[0] == value[-1]) and value.startswith(('"', "'"))):
+                value = value[1:-1]
+
+            # Unescape common escape sequences
+            value = value.encode('utf-8').decode('unicode_escape')
+
+            env[key] = value
+            # Do not overwrite existing environment variables
+            if key not in os.environ:
+                os.environ[key] = value
+
+    return env

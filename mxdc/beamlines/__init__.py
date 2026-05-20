@@ -2,10 +2,12 @@ import threading
 import importlib.util
 import importlib.machinery
 import os
+from pathlib import Path
+
 from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
-from mxdc.utils.misc import get_project_name, import_string, DotDict
+from mxdc.utils.misc import get_project_name, import_string, DotDict, load_env
 from mxdc.utils.log import get_module_logger
 
 
@@ -69,20 +71,24 @@ class Beamline(Object):
         this method directly.
         """
         global_file, local_file = self.config_files
-        global_module = os.path.splitext(os.path.basename(global_file))[0]
-        local_module = os.path.splitext(os.path.basename(local_file))[0]
-        config_dir = os.path.dirname(global_file)
+        global_module = Path(global_file).stem
+        local_module = Path(local_file).stem
+        config_dir = Path(global_file).parent
+        env_file = config_dir / '.env'
+
+
+
         local_settings = None
 
         try:
-            spec = importlib.machinery.PathFinder().find_spec(global_module, [config_dir])
+            spec = importlib.machinery.PathFinder().find_spec(global_module, [str(config_dir)])
             global_settings = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(global_settings)
         except (ImportError, AttributeError):
             self.logger.error('Config file error')
             raise
 
-        spec = importlib.machinery.PathFinder().find_spec(local_module, [config_dir])
+        spec = importlib.machinery.PathFinder().find_spec(local_module, [str(config_dir)])
         if spec:
             try:
                 local_settings = importlib.util.module_from_spec(spec)
@@ -96,6 +102,9 @@ class Beamline(Object):
         config.update(getattr(local_settings, 'CONFIG', {}))
 
         self.config.update(config)
+        if env_file.exists():
+            secrets = load_env(env_file)
+            self.config.update({'secrets': secrets})
         self.name = self.config.name
 
         # Register simple devices

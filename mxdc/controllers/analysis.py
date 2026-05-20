@@ -6,7 +6,10 @@ import numpy
 
 import os
 
-gi.require_version('WebKit2', '4.0')
+try:
+    gi.require_version('WebKit2', '4.0')
+except ValueError:
+    gi.require_version('WebKit2', '4.1')
 from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils import misc, log

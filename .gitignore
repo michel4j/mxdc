@@ -25,3 +25,6 @@ dist/
 .idea/*
 !.idea/scopes/*
 !.idea/watcherTasks.xml
+
+# Secrets module
+secrets.py

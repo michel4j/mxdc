@@ -18,7 +18,6 @@ classifiers = [
 ]
 requires-python = ">=3.9,<4.0"
 dependencies = [
-  "numpy",
   "lz4",
   "pyzmq",
   "cryptography",
@@ -50,6 +49,7 @@ dependencies = [
   "pytest",
   "methodtools",
   "webp",
+  "numpy",
 ]
 
 [project.urls]

@@ -1,11 +1,13 @@
 
-import random
+
 import shutil
 from pathlib import Path
 
 import gi
-
-gi.require_version('WebKit2', '4.0')
+try:
+    gi.require_version('WebKit2', '4.0')
+except ValueError:
+    gi.require_version('WebKit2', '4.1')
 
 from mxdc import Registry, Property, SHARE_DIR
 from mxdc.utils.data import analysis
