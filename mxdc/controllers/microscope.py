@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 import numpy
-from gi.repository import Gtk, Gdk, Gio, GLib
+from gi.repository import Gtk, Gdk, Gio, GLib, GObject
 from zope.interface import Interface, Attribute, implementer
 
 from mxdc import Registry, IBeamline, Object, Property
@@ -75,6 +75,7 @@ class Microscope(Object):
     grid_frames = Property(type=object)
     grid_cmap = Property(type=object)
     grid_bbox = Property(type=object)
+    show_annotations = Property(type=bool, default=False)
 
     tool = Property(type=int, default=ToolState.DEFAULT)
     mode = Property(type=object)
@@ -85,7 +86,7 @@ class Microscope(Object):
         self.max_fps = 20
         self.fps_update = 0
         self.video_ready = False
-        self.show_annotations = False
+        self.annotations = {}
         self.viewer = None
         self.last_coord_update = time.time()
         self.actions = Gio.SimpleActionGroup()
@@ -155,10 +156,12 @@ class Microscope(Object):
         self.widget.microscope_rot180_btn.connect('clicked', self.on_rotate, 180)
 
         # centering
-        self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'loop')
+        self.widget.microscope_loop_btn.connect('clicked', self.on_auto_center, 'crystal')
         self.widget.microscope_capillary_btn.connect('clicked', self.on_auto_center, 'capillary')
         self.widget.microscope_diff_btn.connect('clicked', self.on_auto_center, 'diffraction')
-        self.widget.microscope_external_btn.connect('clicked', self.on_auto_center, 'external')
+        self.widget.microscope_show_annot.bind_property(
+            'active', self, 'show-annotations', GObject.BindingFlags.BIDIRECTIONAL
+        )
 
         self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.goniometer.stage.connect('changed', self.update_overlay_coords)
@@ -212,9 +215,10 @@ class Microscope(Object):
         self.video.connect('configure-event', self.setup_grid)
         self.scripts = get_scripts()
 
-        # Connect Grid signals
+        # Connect property signals
         self.connect('notify::grid-xyz', self.update_overlay_coords)
         self.connect('notify::tool', self.on_tool_changed)
+        self.connect('notify::show-annotations', self.on_toggle_annotations)
 
         # Connect Point Signals
         for signal in ('row-inserted', 'row-deleted', 'row-changed'):
@@ -238,6 +242,7 @@ class Microscope(Object):
         # config = {k: v for k, v in self.grid_params.items() if k != 'grid'}
         cache = {
             'points': [row[1] for row in self.points],
+            'show_annotations': self.show_annotations
         }
         save_cache(cache, 'microscope')
 
@@ -428,7 +433,9 @@ class Microscope(Object):
                         'coords': numpy.array([[obj.x, obj.y], [obj.x, obj.y]]) * self.video.scale,
                         'expire': obj.time + 2.0
                     }
-        self.video.set_annotations(annotations)
+        self.annotations = annotations
+        if self.show_annotations:
+            self.video.set_annotations(self.annotations)
 
     def on_save_point(self, *args, **kwargs):
         self.add_point(self.beamline.goniometer.stage.get_xyz())
@@ -483,8 +490,6 @@ class Microscope(Object):
 
     def on_centering_done(self, obj, event=None):
         self.widget.microscope_toolbar.set_sensitive(True)
-        self.show_annotations = False
-        self.video.set_annotations(None)
 
     def on_save(self, obj=None, arg=None):
         filters = {
@@ -499,9 +504,14 @@ class Microscope(Object):
         if os.access(Path(img_filename).parent, os.W_OK):
             self.save_image(img_filename)
 
-    def on_auto_center(self, widget, method='loop'):
-        if method == 'external':
-            self.show_annotations = True
+    def on_toggle_annotations(self, *args, **kwargs):
+        if self.show_annotations:
+            self.video.set_annotations(self.annotations)
+        else:
+            self.video.set_annotations({})
+        self.save_to_cache()
+
+    def on_auto_center(self, widget, method='crystal'):
         samples = Registry.get_utility(ISampleStore)
         directory = None
         name = 'unknown'

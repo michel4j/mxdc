@@ -133,7 +133,7 @@ class ExtCenter(BaseCenter):
         Registry.add_utility(ICenter, self)
 
     def on_pos_changed(self, *args, **kwargs):
-        if self.score.get() > self.threshold and self.w.get() > MIN_WIDTH:
+        if self.w.get() > MIN_WIDTH:
             cx = self.x.get() + self.w.get() / 2
             cy = self.y.get() + self.h.get() / 2
             loop = CenterObject(cx, cy, self.score.get(), self.w.get(), self.h.get(), label=self.label.get())

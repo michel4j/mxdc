@@ -137,6 +137,13 @@ class Centering(Engine):
         self.beamline.goniometer.omega.move_by(total_range, wait=True)
         recorder.stop()
 
+        if recorder.has_crystal():
+            x_positions = numpy.array([obj['x'] for obj in recorder.crystal_info])
+            cx = int(imgproc.clean_mean(x_positions))
+            logger.debug(f'... Crystal found at x={cx}')
+            xmm, ymm = self.position_to_mm(cx, 0)
+            self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
+
         if recorder.has_objects():
             face_angle = recorder.get_face_angle()
             self.beamline.goniometer.omega.move_to(face_angle, wait=True)
@@ -176,11 +183,10 @@ class Centering(Engine):
         )
         return self.results
 
-    def center_external(self, label='loop', trials=4):
+    def center_external(self, trials=4, **kwargs):
         """
         External centering device
         :param trials: Number of trials to perform
-        :param label: 'loop' or 'crystal'
         """
         if not (self.device and self.device.is_active()):
             logger.warning('External centering device not present/active')
@@ -189,7 +195,7 @@ class Centering(Engine):
         good_trials = 0
         max_trials = 8
         omega_step = 90
-        valid_objects = ['loop', 'crystal', 'pin']
+        valid_objects = ['loop', 'xtal', 'pin']
         recorder = None
         steps = []
 
@@ -219,7 +225,7 @@ class Centering(Engine):
                 reliability = found.score
                 label = found.label
 
-                logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability}')
+                logger.debug(f'... {label} found at {cx}, {cy}, Confidence={reliability:0.2%}')
                 xmm, ymm = self.position_to_mm(cx, cy)
                 self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
                 logger.debug(f'Adjustment: {-xmm:0.4f}, {-ymm:0.4f}')
@@ -254,6 +260,7 @@ class Centering(Engine):
             'trials': good_trials,
             'steps': steps,
         }
+        return self.results
 
     def take_snapshot(self, index=0):
         """
@@ -310,7 +317,7 @@ class Centering(Engine):
                 x, y = info['x'], info['y']
             elif not last_trial:
                 x, y = info['x'], info['y'] if i == 0 else info.get('loop-y', info['y'])
-                logger.debug('... tip found at {}, {}'.format(x, y))
+                logger.debug(f'... tip found at {x}, {y}')
             elif last_trial and info['found'] == 2:
                 x, y = info.get('loop-x', info.get('x')), info.get('loop-y', info.get('y'))
             else:

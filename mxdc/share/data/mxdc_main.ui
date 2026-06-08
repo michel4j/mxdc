@@ -1254,7 +1254,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Loop Auto-centering</property>
+                                                <property name="tooltip-text" translatable="yes">Auto-centering</property>
                                                 <property name="relief">none</property>
                                                 <child>
                                                   <object class="GtkImage">
@@ -1277,7 +1277,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Diffraction Auto-centering</property>
+                                                <property name="tooltip-text" translatable="yes">Diffraction Centering</property>
                                                 <property name="relief">none</property>
                                                 <property name="use-underline">True</property>
                                                 <child>
@@ -1294,29 +1294,6 @@
                                                 <property name="expand">False</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">1</property>
-                                              </packing>
-                                            </child>
-                                            <child>
-                                              <object class="GtkButton" id="microscope_external_btn">
-                                                <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">AI centering</property>
-                                                <property name="relief">none</property>
-                                                <property name="use-underline">True</property>
-                                                <child>
-                                                  <object class="GtkImage">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="halign">center</property>
-                                                    <property name="icon-name">application-x-appliance-symbolic</property>
-                                                  </object>
-                                                </child>
-                                              </object>
-                                              <packing>
-                                                <property name="expand">False</property>
-                                                <property name="fill">True</property>
-                                                <property name="position">2</property>
                                               </packing>
                                             </child>
                                             <child>
@@ -1340,6 +1317,27 @@
                                                 <property name="expand">False</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">3</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkToggleButton" id="microscope_show_annot">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">True</property>
+                                                <property name="tooltip-text" translatable="yes">Show/Hide Annotations</property>
+                                                <property name="relief">none</property>
+                                                <child>
+                                                  <object class="GtkImage">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="icon-name">edit-select-all-symbolic</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">4</property>
                                               </packing>
                                             </child>
                                           </object>

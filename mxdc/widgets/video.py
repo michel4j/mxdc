@@ -408,21 +408,45 @@ class VideoWidget(Gtk.DrawingArea):
                 continue
 
             # label
-            label = label.upper()
             xb, yb, w, h = cr.text_extents(label)[:4]
-
+            corner = 10.0
             if (x1, y1) == (x2, y2):
-                cr.move_to(x1 - 10, y1)
-                cr.line_to(x1 + 10, y1)
-                cr.stroke()
-                cr.move_to(x1, y1 - 10)
-                cr.line_to(x1, y1 + 10)
+                # draw a small cross for a point
+                cr.move_to(x1 - corner, y1)
+                cr.line_to(x1 + corner, y1)
+                cr.move_to(x1, y1 - corner)
+                cr.line_to(x1, y1 + corner)
                 cr.stroke()
             else:
-                cr.rectangle(x1, y1, x2 - x1, y2 - y1)
+                # draw only the rectangle corners (10 px length)
+                xmin, xmax = (x1, x2) if x1 < x2 else (x2, x1)
+                ymin, ymax = (y1, y2) if y1 < y2 else (y2, y1)
+
+                # top-left
+                cr.move_to(xmin, ymin + corner)
+                cr.line_to(xmin, ymin)
+                cr.line_to(xmin + corner, ymin)
+
+                # top-right
+                cr.move_to(xmax - corner, ymin)
+                cr.line_to(xmax, ymin)
+                cr.line_to(xmax, ymin + corner)
+
+                # bottom-right
+                cr.move_to(xmax, ymax - corner)
+                cr.line_to(xmax, ymax)
+                cr.line_to(xmax - corner, ymax)
+
+                # bottom-left
+                cr.move_to(xmin + corner, ymax)
+                cr.line_to(xmin, ymax)
+                cr.line_to(xmin, ymax - corner)
+
                 cr.stroke()
-                cr.rectangle(x1 + 0.5, y1 + 0.5, w + 6, h + 6)
-                cr.fill()
+
+                # label background (keep existing behavior)
+                # cr.rectangle(x1 + 0.5, y1 + 0.5, w + 6, h + 6)
+                # cr.fill()
 
             cr.move_to(x1 + xb + 3, y1 - yb + 3)
             cr.show_text(label)

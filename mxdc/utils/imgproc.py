@@ -37,6 +37,42 @@ class Stats:
         )
 
 
+def find_axis_offset(angles, y_coords):
+    """
+    Calculates the vertical offset of a horizontal rotation axis.
+    :param angles: angles corresponding to coordinates
+    :param y_coords:  y pixel coordinates
+    Returns:
+        float: The vertical y-offset of the axis of rotation.
+    """
+    angles = numpy.radians(angles)
+    y = numpy.array(y_coords)
+
+    # Build the design matrix: [cos(theta), sin(theta), 1]
+    X = numpy.column_stack((numpy.cos(angles), numpy.sin(angles), numpy.ones_like(angles)))
+
+    # Solve least squares problem: X * [a, b, offset]^T = y
+    coefficients, _, _, _ = numpy.linalg.lstsq(X, y, rcond=None)
+
+    # The offset is the constant term (c)
+    offset = coefficients[2]
+
+    return offset
+
+
+def clean_mean(values, threshold=2):
+    """
+    Calculate the mean of an array, taking into account outliers, rejection
+    :param values: value array
+    :param threshold: maximum number of standard deviations
+    :return: float
+    """
+    mean = numpy.mean(values)
+    std_dev = numpy.std(values)
+    filtered_data = values[numpy.abs(values - mean) < (threshold * std_dev)]
+    return numpy.mean(filtered_data)
+
+
 class LoopRecorder:
     """
     An Object that records the loop width and height from the sample video feed
@@ -49,7 +85,10 @@ class LoopRecorder:
         :param device: Centering device
         """
         super().__init__()
-        self.objects = []
+        self.objects = {
+            'loops': [],
+            'crystals': [],
+        }
         self.angles = []
         self.running = False
         self.stopped = False
@@ -57,6 +96,7 @@ class LoopRecorder:
         self.spindle = spindle
         self.total_angle = total
         self.stats = {}
+        self.crystal_info = []
 
     def run(self):
         """
@@ -64,15 +104,21 @@ class LoopRecorder:
         """
         self.running = True
         self.stopped = False
-        self.objects = []    # Clear the previous data
+        self.objects = {
+            'loops': [],
+            'crystals': [],
+        }
         self.angles = []
         cb_id = self.spindle.connect('changed', self.save_angle)
 
         while self.running:
             obj = self.device.get_object(label='loop')
+            xtal = self.device.get_object(label='crystal')
             if obj:
-                self.objects.append(obj)
-            time.sleep(0.001)
+                self.objects['loops'].append(obj)
+            if xtal:
+                self.objects['crystals'].append(xtal)
+            time.sleep(0.05)
 
         self.spindle.disconnect(cb_id)
 
@@ -87,15 +133,18 @@ class LoopRecorder:
         Check if there are any objects recorded
         :return: True if there are objects, False otherwise
         """
-        return len(self.objects) > 2
+        return len(self.objects['loops']) > 2
 
-    def calc_stats(self):
+    def has_crystal(self):
+        return len(self.objects['crystals']) > 0
+
+    def calc_stats(self, label='loops'):
         """
         Calculate some information for scoring the recorded loops
         """
 
-        total = len(self.objects)
-        valid = [obj for obj in self.objects if obj is not None]
+        total = len(self.objects[label])
+        valid = [obj for obj in self.objects[label] if obj is not None]
         if valid:
             self.stats = {
                 'total': total,
@@ -123,21 +172,35 @@ class LoopRecorder:
         """
 
         angles = numpy.array(self.angles)
-        target = self.spindle.get_position()
-        if self.objects:
-            obj_times = numpy.array([obj.time for obj in self.objects if obj is not None and obj.label == 'loop'])
-            obj_heights = numpy.array([obj.h for obj in self.objects if obj is not None and obj.label == 'loop'])
-            obj_angles = numpy.interp(obj_times, angles[:, 0], angles[:, 1], left=0, right=0)
+        face_angle = self.spindle.get_position()
+        if self.objects['loops']:
+            loops = self.objects['loops']
+            loop_times = numpy.array([obj.time for obj in loops if obj is not None])
+            loop_heights = numpy.array([obj.h for obj in loops if obj is not None])
+            loop_angles = numpy.interp(loop_times, angles[:, 0], angles[:, 1], left=0, right=0)
+            face_angle = (loop_angles[numpy.argmin(loop_heights)] + 90.0) % 360
 
-            target = (obj_angles[numpy.argmin(obj_heights)] + 90.0) % 360
+        if self.objects['crystals']:
+            crystals = self.objects['crystals']
+            xtal_x = numpy.array([obj.x for obj in crystals if obj is not None])
+            xtal_y = numpy.array([obj.y for obj in crystals if obj is not None])
+            xtal_times = numpy.array([obj.time for obj in crystals if obj is not None])
+            xtal_scores = numpy.array([obj.score for obj in crystals if obj is not None])
+            xtal_angles = numpy.interp(xtal_times, angles[:, 0], angles[:, 1], left=0, right=0)
 
-            # from matplotlib import pyplot as plt
-            # fig, ax = plt.subplots()
-            # ax.plot(obj_times, obj_angles)
-            # ax.plot(obj_times, obj_heights)
-            # fig.savefig('/tmp/angle.png')
+            self.crystal_info = [
+                {
+                    'x': int(xtal_x[i]),
+                    'y': int(xtal_y[i]),
+                    'score': float(xtal_scores[i]),
+                    'angle': float(xtal_angles[i])
+                }
+                for i in range(len(xtal_x))
+            ]
+        else:
+            self.crystal_info = []
 
-        return target
+        return face_angle
 
     def get_edge_angle(self):
         """
