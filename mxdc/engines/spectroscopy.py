@@ -67,7 +67,7 @@ class XRFScan(BasicScan):
                 self.emit("progress", 0.06, f"Setting energy to {self.config['energy']} ...")
                 self.beamline.energy.wait()
                 self.beamline.attenuator.wait()
-                self.beamline.manager.wait(stop=True)
+                self.beamline.manager.wait()
                 self.emit("progress", .1, "Acquiring spectrum ...")
                 self.beamline.fast_shutter.open()
                 src_id = self.beamline.mca.connect('progress', self.on_mca_progress)

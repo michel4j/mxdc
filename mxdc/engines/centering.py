@@ -56,8 +56,8 @@ class Centering(Engine):
         self.results = {}
 
         self.methods = {
-            'loop': self.center_external,
-            'crystal': self.center_external,
+            'loop': self.center_crystal,
+            'crystal': self.center_crystal,
             'capillary': self.center_capillary,
             'diffraction': self.center_diffraction,
             'external': self.center_external,
@@ -126,7 +126,7 @@ class Centering(Engine):
 
         return recorder
 
-    def find_loop(self):
+    def find_crystal(self):
         """
         Rotate the sample to try and find an object
         """
@@ -139,7 +139,7 @@ class Centering(Engine):
 
         if recorder.has_crystal():
             x_positions = numpy.array([obj['x'] for obj in recorder.crystal_info])
-            cx = int(imgproc.clean_mean(x_positions))
+            cx = x_positions.mean()
             logger.debug(f'... Crystal found at x={cx}')
             xmm, ymm = self.position_to_mm(cx, 0)
             self.beamline.goniometer.stage.move_screen_by(-xmm, -ymm, 0.0, wait=True)
@@ -195,7 +195,7 @@ class Centering(Engine):
         good_trials = 0
         max_trials = 8
         omega_step = 90
-        valid_objects = ['loop', 'xtal', 'pin']
+        valid_objects = ['loop', 'crystal', 'pin']
         recorder = None
         steps = []
 
@@ -210,6 +210,7 @@ class Centering(Engine):
             elif last_trial:
                 recorder = self.loop_face()
                 step['loop_face'] = recorder.get_face_angle()
+                valid_objects = ['crystal', 'loop']     # prioritize crystals at the end
 
             # find first valid object, loop first then crystal then pin
             objects = self.device.wait(2)
@@ -231,7 +232,7 @@ class Centering(Engine):
                 logger.debug(f'Adjustment: {-xmm:0.4f}, {-ymm:0.4f}')
                 good_trials += 1
                 if good_trials > 2:
-                    valid_objects = ['loop', 'xtal']    # ignore pins after two good trials
+                    valid_objects = ['loop', 'crystal']    # ignore pins after two good trials
 
                 omega_step = 90
                 step['object_found'] = found

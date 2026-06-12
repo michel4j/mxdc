@@ -157,7 +157,7 @@ class ExtCenter(BaseCenter):
                     x = xs[crystals][0]
                     y = ys[crystals][0]
                     score = scores[crystals][0]
-                    crystal = CenterObject(x, y, score, label='xtal')
+                    crystal = CenterObject(x, y, score, label='crystal')
                     self.set_state(crystal=crystal)
                     objects.append(crystal)
                 except IndexError:
