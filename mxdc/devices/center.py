@@ -18,6 +18,7 @@ class CenterObject:
     score: float = 0.0
     w: int = 0
     h: int = 0
+    id: int = 0
     label: str = 'none'
     time: float = 0.0
 
@@ -53,6 +54,7 @@ class BaseCenter(Device):
             self.set_state(found=(obj.time, obj.label))
             self.found_since = obj.time
             return True
+        return False
 
     def get_object(self, label: str = 'loop') -> Optional[CenterObject]:
         """
@@ -115,72 +117,44 @@ class ExtCenter(BaseCenter):
         super().__init__(threshold=threshold)
         self.name = root
 
-        self.x = self.add_pv(f'{root}:x')
-        self.y = self.add_pv(f'{root}:y')
-        self.score = self.add_pv(f'{root}:score')
-        self.w = self.add_pv(f'{root}:w')
-        self.h = self.add_pv(f'{root}:h')
-        self.obj_x = self.add_pv(f'{root}:objects:x')
-        self.obj_y = self.add_pv(f'{root}:objects:y')
-        self.obj_scores = self.add_pv(f'{root}:objects:score')
-        self.obj_types = self.add_pv(f'{root}:objects:type')
-        self.size = self.add_pv(f'{root}:objects:valid')
+        self.obj_pvs = {
+            label: {
+                attr: self.add_pv(f'{root}:{label}:{attr}')
+                for attr in ['box', 'score', 'id', 'valid']
+            }
+            for label in ['loop', 'crystal', 'pin', 'extra']
+        }
+        self.status = self.add_pv(f'{root}:enable')
 
-        self.status = self.add_pv(f'{root}:status')
-        self.label = self.add_pv(f'{root}:label')
-        self.score.connect('changed', self.on_pos_changed)
-        self.obj_scores.connect('changed', self.on_obj_changed)
+        # connect signals for loop, crystals and pins (ignore extra for now)
+        for label in ['loop', 'crystal', 'pin']:
+            pvs = self.obj_pvs[label]
+            pvs['box'].connect('changed', self.on_box_changed, label)
+
         Registry.add_utility(ICenter, self)
 
-    def on_pos_changed(self, *args, **kwargs):
-        if self.w.get() > MIN_WIDTH:
-            cx = self.x.get() + self.w.get() / 2
-            cy = self.y.get() + self.h.get() / 2
-            loop = CenterObject(cx, cy, self.score.get(), self.w.get(), self.h.get(), label=self.label.get())
-            self.update_found(loop)
-            self.set_state(loop=loop)
-        else:
-            self.set_state(loop=None)
+    def on_box_changed(self, pv, value, label):
+        valid = self.obj_pvs[label]['valid'].get()
+        score = self.obj_pvs[label]['score'].get()
+        obj_id = self.obj_pvs[label]['id'].get()
+        box = self.obj_pvs[label]['box'].get()
 
-    def on_obj_changed(self, *args, **kwargs):
-        num_obj = self.size.get()
-        if num_obj > 0:
-            xs = self.obj_x.get()[:num_obj]
-            ys = self.obj_y.get()[:num_obj]
-            scores = self.obj_scores.get()[:num_obj]
-            types = self.obj_types.get()[:num_obj]
-            crystals = (types == self.ObjectType.CRYSTAL)
-            pins = (types == self.ObjectType.PIN)
-            objects = []
-            if crystals.any():
-                try:
-                    x = xs[crystals][0]
-                    y = ys[crystals][0]
-                    score = scores[crystals][0]
-                    crystal = CenterObject(x, y, score, label='crystal')
-                    self.set_state(crystal=crystal)
-                    objects.append(crystal)
-                except IndexError:
-                    pass
-            else:
-                self.set_state(crystal=None)
-            if pins.any():
-                try:
-                    x = xs[pins][0]
-                    y = ys[pins][0]
-                    score = scores[pins][0]
-                    pin = CenterObject(x, y, score, label='pin')
-                    self.set_state(pin=pin)
-                    objects.append(pin)
-                except IndexError:
-                    pass
-            else:
-                self.set_state(pin=None)
+        if not valid:
+            self.set_state(**{label: None})
+            return
 
-            for obj in objects:
-                self.update_found(obj)
+        x1, y1, x2, y2 = box
+        w = x2 - x1
+        h = y2 - y1
+        cy = y1 + h / 2
+        if label == 'pin':
+            cx = x1 + 0.9 * w   # center pins 90% of the way horizontally
         else:
-            self.set_state(crystal=None, pin=None)
+            cx = x1 + w / 2
+
+        obj = CenterObject(cx, cy, score, w, h, label=label, id=obj_id)
+        self.update_found(obj)
+        self.set_state(**{label: obj})
 
 
 class SimCenter(BaseCenter):
