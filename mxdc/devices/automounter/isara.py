@@ -1,6 +1,6 @@
 import time
-from typing import Any
 from enum import IntFlag, auto, IntEnum
+from typing import Any
 
 from mxdc.devices.automounter import AutoMounter, State, logger
 from mxdc.utils.automounter import Port, Puck
@@ -60,6 +60,14 @@ class Error(IntFlag):
 
 class StatusType(IntEnum):
     IDLE, WAITING, BUSY, STANDBY, FAULT = range(5)
+
+
+class ActionType(IntFlag):
+    NONE = 0
+    MOUNT = auto()
+    DISMOUNT = auto()
+    PREFETCH = auto()
+    ABORTING = auto()
 
 
 class HealthType(IntEnum):
@@ -139,6 +147,7 @@ class AuntISARA(AutoMounter):
 
         # feedback
         self.status_fbk = self.add_pv(f'{root}:STATUS')
+        self.action_fbk = self.add_pv(f'{root}:ACTION')
         self.power_fbk = self.add_pv(f'{root}:STATE:power')
         self.mode_fbk = self.add_pv(f'{root}:STATE:mode')
         self.cryo_fbk = self.add_pv(f'{root}:INP:cryoLevel')
@@ -167,7 +176,7 @@ class AuntISARA(AutoMounter):
 
         status_pvs = [
             self.status_fbk, self.enabled_fbk, self.connected_fbk, self.autofill_fbk, self.cryo_fbk,
-            self.mode_fbk, self.path_fbk, self.position_fbk, self.health_fbk
+            self.mode_fbk, self.path_fbk, self.position_fbk, self.health_fbk, self.action_fbk,
         ]
         for pv in status_pvs:
             pv.connect('changed', self.on_state_changed)
@@ -341,6 +350,7 @@ class AuntISARA(AutoMounter):
         raw_errors = Error(self.error_fbk.get())
         raw_health = HealthType(self.health_fbk.get())
         cur_status = self.get_state('status')
+        action = ActionType(self.action_fbk.get())
 
         status = {
             raw_status.IDLE: State.IDLE,
@@ -358,7 +368,7 @@ class AuntISARA(AutoMounter):
             status = State.ERROR
             diagnosis += ['Controller Disconnected! Staff Needed.']
             health |= 4
-        elif not self.enabled_fbk.get() or Error.WRONG_MODE in raw_errors or self.mode_fbk.get() == 0:
+        elif not self.enabled_fbk.get() or self.mode_fbk.get() == 0:
             status = State.WARNING
             diagnosis += ['Disabled by staff/Manual Mode']
             health |= 16
@@ -381,6 +391,12 @@ class AuntISARA(AutoMounter):
         elif raw_health == HealthType.OK:
             message = ''
             health = 0
+
+        if action != ActionType.NONE:
+            if status in [State.ERROR, State.WARNING]:
+                status = State.STANDBY
+            else:
+                status = State.BUSY
 
         if self.get_state('status') != status:
             self.set_state(status=status)

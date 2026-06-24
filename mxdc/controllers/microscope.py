@@ -550,9 +550,9 @@ class Microscope(Object):
     def on_mouse_scroll(self, widget, event):
         if 'GDK_CONTROL_MASK' in event.get_state().value_names and self.mode.name in ['CENTER', 'ALIGN']:
             if event.direction == Gdk.ScrollDirection.UP:
-                self.on_rotate(widget, 45)
+                self.on_rotate(widget, 10)
             elif event.direction == Gdk.ScrollDirection.DOWN:
-                self.on_rotate(widget, -45)
+                self.on_rotate(widget, -10)
 
     def on_mouse_motion(self, widget, event):
         if event.is_hint:
