@@ -3,15 +3,14 @@ from __future__ import annotations
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, Future
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 import mxio
 import pytz
 import webp
 from gi.repository import GLib
-from zope.interface import implementer
 from mxio.formats import cbf
-
+from zope.interface import implementer
 
 from mxdc import Registry, Signal, Engine
 from mxdc.devices.detector import DetectorFeatures
@@ -64,11 +63,12 @@ class DataCollector(Engine):
         self.data_saver = ThreadPoolExecutor(max_workers=5)
 
     def save_dataset(self, dataset, analyse=True) -> tuple:
-        for details in dataset.get_details():
-            logger.debug(f'Waiting for files to be transferred for dataset {details["name"]}...')
-            subsets = details.get('combine', [details["name"]])
-            for subset in subsets:
-                self.beamline.detector.wait_for_files(details['directory'], subset, details['frames'])
+        for wedge in dataset.get_wedges():
+            logger.debug(f'Waiting for files to be transferred for dataset {wedge["original_name"]}...')
+            file_list = self.beamline.detector.guess_file_list(
+                wedge['directory'], wedge['name'], wedge['num_frames'], first_frame=wedge['first']
+            )
+            misc.wait_for_files(file_list, timeout=30)
 
         names = ",".join(details['name'] for details in dataset.get_details())
         logger.debug(f'Saving datasets {names}...')

@@ -8,6 +8,7 @@ from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
 from mxdc.utils import datatools, scitools
+from mxdc.utils.datatools import clip_resolution
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.utils.misc import slugify
@@ -247,6 +248,12 @@ class Automator(Engine):
                 'delta': delta,
             }
             options.update(run)
+
+            # clip resolution and get distance from beamline limits
+            resolution, distance = clip_resolution(options['resolution'], self.beamline, options['energy'])
+            options['distance'] = distance
+            options['resolution'] = resolution
+
         return options
 
     @async_call
@@ -316,7 +323,7 @@ class Automator(Engine):
                 results = states.get_result(strategy_task)
                 strategy = results.get('strategy', {})
                 options = self.update_strategy(strategy, options)
-                logger.info(f'Data acquisition strategy updated!')
+                logger.info('Data acquisition strategy updated!')
             else:
                 logger.error('Strategy not found! Proceeding with default settings ...')
         self.emit('message', f'{task["name"]}: {sample["group"]}/{sample["name"]} - Acquiring ...')

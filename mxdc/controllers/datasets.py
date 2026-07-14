@@ -1,6 +1,5 @@
 import copy
 import time
-import os
 from datetime import timedelta
 from enum import Enum
 from pathlib import Path
@@ -13,15 +12,14 @@ from mxdc import Registry
 from mxdc.conf import load_cache, save_cache
 from mxdc.engines.automation import Automator
 from mxdc.engines.diffraction import DataCollector
-from mxdc.utils import converter, datatools, misc
+from mxdc.utils import converter, datatools
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import datawidget, dialogs, arrowframe, status
 from mxdc.widgets.datawidget import RunItem
-
 from mxdc.widgets.imageviewer import ImageViewer, IImageViewer
 from .microscope import IMicroscope
-from .samplestore import ISampleStore, SampleQueue, SampleStore
-from ..utils.datatools import StrategyType, Strategy, AnalysisType, calculate_skip, clip_resolution
+from .samplestore import ISampleStore, SampleQueue
+from ..utils.datatools import StrategyType, Strategy, clip_resolution
 from ..widgets.tasks import TaskItem, TaskRow, ANALYSIS_DESCRIPTIONS
 
 logger = get_module_logger(__name__)
@@ -483,9 +481,11 @@ class DatasetsController(Object):
     def on_dataset_ready(self, collector, name, meta_data):
         if meta_data and not self.image_viewer.is_collecting():
             dataset = meta_data[0]
-            last_frame = datatools.frameset_to_list(dataset['frames'])[-1]
-            reference_image = Path(dataset['directory']) / dataset['filename'].format(last_frame)
-            self.image_viewer.open_dataset(str(reference_image))
+            frames = datatools.frameset_to_list(dataset['frames'])
+            if frames:
+                last_frame = frames[-1]
+                reference_image = Path(dataset['directory']) / dataset['filename'].format(last_frame)
+                self.image_viewer.open_dataset(str(reference_image))
 
     def on_row_activated(self, list, row):
         self.auto_save_run()

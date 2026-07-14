@@ -1,28 +1,24 @@
 import copy
-
 import glob
 import os
+import random
 import re
 import shutil
 import time
-import random
 from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from enum import Enum, IntFlag, auto
+from pathlib import Path
 from typing import Dict
 
 import requests
-
-from pathlib import Path
-from datetime import datetime
-from enum import Enum, IntFlag, auto
-from concurrent.futures import ThreadPoolExecutor
-
+from gi.repository import GLib
 from mxio import read_header, read_image
 from zope.interface import implementer
 
-from gi.repository import GLib
-
 from mxdc import Signal, Device, Object
-from mxdc.utils import images, decorators, misc
+from mxdc.utils import images, decorators
 from mxdc.utils.log import get_module_logger
 from .interfaces import IImagingDetector
 
@@ -118,46 +114,19 @@ class BaseDetector(Device):
         """
         self.emit("new-image", data, force=True)
 
-    def guess_file_list(self, folder, prefix, frames: int) -> list[Path]:
+    def guess_file_list(self, folder, prefix, frames: int, first_frame: int = 1) -> list[Path]:
         """
         Given a folder and file name prefix, generate the expected list of files for the dataset.
 
         :param folder: directory
         :param prefix: dataset name
         :param frames: number of frames expected
+        :param first_frame: first frame number
         :return: list of file paths
         """
 
         template = self.get_template(prefix)
-        return [Path(folder) / template.format(i + 1) for i in range(frames)]
-
-    def wait_for_files(self, folder, prefix, frames: int, timeout=60):
-        """
-        Wait for files to be saved
-        :param folder: directory
-        :param prefix: dataset name
-        :param frames: number of frames expected
-        :param timeout: maximum time to wait in seconds
-        :return: True if successful
-        """
-
-        poll_interval = 5
-        files_to_find = set(self.guess_file_list(folder, prefix, frames))
-        end_time = time.time() + timeout
-        while time.time() < end_time:
-            found_files = set()
-            for file_path in files_to_find:
-                if file_path.exists():
-                    found_files.add(file_path)
-            files_to_find -= found_files
-            if not files_to_find:
-                break
-            time.sleep(poll_interval)
-        else:
-            missing_files = ', '.join(f.name for f in files_to_find)
-            logger.warning(f'Timeout waiting for files: {missing_files}')
-            return False
-        return len(files_to_find) == 0
+        return [Path(folder) / template.format(i + first_frame) for i in range(frames)]
 
     def get_template(self, prefix):
         """
@@ -767,10 +736,10 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         }
 
     def initialize(self, wait=True):
-        logger.debug('{} Initializing Detector ...'.format(self.name))
+        logger.debug(f'{self.name} Initializing Detector ...')
 
     def start(self, first=False):
-        logger.debug('{} Starting Acquisition ...'.format(self.name))
+        logger.debug(f'{self.name} Starting Acquisition ...')
         success = False
         tries = 0
         while not success and tries < 5:
@@ -781,7 +750,7 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         return success
 
     def stop(self):
-        logger.debug('{} Stopping Detector ...'.format(self.name))
+        logger.debug(f'{self.name} Stopping Detector ...')
         #self.acquire_cmd.put(0)
         return self.wait_while()
 
@@ -986,7 +955,7 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
     def get_template(self, prefix):
         return f'{prefix}_master.h5/{{:0{self.FRAME_DIGITS}d}}'
 
-    def guess_file_list(self, directory, prefix, num_images):
+    def guess_file_list(self, directory, prefix, num_images, first_frame: int = 1):
         frames_per_file = self.settings['batch_size'].get()
         num_data_files = (num_images + frames_per_file - 1) // frames_per_file
         file_list = [f'{prefix}_master.h5']
@@ -1004,14 +973,6 @@ class EigerDetector(ADDectrisMixin, BaseDetector):
             ]
         else:
             return []
-
-    def wait_for_files_old(self, folder, prefix, frames, timeout=60):
-        file_list = self.get_file_list(prefix)
-        end_time = time.time() + timeout
-        while file_list and time.time() < end_time:
-            time.sleep(2)
-            file_list = self.get_file_list(prefix)
-        return end_time > time.time()
 
     def save(self, wait=False):
         time.sleep(2)

@@ -2,7 +2,6 @@ import copy
 import glob
 import os
 import re
-
 from collections import defaultdict
 from datetime import date
 from datetime import datetime
@@ -11,6 +10,7 @@ from enum import IntEnum, auto
 import numpy
 import pytz
 from mxio import read_image
+
 from mxdc.utils import misc, converter
 
 FRAME_NUMBER_DIGITS = 4
@@ -603,10 +603,18 @@ class WedgeDispenser(object):
         # """
 
         for original_name, wedges in self.dispensed.items():
+
             details = copy.deepcopy(self.details)
             sub_wedges = [w['name'] for w in wedges]
             details.update(combine=sub_wedges)
             yield details
+
+    def get_wedges(self) -> list[dict]:
+        """
+        Return a list of dispensed wedges
+        :return: list[dict]
+        """
+        return [wedge for wedges in self.dispensed.values() for wedge in wedges]
 
     def fetch(self):
         """
@@ -710,5 +718,5 @@ def clip_resolution(resolution, beamline, energy) -> tuple[float, float]:
     )
     res = max(min(resolution, max_res), min_res)
     dist = converter.resol_to_dist(res, beamline.detector.mm_size, energy)
-    return res, dist
+    return float(res), float(dist)
 

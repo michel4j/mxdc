@@ -2,7 +2,6 @@ import gzip
 import hashlib
 import ipaddress
 import json
-import math
 import os
 import pickle
 import pwd
@@ -14,18 +13,19 @@ import string
 import struct
 import threading
 import time
-import unicodedata
 import uuid
-from inspect import getframeinfo, stack
 from abc import ABC
 from html.parser import HTMLParser
 from importlib import import_module
+from inspect import getframeinfo, stack
 from os import PathLike
 from pathlib import Path
 from typing import Any
 
+import math
 import msgpack
 import numpy
+import unicodedata
 import yaml
 from gi.repository import GLib
 from scipy import interpolate
@@ -946,3 +946,28 @@ def load_env(path):
                 os.environ[key] = value
 
     return env
+
+
+def wait_for_files(file_list: list[Path], timeout=60):
+    """
+    Wait for files to be present
+    :param file_list: list of file paths
+    :param timeout: maximum time to wait in seconds
+    :return: True if successful
+    """
+
+    if not file_list:
+        return True
+
+    poll_interval = 0.1
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        if not file_list:
+            break
+        os.scandir(file_list[0].parent)
+        file_list = [f for f in file_list if not f.exists()]
+        time.sleep(poll_interval)
+    else:
+        logger.warning(f'Timeout waiting for files: {len(file_list)} not found!')
+        return False
+    return len(file_list) == 0

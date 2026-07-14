@@ -39,7 +39,7 @@ dependencies = [
   "python-magic",
   "pytz",
   "ipython",
-  "mxio>=2023.1.4",
+  "mxio",
   "humanize",
   "lorem",
   "pandas",
