@@ -1,13 +1,12 @@
 import os
 import time
+from collections import defaultdict
 from datetime import datetime
+from queue import Queue
+from threading import Thread
 
 import numpy
 import pytz
-from scipy.stats import gmean
-from queue import Queue
-from collections import defaultdict
-from threading import Thread
 from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Engine
@@ -231,7 +230,8 @@ class RasterCollector(Engine):
             }
 
             # perform scan
-            if self.stopped: break
+            if self.stopped:
+                break
             self.beamline.detector.configure(**detector_parameters)
             if self.beamline.detector.start():
                 self.beamline.goniometer.scan(
@@ -257,12 +257,21 @@ class RasterCollector(Engine):
         params = self.config['params']
         gonio_gating = self.beamline.goniometer.supports(GonioFeatures.GATING)
         if gonio_gating:
-            extras = {'num_images': 1, 'num_triggers': params['hsteps']*params['vsteps']}
+            extras = {
+                'num_images': 1,
+                'num_triggers': params['hsteps']*params['vsteps']
+            }
         else:
             if params['hsteps'] == 1 and params['vsteps'] > 1:
-                extras = {'num_images': params['vsteps'],'num_triggers': params['hsteps']}
+                extras = {
+                    'num_images': params['vsteps'],
+                    'num_triggers': params['hsteps']
+                }
             else:
-                extras = {'num_images': params['hsteps'],'num_triggers': params['vsteps']}
+                extras = {
+                    'num_images': params['hsteps'],
+                    'num_triggers': params['vsteps']
+                }
 
         detector_parameters = {
             'file_prefix': params['name'],
@@ -274,7 +283,7 @@ class RasterCollector(Engine):
             'exposure_time': params['exposure'],
             'start_angle': params['angle'],
             'delta_angle': params['delta'],
-            'comments': 'BEAMLINE: {} {}'.format('CLS', self.beamline.name),
+            'comments': f'BEAMLINE: {"CLS"} {self.beamline.name}',
             'user': owner,
             'group': group,
             **extras
@@ -286,8 +295,8 @@ class RasterCollector(Engine):
             logger.debug('Performing raster scan ...')
             self.beamline.goniometer.scan(
                 kind='raster',
-                time=params['exposure'],  # per frame
-                range=params['delta'], # per frame
+                time=params['exposure'],    # per frame
+                range=params['delta'],      # per frame
                 angle=params['angle'],
                 hsteps=params['hsteps'],
                 vsteps=params['vsteps'],
@@ -295,7 +304,7 @@ class RasterCollector(Engine):
                 height=params['height'],
                 start_pos=params['grid'][0],
                 wait=True,
-                timeout=max(60, params['exposure'] * self.total_frames * 3),
+                timeout=max(60, params['exposure'] * self.total_frames + 60),
                 gating=gonio_gating
             )
             self.beamline.detector.save()

@@ -2201,15 +2201,15 @@ files = [
 
 [[package]]
 name = "mxio"
-version = "2025.10.6"
+version = "2025.10.7"
 description = "A Simple X-ray Area Detector Data IO Library"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["main"]
 markers = "sys_platform == \"win32\" or sys_platform == \"emscripten\" or sys_platform != \"win32\" and sys_platform != \"emscripten\""
 files = [
-    {file = "mxio-2025.10.6-py3-none-any.whl", hash = "sha256:22678fb29c6788e752c90213c42bcffa595e0b9f86a0d6926c3f0edd3a423826"},
-    {file = "mxio-2025.10.6.tar.gz", hash = "sha256:47712a24cd5f5d641e55627500b1d28da72679662c809866a241c49e91211adb"},
+    {file = "mxio-2025.10.7-py3-none-any.whl", hash = "sha256:52526da104e5230ec4d1f5c7562e80118517c1b01fa8c0e574fad535ba798cdb"},
+    {file = "mxio-2025.10.7.tar.gz", hash = "sha256:0ec63aa37441a4ad79ba7afac98d695f2dcedb43396ad574969976068d621371"},
 ]
 
 [package.dependencies]
@@ -4752,4 +4752,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<4.0"
-content-hash = "7a297723c5c4c19ead9eacd65fdb1aed053154c56ecfb71d57e038758120865c"
+content-hash = "c068ce48772afb2038454b650d22c8a3bbfec03e9853b7a6aa78140881462874"

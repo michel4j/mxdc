@@ -3089,7 +3089,7 @@ scan</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">False</property>
                                                 <property name="halign">start</property>
-                                                <property name="label" translatable="yes">Exposure</property>
+                                                <property name="label" translatable="yes">Exposure/Frame</property>
                                                 <property name="use-markup">True</property>
                                                 <style>
                                                   <class name="device-label"/>
@@ -3106,7 +3106,7 @@ scan</property>
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="width-chars">10</property>
-                                                <property name="text" translatable="yes">0.5</property>
+                                                <property name="text" translatable="yes">0.1</property>
                                                 <property name="xalign">1</property>
                                                 <property name="secondary-icon-name">units-sec-symbolic</property>
                                                 <property name="primary-icon-activatable">False</property>

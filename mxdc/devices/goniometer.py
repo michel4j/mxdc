@@ -439,24 +439,21 @@ class MD2Gonio(BaseGoniometer):
             kwargs['snake'] = int(self.grid_settings()['snake'])
 
             # Scale and convert um to mm
-            # MD2 appears to need correction of scan size by -1 in each direction
+            # MD2 appears to need correction of scan size by -1 in the vertical direction
 
             w_adj = 1
-            #h_adj = 1
-
-            #w_adj = (kwargs['hsteps'] - 0.5)/kwargs['hsteps']
             h_adj = (kwargs['vsteps'] - 1)/kwargs['vsteps']
 
             kwargs['width'] *= w_adj * 1e-3
             kwargs['height'] *= h_adj * 1e-3
-            if self.power_pmac:
-                kwargs['time'] *= h_adj
+            # if self.power_pmac:
+            #     kwargs['time'] *= h_adj
             kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = 1
 
             start_y, start_cy, start_cx = kwargs.pop('start_pos')
             start_z = self.gon_z_fbk.get()
-            kwargs['start'] = (start_y, start_z, start_cx, start_cy)
+            kwargs['start'] = list(map(float, (start_y, start_z, start_cx, start_cy)))
 
             frames, lines = kwargs.get('hsteps', 1), kwargs.get('vsteps', 1)
             line_size = kwargs['width']
@@ -467,12 +464,8 @@ class MD2Gonio(BaseGoniometer):
                 y_offset = kwargs['height']/2
                 self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
 
-            #if self.power_pmac and gating:
-            #    frames, lines = kwargs.get('hsteps', 1) - 1, kwargs.get('vsteps', 1)
-
             frames = max(frames, 1)
             lines = max(lines, 2)
-
             # Vertical line on Power is Helical scan instead
             if self.power_pmac and frames == 1:
                 frames, lines = lines, frames   # Swap lines and frames
@@ -497,10 +490,10 @@ class MD2Gonio(BaseGoniometer):
                 )
                 return
             else:
+                images_per_line = kwargs['hsteps']
                 kwargs['frames'] = frames if gating else 1
                 kwargs['lines'] = lines
-                kwargs['time'] *= frames
-                kwargs['range'] *= frames
+                kwargs['time'] *= images_per_line
 
                 misc.set_settings(self.raster_settings, debug=True, **kwargs)
                 self.wait_stop(timeout=60)
@@ -508,7 +501,7 @@ class MD2Gonio(BaseGoniometer):
 
         timeout = timeout or (10 + 2 * kwargs['time'])
         msg = f'"{kind}" scan failed!'
-        if self.wait(start=True, stop=wait, timeout=timeout):
+        if self.wait(start=True, stop=wait, timeout=10*timeout):
             msg = f'"{kind}" scan complete!'
 
         logger.info(msg)
