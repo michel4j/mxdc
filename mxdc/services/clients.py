@@ -17,7 +17,7 @@ import requests
 import szrpc.client
 from backports.datetime_fromisoformat import MonkeyPatch
 
-# szrpc.client.use(GResult)
+szrpc.client.Client.use('szrpc.result.gresult.GResult')
 
 MonkeyPatch.patch_fromisoformat()
 
