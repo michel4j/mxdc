@@ -1,16 +1,17 @@
 import os
-from typing import Sequence
 from pathlib import Path
-from twisted.internet.defer import inlineCallbacks, returnValue
+from typing import Sequence
+
+from gi.repository import GLib
 from zope.interface import implementer
 
 from mxdc import Registry, Signal, Engine, IBeamline
 from mxdc.conf import settings
 from mxdc.engines.interfaces import IAnalyst
 from mxdc.utils import misc, datatools
+from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 
-from gi.repository import GLib
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
@@ -73,6 +74,7 @@ class Analyst(Engine):
         self.beamline = Registry.get_utility(IBeamline)
         Registry.add_utility(IAnalyst, self)
 
+    @async_call
     def on_process_done(self, result, data, params):
         report = result.results
         report['data_id'] = params['data_id']
@@ -86,6 +88,7 @@ class Analyst(Engine):
         # - submit a request to the MR engine
         # - connect future to register MR results with done
 
+    @async_call
     def on_process_failed(self, result, error, params):
         report = {
             'error': error,
