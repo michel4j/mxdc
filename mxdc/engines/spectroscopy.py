@@ -61,9 +61,10 @@ class XRFScan(BasicScan):
                 self.beamline.mca.configure(cooling=True)
                 if self.config.low_dose:
                     self.emit("progress", 0.02, "Setting attenuation ...")
-                    attenuation = self.beamline.config.xrf.attenuation
-                    self.beamline.attenuator.move_to(attenuation, wait=True)
-                    self.config.attenuation = attenuation
+                    self.beamline.low_dose.on()
+                    # attenuation = self.beamline.config.xrf.attenuation
+                    # self.beamline.attenuator.move_to(attenuation, wait=True)
+                    # self.config.attenuation = attenuation
                 self.emit("progress", 0.06, f"Setting energy to {self.config['energy']} ...")
                 self.beamline.energy.wait()
                 self.beamline.attenuator.wait()
@@ -80,7 +81,7 @@ class XRFScan(BasicScan):
                 self.beamline.fast_shutter.close()
                 self.beamline.low_dose.off()
                 self.beamline.manager.collect()
-                self.beamline.attenuator.move_to(saved_attenuation)
+                # self.beamline.attenuator.move_to(saved_attenuation)
 
     def on_mca_progress(self, obj, value):
         self.emit("progress", 0.1 + value * 0.8, "Acquiring Spectrum ...")
