@@ -367,7 +367,7 @@ class MD2Gonio(BaseGoniometer):
     def grid_settings(self):
         return {
             "snake": True,
-            "vertical": not self.power_pmac,
+            "vertical": False,
             "buggy": False,
         }
 
@@ -401,7 +401,9 @@ class MD2Gonio(BaseGoniometer):
         is_helical = all((
             kind == 'shutterless', kwargs.get('start_pos'), kwargs.get('end_pos'), self.supports(GonioFeatures.SCAN4D)
         ))
+
         if is_helical:
+            logger.info('Helical scanning ...')
             kind = 'helical'
 
         if kind not in ['helical', 'raster'] and kwargs.get('start_pos') is not None:
@@ -412,28 +414,27 @@ class MD2Gonio(BaseGoniometer):
             logger.error('Goniometer is busy. Aborting ')
             return
 
-        # Turn on Front Light
-        self.front_light_cmd.put(1)
-
         # configure device and start scan
         self.set_state(message=f'"{kind}" Scanning ...')
         if kind in ['simple', 'shutterless']:
             kwargs['frames'] = kwargs['frames'] if gating else 1
             misc.set_settings(self.settings, **kwargs)
+            self.wait_stop(timeout=60)
             self.scan_cmd.put(self.NULL_VALUE)
         elif kind == 'helical':
             start_y, start_cy, start_cx = kwargs.pop('start_pos')
             stop_y, stop_cy, stop_cx = kwargs.pop('end_pos')
             start_z = stop_z = self.gon_z_fbk.get()
             if self.helix_cmd.name.endswith('Ex'):
-                kwargs['start'] = (start_y, start_z, start_cx, start_cy)
-                kwargs['stop'] = (stop_y, stop_z, stop_cx, stop_cy)
+                kwargs['start'] = (float(start_y), float(start_z), float(start_cx), float(start_cy))
+                kwargs['stop'] = (float(stop_y), float(stop_z), float(stop_cx), float(stop_cy))
             else:
                 kwargs['start'] = f"{start_y:0.5f},{start_z:0.5f},{start_cx:0.5f},{start_cy}:0.5f"
                 kwargs['stop'] = f"{stop_y:0.5f},{stop_z:0.5f},{stop_cx:0.5f}, {stop_cy:0.5f}"
 
             kwargs['frames'] = kwargs['frames'] if gating else 1
-            misc.set_settings(self.helix_settings, **kwargs)
+            misc.set_settings(self.helix_settings, debug=True, **kwargs)
+            self.wait_stop(timeout=60)
             self.helix_cmd.put(self.NULL_VALUE)
         elif kind == 'raster':
             kwargs['snake'] = int(self.grid_settings()['snake'])
@@ -459,15 +460,16 @@ class MD2Gonio(BaseGoniometer):
             line_size = kwargs['width']
 
             # frames and lines are inverted for vertical scans on non-powerpmac systems
-            if kwargs['width'] < kwargs['height'] and not self.power_pmac:
-                frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
-                y_offset = kwargs['height']/2
-                self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
+            # if kwargs['width'] < kwargs['height'] and not self.power_pmac:
+            #     frames, lines = kwargs.get('vsteps', 1), kwargs.get('hsteps',1)
+            #     y_offset = kwargs['height']/2
+            #     self.stage.move_screen_by(0, y_offset, 0.0, wait=True)
 
             frames = max(frames, 1)
-            lines = max(lines, 2)
+            lines = max(lines, 1)
+
             # Vertical line on Power is Helical scan instead
-            if self.power_pmac and frames == 1:
+            if frames == 1:
                 frames, lines = lines, frames   # Swap lines and frames
                 origin_x, origin_y, origin_z = self.stage.get_xyz()
                 y_offset = kwargs['height']/2

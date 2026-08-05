@@ -509,7 +509,7 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
         }
 
     def initialize(self, wait=True):
-        logger.debug('({}) Initializing Detector ...'.format(self.name))
+        logger.debug(f'({self.name}) Initializing Detector ...')
         self.initialized = True
         self.frame_type.put(1)
         self.trigger_mode.put(0)
@@ -520,13 +520,13 @@ class RayonixDetector(ADGenericMixin, BaseDetector):
         self.trigger_mode.put(1)
 
     def start(self, first=False):
-        logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        logger.debug(f'({self.name}) Starting Acquisition ...')
         self.wait_until(States.IDLE, States.STANDBY)
         self.acquire_cmd.put(1)
         return self.wait_until(States.ACQUIRING)
 
     def stop(self):
-        logger.debug('({}) Stopping Detector ...'.format(self.name))
+        logger.debug(f'({self.name}) Stopping Detector ...')
         self.acquire_cmd.put(0)
         self.wait_until(States.IDLE)
 
@@ -620,14 +620,14 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
         }
 
     def initialize(self, wait=True):
-        logger.debug('({}) Initializing Detector ...'.format(self.name))
+        logger.debug(f'({self.name}) Initializing Detector ...')
         self.initialized = True
         self.trigger_mode.put(1)  # External
         self.reuse_dark.put(1)  # Reuse dark frames for dezingering
         self.dezinger_mode.put(1)  # Dezinger images
 
     def start(self, first=False):
-        logger.debug('({}) Starting Acquisition ...'.format(self.name))
+        logger.debug(f'({self.name}) Starting Acquisition ...')
         self.wait_until(States.IDLE)
         self.prepare_cmd.put(1)
         self.wait_until(States.ARMED)
@@ -635,7 +635,7 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
         return self.wait_until(States.ACQUIRING)
 
     def stop(self):
-        logger.debug('({}) Stopping Detector ...'.format(self.name))
+        logger.debug(f'({self.name}) Stopping Detector ...')
         self.acquire_cmd.put(0)
         self.wait_until(States.IDLE)
 
@@ -688,19 +688,19 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         self.mode_cmd = self.add_pv('{}:TriggerMode'.format(name))
 
         self.connected_status = self.add_pv('{}:AsynIO.CNCT'.format(name))
-        self.armed_status = self.add_pv("{}:Armed".format(name))
+        self.armed_status = self.add_pv(f"{name}:Armed")
 
-        self.acquire_status = self.add_pv("{}:Acquire".format(name))
-        self.energy_threshold = self.add_pv('{}:ThresholdEnergy_RBV'.format(name))
+        self.acquire_status = self.add_pv(f"{name}:Acquire")
+        self.energy_threshold = self.add_pv(f'{name}:ThresholdEnergy_RBV')
         self.energy = self.add_pv(f'{name}:Energy_RBV')
-        self.state_value = self.add_pv('{}:DetectorState_RBV'.format(name))
-        self.state_msg = self.add_pv('{}:StatusMessage_RBV'.format(name))
-        self.command_string = self.add_pv('{}:StringToServer_RBV'.format(name))
-        self.response_string = self.add_pv('{}:StringFromServer_RBV'.format(name))
-        self.file_format = self.add_pv("{}:FileTemplate".format(name))
-        self.saved_frame_fbk = self.add_pv('{}:ArrayCounter_RBV'.format(name))
-        self.saved_frame = self.add_pv('{}:ArrayCounter'.format(name))
-        self.file_timeout = self.add_pv('{}:ImageFileTmot'.format(name))
+        self.state_value = self.add_pv(f'{name}:DetectorState_RBV')
+        self.state_msg = self.add_pv(f'{name}:StatusMessage_RBV')
+        self.command_string = self.add_pv(f'{name}:StringToServer_RBV')
+        self.response_string = self.add_pv(f'{name}:StringFromServer_RBV')
+        self.file_format = self.add_pv(f"{name}:FileTemplate")
+        self.saved_frame_fbk = self.add_pv(f'{name}:ArrayCounter_RBV')
+        self.saved_frame = self.add_pv(f'{name}:ArrayCounter')
+        self.file_timeout = self.add_pv(f'{name}:ImageFileTmot')
 
         self.saved_frame_fbk.connect('changed', self.on_new_frame)
         self.state_value.connect('changed', self.on_state_value)
@@ -714,32 +714,32 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
             'file_prefix': self.add_pv(f"{name}:FileName"),
             'directory': self.add_pv(f"{name}:FilePath"),
 
-            'start_angle': self.add_pv("{}:StartAngle".format(name)),
-            'delta_angle': self.add_pv("{}:AngleIncr".format(name)),
-            'exposure_time': self.add_pv("{}:AcquireTime".format(name)),
-            'exposure_period': self.add_pv("{}:AcquirePeriod".format(name)),
+            'start_angle': self.add_pv(f"{name}:StartAngle"),
+            'delta_angle': self.add_pv(f"{name}:AngleIncr"),
+            'exposure_time': self.add_pv(f"{name}:AcquireTime"),
+            'exposure_period': self.add_pv(f"{name}:AcquirePeriod"),
 
-            'wavelength': self.add_pv("{}:Wavelength".format(name)),
-            'beam_x': self.add_pv("{}:BeamX".format(name)),
-            'beam_y': self.add_pv("{}:BeamY".format(name)),
-            'distance': self.add_pv("{}:DetDist".format(name)),
-            'axis': self.add_pv("{}:OscillAxis".format(name)),
-            'two_theta': self.add_pv("{}:Det2theta".format(name)),
-            'alpha': self.add_pv("{}:Alpha".format(name)),
-            'kappa': self.add_pv("{}:Kappa".format(name)),
-            'phi': self.add_pv("{}:Phi".format(name)),
-            'chi': self.add_pv("{}:Chi".format(name)),
-            'polarization': self.add_pv("{}:Polarization".format(name)),
-            'threshold_energy': self.add_pv('{}:ThresholdEnergy'.format(name)),
+            'wavelength': self.add_pv(f"{name}:Wavelength"),
+            'beam_x': self.add_pv(f"{name}:BeamX"),
+            'beam_y': self.add_pv(f"{name}:BeamY"),
+            'distance': self.add_pv(f"{name}:DetDist"),
+            'axis': self.add_pv(f"{name}:OscillAxis"),
+            'two_theta': self.add_pv(f"{name}:Det2theta"),
+            'alpha': self.add_pv(f"{name}:Alpha"),
+            'kappa': self.add_pv(f"{name}:Kappa"),
+            'phi': self.add_pv(f"{name}:Phi"),
+            'chi': self.add_pv(f"{name}:Chi"),
+            'polarization': self.add_pv(f"{name}:Polarization"),
+            'threshold_energy': self.add_pv(f'{name}:ThresholdEnergy'),
             'energy': self.add_pv(f'{name}:Energy'),
-            'comments': self.add_pv('{}:HeaderString'.format(name)),
+            'comments': self.add_pv(f'{name}:HeaderString'),
         }
 
     def initialize(self, wait=True):
-        logger.debug(f'{self.name} Initializing Detector ...')
+        logger.debug(f'({self.name}) Initializing Detector ...')
 
     def start(self, first=False):
-        logger.debug(f'{self.name} Starting Acquisition ...')
+        logger.debug(f'({self.name}) Starting Acquisition ...')
         success = False
         tries = 0
         while not success and tries < 5:
@@ -750,8 +750,8 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
         return success
 
     def stop(self):
-        logger.debug(f'{self.name} Stopping Detector ...')
-        #self.acquire_cmd.put(0)
+        logger.debug(f'({self.name}) Stopping Detector ...')
+        self.acquire_cmd.put(0)
         return self.wait_while()
 
     def get_origin(self):
@@ -763,9 +763,9 @@ class PilatusDetector(ADDectrisMixin, BaseDetector):
 
     def save(self, wait=False):
         time.sleep(2)
-        logger.debug('({}) Acquisition completed ...'.format(self.name))
-        #self.acquire_cmd.put(0)
-        self.wait_until(States.IDLE)
+        logger.debug(f'({self.name}) Acquisition completed ...')
+        self.acquire_cmd.put(0)
+        self.wait_until(States.IDLE, States.ERROR)
 
     def on_new_frame(self, obj, frame_number):
 

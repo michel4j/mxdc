@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-import traceback
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -344,7 +343,7 @@ class Centering(Engine):
         return self.center_external()
 
     def center_diffraction(self):
-        self.center_external()
+        self.center_crystal()
         steps = {'loop': self.results}
         scores = [self.score]
 
@@ -362,43 +361,53 @@ class Centering(Engine):
         mtr_exp_limit = aperture * 1e-3 / self.beamline.config.raster.max_speed
         exposure = max(exposure, det_exp_limit, mtr_exp_limit)
 
+        loop = self.beamline.sample_xcenter.get_state('loop')
+
         for step in ['face', 'edge']:
-            logger.info('Performing raster scan on {}'.format(step))
-            self.beamline.goniometer.wait(start=False)
+            self.beamline.goniometer.wait(start=False, stop=True)
             if step == 'edge':
                 self.beamline.goniometer.omega.move_by(90, wait=True)
-            angle, info = self.get_features()
-            width = self.pixel_to_mm(1.75 * abs(info['x'] - info['loop-x'])) * 1e3  # in microns
-            height = self.pixel_to_mm(info['loop-height']) * 1e3  # in microns
-            width = max(width, height)
+                time.sleep(1)
 
+            logger.info(f'Performing diffraction centering step: {step}')
+            width = self.pixel_to_mm(loop.w) * 1e3  # in microns
+            height = self.pixel_to_mm(loop.h) * 1e3  # in microns
+
+            angle = self.beamline.goniometer.omega.get_position()
             params = {
-                'name': datetime.now().strftime('%y%m%d-%H%M'),
+                'name': datetime.now().strftime('DCNTR-%y%m%d-%H%M'),
                 'uuid': str(uuid.uuid4()),
                 'activity': 'raster',
                 'energy': energy,
                 'delta': RASTER_DELTA,
                 'exposure': exposure,
-                'attenuation': self.beamline.attenuator.get_position(),
+                'attenuation': 0.0,
                 'aperture': aperture,
                 'distance': converter.resol_to_dist(
                     resolution, self.beamline.detector.mm_size, energy
                 ),
                 'origin': self.beamline.goniometer.stage.get_xyz(),
                 'resolution': resolution,
-                'angle': self.beamline.goniometer.omega.get_position(),
-
+                'angle': angle,
             }
 
             if step == 'edge':
-                params.update({'hsteps': 1, 'vsteps': int(height * 3 // aperture)})
+                params.update({
+                    'hsteps': 1,
+                    'vsteps': int(height * 1.5 // aperture),
+                    'range': 0.25,
+                })
             else:
-                params.update({'hsteps': int(width * 1.2 // aperture), 'vsteps': int(height * 1.2 // aperture)})
+                params.update({
+                    'hsteps': int(width // aperture),
+                    'vsteps': int(height // aperture),
+                    'range': 0.25,
+                })
 
             params = datatools.update_for_sample(
                 params, sample=self.sample_store.get_current(), session=self.beamline.session_key
             )
-            logger.info('Finding best diffraction spot in grid')
+
             self.collector.configure(params)
             self.collector.run(switch_to_center=(step == "edge"))
 
@@ -406,8 +415,10 @@ class Centering(Engine):
             while not self.collector.is_complete():
                 time.sleep(.1)
 
+            logger.info(f'All grid scores now available for {step}')
             grid_config = self.collector.get_grid()
-            grid_scores = grid_config['grid_scores']  # gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
+            grid_scores = grid_config['grid_scores']  #
+            # grid_scores = gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
 
             steps[step] = {
                 'parameters': params,
@@ -420,7 +431,8 @@ class Centering(Engine):
             best_index = grid_config['grid_index'].index(best)
             point = grid_config['grid_xyz'][best_index]
             score = scipy.stats.percentileofscore(grid_scores.ravel(), best_score)
-            logger.info(f'Best diffraction at {best_index}: score={score:0.1f}%')
+            logger.info(f'Best diffraction at {best_index + 1}: score={score:0.1f}%')
+            self.beamline.goniometer.wait(start=False, stop=True)
             self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
 
             scores.append(score)

@@ -1,6 +1,6 @@
 import time
-
 from enum import Enum
+
 from gi.repository import GLib
 from zope.interface import implementer
 
@@ -278,7 +278,7 @@ class MD2Manager(BaseManager):
         if self.get_state('mode') != self.ModeType.MOUNT:
             self.mode_cmd.put(self.mode_to_int[self.ModeType.MOUNT])
         if wait:
-            self.wait(self.ModeType.MOUNT)
+            self.wait()
 
     def center(self, wait=False):
         """
@@ -288,7 +288,7 @@ class MD2Manager(BaseManager):
         if self.get_state('mode') != self.ModeType.CENTER:
             self.mode_cmd.put(self.mode_to_int[self.ModeType.CENTER])
         if wait:
-            self.wait(self.ModeType.CENTER)
+            self.wait()
 
     def collect(self, wait=False):
         """
@@ -298,7 +298,7 @@ class MD2Manager(BaseManager):
         if self.get_state('mode') != self.ModeType.COLLECT:
             self.mode_cmd.put(self.mode_to_int[self.ModeType.COLLECT])
         if wait:
-            self.wait(self.ModeType.COLLECT)
+            self.wait()
 
     def align(self, wait=False):
         """
@@ -308,7 +308,7 @@ class MD2Manager(BaseManager):
         if self.get_state('mode') != self.ModeType.ALIGN:
             self.mode_cmd.put(self.mode_to_int[self.ModeType.ALIGN])
         if wait:
-            self.wait(self.ModeType.ALIGN)
+            self.wait()
 
     def scan(self, wait=False):
         """
@@ -317,7 +317,7 @@ class MD2Manager(BaseManager):
         """
         self.mca_nozzle.put(0)
         if wait:
-            self.wait(self.ModeType.SCAN)
+            self.wait()
 
 
 class ModeManager(BaseManager):
@@ -386,7 +386,7 @@ class ModeManager(BaseManager):
         if self.get_state('mode') != self.ModeType.MOUNT:
             self.mode_commands[self.ModeType.MOUNT].put(1)
         if wait:
-            self.wait(self.ModeType.MOUNT)
+            self.wait()
 
     def center(self, wait=False):
         """
@@ -397,7 +397,7 @@ class ModeManager(BaseManager):
         if self.get_state('mode') != self.ModeType.CENTER:
             self.mode_commands[self.ModeType.CENTER].put(1)
         if wait:
-            self.wait(self.ModeType.CENTER)
+            self.wait()
 
     def collect(self, wait=False):
         """
@@ -407,19 +407,19 @@ class ModeManager(BaseManager):
         logger.debug('Switching to collect mode ...')
         if self.get_state('mode') != self.ModeType.COLLECT:
             self.mode_commands[self.ModeType.COLLECT].put(1)
-        if wait:
-            self.wait(self.ModeType.COLLECT)
+            if wait:
+                self.wait()
 
     def align(self, wait=False):
         """
         Switch to Align mode
         :param wait: wait for switch to complete
         """
-        logger.debug('Switching to collect mode ...')
+        logger.debug('Switching to align mode ...')
         if self.get_state('mode') != self.ModeType.ALIGN:
             self.mode_commands[self.ModeType.ALIGN].put(1)
         if wait:
-            self.wait(self.ModeType.ALIGN)
+            self.wait()
 
     def scan(self, wait=False):
         """
@@ -429,4 +429,4 @@ class ModeManager(BaseManager):
         if self.get_state('mode') != self.ModeType.SCAN:
             self.mode_commands[self.ModeType.SCAN].put(1)
         if wait:
-            self.wait(self.ModeType.SCAN)
+            self.wait()

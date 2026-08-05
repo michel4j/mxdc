@@ -31,6 +31,7 @@ class IRasterCollector(Interface):
 def logistic(x, x0=0.0, weight=1.0, scale=1.0):
     return weight / (1 + numpy.exp(-scale * (x - x0)))
 
+
 def score_signal(results):
     return results['bragg_spots']
     # return gmean([
@@ -141,7 +142,6 @@ class RasterCollector(Engine):
 
         # switch to collect mode
         self.beamline.manager.collect(wait=True)
-
         if params.get('low_dose'):
             self.beamline.low_dose.on()
 
@@ -204,7 +204,7 @@ class RasterCollector(Engine):
             self.emit('done', None)
 
     def acquire_step(self):
-        logger.debug('Rastering ... ')
+        logger.info('Starting raster step-scan ... ')
         self.start_signal_strength()
         for i, frame in enumerate(datatools.grid_frames(self.config['params'])):
             if self.stopped: break
@@ -241,7 +241,7 @@ class RasterCollector(Engine):
                     angle=frame['start'],
                     start_pos=frame['p0'],
                     wait=True,
-                    timeout=frame['exposure'] * 20
+                    timeout=min(30, frame['exposure'] * 20)
                 )
                 self.beamline.detector.save()
             else:
@@ -249,7 +249,7 @@ class RasterCollector(Engine):
             time.sleep(0)
 
     def acquire_slew(self):
-        logger.debug('Setting up detector for rastering ... ')
+        logger.info('Starting raster fly-scan ... ')
 
         # Prepare detector
         owner = misc.get_project_name()
@@ -304,7 +304,7 @@ class RasterCollector(Engine):
                 height=params['height'],
                 start_pos=params['grid'][0],
                 wait=True,
-                timeout=max(60, params['exposure'] * self.total_frames + 60),
+                timeout=min(30, params['exposure'] * self.total_frames),
                 gating=gonio_gating
             )
             self.beamline.detector.save()
