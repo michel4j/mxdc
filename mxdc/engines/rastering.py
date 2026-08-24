@@ -32,14 +32,6 @@ def logistic(x, x0=0.0, weight=1.0, scale=1.0):
     return weight / (1 + numpy.exp(-scale * (x - x0)))
 
 
-def score_signal(results):
-    return results['bragg_spots']
-    # return gmean([
-    #     results['bragg_spots'],
-    #     results['signal_avg'],
-    # ])
-
-
 @implementer(IRasterCollector)
 class RasterCollector(Engine):
     class Signals:

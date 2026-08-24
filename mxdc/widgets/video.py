@@ -394,10 +394,11 @@ class VideoWidget(Gtk.DrawingArea):
         if self.overlays.get('annotations') is None:
             return
 
-        cr.set_font_size(9)
-        cr.set_line_width(1.0)
+        cr.set_font_size(13)
+        cr.set_line_width(1.5)
 
         cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+        #cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
 
         # rectangle
         cr.set_operator(cairo.OPERATOR_DIFFERENCE)
