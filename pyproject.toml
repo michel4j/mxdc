@@ -1,7 +1,7 @@
 
 [project]
 name = "mxdc"
-dynamic = []
+dynamic = ["version"]
 description = "Mx Data Collector"
 readme = "README.rst"
 readme-content-type = "text/x-rst"
@@ -51,7 +51,7 @@ dependencies = [
   "webp",
   "numpy",
 ]
-version = "2026.1.17"
+
 
 [project.urls]
 Homepage = "https://github.com/michel4j/mxdc"
@@ -61,6 +61,8 @@ Issues = "https://github.com/michel4j/mxdc/issues"
 packages = [
     { include = "mxdc", from = "." },
 ]
+version = "0.0.0"
+
 include = [
     {path = "docs/**", format = ["sdist"]},
     {path = "deploy/*desktop", format = ["sdist"]},
@@ -106,6 +108,6 @@ sphinxcontrib-napoleon = ">=0.7"
 poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry-dynamic-versioning]
-enable = false
+enable = true
 vcs = "git"
 format = "{base}.{revision}{distance}"
