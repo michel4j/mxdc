@@ -287,30 +287,29 @@ class VideoWidget(Gtk.DrawingArea):
             self.overlays.pop('ruler', None)
         self.queue_draw()
 
+    def _get_updated_surface(self, src: cairo.ImageSurface) -> cairo.ImageSurface:
+        target = cairo.ImageSurface(cairo.FORMAT_ARGB32, *self.size)
+        ctx = cairo.Context(target)
+        ctx.set_source_surface(src, 0, 0)
+        ctx.paint()
+        self.draw_beam(ctx)
+        self.draw_ruler(ctx)
+        self.draw_box(ctx)
+        self.draw_annotation(ctx)
+        self.draw_points(ctx)
+        self.draw_grid(ctx)
+        return target
+
     def save_image(self, filename):
-        self.save_file = filename
+        target = self._get_updated_surface(self.this_surface)
+        self.save_snapshot(target, filename)
 
     def do_draw(self, cr):
         if self.next_surface is not None:
             self.this_surface = self.next_surface
-
-            target = cairo.ImageSurface(cairo.FORMAT_ARGB32, *self.size)
-            ctx = cairo.Context(target)
-            ctx.set_source_surface(self.this_surface, 0, 0)
-            ctx.paint()
-            self.draw_beam(ctx)
-            self.draw_ruler(ctx)
-            self.draw_box(ctx)
-            self.draw_annotation(ctx)
-            self.draw_points(ctx)
-            self.draw_grid(ctx)
-
+            target = self._get_updated_surface(self.this_surface)
             cr.set_source_surface(target, 0, 0)
             cr.paint()
-
-            if self.save_file:
-                self.save_snapshot(target, self.save_file)
-                self.save_file = None
 
     @async_call
     def save_snapshot(self, target, filename):
