@@ -517,6 +517,52 @@ class MD2Gonio(BaseGoniometer):
         self.abort_cmd.put(self.NULL_VALUE)
 
 
+class SimMD2Gonio(BaseGoniometer):
+    """
+    Simulated MD2 Goniometer.
+    """
+
+    def __init__(self, root):
+        """
+        MD2-type BaseGoniometer.
+
+        :param root: Server PV name
+        :keyword kappa: enable Kappa
+        :keyword scan4d: enable 4D scan capability
+        :keyword raster4d: enable 4D rastering capability
+        :keyword triggering: enable detector triggering capability
+        :keyword power: boolean, PowerPMAC architecture, False for TurboPMAC
+        :keyword gating: boolean, enable Goniometer gating
+        """
+        super().__init__('Simulated Diffractometer')
+
+        # create additional components
+        self.omega = motor.APSMotor(f'{root}:omega', label='gonio.omega')
+        self.sample_x = motor.APSMotor(f'{root}:x', label='gonio.sample_x')
+        self.sample_y1 = motor.APSMotor(f'{root}:y1', label='gonio.sample_y1')
+        self.sample_y2 = motor.APSMotor(f'{root}:y2', label='gonio.sample_y2')
+        self.support_y = motor.SimMotor('Support Y', 0.0, limits=(-5, 5), units='mm', speed=0.6)
+        self.support_z = motor.SimMotor('Support Z', 0.0, limits=(-5, 5), units='mm', speed=0.6)
+        self.add_components(self.omega, self.sample_x, self.sample_y1, self.sample_y2, self.support_y, self.support_z)
+
+        self.stage = stages.SampleStage(
+            self.sample_x, self.sample_y2, self.sample_y1, self.omega, label='gonio.stage',
+            invert_x=True, invert_omega=False,
+        )
+        self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z, label='gonio.support')
+
+
+    @log_call
+    def scan(self, gating=True, **kwargs):
+        pass
+
+    def stop(self):
+        """
+        Stop and abort the current scan if any.
+        """
+        pass
+
+
 class SimGonio(BaseGoniometer):
     """
     Simulated Goniometer.

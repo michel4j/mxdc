@@ -222,6 +222,7 @@ class MJPGCamera(VideoSrc):
         self._last_frame = time.time()
         self.stream = None
         self.set_state(active=True)
+        self.data = b''
 
     def fetch_frame(self):
         if not self.stream:
@@ -230,8 +231,8 @@ class MJPGCamera(VideoSrc):
             both_found = False
             while not both_found:
                 self.data += self.stream.read(self._read_size)
-                b = self.data.rfind('\xff\xd9')
-                a = self.data[:b].rfind('\xff\xd8')
+                b = self.data.rfind(b'\xff\xd9')
+                a = self.data[:b].rfind(b'\xff\xd8')
                 if a != -1 and b != -1:
                     jpg = self.data[a:b + 2]
                     self.data = self.data[b + 2:]
