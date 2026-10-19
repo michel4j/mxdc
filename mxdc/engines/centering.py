@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zope.interface import implementer, Interface
 
 import cv2
 import numpy
@@ -28,6 +29,16 @@ CENTERING_ZOOM = 2
 CENTERING_BLIGHT = 50.0
 CENTERING_FLIGHT = 0
 MAX_TRIES = 5
+
+
+class ICenteringEngine(Interface):
+    """Sample information database."""
+
+    def get_current(self):
+        pass
+
+    def get_next(self):
+        pass
 
 
 class Centering(Engine):

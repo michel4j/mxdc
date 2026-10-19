@@ -252,11 +252,21 @@ class JPGCamera(VideoSrc):
         self.url = url
         self.session = requests.Session()
         self.set_state(active=True)
+        self.blend = False
+
+    def configure(self, blend=False, **kwargs):
+        self.blend = blend
 
     def fetch_frame(self):
         r = self.session.get(self.url)
         if r.status_code == 200:
-            self.frame = Image.open(BytesIO(r.content))
+
+            frame = Image.open(BytesIO(r.content))
+            if self.blend and self.frame is not None:
+                self.frame = Image.blend(self.frame, frame, 0.25)
+
+            else:
+                self.frame = frame
 
 
 class REDISCamera(VideoSrc):
@@ -313,7 +323,7 @@ class REDISCamera(VideoSrc):
 
     def fetch_frame_jpg(self):
         conn = self.get_store()
-        data = conn.get('{}:JPG'.format(self.key))
+        data = conn.get(f'{self.key}:JPG')
         self.frame = Image.open(BytesIO(data))
 
     def fetch_frame(self):
