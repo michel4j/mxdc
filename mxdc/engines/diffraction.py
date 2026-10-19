@@ -244,7 +244,7 @@ class DataCollector(Engine):
                     time=frame['exposure'],
                     range=frame['delta'],
                     angle=frame['start'],
-                    num_frames=1,
+                    frames=1,
                     wait=True,
                 )
                 self.beamline.detector.save()

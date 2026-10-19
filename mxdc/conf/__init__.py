@@ -1,8 +1,9 @@
 import glob
+import ipaddress
 import os
 import sys
+
 import gi
-import ipaddress
 
 gi.require_version('Gio', '2.0')
 
@@ -60,7 +61,7 @@ def get_config_modules(config_dir, name=None):
             if entry['name'] == name:
                 return mods, entry
         else:
-            subnet_text = '{}'.format(entry.get('subnet', '0.0.0.0/32'))
+            subnet_text = f'{entry.get("subnet", "0.0.0.0/32")}'
             subnet = ipaddress.ip_network(subnet_text)
             if host in subnet:
                 return mods, entry
@@ -97,7 +98,7 @@ def initialize(name=None):
     except Exception as e:
         logger.error('Could not find Beamline Configuration.')
         logger.error('Please make sure MXDC is properly installed and configured.')
-        logger.error(e)
+        logger.exception(e)
         sys.exit()
 
 

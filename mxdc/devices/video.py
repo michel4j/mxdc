@@ -3,7 +3,7 @@ import os
 import re
 import threading
 import time
-from io import BytesIO, StringIO
+from io import BytesIO
 from os import PathLike
 from pathlib import Path
 
@@ -13,16 +13,16 @@ import requests
 from PIL import Image
 from zope.interface import implementer
 
-from mxdc import Signal, Device
 from mxdc import APP_DIR
-from mxdc.utils.log import get_module_logger
+from mxdc import Signal, Device
 from mxdc.utils import decorators
+from mxdc.utils.log import get_module_logger
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController
 
 # setup module logger with a default do-nothing handler
 logger = get_module_logger(__name__)
 
-session = requests.Session()
+session = misc.create_http_session()
 
 
 @implementer(ICamera)
@@ -222,6 +222,7 @@ class MJPGCamera(VideoSrc):
         self._last_frame = time.time()
         self.stream = None
         self.set_state(active=True)
+        self.data = b''
 
     def fetch_frame(self):
         if not self.stream:
@@ -230,12 +231,12 @@ class MJPGCamera(VideoSrc):
             both_found = False
             while not both_found:
                 self.data += self.stream.read(self._read_size)
-                b = self.data.rfind('\xff\xd9')
-                a = self.data[:b].rfind('\xff\xd8')
+                b = self.data.rfind(b'\xff\xd9')
+                a = self.data[:b].rfind(b'\xff\xd8')
                 if a != -1 and b != -1:
                     jpg = self.data[a:b + 2]
                     self.data = self.data[b + 2:]
-                    self.frame = Image.open(StringIO(jpg))
+                    self.frame = Image.open(BytesIO(jpg))
                     both_found = True
                 time.sleep(0.001)
         except Exception as e:
@@ -250,7 +251,7 @@ class JPGCamera(VideoSrc):
     def __init__(self, url, size=(768, 576), name='JPG Camera'):
         VideoSrc.__init__(self, name, maxfps=10.0, size=size)
         self.url = url
-        self.session = requests.Session()
+        self.session = misc.create_http_session()
         self.set_state(active=True)
         self.blend = False
 
@@ -258,16 +259,14 @@ class JPGCamera(VideoSrc):
         self.blend = blend
 
     def fetch_frame(self):
-        r = self.session.get(self.url)
-        if r.status_code == 200:
-
-            frame = Image.open(BytesIO(r.content))
-            if self.blend and self.frame is not None:
-                self.frame = Image.blend(self.frame, frame, 0.25)
-
-            else:
-                self.frame = frame
-
+        try:
+            r = self.session.get(self.url)
+            if r.status_code == 200:
+                self.frame = Image.open(BytesIO(r.content))
+        except requests.exceptions.RetryError as e:
+            logger.error(f'Failed after max retries: {e}')
+        except requests.exceptions.RequestException as e:
+            logger.error(f'Request failed: {e}')
 
 class REDISCamera(VideoSrc):
     """

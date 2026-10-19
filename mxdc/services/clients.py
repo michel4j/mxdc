@@ -217,7 +217,7 @@ class MxLIVEBase(BaseService):
         super().__init__()
         self.name = "MxLIVE Server"
         self.address = address
-        self.server = requests.Session()
+        self.server = misc.create_http_session()
         self.cookies = {}
         self.keys = None
         self.session_active = None
@@ -434,6 +434,9 @@ class MxLIVEClient3(MxLIVEBase):
             settings.save_keys(self.keys, self.KEY_FILE)
             return True
         return False
+
+    def set_project(self, project: str):
+        self.headers['X-Project'] = project
 
     def verify(self):
         success = False

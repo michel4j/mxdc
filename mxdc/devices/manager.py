@@ -430,3 +430,95 @@ class ModeManager(BaseManager):
             self.mode_commands[self.ModeType.SCAN].put(1)
         if wait:
             self.wait()
+
+
+class SimMD2Manager(SimModeManager):
+    """
+    Simulated MD2 Mode Manager.
+    """
+
+    def __init__(self, root):
+        super().__init__()
+        from mxdc.devices import motor
+        self.name = 'Simulated MD2 Beamline Modes'
+
+        self.zoom = motor.APSMotor(f"{root}:zoom")
+        self.backlight = motor.APSMotor(f"{root}:backlight")
+        self.y1 = motor.APSMotor(f"{root}:y1")
+        self.y2 = motor.APSMotor(f"{root}:y2")
+        self.x = motor.APSMotor(f"{root}:x")
+        self.omega = motor.APSMotor(f"{root}:omega")
+        self.add_components(self.zoom, self.backlight, self.y1, self.y2, self.x, self.omega)
+
+        self.set_state(
+            active=True, busy=False, health=(0, 'faults', ''),
+            mode=self.ModeType.CENTER, activity=self.ACTIVITY_MAP[self.ModeType.CENTER]
+        )
+
+    def _switch_mode(self, mode):
+        self.set_state(
+            busy=True, message='Switching mode ...',
+            mode=self.ModeType.BUSY
+        )
+        GLib.timeout_add(2000, self._notify_mode, mode)
+
+    def _notify_mode(self, mode):
+        activity = self.ACTIVITY_MAP.get(mode, 'unknown')
+        self.props.mode = mode
+        self.set_state(busy=False, activity=activity, mode=mode)
+
+    def mount(self, wait=False):
+        """
+        Switch to Mount mode
+        :param wait: wait for switch to complete
+        """
+        self.backlight.move_to(5)
+        self.y1.move_to(-0.06)
+        self.y2.move_to(-0.08)
+        self.x.move_to(-0.12)
+        self.omega.move_to(235)
+        self._switch_mode(self.ModeType.MOUNT)
+        if wait:
+            self.wait(self.ModeType.MOUNT)
+
+    def center(self, wait=False):
+        """
+        Switch to center mode
+        :param wait: wait for switch to complete
+        """
+        self.zoom.move_to(1.0)
+        self.backlight.move_to(90)
+        self._switch_mode(self.ModeType.CENTER)
+        if wait:
+            self.wait(self.ModeType.CENTER)
+
+    def collect(self, wait=False):
+        """
+        Switch to Collect mode
+        :param wait: wait for switch to complete
+        """
+        self.backlight.move_to(5)
+        self._switch_mode(self.ModeType.COLLECT)
+        if wait:
+            self.wait(self.ModeType.COLLECT)
+
+    def scan(self, wait=False):
+        """
+        Switch to Scan mode
+        :param wait: wait for switch to complete
+        """
+        self.backlight.move_to(5)
+        self._switch_mode(self.ModeType.SCAN)
+        if wait:
+            self.wait(self.ModeType.SCAN)
+
+    def align(self, wait=False):
+        """
+        Switch to Align mode
+
+        :param wait: wait for switch to complete
+        """
+        self.backlight.move_to(5)
+        self._switch_mode(self.ModeType.ALIGN)
+        if wait:
+            self.wait(self.ModeType.ALIGN)
