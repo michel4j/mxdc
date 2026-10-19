@@ -113,7 +113,7 @@ class ExtCenter(BaseCenter):
         """
         NONE, LOOP, CRYSTAL, PIN = range(4)
 
-    def __init__(self, root, threshold=0.25):
+    def __init__(self, root, threshold=0.0):
         super().__init__(threshold=threshold)
         self.name = root
 
@@ -152,7 +152,9 @@ class ExtCenter(BaseCenter):
         else:
             cx = x1 + w / 2
 
-        obj = CenterObject(cx, cy, score, w, h, label=label, id=obj_id)
+        obj = CenterObject(
+            int(cx), int(cy), float(score), int(w), int(h), label=label, id=obj_id
+        )
         self.update_found(obj)
         self.set_state(**{label: obj})
 

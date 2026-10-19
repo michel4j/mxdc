@@ -531,7 +531,10 @@ class SimMD2Gonio(BaseGoniometer):
         """
         super().__init__('Simulated Diffractometer')
         if trigger is not None:
-            self.add_features(GonioFeatures.TRIGGERING)
+            self.add_features(
+                GonioFeatures.TRIGGERING, GonioFeatures.SCAN4D, GonioFeatures.RASTER4D,
+                GonioFeatures.GATING,
+            )
 
         # create additional components
         self.trigger = trigger
@@ -593,12 +596,12 @@ class SimMD2Gonio(BaseGoniometer):
             self.sample_y1.configure(**y1_config)
             self.sample_y2.configure(**y2_config)
 
-
     @log_call
     def scan(self, **kwargs):
         print(kwargs)
         self._scan_simple(
-            start=kwargs['angle'], delta=kwargs['range'], exposure=kwargs['time'], frames=kwargs['frames'],
+            start=kwargs['angle'], delta=kwargs['range']/kwargs['frames'],
+            exposure=kwargs['time'], frames=kwargs['frames'],
             start_pos=kwargs.get('start_pos'), end_pos=kwargs.get('end_pos')
         )
 

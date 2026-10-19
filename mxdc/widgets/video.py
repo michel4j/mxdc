@@ -393,11 +393,10 @@ class VideoWidget(Gtk.DrawingArea):
         if self.overlays.get('annotations') is None:
             return
 
-        cr.set_font_size(13)
+        cr.set_font_size(10)
         cr.set_line_width(1.5)
 
         cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-        #cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
 
         # rectangle
         cr.set_operator(cairo.OPERATOR_DIFFERENCE)
@@ -503,24 +502,32 @@ class VideoWidget(Gtk.DrawingArea):
             return
 
         points = self.overlays['points']
-        radius = self.overlays['beam'] * 0.5 / self.mm_scale
+        radius = 15 # self.overlays['beam'] * 0.4 / self.mm_scale
         center = self.size / 2
         xyz = points / self.mm_scale
         radii = 0.5 * (1.0 - (xyz[:, 2] / center[1])) * radius
         xyz[:, :2] += center
+        #cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+        cr.set_source_rgba(0.0, 0.5, 1.0, 1.0)
+        cr.set_line_width(0.5)
 
+        cr.set_operator(cairo.OPERATOR_DIFFERENCE)
         for i, (x, y, z) in enumerate(xyz):
-            cr.set_source_rgba(1.0, 0.5, 0.5, 0.5)
-            cr.arc(x, y, max(radii[i], 4), 0, 2.0 * 3.14)
-            cr.fill()
-            cr.move_to(x + 6, y)
-            label = f'P{i + 1}'
+            corner = max(radii[i], 4)
+            cr.set_font_size(corner * 2)
+            label = f'{i + 1}'
             xb, yb, w, h = cr.text_extents(label)[:4]
-            cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
-            cr.set_source_rgba(1, 0.25, 0.25, 1)
-            cr.set_operator(cairo.OPERATOR_DIFFERENCE)
+
+            # draw a small cross for a point
+            cr.move_to(x - corner, y)
+            cr.line_to(x + corner, y)
+            cr.move_to(x, y - corner)
+            cr.line_to(x, y + corner)
+            cr.stroke()
+
+            cr.move_to(x + xb + 3, y - yb + 3)
             cr.show_text(label)
-            cr.set_operator(cairo.OPERATOR_OVER)
+        cr.set_operator(cairo.OPERATOR_OVER)
 
 
 @Gtk.Template.from_resource('/org/gtk/mxdc/data/video_view.ui')

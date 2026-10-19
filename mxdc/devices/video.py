@@ -15,7 +15,7 @@ from zope.interface import implementer
 
 from mxdc import APP_DIR
 from mxdc import Signal, Device
-from mxdc.utils import decorators
+from mxdc.utils import decorators, misc
 from mxdc.utils.log import get_module_logger
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController
 
