@@ -522,21 +522,19 @@ class SimMD2Gonio(BaseGoniometer):
     Simulated MD2 Goniometer.
     """
 
-    def __init__(self, root):
+    def __init__(self, root, trigger):
         """
         MD2-type BaseGoniometer.
 
         :param root: Server PV name
-        :keyword kappa: enable Kappa
-        :keyword scan4d: enable 4D scan capability
-        :keyword raster4d: enable 4D rastering capability
-        :keyword triggering: enable detector triggering capability
-        :keyword power: boolean, PowerPMAC architecture, False for TurboPMAC
-        :keyword gating: boolean, enable Goniometer gating
+        :param trigger: trigger object
         """
         super().__init__('Simulated Diffractometer')
+        if trigger is not None:
+            self.add_features(GonioFeatures.TRIGGERING)
 
         # create additional components
+        self.trigger = trigger
         self.omega = motor.APSMotor(f'{root}:omega', label='gonio.omega')
         self.sample_x = motor.APSMotor(f'{root}:x', label='gonio.sample_x')
         self.sample_y1 = motor.APSMotor(f'{root}:y1', label='gonio.sample_y1')
@@ -551,16 +549,69 @@ class SimMD2Gonio(BaseGoniometer):
         )
         self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z, label='gonio.support')
 
+    def _scan_simple(self, start, delta, exposure, frames, start_pos=None, end_pos=None):
+        """
+        Perform a simple scan with the goniometer with starting position,
+        ending position, exposure time and number of frames.
+        """
+        trigger_start = start + delta
+        trigger_end = trigger_start + delta * (frames + 1)
+        trigger_positions = numpy.arange(trigger_start, trigger_end, delta)
+
+        omega_config = self.omega.get_config()
+        x_config = self.sample_x.get_config()
+        y1_config = self.sample_y1.get_config()
+        y2_config = self.sample_y2.get_config()
+
+        try:
+            self.omega.move_to(start - delta, wait=True)
+            if start_pos:
+                self.stage.move_xyz(*start_pos, wait=True)
+            scan_speed = delta / exposure
+            self.omega.configure(speed=scan_speed, accel=0.1)
+            if start_pos and end_pos:
+                xs = abs(end_pos[0] - start_pos[0]) / (exposure * frames)
+                ys = abs(end_pos[1] - start_pos[1]) / (exposure * frames)
+                zs = abs(end_pos[2] - start_pos[2]) / (exposure * frames)
+                self.sample_x.configure(speed=xs, accel=0.1)
+                self.sample_y1.configure(speed=ys, accel=0.1)
+                self.sample_y2.configure(speed=zs, accel=0.1)
+
+            if end_pos is not None:
+                self.stage.move_xyz(*end_pos)
+
+            self.omega.move_to(trigger_end + delta)
+            while self.omega.is_busy():
+                if len(trigger_positions) and self.omega.get_position() >= trigger_positions[0]:
+                    self.trigger.on(exposure * 0.5)
+                    trigger_positions = trigger_positions[1:]
+                time.sleep(0.001)
+            self.stage.wait()
+        finally:
+            self.omega.configure(**omega_config)
+            self.sample_x.configure(**x_config)
+            self.sample_y1.configure(**y1_config)
+            self.sample_y2.configure(**y2_config)
+
 
     @log_call
-    def scan(self, gating=True, **kwargs):
-        pass
+    def scan(self, **kwargs):
+        print(kwargs)
+        self._scan_simple(
+            start=kwargs['angle'], delta=kwargs['range'], exposure=kwargs['time'], frames=kwargs['frames'],
+            start_pos=kwargs.get('start_pos'), end_pos=kwargs.get('end_pos')
+        )
 
     def stop(self):
         """
         Stop and abort the current scan if any.
         """
-        pass
+        self.omega.stop()
+        self.sample_x.stop()
+        self.sample_y1.stop()
+        self.sample_y2.stop()
+        self.support_y.stop()
+        self.support_z.stop()
 
 
 class SimGonio(BaseGoniometer):

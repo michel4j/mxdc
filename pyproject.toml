@@ -61,7 +61,6 @@ Issues = "https://github.com/michel4j/mxdc/issues"
 packages = [
     { include = "mxdc", from = "." },
 ]
-version = "0.0.0"
 
 include = [
     {path = "docs/**", format = ["sdist"]},
@@ -70,6 +69,7 @@ include = [
     {path = "LICENSE", format = ["sdist"]},
     {path = "README.rst", format = ["sdist"]},
 ]
+version = "0.0.0"
 
 [tool.poetry.scripts]
 archiver = "mxdc.utils.scripts:archiver"

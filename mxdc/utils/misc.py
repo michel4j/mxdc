@@ -22,6 +22,10 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
+import requests
+from urllib3.util import Retry
+from requests.adapters import HTTPAdapter
+
 import math
 import msgpack
 import numpy
@@ -971,3 +975,28 @@ def wait_for_files(file_list: list[Path], timeout=60):
         logger.warning(f'Timeout waiting for files: {len(file_list)} not found!')
         return False
     return len(file_list) == 0
+
+
+def create_http_session(retries=5, backoff_factor=1.0, status_forcelist=(500, 502, 504)):
+    """
+    Creates a requests Session pre-configured for safe reconnects and retries.
+    """
+    session = requests.Session()
+
+    # Configure retry logic
+    retry_strategy = Retry(
+        total=retries,  # Total number of retries to allow
+        read=retries,  # How many times to retry on read errors
+        connect=retries,  # How many times to retry on connection errors
+        backoff_factor=backoff_factor,  # Wait time multiplier (e.g., 1s, 2s, 4s, 8s...)
+        status_forcelist=status_forcelist,  # HTTP status codes to trigger a retry
+        raise_on_status=False
+        # Returns the response instead of raising an exception if max retries fail on status codes
+    )
+
+    # Mount the adapter to both HTTP and HTTPS protocols
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    return session
