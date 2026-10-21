@@ -557,7 +557,7 @@ class SimMD2Gonio(BaseGoniometer):
         Perform a simple scan with the goniometer with starting position,
         ending position, exposure time and number of frames.
         """
-        trigger_start = start + delta
+        trigger_start = start
         trigger_end = trigger_start + delta * (frames + 1)
         trigger_positions = numpy.arange(trigger_start, trigger_end, delta)
 
@@ -567,29 +567,38 @@ class SimMD2Gonio(BaseGoniometer):
         y2_config = self.sample_y2.get_config()
 
         try:
-            self.omega.move_to(start - delta, wait=True)
+            self.omega.move_to(start - delta)
             if start_pos:
-                self.stage.move_xyz(*start_pos, wait=True)
+                self.stage.move_xyz(*start_pos)
+            self.omega.wait_start()
+            self.stage.wait_start()
+            self.omega.wait_stop()
+            self.omega.wait_stop()
             scan_speed = delta / exposure
-            self.omega.configure(speed=scan_speed, accel=0.1)
+
+            self.omega.configure(speed=scan_speed)
             if start_pos and end_pos:
                 xs = abs(end_pos[0] - start_pos[0]) / (exposure * frames)
                 ys = abs(end_pos[1] - start_pos[1]) / (exposure * frames)
                 zs = abs(end_pos[2] - start_pos[2]) / (exposure * frames)
-                self.sample_x.configure(speed=xs, accel=0.1)
-                self.sample_y1.configure(speed=ys, accel=0.1)
-                self.sample_y2.configure(speed=zs, accel=0.1)
+
+                self.sample_x.configure(speed=xs)
+                self.sample_y1.configure(speed=ys)
+                self.sample_y2.configure(speed=zs)
 
             if end_pos is not None:
                 self.stage.move_xyz(*end_pos)
 
             self.omega.move_to(trigger_end + delta)
+            self.omega.wait_start()
+            self.stage.wait_start()
             while self.omega.is_busy():
                 if len(trigger_positions) and self.omega.get_position() >= trigger_positions[0]:
                     self.trigger.on(exposure * 0.5)
                     trigger_positions = trigger_positions[1:]
                 time.sleep(0.001)
-            self.stage.wait()
+            self.stage.wait_stop()
+            self.omega.wait_stop()
         finally:
             self.omega.configure(**omega_config)
             self.sample_x.configure(**x_config)
@@ -598,10 +607,11 @@ class SimMD2Gonio(BaseGoniometer):
 
     @log_call
     def scan(self, **kwargs):
-        print(kwargs)
+        delta = kwargs['range'] / kwargs['frames']
+        exposure = kwargs['time'] / kwargs['frames']
         self._scan_simple(
-            start=kwargs['angle'], delta=kwargs['range']/kwargs['frames'],
-            exposure=kwargs['time'], frames=kwargs['frames'],
+            start=kwargs['angle'], delta=delta,
+            exposure=exposure, frames=kwargs['frames'],
             start_pos=kwargs.get('start_pos'), end_pos=kwargs.get('end_pos')
         )
 

@@ -159,6 +159,12 @@ class BaseSampleStage(Device):
                 success = False
         return success
 
+    def wait_start(self, timeout=30):
+        return self.wait(start=True, stop=False, timeout=timeout)
+
+    def wait_stop(self, timeout=30):
+        return self.wait(start=False, stop=True, timeout=timeout)
+
 
 class SampleStage(BaseSampleStage):
     """

@@ -93,21 +93,26 @@ class VideoSrc(Device):
         logger.debug(f'{self.name} Stopping video feed ')
         self._stopped = True
 
+    def _publish_to_sinks(self, frame):
+        for sink in self.sinks:
+            sink.display(frame)
+
     def streamer(self):
         dur = 1.0 / self.maxfps
+
+        t = time.time()
         while not self._stopped:
-            t = time.time()
             if self.is_active() and any(not (sink.stopped) for sink in self.sinks):
                 try:
                     self.fetch_frame()
-                    if not self.frame:
-                        continue
-                    for sink in self.sinks:
-                        sink.display(self.frame)
+                    elapsed = time.time() - t
+                    if self.frame and elapsed > dur:
+                        t = time.time()
+                        self._publish_to_sinks(self.frame)
                 except Exception as e:
                     logger.warning('(%s) Error fetching frame:\n %s' % (self.name, e))
                     raise
-            time.sleep(max(0, dur - (time.time() - t)))
+            time.sleep(0)
 
     def get_frame(self):
         """
@@ -251,7 +256,7 @@ class MJPGStream(VideoSrc):
     MJPG Stream using OpenCV
     """
     def __init__(self, url, size=(768, 576), name='MJPG Camera'):
-        VideoSrc.__init__(self, name, maxfps=50.0, size=size)
+        VideoSrc.__init__(self, name, maxfps=20.0, size=size)
         self.url = url
         self.frame = None
         self.stream = cv2.VideoCapture(self.url)
