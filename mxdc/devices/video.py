@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy
 import redis
 import requests
+import cv2
 
 from PIL import Image
 from zope.interface import implementer
@@ -243,6 +244,30 @@ class MJPGCamera(VideoSrc):
         except Exception as e:
             logger.error(e)
             self.stream = requests.get(self.url, stream=True).raw
+
+
+class MJPGStream(VideoSrc):
+    """
+    MJPG Stream using OpenCV
+    """
+    def __init__(self, url, size=(768, 576), name='MJPG Camera'):
+        VideoSrc.__init__(self, name, maxfps=50.0, size=size)
+        self.url = url
+        self.frame = None
+        self.stream = cv2.VideoCapture(self.url)
+        self.success, frame = self.stream.read()
+
+    def stop(self):
+        super().stop()
+        self.stream.release()
+
+    def fetch_frame(self):
+        if not self.success:
+            self.stop()
+        else:
+            if self.stream.grab():
+                self.success, frame = self.stream.retrieve()
+                self.frame = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
 
 class JPGCamera(VideoSrc):
