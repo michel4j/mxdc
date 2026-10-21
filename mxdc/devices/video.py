@@ -279,6 +279,10 @@ class JPGCamera(VideoSrc):
         self.url = url
         self.session = misc.create_http_session()
         self.set_state(active=True)
+        self.blend = False
+
+    def configure(self, blend=False, **kwargs):
+        self.blend = blend
 
     def fetch_frame(self):
         try:
@@ -344,7 +348,7 @@ class REDISCamera(VideoSrc):
 
     def fetch_frame_jpg(self):
         conn = self.get_store()
-        data = conn.get('{}:JPG'.format(self.key))
+        data = conn.get(f'{self.key}:JPG')
         self.frame = Image.open(BytesIO(data))
 
     def fetch_frame(self):

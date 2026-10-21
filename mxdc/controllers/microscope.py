@@ -184,10 +184,10 @@ class Microscope(Object):
         # disable centering buttons on click
         self.centering.connect('started', self.on_scripts_started)
         self.centering.connect('done', self.on_centering_done)
-        if self.beamline.config.centering.show_bbox:
-            self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
-            self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
-            self.beamline.sample_xcenter.connect('pin', self.on_centering_object)
+
+        self.beamline.sample_xcenter.connect('loop', self.on_centering_object)
+        self.beamline.sample_xcenter.connect('crystal', self.on_centering_object)
+        self.beamline.sample_xcenter.connect('pin', self.on_centering_object)
 
         # lighting monitors
         self.monitors = []
@@ -418,6 +418,7 @@ class Microscope(Object):
 
     def on_centering_object(self, dev, obj):
         objects = dev.get_objects()
+
         annotations = {}
         for key, obj in objects.items():
             if obj and obj.time > time.time() - 2.0:

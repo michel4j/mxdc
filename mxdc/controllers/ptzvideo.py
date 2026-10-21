@@ -59,6 +59,9 @@ class AxisController(object):
         value = model.get_value(itr, 0)
         self.camera.goto(value)
 
+    def on_video_average(self, *args, **kwargs):
+        self.camera.configure(blend=self.widget.hutch_avg_switch.get_active())
+
     def setup(self):
         # zoom
         self.widget.hutch_zoomout_btn.connect('clicked', self.on_zoom_out)
@@ -75,6 +78,7 @@ class AxisController(object):
             for val in self.camera.get_presets():
                 self.widget.hutch_presets_btn.append_text(val)
             self.widget.hutch_presets_btn.connect('changed', self.on_view_changed)
+        self.widget.hutch_avg_switch.connect('notify::active', self.on_video_average)
 
         # status, save, etc
         self.widget.hutch_save_btn.connect('clicked', self.on_save)

@@ -1,8 +1,9 @@
 import glob
+import ipaddress
 import os
 import sys
+
 import gi
-import ipaddress
 
 gi.require_version('Gio', '2.0')
 

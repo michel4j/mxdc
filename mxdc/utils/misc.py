@@ -2,6 +2,7 @@ import gzip
 import hashlib
 import ipaddress
 import json
+import math
 import os
 import pickle
 import pwd
@@ -13,6 +14,7 @@ import string
 import struct
 import threading
 import time
+import unicodedata
 import uuid
 from abc import ABC
 from html.parser import HTMLParser
@@ -22,17 +24,14 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
-import requests
-from urllib3.util import Retry
-from requests.adapters import HTTPAdapter
-
-import math
 import msgpack
 import numpy
-import unicodedata
+import requests
 import yaml
 from gi.repository import GLib
+from requests.adapters import HTTPAdapter
 from scipy import interpolate
+from urllib3.util import Retry
 
 from mxdc.com import ca
 from . import log

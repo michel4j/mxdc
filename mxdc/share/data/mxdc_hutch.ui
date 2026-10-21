@@ -1338,11 +1338,30 @@
                                       <object class="GtkComboBoxText" id="hutch_presets_btn">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Preset Positions</property>
                                       </object>
                                       <packing>
                                         <property name="expand">False</property>
                                         <property name="fill">True</property>
                                         <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkSwitch" id="hutch_avg_switch">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="tooltip-text" translatable="yes">Moving Average</property>
+                                        <property name="halign">center</property>
+                                        <property name="valign">center</property>
+                                        <style>
+                                          <class name="tiny"/>
+                                        </style>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">False</property>
+                                        <property name="pack-type">end</property>
+                                        <property name="position">3</property>
                                       </packing>
                                     </child>
                                     <child>
