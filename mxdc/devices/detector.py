@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum, IntFlag, auto
 from pathlib import Path
+from queue import Queue
 from typing import Dict
 
 import requests
@@ -57,7 +58,7 @@ class Trigger(Object):
         """
         return self.get_state('high')
 
-    def on(self, duration=-1):
+    def on(self):
         """
         Activate trigger for given duration
 
@@ -65,8 +66,6 @@ class Trigger(Object):
         """
         if not self.is_high():
             self.set_state(high=True)
-            if duration > 0:
-                GLib.timeout_add(duration, self.off)
 
     def off(self):
         """
@@ -280,7 +279,7 @@ class SimDetector(BaseDetector):
 
     FRAME_DIGITS = 5
 
-    def __init__(self, name, size, pixel_size=0.073242, data='/tmp', extension='cbf', trigger=None):
+    def __init__(self, name, size, pixel_size=0.073242, data='/tmp', extension='cbf'):
         super().__init__()
         self.monitor = images.FileMonitor(self)
         self.size = size
@@ -299,9 +298,12 @@ class SimDetector(BaseDetector):
         self._state = 'idle'
         self._bg_taken = False
         self._stopped = False
-        self.trigger = trigger
+        self.trigger = Trigger()
+        self.trigger.connect('high', self._on_trigger)
         self.trigger_count = 0
-        self.copier = ThreadPoolExecutor(max_workers=2)
+        self._last_trigger_high = False
+        self._frames_to_save = Queue()
+        self.copier = ThreadPoolExecutor(max_workers=4)
         self.prepare_datasets()
         self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS, DetectorFeatures.WEDGING)
 
@@ -319,7 +321,7 @@ class SimDetector(BaseDetector):
         logger.debug(f'{self}: Starting Detector ...')
         time.sleep(0.1)
         self.set_state(state=States.ACQUIRING)
-        self.copier.submit(self.simulate, self.parameters)
+        self.copier.submit(self._simulate, self.parameters)
         return True
 
     def stop(self):
@@ -330,21 +332,28 @@ class SimDetector(BaseDetector):
     def get_origin(self):
         return self.size[0] // 2, self.size[0] // 2
 
-    def simulate(self, parameters: dict):
+    def _on_trigger(self, obj, state):
+        if state and not self._last_trigger_high:
+            self.trigger_count += 1
+            self._frames_to_save.put(self.trigger_count)
+        self._last_trigger_high = state
+
+    def _simulate(self, parameters: dict):
         """
         Simulate a dataset
         :param parameters: dictionary of acquisition parameters
         """
 
         num_frames = parameters.get('num_triggers', 1) * parameters.get('num_images', 1)
+        total_frames = 0
         logger.debug(f'Simulating data wedge with {num_frames} frames: {parameters["file_prefix"]}')
         time.sleep(1)
-        for i in range(num_frames):
-            time.sleep(parameters.get('exposure_time', 1))
-            self._copy_frame(i, parameters)
 
-            if self.get_state('state') not in [States.ACQUIRING, States.ARMED] or self._stopped:
-                break
+        while not self._stopped and total_frames < num_frames:
+            if not self._frames_to_save.empty():
+                cur_frame = self._frames_to_save.get()
+                self._copy_frame(total_frames, parameters)
+                total_frames += 1
 
     def _select_dir(self, name='junk'):
         if name in self._dataset_selections:

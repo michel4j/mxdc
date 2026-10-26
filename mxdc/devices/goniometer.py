@@ -522,7 +522,7 @@ class SimMD2Gonio(BaseGoniometer):
     Simulated MD2 Goniometer.
     """
 
-    def __init__(self, root, trigger):
+    def __init__(self, root, trigger=None):
         """
         MD2-type BaseGoniometer.
 
@@ -530,14 +530,17 @@ class SimMD2Gonio(BaseGoniometer):
         :param trigger: trigger object
         """
         super().__init__('Simulated Diffractometer')
-        if trigger is not None:
+
+        if trigger:
+            self.trigger = trigger
             self.add_features(
                 GonioFeatures.TRIGGERING, GonioFeatures.SCAN4D, GonioFeatures.RASTER4D,
                 GonioFeatures.GATING,
             )
 
         # create additional components
-        self.trigger = trigger
+        self.trigger_output = self.add_pv(f'{root}:TRIGGER')
+        self.busy_fbk = self.add_pv(f'{root}:SCAN:BUSY')
         self.omega = motor.APSMotor(f'{root}:omega', label='gonio.omega')
         self.sample_x = motor.APSMotor(f'{root}:x', label='gonio.sample_x')
         self.sample_y1 = motor.APSMotor(f'{root}:y1', label='gonio.sample_y1')
@@ -551,80 +554,142 @@ class SimMD2Gonio(BaseGoniometer):
             invert_x=True, invert_omega=False,
         )
         self.support = stages.XYZStage(self.sample_x, self.support_y, self.support_z, label='gonio.support')
+        self.trigger_output.connect('changed', self._on_trigger_output)
+        self.busy_fbk.connect('changed', self._on_busy_fbk)
+        self.scan_cmd = self.add_pv(f"{root}:SCAN:START_CMD")
+        self.stop_cmd = self.add_pv(f"{root}:SCAN:STOP_CMD")
 
-    def _scan_simple(self, start, delta, exposure, frames, start_pos=None, end_pos=None):
-        """
-        Perform a simple scan with the goniometer with starting position,
-        ending position, exposure time and number of frames.
-        """
-        trigger_start = start
-        trigger_end = trigger_start + delta * (frames + 1)
-        trigger_positions = numpy.arange(trigger_start, trigger_end, delta)
+        self.scan_settings = {
+            'mode': self.add_pv(f"{root}:SCAN:MODE"),
+            'time': self.add_pv(f"{root}:SCAN:EXPOSURE"),
+            'delta': self.add_pv(f"{root}:SCAN:DELTA"),
+            'angle': self.add_pv(f"{root}:SCAN:START"),
+            'end': self.add_pv(f"{root}:SCAN:END"),
+        }
+        self.helix_settings = {
+            **self.scan_settings,
+            'start': (
+                self.add_pv(f"{root}:SCAN:X_START"),
+                self.add_pv(f'{root}:SCAN:Y1_START'),
+                self.add_pv(f'{root}:SCAN:Y2_START'),
+            ),
 
-        omega_config = self.omega.get_config()
-        x_config = self.sample_x.get_config()
-        y1_config = self.sample_y1.get_config()
-        y2_config = self.sample_y2.get_config()
+            # Stop position
+            'stop': (
+                self.add_pv(f"{root}:SCAN:X_END"),
+                self.add_pv(f'{root}:SCAN:Y1_END'),
+                self.add_pv(f'{root}:SCAN:Y2_END'),
+            ),
+        }
+        self.raster_settings = {
+            **self.helix_settings,
+            'width': self.add_pv(f"{root}:SCAN:WIDTH"),
+            'height': self.add_pv(f"{root}:SCAN:HEIGHT"),
+            'frames': self.add_pv(f"{root}:SCAN:FRAMES_PER_LINE"),
+            'lines': self.add_pv(f"{root}:SCAN:NUM_LINES"),
+            'snake': self.add_pv(f"{root}:SCAN:SNAKE"),
 
-        try:
-            self.omega.move_to(start - delta)
-            if start_pos:
-                self.stage.move_xyz(*start_pos)
-            self.omega.wait_start()
-            self.stage.wait_start()
-            self.omega.wait_stop()
-            self.omega.wait_stop()
-            scan_speed = delta / exposure
+        }
 
-            self.omega.configure(speed=scan_speed)
-            if start_pos and end_pos:
-                xs = abs(end_pos[0] - start_pos[0]) / (exposure * frames)
-                ys = abs(end_pos[1] - start_pos[1]) / (exposure * frames)
-                zs = abs(end_pos[2] - start_pos[2]) / (exposure * frames)
+    def _on_trigger_output(self, obj, high):
+        if high:
+            self.trigger.on()
+        else:
+            self.trigger.off()
 
-                self.sample_x.configure(speed=xs)
-                self.sample_y1.configure(speed=ys)
-                self.sample_y2.configure(speed=zs)
-
-            if end_pos is not None:
-                self.stage.move_xyz(*end_pos)
-
-            self.omega.move_to(trigger_end + delta)
-            self.omega.wait_start()
-            self.stage.wait_start()
-            while self.omega.is_busy():
-                if len(trigger_positions) and self.omega.get_position() >= trigger_positions[0]:
-                    self.trigger.on(exposure * 0.5)
-                    trigger_positions = trigger_positions[1:]
-                time.sleep(0.001)
-            self.stage.wait_stop()
-            self.omega.wait_stop()
-        finally:
-            self.omega.configure(**omega_config)
-            self.sample_x.configure(**x_config)
-            self.sample_y1.configure(**y1_config)
-            self.sample_y2.configure(**y2_config)
+    def _on_busy_fbk(self, obj, high):
+        if high:
+            self.set_state(busy=True)
+        else:
+            self.set_state(busy=False)
 
     @log_call
     def scan(self, **kwargs):
-        delta = kwargs['range'] / kwargs['frames']
-        exposure = kwargs['time'] / kwargs['frames']
-        self._scan_simple(
-            start=kwargs['angle'], delta=delta,
-            exposure=exposure, frames=kwargs['frames'],
-            start_pos=kwargs.get('start_pos'), end_pos=kwargs.get('end_pos')
-        )
+        wait = kwargs.pop('wait', True)
+        kind = kwargs.get('kind', 'simple')
+
+        import yaml
+        print(yaml.dump(kwargs))
+
+        # switch to helical if shutterless and points given
+        is_helical = all((
+            kind == 'shutterless',
+            kwargs.get('start_pos'),
+            kwargs.get('end_pos'),
+            self.supports(GonioFeatures.SCAN4D)
+        ))
+
+        if is_helical:
+            logger.info('Helical scanning ...')
+            kind = 'helical'
+
+        if kind not in ['helical', 'raster'] and kwargs.get('start_pos') is not None:
+            self.stage.move_xyz(*kwargs['start_pos'], wait=True)
+            logger.warn('Moving sample stage to starting position')
+
+        if not self.wait(stop=True, start=False, timeout=10):
+            logger.error('Goniometer is busy. Aborting ')
+            return
+
+        # configure device and start scan
+        self.set_state(message=f'"{kind}" Scanning ...')
+        kwargs['end'] = kwargs['angle'] + kwargs['range']
+        kwargs['delta'] = kwargs['range'] / kwargs['frames']
+        kwargs['time'] = kwargs['time'] / kwargs['frames']
+        timeout = kwargs['frames'] * kwargs['time'] + 10
+
+        if kind in ['simple', 'shutterless']:
+            kwargs['mode'] = 'omega_1d'
+            misc.set_settings(self.scan_settings, **kwargs)
+            self.wait_stop(timeout=60)
+            self.scan_cmd.put(1)
+        elif kind == 'helical':
+            kwargs['mode'] = 'helical'
+            kwargs['start'] = map(float, kwargs['start_pos'])
+            kwargs['stop'] = map(float, kwargs['end_pos'])
+            misc.set_settings(self.helix_settings, debug=True, **kwargs)
+            self.wait_stop(timeout=60)
+            self.scan_cmd.put(1)
+        elif kind == 'raster':
+            kwargs['mode'] = 'grid_2d'
+            kwargs['snake'] = 1
+            kwargs['width'] *= 1e-3
+            kwargs['height'] *= 1e-3
+            kwargs['start'] = map(float, kwargs['start_pos'])
+            timeout = kwargs['hsteps'] * kwargs['vsteps'] * kwargs['time'] + 10
+            # Use Helical for vertical line
+            if kwargs['frames'] == 1:
+                kwargs['lines'], kwargs['frames'] = kwargs['frames'], kwargs['lines']       # Swap lines and frames
+                origin_x, origin_y, origin_z = self.stage.get_xyz()
+                y_offset = kwargs['height']/2
+                x_dev, y_dev, z_dev = self.stage.screen_to_xyz(0.0, y_offset, 0.0)
+                end_pos = origin_x + x_dev, origin_y + y_dev, origin_z + z_dev
+                start_pos = origin_x - x_dev, origin_y - y_dev, origin_z - z_dev
+                kwargs['start'] = map(float, start_pos)
+                kwargs['stop'] = map(float, end_pos)
+                kwargs['mode'] = 'helical'
+                kwargs['angle'] = self.omega.get_position()
+                misc.set_settings(self.helix_settings, debug=True, **kwargs)
+                self.wait_stop(timeout=60)
+                self.scan_cmd.put(1)
+            else:
+                misc.set_settings(self.raster_settings, debug=True, **kwargs)
+                self.wait_stop(timeout=60)
+                self.scan_cmd.put(1)
+
+        msg = f'"{kind}" scan failed!'
+        if self.wait(start=True, stop=wait, timeout=timeout):
+            msg = f'"{kind}" scan complete!'
+
+        logger.info(msg)
+        self.set_state(message=msg)
 
     def stop(self):
         """
         Stop and abort the current scan if any.
         """
-        self.omega.stop()
-        self.sample_x.stop()
-        self.sample_y1.stop()
-        self.sample_y2.stop()
-        self.support_y.stop()
-        self.support_z.stop()
+        self.stopped = True
+        self.stop_cmd.put(1)
 
 
 class SimGonio(BaseGoniometer):
