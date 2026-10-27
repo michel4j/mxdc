@@ -6,11 +6,11 @@ import re
 import shutil
 import time
 from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum, IntFlag, auto
 from pathlib import Path
 from queue import Queue
+from threading import Thread
 from typing import Dict
 
 import requests
@@ -300,12 +300,15 @@ class SimDetector(BaseDetector):
         self._stopped = False
         self.trigger = Trigger()
         self.trigger.connect('high', self._on_trigger)
-        self.trigger_count = 0
-        self._last_trigger_high = False
+        self._trigger_count = 0
+        self._last_trigger_state = False
         self._frames_to_save = Queue()
-        self.copier = ThreadPoolExecutor(max_workers=4)
+
         self.prepare_datasets()
         self.add_features(DetectorFeatures.TRIGGERING, DetectorFeatures.SHUTTERLESS, DetectorFeatures.WEDGING)
+
+        self._simulator = Thread(target=self._simulate, daemon=True, name='Sim Detector')
+        self._simulator.start()
 
     def save(self, wait=False):
         self.set_state(state=States.IDLE)
@@ -319,9 +322,9 @@ class SimDetector(BaseDetector):
 
     def start(self, first=False):
         logger.debug(f'{self}: Starting Detector ...')
-        time.sleep(0.1)
+        self._trigger_count = 0
+        self._stopped = False
         self.set_state(state=States.ACQUIRING)
-        self.copier.submit(self._simulate, self.parameters)
         return True
 
     def stop(self):
@@ -333,27 +336,33 @@ class SimDetector(BaseDetector):
         return self.size[0] // 2, self.size[0] // 2
 
     def _on_trigger(self, obj, state):
-        if state and not self._last_trigger_high:
-            self.trigger_count += 1
-            self._frames_to_save.put(self.trigger_count)
-        self._last_trigger_high = state
+        # falling edge only
+        if state < self._last_trigger_state:
+            if self._stopped:
+                self._trigger_count = 0
+            else:
+                self._trigger_count += 1
+                self._frames_to_save.put(self._trigger_count)
+                logger.debug(f'{self}: Trigger Frame #{self._trigger_count}')
+        self._last_trigger_state = state
 
-    def _simulate(self, parameters: dict):
+    def _simulate(self):
         """
         Simulate a dataset
         :param parameters: dictionary of acquisition parameters
         """
 
-        num_frames = parameters.get('num_triggers', 1) * parameters.get('num_images', 1)
-        total_frames = 0
-        logger.debug(f'Simulating data wedge with {num_frames} frames: {parameters["file_prefix"]}')
-        time.sleep(1)
-
-        while not self._stopped and total_frames < num_frames:
+        while True:
             if not self._frames_to_save.empty():
-                cur_frame = self._frames_to_save.get()
-                self._copy_frame(total_frames, parameters)
-                total_frames += 1
+                try:
+                    cur_frame = self._frames_to_save.get()
+                    logger.debug(f'{self}: Simulating Frame #{cur_frame} ...')
+                    self._copy_frame(cur_frame, self.parameters)
+                except Exception as e:
+                    logger.debug(f'{self}: Simulating Frame #{cur_frame} failed: {e}')
+                time.sleep(0.01)
+            else:
+                time.sleep(0.1) # use less CPU if no frames in queue
 
     def _select_dir(self, name='junk'):
         if name in self._dataset_selections:
@@ -373,24 +382,23 @@ class SimDetector(BaseDetector):
                 self._dataset_selections[name] = self._selection
 
     def _copy_frame(self, number, file_params):
-        logger.debug('Saving frame: {}'.format(datetime.now().isoformat()))
+        logger.debug(f'Saving frame: {datetime.now().isoformat()}')
         realm, folder, name, count = self._selection
 
         if count > 0:
-            frame_number = file_params['start_frame'] + number
+            frame_number = file_params['start_frame'] + (number - 1)
             src_img = os.path.join(folder, self._datasets[realm][(folder, name, count)][(frame_number - 1) % count])
             file_name = f'{file_params["file_prefix"]}_{frame_number:05d}.{self.file_extension}'
             file_path = os.path.join(file_params['directory'], file_name)
             shutil.copyfile(src_img, file_path)
             logger.info(f'Frame saved: {file_name}')
             self.monitor.add(file_path)
-
         else:
             logger.error('No simulated image found')
 
         # progress
         total_frames = file_params.get('num_images', 1) * file_params.get('num_triggers', 1)
-        progress = (1 + number) / total_frames
+        progress = number / total_frames
         self.set_state(progress=(progress, 'frames acquired'))
 
     @decorators.async_call
@@ -610,10 +618,10 @@ class ADSCDetector(ADGenericMixin, BaseDetector):
 
         # Data Parameters
         self.settings = {
-            'start_frame': self.add_pv("{}:FileNumber".format(name)),
-            'num_frames': self.add_pv('{}:NumImages'.format(name)),
-            'file_prefix': self.add_pv("{}:FileName".format(name)),
-            'directory': self.add_pv("{}:FilePath".format(name)),
+            'start_frame': self.add_pv(f"{name}:FileNumber"),
+            'num_frames': self.add_pv(f'{name}:NumImages'),
+            'file_prefix': self.add_pv(f"{name}:FileName"),
+            'directory': self.add_pv(f"{name}:FilePath"),
 
             'wavelength': self.add_pv("{}:ADSCWavelen".format(name)),
             'beam_x': self.add_pv("{}:ADSCBeamX".format(name)),

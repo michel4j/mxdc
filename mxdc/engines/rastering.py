@@ -231,7 +231,7 @@ class RasterCollector(Engine):
                     range=frame['delta'],
                     frames=1,
                     angle=frame['start'],
-                    start_pos=frame['p0'],
+                    start_pos=list(map(float, frame['p0'])),
                     wait=True,
                     timeout=min(30, frame['exposure'] * 20)
                 )
@@ -294,7 +294,7 @@ class RasterCollector(Engine):
                 vsteps=params['vsteps'],
                 width=params['width'],
                 height=params['height'],
-                start_pos=params['grid'][0],
+                start_pos=list(map(float, params['grid'][0])),
                 wait=True,
                 timeout=min(30, params['exposure'] * self.total_frames),
                 gating=gonio_gating

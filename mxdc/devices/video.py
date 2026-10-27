@@ -3,22 +3,21 @@ import os
 import re
 import threading
 import time
-from io import BytesIO, StringIO
+from io import BytesIO
 from os import PathLike
 from pathlib import Path
 
+import cv2
 import numpy
 import redis
 import requests
-import cv2
-
 from PIL import Image
 from zope.interface import implementer
 
-from mxdc import Signal, Device
 from mxdc import APP_DIR
-from mxdc.utils.log import get_module_logger
+from mxdc import Signal, Device
 from mxdc.utils import decorators, misc
+from mxdc.utils.log import get_module_logger
 from .interfaces import ICamera, IZoomableCamera, IPTZCameraController
 
 # setup module logger with a default do-nothing handler
@@ -83,7 +82,7 @@ class VideoSrc(Device):
         """
         if self._stopped:
             self._stopped = False
-            worker = threading.Thread(target=self.streamer, daemon=True, name='Video Thread: %s' % self.name)
+            worker = threading.Thread(target=self.streamer, daemon=True, name=f'Video Thread: {self.name}')
             worker.start()
 
     def stop(self):

@@ -319,8 +319,8 @@ class DataCollector(Engine):
                 angle=wedge['start'],
                 frames=extras['num_triggers'],
                 wait=True,
-                start_pos=wedge.get('p0'),
-                end_pos=wedge.get('p1'),
+                start_pos=list(map(float, wedge.get('p0'))),
+                end_pos=list(map(float, wedge.get('p1'))),
             )
             self.beamline.detector.save()
             is_first_frame = False

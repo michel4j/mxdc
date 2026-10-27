@@ -736,7 +736,7 @@ def calc_grid_size(bbox, step_size):
     """
 
     grid_shape = numpy.ceil(numpy.abs(bbox[1] - bbox[0])/step_size).astype(int)
-    return grid_shape
+    return numpy.maximum(grid_shape, 1)
 
 def natural_keys(text):
     """

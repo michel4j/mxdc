@@ -192,9 +192,9 @@ class Microscope(Object):
         # lighting monitors
         self.monitors = []
         for key in ['backlight', 'frontlight', 'uvlight']:
-            light = getattr(self.beamline, 'sample_{}'.format(key), None)
-            scale = getattr(self.widget, 'microscope_{}_scale'.format(key), None)
-            box = getattr(self.widget, '{}_box'.format(key), None)
+            light = getattr(self.beamline, f'sample_{key}', None)
+            scale = getattr(self.widget, f'microscope_{key}_scale', None)
+            box = getattr(self.widget, f'{key}_box', None)
             if all([light, scale, box]):
                 scale.set_adjustment(Gtk.Adjustment(0, 0.0, 100.0, 1.0, 1.0, 10))
                 self.monitors.append(
@@ -235,7 +235,7 @@ class Microscope(Object):
         if not self.video_ready:
             self.video_ready = True
             for param in ['grid-xyz', 'grid-params']:
-                self.connect('notify::{}'.format(param), self.save_to_cache)
+                self.connect(f'notify::{param}', self.save_to_cache)
         self.update_overlay_coords()
 
     def save_to_cache(self, *args, **kwargs):
@@ -365,6 +365,7 @@ class Microscope(Object):
         # Set properties
         for k, v in properties.items():
             self.set_property(k, v)
+        self.update_grid()
 
     @async_call
     def center_pixel(self, x, y, force=False):
@@ -384,24 +385,27 @@ class Microscope(Object):
         xyz[:, :2] += center
         return xyz
 
+    def update_grid(self):
+        if self.props.grid_xyz is not None:
+            self.props.grid = self.recalculate_grid()
+            self.video.set_overlay_grid(
+                {
+                    'coords': self.props.grid,
+                    'indices': self.props.grid_index,
+                    'frames': self.props.grid_frames,
+                    'scores': self.props.grid_scores
+                }
+            )
+        else:
+            self.props.grid = None
+            self.video.set_overlay_grid()
+
     # callbacks
     def update_overlay_coords(self, *args, **kwargs):
         if time.time() - self.last_coord_update > MIN_COORD_UPDATE_PERIOD:
             self.last_coord_update = time.time()
             # Update grid
-            if self.props.grid_xyz is not None:
-                self.props.grid = self.recalculate_grid()
-                self.video.set_overlay_grid(
-                    {
-                        'coords': self.props.grid,
-                        'indices': self.props.grid_index,
-                        'frames': self.props.grid_frames,
-                        'scores': self.props.grid_scores
-                    }
-                )
-            else:
-                self.props.grid = None
-                self.video.set_overlay_grid()
+            self.update_grid()
         self.update_points()
 
     def colorize(self, button):

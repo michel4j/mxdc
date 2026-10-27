@@ -604,12 +604,9 @@ class SimMD2Gonio(BaseGoniometer):
             self.set_state(busy=False)
 
     @log_call
-    def scan(self, **kwargs):
+    def scan(self, gating=True, **kwargs):
         wait = kwargs.pop('wait', True)
         kind = kwargs.get('kind', 'simple')
-
-        import yaml
-        print(yaml.dump(kwargs))
 
         # switch to helical if shutterless and points given
         is_helical = all((
@@ -634,17 +631,20 @@ class SimMD2Gonio(BaseGoniometer):
         # configure device and start scan
         self.set_state(message=f'"{kind}" Scanning ...')
         kwargs['end'] = kwargs['angle'] + kwargs['range']
-        kwargs['delta'] = kwargs['range'] / kwargs['frames']
-        kwargs['time'] = kwargs['time'] / kwargs['frames']
-        timeout = kwargs['frames'] * kwargs['time'] + 10
 
         if kind in ['simple', 'shutterless']:
+            kwargs['delta'] = kwargs['range'] / kwargs['frames']
+            kwargs['time'] = kwargs['time'] / kwargs['frames']
             kwargs['mode'] = 'omega_1d'
+            timeout = kwargs['frames'] * kwargs['time'] + 10
             misc.set_settings(self.scan_settings, **kwargs)
             self.wait_stop(timeout=60)
             self.scan_cmd.put(1)
         elif kind == 'helical':
+            kwargs['delta'] = kwargs['range'] / kwargs['frames']
+            kwargs['time'] = kwargs['time'] / kwargs['frames']
             kwargs['mode'] = 'helical'
+            timeout = kwargs['frames'] * kwargs['time'] + 10
             kwargs['start'] = map(float, kwargs['start_pos'])
             kwargs['stop'] = map(float, kwargs['end_pos'])
             misc.set_settings(self.helix_settings, debug=True, **kwargs)
@@ -657,6 +657,9 @@ class SimMD2Gonio(BaseGoniometer):
             kwargs['height'] *= 1e-3
             kwargs['start'] = map(float, kwargs['start_pos'])
             timeout = kwargs['hsteps'] * kwargs['vsteps'] * kwargs['time'] + 10
+            kwargs['lines'] = kwargs['vsteps']
+            kwargs['frames'] = kwargs['hsteps']
+
             # Use Helical for vertical line
             if kwargs['frames'] == 1:
                 kwargs['lines'], kwargs['frames'] = kwargs['frames'], kwargs['lines']       # Swap lines and frames
