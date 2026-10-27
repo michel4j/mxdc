@@ -311,17 +311,20 @@ class DataCollector(Engine):
             free_time = wedge['exposure'] * wedge['num_frames']
             self.beamline.automounter.standby(duration=free_time)
 
+            scan_params = {
+                'kind': 'shutterless',
+                'time': wedge['exposure'] * wedge['num_frames'],
+                'range': wedge['delta'] * wedge['num_frames'],
+                'angle': wedge['start'],
+                'frames': extras['num_triggers'],
+            }
+            if wedge.get('p0') is not None:
+                scan_params['start_pos'] = list(map(float, wedge.get('p0')))
+            if wedge.get('p1') is not None:
+                scan_params['end_pos'] = list(map(float, wedge.get('p1')))
+
             logger.debug('Starting scan ...')
-            self.beamline.goniometer.scan(
-                kind='shutterless',
-                time=wedge['exposure']*wedge['num_frames'],
-                range=wedge['delta']*wedge['num_frames'],
-                angle=wedge['start'],
-                frames=extras['num_triggers'],
-                wait=True,
-                start_pos=list(map(float, wedge.get('p0'))),
-                end_pos=list(map(float, wedge.get('p1'))),
-            )
+            self.beamline.goniometer.scan(**scan_params, wait=True)
             self.beamline.detector.save()
             is_first_frame = False
             time.sleep(0)

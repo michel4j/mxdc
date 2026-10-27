@@ -226,15 +226,18 @@ class RasterCollector(Engine):
                 break
             self.beamline.detector.configure(**detector_parameters)
             if self.beamline.detector.start():
-                self.beamline.goniometer.scan(
-                    time=frame['exposure'],
-                    range=frame['delta'],
-                    frames=1,
-                    angle=frame['start'],
-                    start_pos=list(map(float, frame['p0'])),
-                    wait=True,
-                    timeout=min(30, frame['exposure'] * 20)
-                )
+                scan_params = {
+                    'kind': 'raster',
+                    'time': frame['exposure'],
+                    'range': frame['delta'],
+                    'angle': frame['start'],
+                    'frames': 1,
+                    'timeout': min(30, frame['exposure'] * 20)
+                }
+                if frame.get('p0') is not None:
+                    scan_params['start_pos'] = list(map(float, frame.get('p0')))
+
+                self.beamline.goniometer.scan(**scan_params, wait=True)
                 self.beamline.detector.save()
             else:
                 logger.error('Detector did not start ...')
@@ -285,20 +288,22 @@ class RasterCollector(Engine):
         self.start_signal_strength()
         if self.beamline.detector.start():
             logger.debug('Performing raster scan ...')
-            self.beamline.goniometer.scan(
-                kind='raster',
-                time=params['exposure'],    # per frame
-                range=params['delta'],      # per frame
-                angle=params['angle'],
-                hsteps=params['hsteps'],
-                vsteps=params['vsteps'],
-                width=params['width'],
-                height=params['height'],
-                start_pos=list(map(float, params['grid'][0])),
-                wait=True,
-                timeout=min(30, params['exposure'] * self.total_frames),
-                gating=gonio_gating
-            )
+            scan_params = {
+                'kind': 'raster',
+                'time': params['exposure'],
+                'range': params['delta'],
+                'angle': params['angle'],
+                'hsteps': params['hsteps'],
+                'vsteps': params['vsteps'],
+                'width': params['width'],
+                'height': params['height'],
+                'timeout': min(30, params['exposure'] * self.total_frames),
+                'gating': gonio_gating
+            }
+            if params.get('grid') is not None:
+                scan_params['start_pos'] = list(map(float, params['grid'][0]))
+
+            self.beamline.goniometer.scan(**scan_params, wait=True)
             self.beamline.detector.save()
         else:
             logger.error('Detector did not start ...')
