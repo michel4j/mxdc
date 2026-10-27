@@ -114,7 +114,7 @@ class CryoJetBase(Device):
         self.set_property('temperature', val)
 
     def on_sample(self, obj, val):
-        if val > 4.5:
+        if val >= 6:
             self.set_state(health=(0, 'sample', ''))
         elif val > 4:
             self.set_state(health=(2, 'sample', 'Sample Flow Low!'))
@@ -123,9 +123,9 @@ class CryoJetBase(Device):
         self.set_property('sample', val)
 
     def on_shield(self, obj, val):
-        if val > 4.5:
+        if val >= 4:
             self.set_state(health=(0, 'shield', ''))
-        elif val > 4:
+        elif val > 3:
             self.set_state(health=(2, 'shield', 'Shield Flow Low!'))
         else:
             self.set_state(health=(4, 'shield', 'Shield Flow Too Low!'))
