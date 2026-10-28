@@ -7,7 +7,7 @@ from enum import Enum
 
 from mxdc import Registry, IBeamline, Object, Property, Signal
 from mxdc.engines.rastering import RasterCollector
-from mxdc.utils import datatools, misc, decorators
+from mxdc.utils import datatools, misc, decorators, grids
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec, FormManager, FieldSpec, Validator
 from mxdc.utils.log import get_module_logger
@@ -48,7 +48,7 @@ class RasterForm(FormManager):
         super().on_change(field, event, name)
         aperture = self.beamline.aperture.get_position()
         if name in ['aperture', 'width', 'height']:
-            hsteps, vsteps = misc.calc_grid_shape(
+            hsteps, vsteps = grids.calc_grid_shape(
                 self.get_value('width'),
                 self.get_value('height'),
                 aperture,

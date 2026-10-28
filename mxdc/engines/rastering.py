@@ -11,7 +11,7 @@ from zope.interface import Interface, implementer
 
 from mxdc import Registry, Signal, Engine
 from mxdc.devices.goniometer import GonioFeatures
-from mxdc.utils import datatools, misc, decorators
+from mxdc.utils import datatools, misc, decorators, grids
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 
@@ -62,7 +62,7 @@ class RasterCollector(Engine):
         self.config['params'] = params
 
         # calculate grid from dimensions
-        grid, index, frames = misc.grid_from_size(
+        grid, index, frames = grids.grid_from_size(
             (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0),
             **self.beamline.goniometer.grid_settings()
         )
@@ -146,6 +146,8 @@ class RasterCollector(Engine):
             'type': 'file',
             'directory': self.config['params']['directory'],
             'first': 1,
+            'hsteps': self.config['params']['hsteps'],
+            'vsteps': self.config['params']['vsteps'],
             'num_frames': self.total_frames,
             'timeout': max(20, min(self.config['params']['exposure'] * 5, 120))
         }

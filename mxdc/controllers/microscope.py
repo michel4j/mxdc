@@ -10,7 +10,7 @@ from mxdc import Registry, IBeamline, Object, Property
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
-from mxdc.utils import colors, misc, datatools
+from mxdc.utils import colors, misc, datatools, grids
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -325,7 +325,7 @@ class Microscope(Object):
         step_size = 1e-3 * self.beamline.aperture.get() / self.video.get_mm_scale()
 
         bounds = bbox * factor
-        shape = misc.calc_grid_size(bounds, step_size)
+        shape = grids.calc_grid_size(bounds, step_size)
         w, h = 1000 * shape * self.video.get_mm_scale() * step_size
         if min(w, h) == 0.0:
             self.props.grid_bbox = []
@@ -333,7 +333,7 @@ class Microscope(Object):
             self.video.set_overlay_grid()
             return
 
-        grid, index, frames = misc.grid_from_bounds(bounds, step_size, **self.beamline.goniometer.grid_settings())
+        grid, index, frames = grids.grid_from_bounds(bounds, step_size, **self.beamline.goniometer.grid_settings())
         dx, dy = self.video.pix_to_mm(*bounds.mean(axis=0))
 
         angle = self.beamline.goniometer.omega.get_position()
