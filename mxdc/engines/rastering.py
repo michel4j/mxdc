@@ -325,6 +325,11 @@ class RasterCollector(Engine):
 
     def on_raster_done(self, result, data):
         self.config['properties']['grid_scores'][self.config['properties']['grid_scores'] < 0] = 0.0
+
+        scores = self.config['properties']['grid_scores']
+        frames = self.config['properties']['grid_frames']
+        quality = grids.check_grid_quality(scores)
+
         self.save_metadata()
         self.complete = True
         self.emit('complete', None)

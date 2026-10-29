@@ -1,17 +1,85 @@
-import re
-import sys
-import pickle
 import warnings
-from datetime import datetime
-from pathlib import Path
 
 import numpy
 import numpy as np
-from scipy import ndimage
-import pandas as pd
-import yaml
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
+import numpy as np
+
+
+class AlternateRowReversed:
+    """
+    Context manager for a numpy 2D array whose alternate rows
+    have been reversed.
+
+    On ``__enter__``:
+        Odd-indexed rows are flipped back to their original order.
+        The (now un-reversed) array is returned so callers can use it
+        directly::
+
+            with AlternateRowReversed(arr) as a:
+                a[1, :] = 99   # operates on the original row order
+
+    On ``__exit__``:
+        Odd-indexed rows are flipped again, restoring the
+        alternate-reversed layout while keeping any mutations that were
+        applied inside the context.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        A 2-D numpy array whose odd rows (1, 3, 5, …) are stored in
+        reversed column order.
+
+    Raises
+    ------
+    ValueError
+        If *array* is not exactly 2-dimensional.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> arr = np.array([[1, 2, 3],
+    ...                 [6, 5, 4],   # row 1 reversed
+    ...                 [7, 8, 9],
+    ...                 [12, 11, 10]])  # row 3 reversed
+    >>> with AlternateRowReversed(arr) as a:
+    ...     print(a)          # rows in natural order
+    ...     a[0, 0] = 99      # modify element in canonical space
+    [[1 2 3]
+     [4 5 6]
+     [7 8 9]
+     [10 11 12]]
+    >>> print(arr)            # alternate rows re-reversed; edit preserved
+    [[99  2  3]
+     [ 6  5  4]
+     [ 7  8  9]
+     [12 11 10]]
+    """
+
+    def __init__(self, array: np.ndarray, odd: bool = False) -> None:
+        self.reverse_index = 1 if odd else 0
+        if array.ndim != 2:
+            raise ValueError(
+                f"AlternateRowReversed requires a 2-D array, got {array.ndim}-D."
+            )
+        self.array = array
+
+    # ------------------------------------------------------------------
+    # Context-manager protocol
+    # ------------------------------------------------------------------
+
+    def __enter__(self) -> np.ndarray:
+        """Un-reverse alternate rows and return the array."""
+        self.array[self.reverse_index::2] = self.array[self.reverse_index::2, ::-1]
+        return self.array
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        """Re-reverse alternate rows, preserving any in-context edits."""
+        self.array[self.reverse_index::2] = self.array[self.reverse_index::2, ::-1]
+        return False   # do not suppress exceptions
 
 
 def check_grid_quality(scores: np.ndarray, max_search_lag: int = 32) -> dict:
@@ -87,7 +155,7 @@ def check_grid_quality(scores: np.ndarray, max_search_lag: int = 32) -> dict:
 
 def grid_from_bounds(bbox, step_size, **kwargs):
     """
-    Make a grid from a bounding box array
+    Make a grid from a bounding box
     :param bbox: array of two points representing a 2D bounding box [(left, top), (right, bottom)]
     :param step_size: step size
     :param kwargs: extra args
@@ -97,12 +165,12 @@ def grid_from_bounds(bbox, step_size, **kwargs):
     grid_shape = calc_grid_size(bbox, step_size)
     grid_size = grid_shape * step_size
 
-    grid_center = (bbox[1] + bbox[0])/2.
-    grid_origin = grid_center - grid_size/2. + step_size/2
+    grid_center = (bbox[1] + bbox[0]) / 2.
+    grid_origin = grid_center - grid_size / 2. + step_size / 2
 
     nX, nY = grid_shape
-    xi = numpy.arange(0, nX)*step_size + grid_origin[0]
-    yi = numpy.arange(0, nY)*step_size + grid_origin[1]
+    xi = numpy.arange(0, nX) * step_size + grid_origin[0]
+    yi = numpy.arange(0, nY) * step_size + grid_origin[1]
 
     return calc_grid_coords(xi, yi, **kwargs)
 
@@ -119,7 +187,6 @@ def grid_from_size(size: tuple, step: float, center: tuple, **kwargs):
 
     cX, cY = center
     nX, nY = size
-    radius = step / 2
 
     xi = (numpy.arange(0, nX) - (nX - 1) / 2) * step + cX
     yi = (numpy.arange(0, nY) - (nY - 1) / 2) * step + cY
@@ -142,16 +209,18 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
     nX, nY = len(xi), len(yi)
     ix = numpy.arange(nX).astype(int)
     jy = numpy.arange(nY).astype(int)
-    i_xy, j_xy =  numpy.meshgrid(ix[::-1], jy, sparse=False)
+    i_xy, j_xy = numpy.meshgrid(ix[::-1], jy, sparse=False)
 
     if not vertical or nX >= nY:
         if snake:
             x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip even rows
             i_xy[1::2, :] = i_xy[1::2, ::-1]  # flip even rows
-        grid = numpy.array([
-            (x_ij[j, i], y_ij[j, i], 0.0)
-            for j in jy for i in ix  # fast axis is x
-        ])
+        grid = numpy.array(
+            [
+                (x_ij[j, i], y_ij[j, i], 0.0)
+                for j in jy for i in ix  # fast axis is x
+            ]
+        )
         index = [
             (j_xy[j, i], i_xy[j, i])
             for j in jy for i in ix
@@ -161,10 +230,12 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
         if snake:
             y_ij[:, 1::2] = y_ij[::-1, 1::2]  # flip even columns
             j_xy[:, 1::2] = j_xy[::-1, 1::2]  # flip even columns
-        grid = numpy.array([
-            (x_ij[j, i], y_ij[j, i], 0.0)
-            for i in ix for j in jy  # fast axis is y
-        ])
+        grid = numpy.array(
+            [
+                (x_ij[j, i], y_ij[j, i], 0.0)
+                for i in ix for j in jy  # fast axis is y
+            ]
+        )
         index = [
             (j_xy[j, i], i_xy[j, i])
             for i in ix for j in jy
@@ -176,7 +247,7 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
     # some MD2s produce an extra frame every new line
     if buggy:
         frames = (frames + numpy.divmod(frames, nX)[0] + 1)
-        frames[frames>=size] = size-1
+        frames[frames >= size] = size - 1
 
     return grid, index, frames + 1
 
@@ -198,6 +269,72 @@ def calc_grid_shape(width, height, aperture):
     return nX, nY
 
 
+def shift_rows(array: np.ndarray, offset: int, fill_value: float = 0) -> np.ndarray:
+    """
+    Return a new 2D array of the same shape in which every row has been
+    shifted horizontally by *offset* columns.
+
+    Columns that move outside the array boundary are dropped; the vacated
+    positions are filled with *fill_value*.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        Source 2-D array.
+    offset : int
+        Number of columns to shift.
+
+        * Positive → shift right (prepend fill columns on the left).
+        * Negative → shift left  (append fill columns on the right).
+        * Zero     → return a copy of the original array.
+    fill_value : float, optional
+        Value used for positions that have no corresponding source element.
+        Defaults to ``0``.
+
+    Returns
+    -------
+    np.ndarray
+        A new array with the same shape and dtype as *array*.
+
+    Raises
+    ------
+    ValueError
+        If *array* is not exactly 2-dimensional.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> a = np.array([[1, 2, 3, 4],
+    ...               [5, 6, 7, 8]])
+    >>> shift_rows(a, 2)
+    array([[0, 0, 1, 2],
+           [0, 0, 5, 6]])
+    >>> shift_rows(a, -1, fill_value=-1)
+    array([[ 2,  3,  4, -1],
+           [ 6,  7,  8, -1]])
+    """
+    if array.ndim != 2:
+        raise ValueError(
+            f"shift_rows requires a 2-D array, got {array.ndim}-D."
+        )
+
+    rows, cols = array.shape
+    result = np.full(array.shape, fill_value=fill_value, dtype=array.dtype)
+
+    if offset == 0 or abs(offset) >= cols:
+        if offset == 0:
+            result[:] = array
+        # if |offset| >= cols every element is out of range → all fill_value
+        return result
+
+    if offset > 0:
+        result[:, offset:] = array[:, :cols - offset]
+    else:
+        result[:, :cols + offset] = array[:, -offset:]
+
+    return result
+
+
 def calc_grid_size(bbox, step_size):
     """
     Calculate the size of the grid
@@ -207,5 +344,6 @@ def calc_grid_size(bbox, step_size):
     :return: tuple (x-size, y-size)
     """
 
-    grid_shape = numpy.ceil(numpy.abs(bbox[1] - bbox[0])/step_size).astype(int)
+    grid_shape = numpy.ceil(numpy.abs(bbox[1] - bbox[0]) / step_size).astype(int)
     return numpy.maximum(grid_shape, 1)
+
