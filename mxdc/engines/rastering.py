@@ -59,23 +59,21 @@ class RasterCollector(Engine):
         det_exp_limit = 1 / self.beamline.config.raster.max_freq
         mtr_exp_limit = params['aperture'] * 1e-3 / self.beamline.config.raster.max_speed
         params['exposure'] = max(params['exposure'], det_exp_limit, mtr_exp_limit)
-        self.config['params'] = params
 
         # calculate grid from dimensions
         grid, index, frames = grids.grid_from_size(
             (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0),
             **self.beamline.goniometer.grid_settings()
         )
-
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(
             grid[:, 0], grid[:, 1], numpy.radians(params['angle'])
         )
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
-        self.config['params']['grid'] = grid_xyz
-
-        # update for microscope display
         shape = (params['hsteps'], params['vsteps'])
+
+        self.config['params'] = params
+        self.config['params']['grid'] = grid_xyz
         self.config['properties'] = {
             'grid_xyz': grid_xyz,
             'grid_bbox': [],
@@ -99,7 +97,7 @@ class RasterCollector(Engine):
             while True:
                 if not self.result_queue.empty():
                     score, info = self.result_queue.get()
-                    # on buggy gonios multiple cells may represent the same frame
+                    # on buggy gonio multiple cells may represent the same frame
                     for index in numpy.where(self.config['properties']['grid_frames'] == info['frame_number'])[0]:
                         ij = self.config['properties']['grid_index'][index]
                         self.config['properties']['grid_scores'][ij] = score

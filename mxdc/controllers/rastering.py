@@ -1,6 +1,6 @@
 
-import time
 import os
+import time
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -11,9 +11,9 @@ from mxdc.utils import datatools, misc, decorators, grids
 from mxdc.utils.converter import resol_to_dist
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec, FormManager, FieldSpec, Validator
 from mxdc.utils.log import get_module_logger
+from mxdc.widgets import status, dialogs
 from mxdc.widgets.imageviewer import IImageViewer
 from mxdc.widgets.misc import ActiveMenu
-from mxdc.widgets import status, dialogs
 from .microscope import IMicroscope
 from .samplestore import ISampleStore
 
@@ -142,20 +142,12 @@ class RasterController(Object):
             grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
             self.beamline.goniometer.omega.move_to(params['angle'], wait=False)
             self.microscope.load_grid(grid_config)
-
-            template = params['template']
             self.results[params['uuid']] = grid_config
 
-            for i, score in enumerate(grid_config['grid_scores'].flat):
-                pos = grid_config['grid_index'][i]
-                if pos[1] < 0:  continue
-                score = grid_config['grid_scores'][pos]
-                frame = grid_config['grid_frames'][i]
-                filename = template.format(frame)
-                x, y, z = self.microscope.props.grid_xyz[i]
-                self.add_result_item(
-                   i, params['name'], params['angle'], frame, x, y, z, score, filename, params['uuid'],
-                )
+            result_items = self.get_grid_scores(params, grid_config)
+            self.manager.add_items(result_items)
+            self.widget.raster_clean_btn.set_sensitive(True)
+            self.expanded = True
 
     def on_clean(self, btn):
         self.manager.clear()
@@ -263,46 +255,61 @@ class RasterController(Object):
         self.control.progress_fbk.set_text(message)
 
     def on_results(self, collector, index, results):
-        grid_config = collector.get_grid()
+        config = collector.get_grid()
         params = collector.get_parameters()
-        pos = grid_config['grid_index'][index]
-        score = grid_config['grid_scores'][pos]
-        frame = grid_config['grid_frames'][index]
-        self.results[params['uuid']] = grid_config
-        x, y, z = self.microscope.props.grid_xyz[index]
-        self.add_result_item(
-            index, params['name'], params['angle'], frame, x, y, z, score, results['filename'], params['uuid']
-        )
+
+        pos = config['grid_index'][index]
+        if pos[1] < 0:
+            return
+
+        cell_item = self.get_cell_score(index, params, config)
+        self.add_result_item(cell_item)
+
         self.microscope.update_overlay_coords()
+
+    @staticmethod
+    def get_cell_score(index, params, config) -> dict:
+        """
+        Fetch grid results for the given index, parameters and config
+        :param index: 0-based sequential position in the grid
+        :param params: raster collection parameters
+        :param config: detailed grid configuration and scores
+        :return: dict
+        """
+        pos = config['grid_index'][index]
+        score = config['grid_scores'][pos]
+        frame = config['grid_frames'][index]
+        x, y, z = config['grid_xyz'][index]
+        filename = params['template'].format(frame)
+
+        return {
+            'index': index,
+            'name': params['name'],
+            'angle': params['angle'],
+            'cell': frame,
+            'x_pos': x,
+            'y_pos': y,
+            'z_pos': z,
+            'score': score,
+            'color': score,
+            'filename': filename,
+            'uuid': params['uuid'],
+        }
+
+    def get_grid_scores(self, params, config):
+        items = []
+        for i, score in enumerate(config['grid_scores'].flat):
+            pos = config['grid_index'][i]
+            if pos[1] < 0:
+                continue
+            items.append(self.get_cell_score(i, params, config))
+        return items
 
     def update_scores(self, params, grid_config):
         self.microscope.load_grid(grid_config)
         self.results[params['uuid']] = grid_config
-
-        template = params['template']
-        self.results[params['uuid']] = grid_config
-        items = []
-        for i, score in enumerate(grid_config['grid_scores'].flat):
-            pos = grid_config['grid_index'][i]
-            if pos[1] < 0:  continue
-            score = grid_config['grid_scores'][pos]
-            frame = grid_config['grid_frames'][i]
-            filename = template.format(frame)
-            x, y, z = self.microscope.props.grid_xyz[i]
-            items.append({
-                'index': i,
-                'name': params['name'],
-                'angle': params['angle'],
-                'cell': frame,
-                'x_pos': x,
-                'y_pos': y,
-                'z_pos': z,
-                'score': score,
-                'color': score,
-                'filename': filename,
-                'uuid': params['uuid'],
-            })
-        self.manager.update_items(items, delete=True)
+        items = self.get_grid_scores(params, grid_config)
+        self.manager.update_items(items, delete_missing=True)
 
     @decorators.async_call
     def load_grid(self, angle, config):
@@ -326,20 +333,8 @@ class RasterController(Object):
         if params is not None and 'width' in params and 'height' in params:
             self.form.set_values({'width': params['width'], 'height': params['height']}, propagate=True)
 
-    def add_result_item(self, index, name, angle, cell, x, y, z, score, filename, id_key):
-        parent, child = self.manager.add_item({
-            'index': index,
-            'name': name,
-            'angle': angle,
-            'cell': cell,
-            'x_pos': x,
-            'y_pos': y,
-            'z_pos': z,
-            'score': score,
-            'color': score,
-            'filename': filename,
-            'uuid': id_key,
-        })
+    def add_result_item(self, item: dict):
+        parent, child = self.manager.add_item(item)
         self.widget.raster_clean_btn.set_sensitive(True)
         if parent and not self.expanded:
             self.view.expand_row(parent, False)

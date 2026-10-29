@@ -1,14 +1,13 @@
-import threading
-import importlib.util
 import importlib.machinery
-import os
+import importlib.util
+import threading
 from pathlib import Path
 
 from zope.interface import implementer
 
 from mxdc import Registry, Object, Signal, IBeamline
-from mxdc.utils.misc import get_project_name, import_string, DotDict, load_env
 from mxdc.utils.log import get_module_logger
+from mxdc.utils.misc import get_project_name, import_string, DotDict, load_env
 
 
 @implementer(IBeamline)
@@ -64,6 +63,10 @@ class Beamline(Object):
             return self.registry[key]
         else:
             raise AttributeError('{} does not have attribute: {}'.format(self, key))
+
+    @property
+    def is_simulated(self):
+        return self.config.get('simulated', False)
 
     def load_config(self):
         """

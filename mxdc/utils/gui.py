@@ -1,6 +1,6 @@
+import json
 import os
 import zipfile
-import json
 from collections import OrderedDict
 from collections import namedtuple
 from enum import Enum
@@ -16,7 +16,7 @@ from mxdc.conf import load_cache, save_cache
 from mxdc.utils.misc import slugify
 from mxdc.conf import SHARE_DIR
 
-from typing import Union, Any, Sequence, TypedDict
+from typing import Sequence
 
 
 class GUIFile(object):
@@ -201,7 +201,6 @@ class TreeManager(GObject.GObject):
         row = [item.get(key) for key in self.keys]
         child_itr = self.model.append(parent_itr, row=row)
         child_path = self.model.get_path(child_itr)
-
         return parent_path, child_path
 
     def find_parent_iter(self, item):
@@ -222,18 +221,20 @@ class TreeManager(GObject.GObject):
         """
         Add a list of items to the data store
         :param items: a list of dicts corresponding to the items
-        :return: number of groups added
         """
-        groups = set()
-        for item in items:
-            parent_path, child_path = self.add_item(item)
-            groups.add(parent_path)
-        return len(groups)
 
-    def update_items(self, items, delete=False):
+        expanded = False
+        for item in items:
+            parent, child = self.add_item(item)
+            if not expanded:
+                expanded = True
+                self.view.expand_row(parent, True)
+
+    def update_items(self, items, delete_missing=False):
         """
         Update an item in the data store
         :param items: a list of dicts corresponding to the items
+        :param delete_missing: whether to delete the missing items
         """
         item_dict = {item.get(self.keys[self.child.value]): item for item in items}
         parent_itr = self.find_parent_iter(items[0])
@@ -245,8 +246,12 @@ class TreeManager(GObject.GObject):
             child_key = self.model.get_value(child_itr, self.child.value)
             if child_key in item_dict:
                 self.update_item(child_itr, item_dict[child_key])
-
-            child_iter = self.model.iter_next(child_iter)
+                child_itr = self.model.iter_next(child_itr)
+            elif delete_missing:
+                if not self.model.remove(child_itr):
+                    break
+            else:
+                child_itr = self.model.iter_next(child_itr)
 
     def row_to_dict(self, row):
         """
@@ -283,7 +288,6 @@ class TreeManager(GObject.GObject):
         """
         runs = []
 
-
         if not self.flat:
             if self.model.iter_has_child(itr):
                 parent_itr = itr
@@ -311,7 +315,6 @@ class TreeManager(GObject.GObject):
         for path in selected:
             row = model[path]
             model.remove(row.iter)
-
 
     def make_parent(self, row):
         """

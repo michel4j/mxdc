@@ -10,7 +10,7 @@ from mxdc import Registry, IBeamline, Object, Property
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
-from mxdc.utils import colors, misc, datatools, grids
+from mxdc.utils import colors, datatools, grids
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -129,9 +129,6 @@ class Microscope(Object):
             'save_point': (self.on_save_point, None),
             'center_point': (self.on_center_point, GLib.VariantType("s")),
         }
-
-        # menu = Gtk.Builder.new_from_string('/org/gtk/mxdc/data/menus.ui')
-        # self.builder.app_menu_btn.set_menu_model(menu.get_object('app-menu'))
 
         for name, info in actions.items():
             action = Gio.SimpleAction.new(name, info[1])

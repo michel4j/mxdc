@@ -353,7 +353,7 @@ class VideoWidget(Gtk.DrawingArea):
         cr.line_to(x2, y2)
         cr.stroke()
 
-        label = '{:0.0f} µm'.format(dist)
+        label = f'{dist:0.0f} µm'
         xb, yb, w, h = cr.text_extents(label)[:4]
         cr.move_to(x1 - w * (int(x2 > x1) + xb / w), y1 - h * (int(y2 > y1) + yb / h))
         cr.show_text(label)
@@ -488,14 +488,14 @@ class VideoWidget(Gtk.DrawingArea):
                 cr.rectangle(ox, oy, width - 0.5, width - 0.5)
                 cr.fill()
 
-            if font_size > 6:
-                cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-                cr.set_operator(cairo.OPERATOR_DIFFERENCE)
-                name = f'{frame}'
-                xb, yb, w, h = cr.text_extents(name)[:4]
-                cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
-                cr.show_text(name)
-                cr.set_operator(cairo.OPERATOR_OVER)
+            # if font_size > 6:
+            #     cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+            #     cr.set_operator(cairo.OPERATOR_DIFFERENCE)
+            #     name = f'{frame}'
+            #     xb, yb, w, h = cr.text_extents(name)[:4]
+            #     cr.move_to(x - w / 2. - xb, y - h / 2. - yb)
+            #     cr.show_text(name)
+            #     cr.set_operator(cairo.OPERATOR_OVER)
 
     def draw_points(self, cr):
         if self.overlays.get('points') is None or self.overlays.get('beam') is None:
