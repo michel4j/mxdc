@@ -151,6 +151,7 @@ class TreeManager(GObject.GObject):
     }
     tooltips = None
     parent = Data.A  # The column used to group items under the same parent
+    child = Data.B  # The column used to represent the child items, must be unique under the same parent
     flat = False  # whether tree is flat single level or not
     single_click = False
     select_multiple = False
@@ -229,6 +230,24 @@ class TreeManager(GObject.GObject):
             groups.add(parent_path)
         return len(groups)
 
+    def update_items(self, items):
+        """
+        Update an item in the data store
+        :param items: a list of dicts corresponding to the items
+        """
+        item_dict = {item.get(self.keys[self.child.value]): item for item in items}
+        parent_itr = self.find_parent_iter(items[0])
+        if parent_itr is None:
+            return
+
+        child_itr = self.model.iter_children(parent_itr)
+        while child_itr is not None:
+            child_key = self.model.get_value(child_itr, self.child.value)
+            if child_key in item_dict:
+                self.update_item(child_itr, item_dict[child_key])
+
+            child_iter = self.model.iter_next(child_iter)
+
     def row_to_dict(self, row):
         """
         Convert a model row into a dictionary
@@ -244,6 +263,15 @@ class TreeManager(GObject.GObject):
         :return:  dict representing the item
         """
         return self.row_to_dict(self.model[itr])
+
+    def update_item(self, itr, item):
+        """
+        Update the item pointed to by itr
+        :param itr: Gtk.TreeItr
+        :param item: dict representing the new values for the item
+        """
+        for key in self.keys:
+            self.model[itr][self.Data[key.upper()].value] = item.get(key)
 
     def get_items(self, itr):
         """

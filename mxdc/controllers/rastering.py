@@ -24,9 +24,9 @@ logger = get_module_logger(__name__)
 
 class RasterResultsManager(TreeManager):
     class Data(Enum):
-        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME = range(10)
+        NAME, ANGLE, X_POS, Y_POS, Z_POS, SCORE, CELL, COLOR, UUID, FILENAME, INDEX = range(11)
 
-    Types = [str, float, float, float, float, float, int, float, str, str]
+    Types = [str, float, float, float, float, float, int, float, str, str, int]
     Columns = ColumnSpec(
         (Data.CELL, 'Label', ColumnType.TEXT, '{}', True),
         (Data.ANGLE, 'Angle', ColumnType.NUMBER, '{:0.1f}°', True),
@@ -37,6 +37,7 @@ class RasterResultsManager(TreeManager):
         (Data.COLOR, '', ColumnType.COLORSCALE, '{}', False),
     )
     parent = Data.NAME
+    child = Data.INDEX
 
 
 class RasterForm(FormManager):
@@ -138,19 +139,22 @@ class RasterController(Object):
             return
         else:
             params, grid_config = misc.load_pickle(filename)
+            grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
             self.beamline.goniometer.omega.move_to(params['angle'], wait=False)
             self.microscope.load_grid(grid_config)
+
             template = params['template']
             self.results[params['uuid']] = grid_config
 
-            for i, pos in enumerate(grid_config['grid_index']):
+            for i, score in enumerate(grid_config['grid_scores'].flat):
                 pos = grid_config['grid_index'][i]
+                if pos[1] < 0:  continue
                 score = grid_config['grid_scores'][pos]
                 frame = grid_config['grid_frames'][i]
                 filename = template.format(frame)
                 x, y, z = self.microscope.props.grid_xyz[i]
                 self.add_result_item(
-                   params['name'], params['angle'], frame, x, y, z, score, filename, params['uuid'],
+                   i, params['name'], params['angle'], frame, x, y, z, score, filename, params['uuid'],
                 )
 
     def on_clean(self, btn):
@@ -230,9 +234,10 @@ class RasterController(Object):
         image_viewer.set_collect_mode(True)
 
     def on_complete(self, collector, data):
+        params, grid_config = data
+        self.update_scores(params, grid_config)
         self.props.state = self.StateType.READY
         self.control.progress_fbk.set_text("Rastering analysis complete.")
-        params = collector.get_parameters()
         logger.info('Saving overlay ...')
         self.microscope.save_image(os.path.join(params['directory'], f'{params["name"]}.png'))
 
@@ -266,10 +271,38 @@ class RasterController(Object):
         self.results[params['uuid']] = grid_config
         x, y, z = self.microscope.props.grid_xyz[index]
         self.add_result_item(
-            params['name'], params['angle'], frame, x, y, z, score, results['filename'], params['uuid']
+            index, params['name'], params['angle'], frame, x, y, z, score, results['filename'], params['uuid']
         )
-
         self.microscope.update_overlay_coords()
+
+    def update_scores(self, params, grid_config):
+        self.microscope.load_grid(grid_config)
+        self.results[params['uuid']] = grid_config
+
+        template = params['template']
+        self.results[params['uuid']] = grid_config
+        items = []
+        for i, score in enumerate(grid_config['grid_scores'].flat):
+            pos = grid_config['grid_index'][i]
+            if pos[1] < 0:  continue
+            score = grid_config['grid_scores'][pos]
+            frame = grid_config['grid_frames'][i]
+            filename = template.format(frame)
+            x, y, z = self.microscope.props.grid_xyz[i]
+            items.append({
+                'index': i,
+                'name': params['name'],
+                'angle': params['angle'],
+                'cell': frame,
+                'x_pos': x,
+                'y_pos': y,
+                'z_pos': z,
+                'score': score,
+                'color': score,
+                'filename': filename,
+                'uuid': params['uuid'],
+            })
+        self.manager.update_items(items)
 
     @decorators.async_call
     def load_grid(self, angle, config):
@@ -293,8 +326,9 @@ class RasterController(Object):
         if params is not None and 'width' in params and 'height' in params:
             self.form.set_values({'width': params['width'], 'height': params['height']}, propagate=True)
 
-    def add_result_item(self, name, angle, cell, x, y, z, score, filename, id_key):
+    def add_result_item(self, index, name, angle, cell, x, y, z, score, filename, id_key):
         parent, child = self.manager.add_item({
+            'index': index,
             'name': name,
             'angle': angle,
             'cell': cell,

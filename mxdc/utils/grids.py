@@ -147,7 +147,7 @@ def check_grid_quality(scores: np.ndarray, max_search_lag: int = 32) -> dict:
 
     return {
         'r0': round(r0, 3),
-        'optimal_shift': round(optimal_shift, 2),
+        'optimal_shift': int(round(optimal_shift)),
         'best_corr': round(best_corr, 3),
         'is_recoverable': bool(best_corr >= 0.80)
     }
@@ -222,7 +222,7 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
             ]
         )
         index = [
-            (j_xy[j, i], i_xy[j, i])
+            (int(j_xy[j, i]), int(i_xy[j, i]))
             for j in jy for i in ix
         ]
 
@@ -237,7 +237,7 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
             ]
         )
         index = [
-            (j_xy[j, i], i_xy[j, i])
+            (int(j_xy[j, i]), int(i_xy[j, i]))
             for i in ix for j in jy
         ]
 
@@ -277,29 +277,11 @@ def shift_rows(array: np.ndarray, offset: int, fill_value: float = 0) -> np.ndar
     Columns that move outside the array boundary are dropped; the vacated
     positions are filled with *fill_value*.
 
-    Parameters
-    ----------
-    array : np.ndarray
-        Source 2-D array.
-    offset : int
-        Number of columns to shift.
-
-        * Positive → shift right (prepend fill columns on the left).
-        * Negative → shift left  (append fill columns on the right).
-        * Zero     → return a copy of the original array.
-    fill_value : float, optional
-        Value used for positions that have no corresponding source element.
-        Defaults to ``0``.
-
-    Returns
-    -------
-    np.ndarray
-        A new array with the same shape and dtype as *array*.
-
-    Raises
-    ------
-    ValueError
-        If *array* is not exactly 2-dimensional.
+    :param array: np.ndarray, source 2-D array
+    :param offset: int, number of columns to shift, positive → right, negative → left, zero → no shift
+    :param fill_value: float, optional, value used for positions that have no corresponding source element
+    :return: np.ndarray, a new array with the same shape and dtype as *array*
+    :raises ValueError: If *array* is not exactly 2-dimensional.
 
     Examples
     --------
@@ -327,10 +309,10 @@ def shift_rows(array: np.ndarray, offset: int, fill_value: float = 0) -> np.ndar
         # if |offset| >= cols every element is out of range → all fill_value
         return result
 
-    if offset > 0:
-        result[:, offset:] = array[:, :cols - offset]
+    if offset < 0:
+        result[:, -offset:] = array[:, :cols + offset]
     else:
-        result[:, :cols + offset] = array[:, -offset:]
+        result[:, :cols - offset] = array[:, offset:]
 
     return result
 
@@ -346,4 +328,28 @@ def calc_grid_size(bbox, step_size):
 
     grid_shape = numpy.ceil(numpy.abs(bbox[1] - bbox[0]) / step_size).astype(int)
     return numpy.maximum(grid_shape, 1)
+
+
+def fix_grid(params, grid_config, max_delay=0.45):
+    """
+    Fix the grid configuration to ensure that the grid index and scores are consistent
+    :param params: dict containing parameters, including 'exposure'
+    :param grid_config: dict containing grid configuration
+    :param max_delay: float, maximum delay in seconds for grid fixing
+    :return: fixed grid configuration
+    """
+
+    shape = grid_config['grid_scores'].shape
+    index = np.array([tuple(map(int, pair)) for pair in grid_config['grid_index']])
+    grid_rows, grid_cols = index[:, 0].reshape(shape), index[:, 1].reshape(shape)
+
+    max_lag = int(max_delay / params['exposure'])
+    quality = check_grid_quality(grid_config['grid_scores'], max_search_lag=max_lag)
+    with AlternateRowReversed(grid_cols) as cols:
+        new_cols = shift_rows(cols, offset=quality['optimal_shift'], fill_value=-1)
+        cols[...] = new_cols
+
+    grid_index = list(zip(grid_rows.ravel(), grid_cols.ravel()))
+    grid_config['grid_index'] = grid_index
+    return grid_config
 

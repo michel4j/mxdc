@@ -324,15 +324,13 @@ class RasterCollector(Engine):
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
+        # fix scores and save metadata
         self.config['properties']['grid_scores'][self.config['properties']['grid_scores'] < 0] = 0.0
-
-        scores = self.config['properties']['grid_scores']
-        frames = self.config['properties']['grid_frames']
-        quality = grids.check_grid_quality(scores)
+        self.config['properties'] = grids.fix_grid(self.config['params'], self.config['properties'], max_delay=0.45)
 
         self.save_metadata()
         self.complete = True
-        self.emit('complete', None)
+        self.emit('complete', (self.config['params'], self.config['properties']))
 
     def on_raster_failed(self, result, error):
         logger.error(f"Unable to process data: {error}")
