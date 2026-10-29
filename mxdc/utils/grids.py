@@ -1,3 +1,4 @@
+import pprint
 import warnings
 
 import numpy
@@ -330,7 +331,7 @@ def calc_grid_size(bbox, step_size):
     return numpy.maximum(grid_shape, 1)
 
 
-def fix_grid(params, grid_config, max_delay=0.45):
+def fix_grid(params, grid_config, max_delay=0.650):
     """
     Fix the grid configuration to ensure that the grid index and scores are consistent
     :param params: dict containing parameters, including 'exposure'
@@ -344,7 +345,12 @@ def fix_grid(params, grid_config, max_delay=0.45):
     grid_rows, grid_cols = index[:, 0].reshape(shape), index[:, 1].reshape(shape)
 
     max_lag = int(max_delay / params['exposure'])
-    quality = check_grid_quality(grid_config['grid_scores'], max_search_lag=max_lag)
+    quality = check_grid_quality(grid_config['grid_scores'])
+    pprint.pprint(quality)
+    with AlternateRowReversed(grid_config['grid_scores']) as scores:
+        new_scores = shift_rows(scores, offset=quality['optimal_shift'], fill_value=0.0)
+        scores[...] = new_scores
+
     with AlternateRowReversed(grid_cols) as cols:
         new_cols = shift_rows(cols, offset=quality['optimal_shift'], fill_value=-1)
         cols[...] = new_cols

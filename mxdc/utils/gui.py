@@ -230,7 +230,7 @@ class TreeManager(GObject.GObject):
             groups.add(parent_path)
         return len(groups)
 
-    def update_items(self, items):
+    def update_items(self, items, delete=False):
         """
         Update an item in the data store
         :param items: a list of dicts corresponding to the items
@@ -271,7 +271,8 @@ class TreeManager(GObject.GObject):
         :param item: dict representing the new values for the item
         """
         for key in self.keys:
-            self.model[itr][self.Data[key.upper()].value] = item.get(key)
+            if key in item:
+                self.model[itr][self.Data[key.upper()].value] = item.get(key)
 
     def get_items(self, itr):
         """

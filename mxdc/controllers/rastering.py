@@ -302,7 +302,7 @@ class RasterController(Object):
                 'filename': filename,
                 'uuid': params['uuid'],
             })
-        self.manager.update_items(items)
+        self.manager.update_items(items, delete=True)
 
     @decorators.async_call
     def load_grid(self, angle, config):
