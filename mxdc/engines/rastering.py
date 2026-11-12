@@ -32,6 +32,9 @@ def logistic(x, x0=0.0, weight=1.0, scale=1.0):
     return weight / (1 + numpy.exp(-scale * (x - x0)))
 
 
+SIGNAL_STRENGTH_DELAY = 3.0
+
+
 @implementer(IRasterCollector)
 class RasterCollector(Engine):
     class Signals:
@@ -56,9 +59,9 @@ class RasterCollector(Engine):
         return self.complete
 
     def configure(self, params):
-        det_exp_limit = 1 / self.beamline.config.raster.max_freq
-        mtr_exp_limit = params['aperture'] * 1e-3 / self.beamline.config.raster.max_speed
-        params['exposure'] = max(params['exposure'], det_exp_limit, mtr_exp_limit)
+        exposure_limit = 1 / self.beamline.config.raster.max_freq
+        min_exposure = params['aperture'] / self.beamline.config.raster.max_speed
+        params['exposure'] = max(params['exposure'], min_exposure, exposure_limit)
 
         # calculate grid from dimensions
         grid, index, frames = grids.grid_from_size(
@@ -66,6 +69,7 @@ class RasterCollector(Engine):
             **self.beamline.goniometer.grid_settings()
         )
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        sx, sy, sz = self.beamline.goniometer.support.get_xyz()
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(
             grid[:, 0], grid[:, 1], numpy.radians(params['angle'])
         )
@@ -82,6 +86,7 @@ class RasterCollector(Engine):
             'grid_scores': -numpy.ones(shape[::-1]),
             'grid_params': {
                 'origin': (ox, oy, oz),
+                'support': (sx, sy, sz),
                 'directory': params['directory'],
                 'width': shape[0]*params['aperture'],
                 'height': shape[1]*params['aperture'],
@@ -286,6 +291,7 @@ class RasterCollector(Engine):
 
         self.beamline.detector.configure(**detector_parameters)
         self.start_signal_strength()
+        time.sleep(SIGNAL_STRENGTH_DELAY)
         if self.beamline.detector.start():
             logger.debug('Performing raster scan ...')
             scan_params = {
@@ -324,7 +330,7 @@ class RasterCollector(Engine):
     def on_raster_done(self, result, data):
         # fix scores and save metadata
         self.config['properties']['grid_scores'][self.config['properties']['grid_scores'] < 0] = 0.0
-        self.config['properties'] = grids.fix_grid(self.config['params'], self.config['properties'], max_delay=0.45)
+        self.config['properties'] = grids.fix_grid(self.config['params'], self.config['properties'], max_delay=0.400)
 
         self.save_metadata()
         self.complete = True

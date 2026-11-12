@@ -443,13 +443,13 @@ class MD2Gonio(BaseGoniometer):
             # MD2 appears to need correction of scan size by -1 in the vertical direction
 
             w_adj = 1
-            h_adj = (kwargs['vsteps'] - 1)/kwargs['vsteps']
+            h_adj = 1 # (kwargs['vsteps'] - 1)/kwargs['vsteps']
 
             kwargs['width'] *= w_adj * 1e-3
             kwargs['height'] *= h_adj * 1e-3
             # if self.power_pmac:
             #     kwargs['time'] *= h_adj
-            kwargs['use_table'] = int(self.power_pmac)
+            kwargs['use_table'] = 1 # int(self.power_pmac)
             kwargs['shutterless'] = 1
 
             start_y, start_cy, start_cx = kwargs.pop('start_pos')

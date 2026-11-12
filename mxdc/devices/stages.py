@@ -417,3 +417,4 @@ class XYZStage(Device):
 
     def get_xyz(self):
         return self.x.get_position(), self.y.get_position(), self.z.get_position()
+

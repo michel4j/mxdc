@@ -17,7 +17,7 @@ from mxdc.widgets.misc import ActiveMenu
 from .microscope import IMicroscope
 from .samplestore import ISampleStore
 
-RASTER_DELTA = .25
+RASTER_DELTA = 0.1
 
 logger = get_module_logger(__name__)
 
@@ -38,6 +38,10 @@ class RasterResultsManager(TreeManager):
     )
     parent = Data.NAME
     child = Data.INDEX
+    
+    def set_colormap(self, cmap):
+        self.colormap = cmap
+        self.view.queue_draw()
 
 
 class RasterForm(FormManager):
@@ -58,10 +62,9 @@ class RasterForm(FormManager):
 
         if name in ['aperture', 'exposure']:
             exposure = self.get_value('exposure')
-            det_exp_limit = 1/self.beamline.config.raster.max_freq
-            mtr_exp_limit = aperture*1e-3/self.beamline.config.raster.max_speed
-
-            self.set_value('exposure', max(exposure, det_exp_limit, mtr_exp_limit))
+            exposure_limit = 1/self.beamline.config.raster.max_freq
+            min_exposure = aperture / self.beamline.config.raster.max_speed
+            self.set_value('exposure', max(exposure, exposure_limit, min_exposure))
 
 
 class RasterController(Object):
@@ -139,7 +142,7 @@ class RasterController(Object):
             return
         else:
             params, grid_config = misc.load_pickle(filename)
-            grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
+            #grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
             self.beamline.goniometer.omega.move_to(params['angle'], wait=False)
             self.microscope.load_grid(grid_config)
             self.results[params['uuid']] = grid_config
@@ -262,13 +265,13 @@ class RasterController(Object):
         if pos[1] < 0:
             return
 
-        cell_item = self.get_cell_score(index, params, config)
+        cell_item = self.get_cell_score(index, params, config, filename=results.get('filename', ""))
         self.add_result_item(cell_item)
 
         self.microscope.update_overlay_coords()
 
     @staticmethod
-    def get_cell_score(index, params, config) -> dict:
+    def get_cell_score(index, params, config, filename="") -> dict:
         """
         Fetch grid results for the given index, parameters and config
         :param index: 0-based sequential position in the grid
@@ -280,7 +283,9 @@ class RasterController(Object):
         score = config['grid_scores'][pos]
         frame = config['grid_frames'][index]
         x, y, z = config['grid_xyz'][index]
-        filename = params['template'].format(frame)
+        
+        if not filename and 'template' in params:
+            filename = params['template'].format(frame)        
 
         return {
             'index': index,
@@ -295,7 +300,7 @@ class RasterController(Object):
             'filename': filename,
             'uuid': params['uuid'],
         }
-
+        
     def get_grid_scores(self, params, config):
         items = []
         for i, score in enumerate(config['grid_scores'].flat):

@@ -69,6 +69,7 @@ class Microscope(Object):
 
     grid = Property(type=object)
     grid_xyz = Property(type=object)
+    grid_offset = Property(type=object)
     grid_params = Property(type=object)
     grid_scores = Property(type=object)
     grid_index = Property(type=object)
@@ -96,6 +97,7 @@ class Microscope(Object):
         self.points_menu_points = Gio.Menu()
         self.props.grid = None
         self.props.grid_xyz = None
+        self.props.grid_offset = (0.0, 0.0, 0.0)
         self.props.grid_index = None
         self.props.grid_frames = None
         self.props.grid_bbox = []
@@ -162,6 +164,7 @@ class Microscope(Object):
 
         self.beamline.manager.connect('mode', self.on_gonio_mode)
         self.beamline.goniometer.stage.connect('changed', self.update_overlay_coords)
+        self.beamline.goniometer.support.connect('changed', self.update_overlay_coords)
         self.beamline.sample_zoom.connect('changed', self.update_overlay_coords)
         self.beamline.aperture.connect('changed', self.on_aperture)
 
@@ -335,6 +338,7 @@ class Microscope(Object):
 
         angle = self.beamline.goniometer.omega.get_position()
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        sx, sy, sz = self.beamline.goniometer.support.get_xyz()
         xmm, ymm = self.video.pix_to_mm(grid[:, 0], grid[:, 1])
         gx, gy, gz = self.beamline.goniometer.stage.xvw_to_xyz(-xmm, -ymm, numpy.radians(angle))
         grid_xyz = numpy.dstack([gx + ox, gy + oy, gz + oz])[0]
@@ -350,6 +354,7 @@ class Microscope(Object):
             'grid_scores': -numpy.ones(shape[::-1]),
             'grid_params': {
                 'origin': (ox, oy, oz),
+                'support': (sx, sy, sz),
                 'width': w,
                 'height': h,
                 'angle': angle,
@@ -373,7 +378,10 @@ class Microscope(Object):
 
     def recalculate_grid(self):
         center = numpy.array(self.video.get_size()) * 0.5
-        points = self.grid_xyz - numpy.array(self.beamline.goniometer.stage.get_xyz())
+        sx, sy, sz = self.beamline.goniometer.support.get_xyz()
+        ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
+        osx, osy, osz = self.props.grid_params.get('support', [0.0, 0.0, 0.0])
+        points = self.grid_xyz - numpy.array([ox, oy, oz])
         xyz = numpy.empty_like(points)
         xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
             points[:, 0], points[:, 1], points[:, 2]

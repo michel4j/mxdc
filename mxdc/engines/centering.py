@@ -5,12 +5,12 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from zope.interface import implementer, Interface
 
 import cv2
 import numpy
 import scipy.stats
 import yaml
+from zope.interface import Interface
 
 from mxdc import Registry, Engine, Device
 from mxdc.devices.interfaces import ICenter
@@ -363,15 +363,12 @@ class Centering(Engine):
             return
 
         scores.append(self.score)
-        aperture = self.beamline.aperture.get()
+        aperture = self.beamline.config.centering.aperture
+        self.beamline.aperture.set(aperture)
 
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
         exposure = self.beamline.config.raster.exposure
-        det_exp_limit = 1 / self.beamline.config.raster.max_freq
-        mtr_exp_limit = aperture * 1e-3 / self.beamline.config.raster.max_speed
-        exposure = max(exposure, det_exp_limit, mtr_exp_limit)
-
         loop = self.beamline.sample_xcenter.get_state('loop')
 
         for step in ['face', 'edge']:
@@ -405,7 +402,7 @@ class Centering(Engine):
             if step == 'edge':
                 params.update({
                     'hsteps': 1,
-                    'vsteps': int(height * 1.5 // aperture),
+                    'vsteps': int(height // aperture),
                     'range': 0.25,
                 })
             else:
@@ -420,11 +417,14 @@ class Centering(Engine):
             )
 
             self.collector.configure(params)
-            self.collector.run(switch_to_center=(step == "edge"))
+            switch_mode = (step == "edge")
+            self.collector.run(switch_to_center=False)
 
             # wait for results
             while not self.collector.is_complete():
                 time.sleep(.1)
+
+            time.sleep(2.0)
 
             logger.info(f'All grid scores now available for {step}')
             grid_config = self.collector.get_grid()
@@ -443,13 +443,12 @@ class Centering(Engine):
             point = grid_config['grid_xyz'][best_index]
             score = scipy.stats.percentileofscore(grid_scores.ravel(), best_score)
             logger.info(f'Best diffraction at {best_index + 1}: score={score:0.1f}%')
-            self.beamline.goniometer.wait(start=False, stop=True)
-            self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
-
             scores.append(score)
+            self.beamline.goniometer.stage.move_xyz(point[0], point[1], point[2], wait=True)
             self.beamline.goniometer.save_centering()
+            if switch_mode:
+                self.beamline.manager.center(wait=True)
 
-        self.beamline.low_dose.off()
         self.score = numpy.mean(scores)
         self.results = {
             'method': self.method_name,

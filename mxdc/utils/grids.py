@@ -1,8 +1,6 @@
-import pprint
 import warnings
 
 import numpy
-import numpy as np
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -344,9 +342,11 @@ def fix_grid(params, grid_config, max_delay=0.650):
     index = np.array([tuple(map(int, pair)) for pair in grid_config['grid_index']])
     grid_rows, grid_cols = index[:, 0].reshape(shape), index[:, 1].reshape(shape)
 
-    max_lag = int(max_delay / params['exposure'])
     quality = check_grid_quality(grid_config['grid_scores'])
-    pprint.pprint(quality)
+
+    if quality['r0'] > 0.8 or not quality['is_recoverable']:
+        return grid_config
+
     with AlternateRowReversed(grid_config['grid_scores']) as scores:
         new_scores = shift_rows(scores, offset=quality['optimal_shift'], fill_value=0.0)
         scores[...] = new_scores
