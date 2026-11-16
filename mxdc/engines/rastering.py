@@ -87,6 +87,7 @@ class RasterCollector(Engine):
             'grid_params': {
                 'origin': (ox, oy, oz),
                 'support': (sx, sy, sz),
+                'aperture': params.get('aperture', self.beamline.aperture.get()),
                 'directory': params['directory'],
                 'width': shape[0]*params['aperture'],
                 'height': shape[1]*params['aperture'],
@@ -125,6 +126,9 @@ class RasterCollector(Engine):
             [i + 1 for i in range(self.total_frames)]
         )
         self.results = {}
+
+        # set the aperture
+        self.beamline.aperture.set(params['aperture'])
 
         # setup folder for
         self.beamline.dss.setup_folder(params['directory'], misc.get_project_name())
@@ -177,8 +181,8 @@ class RasterCollector(Engine):
         with self.beamline.lock:
             self.config['start_time'] = datetime.now(tz=pytz.utc)
             self.emit('started', self.config['params'])
+            saved_aperture = self.beamline.aperture.get()
             self.prepare(self.config['params'])
-
             try:
                 # raster scan proper
                 if self.beamline.goniometer.supports(GonioFeatures.RASTER4D, GonioFeatures.TRIGGERING):
@@ -191,6 +195,7 @@ class RasterCollector(Engine):
             finally:
                 self.beamline.fast_shutter.close()
                 self.beamline.detector.stop()
+                self.beamline.aperture.set(saved_aperture)
                 self.beamline.low_dose.off()
                 if switch_to_center:
                     self.beamline.manager.center(wait=True)
@@ -328,10 +333,8 @@ class RasterCollector(Engine):
         self.emit('progress', fraction, msg)
 
     def on_raster_done(self, result, data):
-        # fix scores and save metadata
+        # save metadata
         self.config['properties']['grid_scores'][self.config['properties']['grid_scores'] < 0] = 0.0
-        self.config['properties'] = grids.fix_grid(self.config['params'], self.config['properties'], max_delay=0.400)
-
         self.save_metadata()
         self.complete = True
         self.emit('complete', (self.config['params'], self.config['properties']))

@@ -36,7 +36,7 @@ class IMicroscope(Interface):
     grid_params = Attribute("A dictionary of grid reference parameters")
     grid_scores = Attribute("A 2d MxN array representing the scores of the grid")
     grid_index = Attribute("A list of point indices for each cell in the grid by traversal order")
-    grid_frames = Attribute("An integer arry of frame numbers for each cell")
+    grid_frames = Attribute("An integer array of frame numbers for each cell")
     points = Attribute("A list of points")
 
 
@@ -311,7 +311,7 @@ class Microscope(Object):
         else:
             GLib.idle_add(self.video.set_overlay_points)
 
-    def make_grid(self, bbox=None, points=None, scaled=True, center=True):
+    def make_grid(self, bbox=None, points=None, aperture=None, scaled=True, center=True):
         if points is not None:
             points = numpy.array(points)
             bbox = numpy.array([points.min(axis=0), points.max(axis=0)])
@@ -321,8 +321,9 @@ class Microscope(Object):
         if not isinstance(bbox, numpy.ndarray):
             bbox = numpy.array(bbox)
 
+        aperture = self.beamline.aperture.get() if aperture is None else aperture
         factor = 1.0 if scaled else self.video.scale
-        step_size = 1e-3 * self.beamline.aperture.get() / self.video.get_mm_scale()
+        step_size = 1e-3 * float(aperture) / self.video.get_mm_scale()
 
         bounds = bbox * factor
         shape = grids.calc_grid_size(bounds, step_size)
@@ -355,6 +356,7 @@ class Microscope(Object):
             'grid_params': {
                 'origin': (ox, oy, oz),
                 'support': (sx, sy, sz),
+                'aperture': aperture,
                 'width': w,
                 'height': h,
                 'angle': angle,
@@ -378,9 +380,7 @@ class Microscope(Object):
 
     def recalculate_grid(self):
         center = numpy.array(self.video.get_size()) * 0.5
-        sx, sy, sz = self.beamline.goniometer.support.get_xyz()
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
-        osx, osy, osz = self.props.grid_params.get('support', [0.0, 0.0, 0.0])
         points = self.grid_xyz - numpy.array([ox, oy, oz])
         xyz = numpy.empty_like(points)
         xyz[:, 0], xyz[:, 1], xyz[:, 2] = self.beamline.goniometer.stage.xyz_to_screen(
@@ -395,6 +395,7 @@ class Microscope(Object):
             self.props.grid = self.recalculate_grid()
             self.video.set_overlay_grid(
                 {
+                    'aperture': self.props.grid_params.get('aperture', self.beamline.aperture.get()) * 1e-3,
                     'coords': self.props.grid,
                     'indices': self.props.grid_index,
                     'frames': self.props.grid_frames,
@@ -546,10 +547,6 @@ class Microscope(Object):
     def on_aperture(self, obj, value):
         aperture = value * 1e-3  # convert to mm
         self.video.set_overlay_beam(aperture)
-
-        if self.grid_xyz is not None:
-            xyz = self.recalculate_grid()
-            self.make_grid(points=xyz[:, :2], center=False)
 
     def on_rotate(self, widget, angle):
         cur_omega = round(self.beamline.goniometer.omega.get_position())

@@ -457,9 +457,9 @@ class VideoWidget(Gtk.DrawingArea):
             return
 
         grid = self.overlays['grid']
-        radius = self.overlays['beam'] * 0.5 / self.mm_scale
+        radius = grid.get('aperture', self.overlays['beam']) * 0.5 / self.mm_scale
         width = 2 * radius
-        font_size = min(width / 3.15, 10)
+        font_size = 0.8 * min(width / 3.15, 10)
 
         coords = grid.get('coords')
         scores = grid.get('scores')
@@ -488,7 +488,7 @@ class VideoWidget(Gtk.DrawingArea):
                 cr.rectangle(ox, oy, width - 0.5, width - 0.5)
                 cr.fill()
 
-            # if font_size > 6:
+            # if font_size > 3:
             #     cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
             #     cr.set_operator(cairo.OPERATOR_DIFFERENCE)
             #     name = f'{frame}'

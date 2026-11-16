@@ -2,6 +2,8 @@ import warnings
 
 import numpy
 
+from mxdc.utils.misc import debug_value
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
@@ -339,23 +341,31 @@ def fix_grid(params, grid_config, max_delay=0.650):
     """
 
     shape = grid_config['grid_scores'].shape
-    index = np.array([tuple(map(int, pair)) for pair in grid_config['grid_index']])
+    index = np.array(grid_config['grid_index'])
     grid_rows, grid_cols = index[:, 0].reshape(shape), index[:, 1].reshape(shape)
+    max_col = grid_cols.max()
 
     quality = check_grid_quality(grid_config['grid_scores'])
-
+    debug_value(quality)
     if quality['r0'] > 0.8 or not quality['is_recoverable']:
         return grid_config
 
-    with AlternateRowReversed(grid_config['grid_scores']) as scores:
-        new_scores = shift_rows(scores, offset=quality['optimal_shift'], fill_value=0.0)
-        scores[...] = new_scores
+    # Fix grid index, and frames
+    offset = quality['optimal_shift']
+    grid_cols[::2] -= offset
+    grid_cols[1::2] += offset
 
-    with AlternateRowReversed(grid_cols) as cols:
-        new_cols = shift_rows(cols, offset=quality['optimal_shift'], fill_value=-1)
-        cols[...] = new_cols
+    grid_cols[(grid_cols > max_col) | (grid_cols < 0)] = -1
 
     grid_index = list(zip(grid_rows.ravel(), grid_cols.ravel()))
     grid_config['grid_index'] = grid_index
+
+    # fix frames
+    frames = np.array(grid_config['grid_frames'], dtype=int)
+    max_frames = frames.max()
+    frames += offset
+    frames[frames > max_frames] = max_frames = -1
+    grid_config['grid_frames'] = list(map(int, frames))
+
     return grid_config
 

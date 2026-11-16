@@ -195,6 +195,9 @@ class ChoicePositioner(BasePositioner):
         self.set_state(enabled=True)
         self.dev.connect('changed', self.signal_change)
 
+    def get_choices(self):
+        return self.choices
+
     def get(self):
         val = self.dev.get()
         if val in self.choices:

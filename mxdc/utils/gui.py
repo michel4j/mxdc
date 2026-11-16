@@ -3,7 +3,7 @@ import os
 import zipfile
 from collections import OrderedDict
 from collections import namedtuple
-from enum import Enum
+from enum import IntEnum
 
 import gi
 import numpy
@@ -139,7 +139,7 @@ class ColumnType(object):
 
 
 class TreeManager(GObject.GObject):
-    class Data(Enum):  A, B = list(range(2))
+    class Data(IntEnum):  A, B = list(range(2))
     Types = [int, int]
     Columns = ColumnSpec(
         (Data.A, 'A', ColumnType.TEXT, '{}', True),
@@ -155,6 +155,8 @@ class TreeManager(GObject.GObject):
     flat = False  # whether tree is flat single level or not
     single_click = False
     select_multiple = False
+    default_sort = None
+    default_sort_order = 1
 
     def __init__(self, view, model=None, colormap=None):
         super().__init__()
@@ -162,6 +164,10 @@ class TreeManager(GObject.GObject):
             self.model = Gtk.TreeStore(*self.Types)  # make a new model if none is provided
         else:
             self.model = model
+
+        if self.default_sort is not None:
+            order = Gtk.SortType.ASCENDING if self.default_sort_order == 1 else Gtk.SortType.DESCENDING
+            self.model.set_sort_column_id(self.default_sort, order)
 
         self.view = view
         self.colormap = colormap or colors.PERCENT_COLORMAP
