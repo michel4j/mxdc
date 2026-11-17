@@ -1,7 +1,7 @@
 
 import numpy
 from gi.repository import Gtk
-from matplotlib import cm, transforms
+from matplotlib import colormaps, transforms
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.colors import Normalize
@@ -47,7 +47,7 @@ class Plotter(Gtk.Box):
         self.format_x = FormatStrFormatter(xformat)
         self.ring_buffer = loop
         self.buffer_size = buffer_size
-        self.colormap = cm.get_cmap('Dark2')
+        self.colormap = colormaps['Dark2']
         self.axis_space = 0.92
         self.cursor_line = None
         self.cursor_points = {}

@@ -1045,7 +1045,7 @@ _viridis_data = [[0.267004, 0.004874, 0.329415],
                  [0.993248, 0.906157, 0.143936]]
 
 from matplotlib.colors import ListedColormap
-from matplotlib import cm
+from matplotlib import colormaps
 
 
 cmaps = {}
@@ -1059,7 +1059,7 @@ for (name, data) in (('magma', _magma_data),
 
 values = numpy.linspace(0, 1, 256)
 for name in ['jet', 'rainbow', 'gist_ncar', 'binary', 'nipy_spectral']:
-    cmap = cm.get_cmap(name)
+    cmap = colormaps[name]
     data = cmap(values)[:,:3].tolist()
     cmaps[name] = ListedColormap(data, name=name)
 

@@ -236,6 +236,9 @@ class SimChoicePositioner(BasePositioner):
         else:
             self.set_state(changed=self._pos, active=active, enabled=active, health=(16, 'disabled', ''))
 
+    def get_choices(self):
+        return self.choices
+
     def get(self):
         return self._pos
 

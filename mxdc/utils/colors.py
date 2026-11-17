@@ -1,4 +1,4 @@
-from matplotlib import cm, colors
+from matplotlib import colormaps, colors
 from . import cmaps
 import numpy
 from scipy import interpolate
@@ -17,7 +17,7 @@ def cmap_discretize(cmap_name="spectral", N=10):
         djet = cmap_discretize(cm.jet, 5)
         imshow(x, cmap=djet)
     """
-    cmap = cm.get_cmap(cmap_name)
+    cmap = colormaps[cmap_name]
     
     cdict = cmap._segmentdata.copy()
     # N colors
@@ -79,8 +79,8 @@ class Category:
 
 
 class ColorMapper(object):
-    def __init__(self, color_map=cmaps.viridis, vmin: float = 0.0, vmax: float = 1.0):
-        self.cmap =  cm.get_cmap(color_map)
+    def __init__(self, color_map='viridis', vmin: float = 0.0, vmax: float = 1.0):
+        self.cmap =  colormaps[color_map]
         self.norm = colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
 
     def rescale(self, values):
