@@ -57,21 +57,7 @@ dependencies = [
 Homepage = "https://github.com/michel4j/mxdc"
 Issues = "https://github.com/michel4j/mxdc/issues"
 
-[tool.poetry]
-packages = [
-    { include = "mxdc", from = "." },
-]
-
-include = [
-    {path = "docs/**", format = ["sdist"]},
-    {path = "deploy/*desktop", format = ["sdist"]},
-    {path = "deploy/CONFIG_example.py", format = ["sdist"]},
-    {path = "LICENSE", format = ["sdist"]},
-    {path = "README.rst", format = ["sdist"]},
-]
-version = "0.0.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 archiver = "mxdc.utils.scripts:archiver"
 blconsole = "mxdc.utils.scripts:console"
 hutchviewer = "mxdc.utils.scripts:hutch_viewer"
@@ -82,32 +68,25 @@ sim-console = "mxdc.utils.scripts:sim_console"
 sim-mxdc = "mxdc.utils.scripts:sim_mxdc"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
 
+[tool.uv]
+package = true
 
-[tool.setuptools.package-data]
-"mxdc" = [
-  "share/data/simulated/*.*",
-  "share/data/*.*",
-  "share/gschemas.compiled",
-  "share/mxdc.*.xml",
-  "share/mxdc.gresource",
-  "share/styles.css",
-  "share/dark.mplstyle",
-  "share/imgsync.tac",
-]
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
 
+[tool.hatch.build.targets.wheel]
+packages = ["mxdc"]
 
-[tool.poetry.group.dev.dependencies]
-Sphinx = ">=4.2.0"
-sphinx-rtd-theme = ">=1.0.0"
-sphinxcontrib-napoleon = ">=0.7"
-
-[tool.poetry.requires-plugins]
-poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
-
-[tool.poetry-dynamic-versioning]
-enable = true
+[tool.uv-dynamic-versioning]
 vcs = "git"
+style = "pep440" # Options: "pep440", "semver", "pvp"
+fallback-version = "0.0.0" # Used if building outside a Git repo (e.g., from an sdist)
 format = "{base}.{revision}{distance}"
+
+[project.optional-dependencies]
+dev = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-napoleon"]
+all = ["mxdc[dev]"]
+
