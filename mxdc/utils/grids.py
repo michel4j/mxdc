@@ -1,4 +1,5 @@
 import warnings
+from enum import IntEnum
 
 import numpy
 
@@ -8,6 +9,15 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 import numpy as np
+
+class ScoringScheme(IntEnum):
+    SCORE = 0
+    BRAGG = 1
+    SPOTS = 2
+    RESOLUTION = 3
+    SIGNAL = 4
+    INTENSITY = 5
+    ICE = 6
 
 
 class AlternateRowReversed:

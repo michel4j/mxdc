@@ -10,6 +10,7 @@ from mxdc import Registry, IBeamline, Object, Property, Signal
 from mxdc.engines.rastering import RasterCollector
 from mxdc.utils import datatools, misc, decorators, grids
 from mxdc.utils.converter import resol_to_dist
+from mxdc.utils.grids import ScoringScheme
 from mxdc.utils.gui import TreeManager, ColumnType, ColumnSpec, FormManager, FieldSpec, Validator
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import status, dialogs
@@ -23,15 +24,6 @@ RASTER_DELTA = 0.1
 
 logger = get_module_logger(__name__)
 
-
-class ScoringScheme(IntEnum):
-    SCORE = 0
-    BRAGG = 1
-    SPOTS = 2
-    RESOLUTION = 3
-    SIGNAL = 4
-    INTENSITY = 5
-    ICE = 6
 
 
 SCORING_LABELS = {

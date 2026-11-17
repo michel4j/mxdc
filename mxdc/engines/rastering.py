@@ -12,6 +12,7 @@ from zope.interface import Interface, implementer
 from mxdc import Registry, Signal, Engine
 from mxdc.devices.goniometer import GonioFeatures
 from mxdc.utils import datatools, misc, decorators, grids
+from mxdc.utils.grids import ScoringScheme
 from mxdc.utils.converter import energy_to_wavelength
 from mxdc.utils.log import get_module_logger
 
@@ -33,6 +34,15 @@ def logistic(x, x0=0.0, weight=1.0, scale=1.0):
 
 
 SIGNAL_STRENGTH_DELAY = 3.0
+SCORING_FIELDS = {
+    ScoringScheme.SCORE: 'score',
+    ScoringScheme.BRAGG: 'bragg_spots',
+    ScoringScheme.RESOLUTION: 'resolution',
+    ScoringScheme.SIGNAL: 'signal_avg',
+    ScoringScheme.INTENSITY: 'intensity',
+    ScoringScheme.SPOTS: 'total_spots',
+    ScoringScheme.ICE: 'ice_rings'
+}
 
 
 @implementer(IRasterCollector)
@@ -88,6 +98,7 @@ class RasterCollector(Engine):
                 'origin': (ox, oy, oz),
                 'support': (sx, sy, sz),
                 'aperture': params.get('aperture', self.beamline.aperture.get()),
+                'scoring': params.get('scoring', 0),
                 'directory': params['directory'],
                 'width': shape[0]*params['aperture'],
                 'height': shape[1]*params['aperture'],
@@ -102,11 +113,13 @@ class RasterCollector(Engine):
         try:
             while True:
                 if not self.result_queue.empty():
-                    score, info = self.result_queue.get()
+                    info = self.result_queue.get()
+                    scoring = self.config['params']['scoring']
+                    score_key = SCORING_FIELDS.get(scoring, 'score')
                     # on buggy gonio multiple cells may represent the same frame
                     for index in numpy.where(self.config['properties']['grid_frames'] == info['frame_number'])[0]:
                         ij = self.config['properties']['grid_index'][index]
-                        self.config['properties']['grid_scores'][ij] = score
+                        self.config['properties']['grid_scores'][ij] = info.get(score_key, 0.0)
                         self.emit('result', index, info)
 
                 time.sleep(0.01)
@@ -324,8 +337,7 @@ class RasterCollector(Engine):
 
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
-        score = info['score']
-        self.result_queue.put((score, info))
+        self.result_queue.put(info)
 
         self.count += 1
         fraction = self.count / self.total_frames
