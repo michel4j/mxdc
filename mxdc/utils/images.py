@@ -12,7 +12,7 @@ import time
 from collections import deque
 from enum import Enum
 from pathlib import Path
-
+from matplotlib import colormaps, cm
 import zmq
 from methodtools import lru_cache
 from mxio import read_image, DataSet, XYPair
@@ -384,8 +384,8 @@ class DisplayFrame:
         return d
 
     def set_colormap(self, name: str):
-        c_map = matplotlib.cm.get_cmap(name, 256)
-        rgba_data = matplotlib.cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
+        c_map = colormaps[name].resampled(256)
+        rgba_data = cm.ScalarMappable(cmap=c_map).to_rgba(numpy.arange(0, 1.0, 1.0 / 256.0), bytes=True)
         rgba_data = rgba_data[:, :-1].reshape((256, 1, 3))
         self.color_map = rgba_data[:, :, ::-1]
         self.dirty = True

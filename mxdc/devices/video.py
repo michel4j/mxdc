@@ -311,7 +311,7 @@ class REDISCamera(VideoSrc):
         VideoSrc.__init__(self, name, maxfps=15.0, size=size)
         self.key = mac
         self.stores = {
-            threading.current_thread(): redis.Redis(host=server, port=6379, db=0)
+            threading.current_thread(): redis.Redis(host=server, port=6379, db=0, protocol=2)
         }
         self.server = server
         self.set_state(active=True)
@@ -321,7 +321,7 @@ class REDISCamera(VideoSrc):
         if thread in self.stores:
             return self.stores[thread]
         else:
-            self.stores[thread] = redis.Redis(host=self.server, port=6379, db=0)
+            self.stores[thread] = redis.Redis(host=self.server, port=6379, db=0, protocol=2)
             return self.stores[thread]
 
     def configure(self, **kwargs):
