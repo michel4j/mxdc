@@ -169,6 +169,7 @@ class RasterController(Object):
             return
         else:
             params, grid_config = misc.load_pickle(filename)
+            grid_config['grid_params']['aperture'] = params['aperture']
             grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
             self.microscope.load_grid(grid_config)
 
