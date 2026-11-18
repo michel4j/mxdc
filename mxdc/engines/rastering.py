@@ -33,8 +33,10 @@ def logistic(x, x0=0.0, weight=1.0, scale=1.0):
     return weight / (1 + numpy.exp(-scale * (x - x0)))
 
 
+
 SIGNAL_STRENGTH_DELAY = 3.0
 SCORING_FIELDS = {
+    ScoringScheme.SUMMARY: 'summary',
     ScoringScheme.SCORE: 'score',
     ScoringScheme.BRAGG: 'bragg_spots',
     ScoringScheme.RESOLUTION: 'resolution',
@@ -334,7 +336,6 @@ class RasterCollector(Engine):
         time.sleep(0)
 
     def on_raster_update(self, result, info, template):
-
         info['filename'] = template.format(info['frame_number'])
         self.results[info['frame_number']] = info
         self.result_queue.put(info)

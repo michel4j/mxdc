@@ -27,7 +27,8 @@ logger = get_module_logger(__name__)
 
 
 SCORING_LABELS = {
-    ScoringScheme.SCORE: 'Overall Score',
+    ScoringScheme.SUMMARY: 'Summary',
+    ScoringScheme.SCORE: 'Score',
     ScoringScheme.BRAGG: 'Bragg Spots',
     ScoringScheme.SPOTS: 'Total Spots',
     ScoringScheme.RESOLUTION: 'Resolution',
@@ -73,7 +74,7 @@ class RasterForm(FormManager):
         scoring_field = self.get_field('scoring')
         for i, value in SCORING_LABELS.items():
             scoring_field.append(str(i), value)
-        self.set_value('scoring', ScoringScheme.SCORE)
+        self.set_value('scoring', ScoringScheme.SUMMARY)
 
     def on_change(self, field, event, name):
         super().on_change(field, event, name)

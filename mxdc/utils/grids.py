@@ -11,13 +11,15 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 import numpy as np
 
 class ScoringScheme(IntEnum):
-    SCORE = 0
-    BRAGG = 1
-    SPOTS = 2
-    RESOLUTION = 3
-    SIGNAL = 4
-    INTENSITY = 5
-    ICE = 6
+    SUMMARY = 0
+    SCORE = 1
+    BRAGG = 2
+    SPOTS = 3
+    RESOLUTION = 4
+    SIGNAL = 5
+    INTENSITY = 6
+    ICE = 7
+
 
 
 class AlternateRowReversed:
