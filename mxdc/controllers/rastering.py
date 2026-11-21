@@ -90,8 +90,9 @@ class RasterForm(FormManager):
 
         if name in ['aperture', 'exposure']:
             exposure = self.get_value('exposure')
+            
             exposure_limit = 1/self.beamline.config.raster.max_freq
-            min_exposure = aperture / self.beamline.config.raster.max_speed
+            min_exposure = misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.025)
             self.set_value('exposure', max(exposure, exposure_limit, min_exposure))
 
 
@@ -359,11 +360,20 @@ class RasterController(Object):
 
     def on_grid_changed(self, obj, param):
         params = self.microscope.grid_params
-        if params is not None and 'width' in params and 'height' in params:
+        if not params:
+            return
+            
+        if 'width' in params and 'height' in params:
             self.form.set_values({
                 'width': params['width'],
-                'height': params['height']
+                'height': params['height'],
             }, propagate=True)
+            
+        if 'exposure' in params:
+            self.form.set_value('exposure', params['exposure'], propagate=True)
+            
+        if 'aperture' in params:
+            self.form.set_value('aperture', params['aperture'], propagate=True)
 
     def add_result_item(self, item: dict):
         parent, child = self.manager.add_item(item)

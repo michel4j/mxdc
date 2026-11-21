@@ -43,7 +43,7 @@ class AlternateRowReversed:
     Parameters
     ----------
     array : np.ndarray
-        A 2-D numpy array whose odd rows (1, 3, 5, …) are stored in
+        A 2-D numpy array whose odd rows (1, 3, 5, \u2026) are stored in
         reversed column order.
 
     Raises
@@ -160,7 +160,8 @@ def check_grid_quality(scores: np.ndarray, max_search_lag: int = 32) -> dict:
 
     return {
         'r0': round(r0, 3),
-        'optimal_shift': int(round(optimal_shift)),
+        'optimal_shift': optimal_shift,
+        'offset': int(round(optimal_shift)),
         'best_corr': round(best_corr, 3),
         'is_recoverable': bool(best_corr >= 0.80)
     }
@@ -291,7 +292,7 @@ def shift_rows(array: np.ndarray, offset: int, fill_value: float = 0) -> np.ndar
     positions are filled with *fill_value*.
 
     :param array: np.ndarray, source 2-D array
-    :param offset: int, number of columns to shift, positive → right, negative → left, zero → no shift
+    :param offset: int, number of columns to shift, positive \u2192 right, negative \u2192 left, zero \u2192 no shift
     :param fill_value: float, optional, value used for positions that have no corresponding source element
     :return: np.ndarray, a new array with the same shape and dtype as *array*
     :raises ValueError: If *array* is not exactly 2-dimensional.
@@ -319,7 +320,7 @@ def shift_rows(array: np.ndarray, offset: int, fill_value: float = 0) -> np.ndar
     if offset == 0 or abs(offset) >= cols:
         if offset == 0:
             result[:] = array
-        # if |offset| >= cols every element is out of range → all fill_value
+        # if |offset| >= cols every element is out of range \u2192 all fill_value
         return result
 
     if offset < 0:
@@ -352,22 +353,25 @@ def fix_grid(params, grid_config, max_delay=0.650):
     :return: fixed grid configuration
     """
 
+    max_offset = int(round(max_delay / params['exposure']))
     shape = grid_config['grid_scores'].shape
     index = np.array(grid_config['grid_index'])
     grid_rows, grid_cols = index[:, 0].reshape(shape), index[:, 1].reshape(shape)
     max_col = grid_cols.max()
 
-    quality = check_grid_quality(grid_config['grid_scores'])
-    debug_value(quality)
+    quality = check_grid_quality(grid_config['grid_scores'], max_search_lag=max_offset)
+    quality['lag'] = params['exposure'] * quality['optimal_shift']
+    #debug_value(quality)
     if quality['r0'] > 0.8 or not quality['is_recoverable']:
         return grid_config
 
     # Fix grid index, and frames
-    offset = quality['optimal_shift']
+    offset = quality['offset']
     grid_cols[::2] -= offset
     grid_cols[1::2] += offset
 
-    grid_cols[(grid_cols > max_col) | (grid_cols < 0)] = -1
+    #grid_cols[(grid_cols > max_col) | (grid_cols < 0)] = -1
+    grid_cols %= max_col
 
     grid_index = list(zip(grid_rows.ravel(), grid_cols.ravel()))
     grid_config['grid_index'] = grid_index
@@ -380,4 +384,3 @@ def fix_grid(params, grid_config, max_delay=0.650):
     grid_config['grid_frames'] = list(map(int, frames))
 
     return grid_config
-

@@ -10,7 +10,7 @@ from mxdc import Registry, IBeamline, Object, Property
 from mxdc.conf import save_cache, load_cache
 from mxdc.engines import centering
 from mxdc.engines.scripting import get_scripts
-from mxdc.utils import colors, datatools, grids
+from mxdc.utils import colors, datatools, grids, misc
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
 from mxdc.widgets import dialogs
@@ -357,6 +357,7 @@ class Microscope(Object):
                 'origin': (ox, oy, oz),
                 'support': (sx, sy, sz),
                 'aperture': aperture,
+                'exposure': misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.025),
                 'width': w,
                 'height': h,
                 'angle': angle,

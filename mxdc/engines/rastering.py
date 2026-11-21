@@ -72,7 +72,7 @@ class RasterCollector(Engine):
 
     def configure(self, params):
         exposure_limit = 1 / self.beamline.config.raster.max_freq
-        min_exposure = params['aperture'] / self.beamline.config.raster.max_speed
+        min_exposure = misc.nearest(params['aperture'] / self.beamline.config.raster.max_speed, 0.025)
         params['exposure'] = max(params['exposure'], min_exposure, exposure_limit)
 
         # calculate grid from dimensions
@@ -99,7 +99,8 @@ class RasterCollector(Engine):
             'grid_params': {
                 'origin': (ox, oy, oz),
                 'support': (sx, sy, sz),
-                'aperture': params.get('aperture', self.beamline.aperture.get()),
+                'aperture': params.get('aperture', self.beamline.config.raster.aperture),
+                'exposure': params.get('exposure', self.beamline.config.raster.exposure),
                 'scoring': params.get('scoring', 0),
                 'directory': params['directory'],
                 'width': shape[0]*params['aperture'],
@@ -124,7 +125,7 @@ class RasterCollector(Engine):
                         self.config['properties']['grid_scores'][ij] = info.get(score_key, 0.0)
                         self.emit('result', index, info)
 
-                time.sleep(0.01)
+                time.sleep(0.001)
         finally:
             self.results_active = False
 
@@ -204,8 +205,6 @@ class RasterCollector(Engine):
                     self.acquire_slew()
                 else:
                     self.acquire_step()
-
-                time.sleep(1)
 
             finally:
                 self.beamline.fast_shutter.close()

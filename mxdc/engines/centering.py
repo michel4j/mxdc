@@ -363,12 +363,12 @@ class Centering(Engine):
             return
 
         scores.append(self.score)
-        aperture = self.beamline.config.centering.aperture
+        aperture = self.beamline.config.raster.aperture
+        exposure = self.beamline.config.raster.exposure
         self.beamline.aperture.set(aperture)
 
         resolution = RASTER_RESOLUTION
         energy = self.beamline.energy.get_position()
-        exposure = self.beamline.config.raster.exposure
         loop = self.beamline.sample_xcenter.get_state('loop')
 
         for step in ['face', 'edge']:
@@ -390,6 +390,7 @@ class Centering(Engine):
                 'delta': RASTER_DELTA,
                 'exposure': exposure,
                 'attenuation': 0.0,
+                'low_dose': True
                 'aperture': aperture,
                 'distance': converter.resol_to_dist(
                     resolution, self.beamline.detector.mm_size, energy

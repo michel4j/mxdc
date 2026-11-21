@@ -39,6 +39,7 @@ class MXBeamline(Beamline):
         'raster.max_freq': 100,
         'raster.max_speed': 0.5,
         'raster.exposure': 0.5,
+        'raster.aperture': 20,
 
         'dataset.overhead': 5,
         'dataset.exposure': 0.5,
