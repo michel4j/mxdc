@@ -390,7 +390,7 @@ class Centering(Engine):
                 'delta': RASTER_DELTA,
                 'exposure': exposure,
                 'attenuation': 0.0,
-                'low_dose': True
+                'low_dose': True,
                 'aperture': aperture,
                 'distance': converter.resol_to_dist(
                     resolution, self.beamline.detector.mm_size, energy
