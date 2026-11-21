@@ -172,7 +172,7 @@ class RasterController(Object):
         else:
             params, grid_config = misc.load_pickle(filename)
             grid_config['grid_params']['aperture'] = params['aperture']
-            grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
+            grid_config = grids.fix_grid(params, grid_config, max_delay=0.65)
             self.microscope.load_grid(grid_config)
 
             result_items = self.get_grid_scores(params, grid_config)
@@ -256,7 +256,7 @@ class RasterController(Object):
 
     def on_complete(self, collector, data):
         params, grid_config = data
-        grid_config = grids.fix_grid(params, grid_config, max_delay=0.5)
+        grid_config = grids.fix_grid(params, grid_config, max_delay=0.65)
         self.update_scores(params, grid_config)
         self.props.state = self.StateType.READY
         self.control.progress_fbk.set_text("Rastering analysis complete.")
