@@ -72,7 +72,7 @@ class RasterCollector(Engine):
 
     def configure(self, params):
         exposure_limit = 1 / self.beamline.config.raster.max_freq
-        min_exposure = misc.nearest(params['aperture'] / self.beamline.config.raster.max_speed, 0.025)
+        min_exposure = misc.nearest(params['aperture'] / self.beamline.config.raster.max_speed, 0.01)
         params['exposure'] = max(params['exposure'], min_exposure, exposure_limit)
 
         # calculate grid from dimensions

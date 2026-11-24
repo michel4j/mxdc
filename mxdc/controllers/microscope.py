@@ -357,7 +357,7 @@ class Microscope(Object):
                 'origin': (ox, oy, oz),
                 'support': (sx, sy, sz),
                 'aperture': aperture,
-                'exposure': misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.025),
+                'exposure': misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.01),
                 'width': w,
                 'height': h,
                 'angle': angle,

@@ -449,7 +449,7 @@ class MD2Gonio(BaseGoniometer):
             kwargs['height'] *= h_adj * 1e-3
             # if self.power_pmac:
             #     kwargs['time'] *= h_adj
-            kwargs['use_table'] = 1 # int(self.power_pmac)
+            kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = 1
 
             start_y, start_cy, start_cx = kwargs.pop('start_pos')
