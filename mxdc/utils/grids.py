@@ -1,14 +1,21 @@
 import warnings
 from enum import IntEnum
 
-import numpy
-
+import numpy as np
+from scipy.interpolate import griddata
+from scipy.ndimage import distance_transform_edt
+from mxdc.utils import log, misc
 from mxdc.utils.misc import debug_value
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+logger = log.get_module_logger('grids')
 
 
-import numpy as np
+MAX_STEPS = 101            # Maximum number of images per line
+MAX_EXPOSURE = 501          # Maximum exposure time per frame in ms
+TIME_CONSTANT = 28.903      # Time constant in ms
+PHASE_RANGE = [0.22, 0.495] # Range of valid phase values
+
 
 class ScoringScheme(IntEnum):
     SUMMARY = 0
@@ -20,6 +27,50 @@ class ScoringScheme(IntEnum):
     INTENSITY = 6
     ICE = 7
 
+
+
+class GridSettings:
+
+    def __init__(self, max_steps=MAX_STEPS, max_exposure=MAX_EXPOSURE):
+        self.max_steps = max_steps
+        self.max_exposure = max_exposure
+        self.grid = self.get_settings_space()
+        self.nearest = self.get_nearest()
+
+    def score_setting(self, steps, exposure):
+        phase = (steps * exposure / TIME_CONSTANT) % 1
+        return 1 if PHASE_RANGE[0] < phase < PHASE_RANGE[1] else 0
+
+    def get_settings_space(self, max_steps=MAX_STEPS, max_exposure=MAX_EXPOSURE):
+        points = np.array(
+            [
+                (steps, exposure, self.score_setting(steps, exposure))
+                for steps in np.arange(0, max_steps, 1)
+                for exposure in np.arange(0, max_exposure, 1)
+            ]
+        )
+        x, y, z = points[:, 0], points[:, 1], points[:, 2]
+        xi, yi = np.linspace(x.min(), x.max(), MAX_STEPS), np.linspace(y.min(), y.max(), MAX_EXPOSURE)
+        xm, ym = np.meshgrid(xi, yi)
+        return griddata((x, y), z, (xm, ym), method='linear')
+
+    def get_nearest(self):
+        _, nearest = distance_transform_edt(self.grid != 1, return_indices=True)
+        return nearest
+
+    def clip_exposure(self, exposure, aperture, beamline):
+        exposure_limit = 1 / beamline.config.raster.max_freq
+        min_exposure = misc.nearest(aperture / beamline.config.raster.max_speed, 0.01)
+        return max(exposure, min_exposure, exposure_limit)
+
+    def fix(self, steps: int, exposure: int):
+        score = self.score_setting(steps, exposure)
+        if score:
+            return (steps, exposure)
+        else:
+            best_steps, best_exposure = self.nearest[:, steps, exposure]
+            logger.info(f"Adjusted grid from {steps}/{exposure} [{score}] -> {best_steps}/{best_exposure}")
+            return best_steps, best_exposure
 
 
 class AlternateRowReversed:
@@ -183,8 +234,8 @@ def grid_from_bounds(bbox, step_size, **kwargs):
     grid_origin = grid_center - grid_size / 2. + step_size / 2
 
     nX, nY = grid_shape
-    xi = numpy.arange(0, nX) * step_size + grid_origin[0]
-    yi = numpy.arange(0, nY) * step_size + grid_origin[1]
+    xi = np.arange(0, nX) * step_size + grid_origin[0]
+    yi = np.arange(0, nY) * step_size + grid_origin[1]
 
     return calc_grid_coords(xi, yi, **kwargs)
 
@@ -202,34 +253,34 @@ def grid_from_size(size: tuple, step: float, center: tuple, **kwargs):
     cX, cY = center
     nX, nY = size
 
-    xi = (numpy.arange(0, nX) - (nX - 1) / 2) * step + cX
-    yi = (numpy.arange(0, nY) - (nY - 1) / 2) * step + cY
+    xi = (np.arange(0, nX) - (nX - 1) / 2) * step + cX
+    yi = (np.arange(0, nY) - (nY - 1) / 2) * step + cY
 
     return calc_grid_coords(xi, yi, **kwargs)
 
 
-def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
+def calc_grid_coords(xi, yi, snake=False, vertical=False, extra_trigger=False, **kwargs):
     """
     Calculate the grid coordinates and return a properly ordered sequence based on device traversal
     :param xi: array of x coordinates
     :param yi: array of y coordinates
     :param snake: invert alternate rows/columns
     :param vertical: traverse verticaly
-    :param buggy:  Fix buggy indexing for power-pmac
+    :param extra_trigger:  Fix indexing for power-pmac
     :return: 3xN array of coordinates for each grid point, and a 2xN array for the corresponding
     index positions in the 2D grid, and the corresponding frame numbers for each position
     """
-    x_ij, y_ij = numpy.meshgrid(xi[::-1], yi, sparse=False)
+    x_ij, y_ij = np.meshgrid(xi[::-1], yi, sparse=False)
     nX, nY = len(xi), len(yi)
-    ix = numpy.arange(nX).astype(int)
-    jy = numpy.arange(nY).astype(int)
-    i_xy, j_xy = numpy.meshgrid(ix[::-1], jy, sparse=False)
+    ix = np.arange(nX).astype(int)
+    jy = np.arange(nY).astype(int)
+    i_xy, j_xy = np.meshgrid(ix[::-1], jy, sparse=False)
 
     if not vertical or nX >= nY:
         if snake:
             x_ij[1::2, :] = x_ij[1::2, ::-1]  # flip even rows
             i_xy[1::2, :] = i_xy[1::2, ::-1]  # flip even rows
-        grid = numpy.array(
+        grid = np.array(
             [
                 (x_ij[j, i], y_ij[j, i], 0.0)
                 for j in jy for i in ix  # fast axis is x
@@ -244,7 +295,7 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
         if snake:
             y_ij[:, 1::2] = y_ij[::-1, 1::2]  # flip even columns
             j_xy[:, 1::2] = j_xy[::-1, 1::2]  # flip even columns
-        grid = numpy.array(
+        grid = np.array(
             [
                 (x_ij[j, i], y_ij[j, i], 0.0)
                 for i in ix for j in jy  # fast axis is y
@@ -256,11 +307,11 @@ def calc_grid_coords(xi, yi, snake=False, vertical=False, buggy=False):
         ]
 
     size = len(index)
-    frames = numpy.arange(size)
+    frames = np.arange(size)
 
     # some MD2s produce an extra frame every new line
-    if buggy:
-        frames = (frames + numpy.divmod(frames, nX)[0] + 1)
+    if extra_trigger:
+        frames = (frames + np.divmod(frames, nX)[0] + 1)
         frames[frames >= size] = size - 1
 
     return grid, index, frames + 1
@@ -276,8 +327,8 @@ def calc_grid_shape(width, height, aperture):
     :param tight: bool, true if close fitting required
     :return: tuple (x-size, y-size)
     """
-    size = numpy.array([width, height])
-    nX, nY = numpy.round(size / aperture).astype(int)
+    size = np.array([width, height])
+    nX, nY = np.round(size / aperture).astype(int)
     nX = max(1, nX)
     nY = max(2, nY)
     return nX, nY
@@ -340,8 +391,8 @@ def calc_grid_size(bbox, step_size):
     :return: tuple (x-size, y-size)
     """
 
-    grid_shape = numpy.ceil(numpy.abs(bbox[1] - bbox[0]) / step_size).astype(int)
-    return numpy.maximum(grid_shape, 1)
+    grid_shape = np.ceil(np.abs(bbox[1] - bbox[0]) / step_size).astype(int)
+    return np.maximum(grid_shape, 1)
 
 
 def fix_grid(params, grid_config, max_delay=0.650):
@@ -361,8 +412,14 @@ def fix_grid(params, grid_config, max_delay=0.650):
 
     quality = check_grid_quality(grid_config['grid_scores'], max_search_lag=max_offset)
     quality['lag'] = params['exposure'] * quality['optimal_shift']
+    success = (
+       (params['aperture'] <= 10 and quality['r0'] >= 0.5) or
+       (10 < params['aperture'] <= 30 and quality['r0'] >= 0.68) or
+       (params['aperture'] > 30 and quality['r0'] >= 0.2)
+    )
     debug_value(quality)
-    if quality['r0'] > 0.8 or not quality['is_recoverable']:
+
+    if success or not quality['is_recoverable']:
         return grid_config
 
     # Fix grid index, and frames
@@ -384,3 +441,6 @@ def fix_grid(params, grid_config, max_delay=0.650):
     grid_config['grid_frames'] = list(map(int, frames))
 
     return grid_config
+
+
+settings = GridSettings()

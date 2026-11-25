@@ -61,7 +61,7 @@ class BaseGoniometer(Device):
         """
         Return a dictionary of grid settings supported by this goniometer
         """
-        return {"snake": True, "vertical": False, "buggy": False}
+        return {"snake": True, "vertical": False, "extra_trigger": False}
 
     def save_centering(self):
         """
@@ -368,7 +368,8 @@ class MD2Gonio(BaseGoniometer):
         return {
             "snake": True,
             "vertical": False,
-            "buggy": False,
+            "fix_raster_exposure": self.power_pmac,
+            "extra_trigger": False,
         }
 
     def save_centering(self):
@@ -447,8 +448,6 @@ class MD2Gonio(BaseGoniometer):
 
             kwargs['width'] *= w_adj * 1e-3
             kwargs['height'] *= h_adj * 1e-3
-            # if self.power_pmac:
-            #     kwargs['time'] *= h_adj
             kwargs['use_table'] = int(self.power_pmac)
             kwargs['shutterless'] = 1
 
@@ -774,6 +773,11 @@ class SimGonio(BaseGoniometer):
             self.trigger_positions.pop(0)
             self.trigger.on(self._frame_exposure * 0.5)
         return self._scanning
+
+    def grid_settings(self):
+        settings = supert().grid_settings()
+        settings['fix_raster_exposure'] = True
+        return settings
 
     def scan(self, **kwargs):
         """

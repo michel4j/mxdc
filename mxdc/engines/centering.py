@@ -429,15 +429,15 @@ class Centering(Engine):
 
             logger.info(f'All grid scores now available for {step}')
             config = self.collector.get_grid()
-            params = config['grid_params']
+            grid_params = config['grid_params']
             scores = config['grid_scores']  #
             
-            config = grids.fix_grid(params, config)
+            config = grids.fix_grid(grid_params, config)
             
             # grid_scores = gaussian_filter(grid_config['grid_scores'], 2, mode='reflect')
 
             steps[step] = {
-                'parameters': params,
+                'parameters': grid_params,
                 'scores': grid_scores,
             }
 

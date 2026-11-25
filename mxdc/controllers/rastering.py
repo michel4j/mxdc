@@ -79,7 +79,13 @@ class RasterForm(FormManager):
 
     def on_change(self, field, event, name):
         super().on_change(field, event, name)
+
+        update_exposure = False
+        exposure = self.get_value('exposure')
         aperture = int(self.get_value('aperture'))
+
+        if name in ['aperture', 'exposure']:
+            exposure = grids.settings.clip_exposure(exposure, aperture, self.beamline)
 
         if name in ['aperture', 'width', 'height']:
             hsteps, vsteps = grids.calc_grid_shape(
@@ -87,19 +93,25 @@ class RasterForm(FormManager):
                 self.get_value('height'),
                 aperture,
             )
-            self.set_values({'hsteps': hsteps, 'vsteps': vsteps, 'height': vsteps*aperture, 'width': hsteps*aperture})
+            self.set_values({
+                'hsteps': hsteps,
+                'vsteps': vsteps,
+                'height': vsteps*aperture,
+                'width': hsteps*aperture,
+            })
+            update_exposure = True
 
-        if name in ['aperture']:
-            exposure = misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.01)
-            self.set_value("exposure", exposure)
+        if name in ['hsteps', 'exposure'] or update_exposure:
+            exposure_ms = int(round(exposure * 1000))
+            hsteps = int(self.get_value('hsteps'))
+            hsteps, exposure_ms = grids.settings.fix(hsteps, exposure_ms)
+            self.set_values({
+                'width': hsteps*aperture,
+                'hsteps': hsteps,
+                'exposure': exposure_ms * 1e-3,
+            })
 
-        if name in ['aperture', 'exposure']:
-            exposure = self.get_value('exposure')
-            exposure_limit = 1/self.beamline.config.raster.max_freq
-            min_exposure = misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.01)
 
-            if name == 'exposure':
-                self.set_value('exposure', max(exposure, exposure_limit, min_exposure))
 
 
 class RasterController(Object):
@@ -107,7 +119,7 @@ class RasterController(Object):
         READY, ACTIVE, WAITING = range(3)
 
     Fields = (
-        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.01, 5, 0.01)),
+        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.02, 0.5, 0.01)),
         FieldSpec('resolution', 'entry', '{:0.2g}', Validator.Float(0.5, 50, 2.0)),
         FieldSpec('width', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
         FieldSpec('height', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),

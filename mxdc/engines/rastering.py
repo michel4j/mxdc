@@ -71,14 +71,18 @@ class RasterCollector(Engine):
         return self.complete
 
     def configure(self, params):
-        exposure_limit = 1 / self.beamline.config.raster.max_freq
-        min_exposure = misc.nearest(params['aperture'] / self.beamline.config.raster.max_speed, 0.01)
-        params['exposure'] = max(params['exposure'], min_exposure, exposure_limit)
+        params['exposure'] = grids.settings.clip_exposure(params['exposure'], params['aperture'], self.beamline)
+        grid_settings = self.beamline.goniometer.grid_settings()
+
+        # fix grid settings:
+        if grid_settings.get('fix_raster_exposure', False):
+            hsteps, exposure_ms = grids.settings.fix(params['hsteps'], int(round(params['exposure']*1000)))
+            params['hsteps'] = hsteps, params['exposure'] = exposure_ms*1e-3
 
         # calculate grid from dimensions
         grid, index, frames = grids.grid_from_size(
             (params['hsteps'], params['vsteps']), params['aperture'] * 1e-3, (0, 0),
-            **self.beamline.goniometer.grid_settings()
+            **grid_settings
         )
         ox, oy, oz = self.beamline.goniometer.stage.get_xyz()
         sx, sy, sz = self.beamline.goniometer.support.get_xyz()
