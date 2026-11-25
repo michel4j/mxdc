@@ -14,7 +14,7 @@ from gi.repository import GObject, WebKit2, Gtk, Gio
 from mxdc import Registry, IBeamline, Object, Property
 from mxdc.utils import misc, log
 from mxdc.utils.data import analysis
-from mxdc.utils import datatools, scitools
+from mxdc.utils import datatools, scitools, misc
 from mxdc.engines.analysis import Analyst
 from mxdc.engines import transfer
 from mxdc.widgets import dialogs, reports
@@ -318,7 +318,7 @@ class AnalysisController(Object):
                 'start': strategy.get('start_angle', 0.0),
                 'range': strategy.get('total_angle', 180),
                 'resolution': strategy.get('resolution', 2.0),
-                'exposure': max(0.005, scitools.nearest(delta / exposure_rate, 0.005)),
+                'exposure': max(0.005, misc.nearest(delta / exposure_rate, 0.005)),
                 'delta': delta,
                 'name': 'data',
             }

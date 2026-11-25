@@ -39,10 +39,6 @@ with open(os.path.join(SHARE_DIR, 'data', 'periodictable.json'), 'r') as handle:
     PERIODIC_TABLE = json.load(handle)
 
 
-def nearest(x, precision):
-    return int(numpy.round(x / precision, 0)) * precision
-
-
 def xanes_targets(energy):
     low_start = energy - 0.10
     low_end = energy - 0.03
@@ -198,7 +194,7 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
     
     E.g   [('Se', 'K'), ('Au', 'L3')]
     """
-    peak_energies = set([nearest(v[0], prec) for v in peaks])
+    peak_energies = set([misc.nearest(v[0], prec) for v in peaks])
     elements = []
     lonly = []
     for symbol, edges in EMISSIONS_DATA.items():
@@ -211,7 +207,7 @@ def get_peak_elements(energy, peaks=[], prec=0.05):
         if len(entry_peaks) > 1:
             entry_peaks.sort(key=lambda v: v[1], reverse=True)
         for pk in entry_peaks:
-            if nearest(pk[0], prec) in peak_energies:
+            if misc.nearest(pk[0], prec) in peak_energies:
                 entry.append(pk[2])
 
         if len(entry) > 1:

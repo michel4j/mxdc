@@ -7,7 +7,7 @@ from typing import Any
 from mxdc import Registry, Signal, Engine
 from mxdc.engines import centering
 from mxdc.engines.interfaces import IDataCollector, IAnalyst
-from mxdc.utils import datatools, scitools
+from mxdc.utils import datatools, scitools, misc
 from mxdc.utils.datatools import clip_resolution
 from mxdc.utils.decorators import async_call
 from mxdc.utils.log import get_module_logger
@@ -237,14 +237,14 @@ class Automator(Engine):
         if strategy:
             default_rate = options['delta'] / options['exposure']
             exposure_rate = strategy.get('exposure_rate_worst', default_rate)
-            delta = scitools.nearest(min(strategy.get('max_delta'), options['delta']), 0.1)
+            delta = misc.nearest(min(strategy.get('max_delta'), options['delta']), 0.1)
             min_exposure = self.beamline.config.dataset.exposure
             run = {
                 'attenuation': strategy.get('attenuation', 0.0),
                 'start': strategy.get('start_angle', 0.0),
                 'range': max(strategy.get('total_range', 180.0), options['range']),
                 'resolution': strategy.get('resolution', 2.0),
-                'exposure': max(min_exposure, scitools.nearest(delta / exposure_rate, min_exposure)),
+                'exposure': max(min_exposure, scitools.misc(delta / exposure_rate, min_exposure)),
                 'delta': delta,
             }
             options.update(run)

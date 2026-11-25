@@ -69,7 +69,8 @@ class RasterForm(FormManager):
         aperture_field = self.get_field('aperture')
         for i, value in enumerate(self.beamline.aperture.get_choices()):
             aperture_field.append(str(value), f"{value}")
-        self.set_value('aperture', self.beamline.config.centering.aperture)
+        self.set_value('aperture', self.beamline.config.raster.aperture)
+        self.set_value('exposure', self.beamline.config.raster.exposure)
 
         scoring_field = self.get_field('scoring')
         for i, value in SCORING_LABELS.items():
@@ -88,12 +89,17 @@ class RasterForm(FormManager):
             )
             self.set_values({'hsteps': hsteps, 'vsteps': vsteps, 'height': vsteps*aperture, 'width': hsteps*aperture})
 
+        if name in ['aperture']:
+            exposure = misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.01)
+            self.set_value("exposure", exposure)
+
         if name in ['aperture', 'exposure']:
             exposure = self.get_value('exposure')
-            
             exposure_limit = 1/self.beamline.config.raster.max_freq
-            min_exposure = misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.025)
-            self.set_value('exposure', max(exposure, exposure_limit, min_exposure))
+            min_exposure = misc.nearest(aperture / self.beamline.config.raster.max_speed, 0.01)
+
+            if name == 'exposure':
+                self.set_value('exposure', max(exposure, exposure_limit, min_exposure))
 
 
 class RasterController(Object):
@@ -101,14 +107,14 @@ class RasterController(Object):
         READY, ACTIVE, WAITING = range(3)
 
     Fields = (
-        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.001, 720, 0.005)),
+        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.01, 5, 0.01)),
         FieldSpec('resolution', 'entry', '{:0.2g}', Validator.Float(0.5, 50, 2.0)),
         FieldSpec('width', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
         FieldSpec('height', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
         FieldSpec('hsteps', 'entry', '{:d}', Validator.Int(1, 100, 10)),
         FieldSpec('vsteps', 'entry', '{:d}', Validator.Int(1, 100, 10)),
         FieldSpec('aperture', 'cbox', '{}', Validator.Int(None, None, 0)),
-        FieldSpec('scoring', 'cbox', '{}', Validator.Int(None, None, ScoringScheme.SCORE)),
+        FieldSpec('scoring', 'cbox', '{}', Validator.Int(None, None, ScoringScheme.SUMMARY)),
         FieldSpec('low_dose', 'check', '{}', Validator.Bool(True)),
     )
 
@@ -362,18 +368,20 @@ class RasterController(Object):
         params = self.microscope.grid_params
         if not params:
             return
-            
+
+        if 'aperture' in params:
+            self.form.set_value('aperture', params['aperture'], propagate=True)
+
         if 'width' in params and 'height' in params:
             self.form.set_values({
                 'width': params['width'],
                 'height': params['height'],
             }, propagate=True)
-            
+
         if 'exposure' in params:
             self.form.set_value('exposure', params['exposure'], propagate=True)
             
-        if 'aperture' in params:
-            self.form.set_value('aperture', params['aperture'], propagate=True)
+
 
     def add_result_item(self, item: dict):
         parent, child = self.manager.add_item(item)

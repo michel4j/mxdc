@@ -54,8 +54,8 @@ def get_min_max(values, ldev=1, rdev=1):
     return mn - ldev * dev, mx + rdev * dev
 
 
-def nearest(value, quantum=0.025):
-    return round(value/quantum)*quantum
+def nearest(value, precision=0.01):
+    return int(round(value / precision)) * precision
 
 
 def same_value(a, b, prec, deg=False):

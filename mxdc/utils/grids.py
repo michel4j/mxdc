@@ -163,7 +163,7 @@ def check_grid_quality(scores: np.ndarray, max_search_lag: int = 32) -> dict:
         'optimal_shift': optimal_shift,
         'offset': int(round(optimal_shift)),
         'best_corr': round(best_corr, 3),
-        'is_recoverable': bool(best_corr >= 0.80)
+        'is_recoverable': bool(best_corr >= 0.8) or bool(best_corr > r0 + 0.5)
     }
 
 
@@ -361,7 +361,7 @@ def fix_grid(params, grid_config, max_delay=0.650):
 
     quality = check_grid_quality(grid_config['grid_scores'], max_search_lag=max_offset)
     quality['lag'] = params['exposure'] * quality['optimal_shift']
-    #debug_value(quality)
+    debug_value(quality)
     if quality['r0'] > 0.8 or not quality['is_recoverable']:
         return grid_config
 
