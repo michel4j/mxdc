@@ -14,7 +14,7 @@ logger = log.get_module_logger('grids')
 MAX_STEPS = 101            # Maximum number of images per line
 MAX_EXPOSURE = 501          # Maximum exposure time per frame in ms
 TIME_CONSTANT = 28.903      # Time constant in ms
-PHASE_RANGE = [0.22, 0.495] # Range of valid phase values
+PHASE_RANGE = [0.25, 0.45] # Range of valid phase values
 
 
 class ScoringScheme(IntEnum):
@@ -64,12 +64,13 @@ class GridSettings:
         return max(exposure, min_exposure, exposure_limit)
 
     def fix(self, steps: int, exposure: int):
+        phase = (steps * exposure / TIME_CONSTANT) % 1
         score = self.score_setting(steps, exposure)
         if score:
             return (steps, exposure)
         else:
             best_steps, best_exposure = self.nearest[:, steps, exposure]
-            logger.info(f"Adjusted grid from {steps}/{exposure} [{score}] -> {best_steps}/{best_exposure}")
+            logger.info(f"Adjusted grid from {steps}/{exposure} [{score} ~ {phase:0.3f}] -> {best_steps}/{best_exposure}")
             return best_steps, best_exposure
 
 

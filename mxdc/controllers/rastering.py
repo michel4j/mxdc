@@ -119,7 +119,7 @@ class RasterController(Object):
         READY, ACTIVE, WAITING = range(3)
 
     Fields = (
-        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.02, 0.5, 0.01)),
+        FieldSpec('exposure', 'entry', '{:0.3g}', Validator.Float(0.03, 0.5, 0.01)),
         FieldSpec('resolution', 'entry', '{:0.2g}', Validator.Float(0.5, 50, 2.0)),
         FieldSpec('width', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
         FieldSpec('height', 'entry', '{:0.0f}', Validator.Float(5., 1000., 200.)),
@@ -157,7 +157,7 @@ class RasterController(Object):
         self.results = {}
         self.form = RasterForm(
             widget, beamline=self.beamline,
-            fields=self.Fields, prefix='raster', persist=True, disabled=('hsteps', 'vsteps')
+            fields=self.Fields, prefix='raster', persist=True, disabled=('hsteps', 'vsteps', 'scoring')
         )
 
         # signals

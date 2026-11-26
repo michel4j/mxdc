@@ -76,8 +76,10 @@ class RasterCollector(Engine):
 
         # fix grid settings:
         if grid_settings.get('fix_raster_exposure', False):
-            hsteps, exposure_ms = grids.settings.fix(params['hsteps'], int(round(params['exposure']*1000)))
-            params['hsteps'] = hsteps, params['exposure'] = exposure_ms*1e-3
+            exposure_ms =  int(round(params['exposure']*1000))
+            hsteps, exposure_ms = grids.settings.fix(params['hsteps'], exposure_ms)
+            params['hsteps'] = hsteps
+            params['exposure'] = exposure_ms*1e-3
 
         # calculate grid from dimensions
         grid, index, frames = grids.grid_from_size(

@@ -33,7 +33,7 @@ class XRFScan(BasicScan):
     def configure(self, **kwargs):
         super().configure(**kwargs)
         self.config.update(
-            filename=os.path.join(self.config.directory, "{}.xdi".format(self.config.name)),
+            filename=os.path.join(self.config.directory, f"{self.config.name}.xdi"),
             user=misc.get_project_name(),
         )
 
